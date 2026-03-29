@@ -1,0 +1,8 @@
+{
+  "ExcludedItems": [
+    "vcpkg/",
+    "build/",
+    "LICENSE",
+    "README.md"
+  ]
+}
