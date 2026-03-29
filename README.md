@@ -1,2 +1,2 @@
-# bitloop-util
-c++ utilities (f128/f256, constexpr helpers, etc)
+# fltx
+A lightweight double-double / quad-double implementation.
