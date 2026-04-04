@@ -10,6 +10,7 @@
 #include <cstring>
 #include <utility>
 #include <type_traits>
+#include <cstdint>
 
 #ifndef FMA_AVAILABLE
 #ifndef __EMSCRIPTEN__
@@ -17,12 +18,6 @@
 #define FMA_AVAILABLE
 #endif
 #endif
-#endif
-
-#ifdef FMA_AVAILABLE
-#define CONSTEXPR_NO_FMA
-#else
-#define CONSTEXPR_NO_FMA constexpr
 #endif
 
 #ifndef FORCE_INLINE
@@ -101,7 +96,12 @@
 #define BL_POP_PRECISE
 #endif
 
-namespace bl::fltx_common {
+// todo: 
+// change bl::fltx::common to  bl::fltx::common
+// put numeric_types in       bl::fltx
+// constexpr_dispatch in      bl::
+
+namespace bl::fltx::common {
 
 enum class format_kind : unsigned char { general, fixed_frac, scientific_frac, scientific_sig };
 
@@ -128,7 +128,6 @@ FORCE_INLINE constexpr bool isinf(double value) noexcept
     const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
     return (bits & 0x7fffffffffffffffULL) == 0x7ff0000000000000ULL;
 }
-
 FORCE_INLINE constexpr bool isfinite(double value) noexcept
 {
     static_assert(std::numeric_limits<double>::is_iec559,
@@ -138,6 +137,25 @@ FORCE_INLINE constexpr bool isfinite(double value) noexcept
     return (bits & 0x7ff0000000000000ULL) != 0x7ff0000000000000ULL;
 }
 
+template<int bits_to_clear>
+FORCE_INLINE constexpr double zero_low_fraction_bits_finite(double value) noexcept
+{
+    static_assert(bits_to_clear >= 0 && bits_to_clear <= 52);
+
+    if constexpr (bits_to_clear == 0)
+        return value;
+
+    if (!isfinite(value) || value == 0.0)
+        return value;
+
+    constexpr std::uint64_t fraction_mask = (std::uint64_t{ 1 } << 52) - 1ULL;
+    constexpr std::uint64_t clear_mask = ~((std::uint64_t{ 1 } << bits_to_clear) - 1ULL);
+
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
+    const std::uint64_t sign_and_exponent = bits & ~fraction_mask;
+    const std::uint64_t fraction = bits & fraction_mask;
+    return std::bit_cast<double>(sign_and_exponent | (fraction & clear_mask));
+}
 FORCE_INLINE constexpr bool isnan(double value) noexcept
 {
     static_assert(std::numeric_limits<double>::is_iec559,
@@ -147,8 +165,427 @@ FORCE_INLINE constexpr bool isnan(double value) noexcept
     const std::uint64_t abs_bits = bits & 0x7fffffffffffffffULL;
     return abs_bits > 0x7ff0000000000000ULL;
 }
-
 FORCE_INLINE constexpr double absd(double x) noexcept { return (x < 0.0) ? -x : x; }
+
+// faster implementation
+FORCE_INLINE constexpr int    frexp_exponent_constexpr(double x) noexcept
+{
+    if (x == 0.0 || !isfinite(x))
+        return 0;
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(x);
+    const std::uint32_t exp_bits = static_cast<std::uint32_t>((bits >> 52) & 0x7ffu);
+    if (exp_bits != 0)
+        return static_cast<int>(exp_bits) - 1022;
+    std::uint64_t frac = bits & ((std::uint64_t{ 1 } << 52) - 1);
+    int e = -1022;
+    while ((frac & (std::uint64_t{ 1 } << 52)) == 0)
+    {
+        frac <<= 1;
+        --e;
+    }
+    return e;
+}
+FORCE_INLINE constexpr int    highest_bit_index_constexpr(std::uint64_t value) noexcept
+{
+    int index = -1;
+    while (value != 0)
+    {
+        value >>= 1;
+        ++index;
+    }
+    return index;
+}
+FORCE_INLINE constexpr double scalbn_constexpr2(double value, int exp) noexcept
+{
+    if (value == 0.0 || isnan(value) || isinf(value) || exp == 0)
+        return value;
+
+    constexpr std::uint64_t sign_mask = 0x8000000000000000ull;
+    constexpr std::uint64_t exponent_mask = 0x7ff0000000000000ull;
+    constexpr std::uint64_t fraction_mask = 0x000fffffffffffffull;
+    constexpr std::uint64_t hidden_bit = 0x0010000000000000ull;
+
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
+    const std::uint64_t sign = bits & sign_mask;
+    const std::uint64_t fraction = bits & fraction_mask;
+    const std::uint32_t exponent_bits = static_cast<std::uint32_t>((bits & exponent_mask) >> 52);
+
+    std::uint64_t significand = 0;
+    long long unbiased_exponent = 0;
+
+    if (exponent_bits != 0)
+    {
+        significand = hidden_bit | fraction;
+        unbiased_exponent = static_cast<int>(exponent_bits) - 1023;
+    }
+    else
+    {
+        const int msb_index = highest_bit_index_constexpr(fraction);
+        significand = fraction << (52 - msb_index);
+        unbiased_exponent = static_cast<long long>(msb_index) - 1074ll;
+    }
+
+    const long long new_unbiased_exponent = unbiased_exponent + static_cast<long long>(exp);
+
+    if (new_unbiased_exponent > 1023)
+        return std::bit_cast<double>(sign | exponent_mask);
+
+    if (new_unbiased_exponent >= -1022)
+    {
+        const std::uint64_t new_exponent_bits =
+            static_cast<std::uint64_t>(new_unbiased_exponent + 1023) << 52;
+        const std::uint64_t new_fraction = significand & fraction_mask;
+        return std::bit_cast<double>(sign | new_exponent_bits | new_fraction);
+    }
+
+    const long long shift = -1022ll - new_unbiased_exponent;
+    if (shift >= 64)
+        return std::bit_cast<double>(sign);
+
+    const unsigned shift_u = static_cast<unsigned>(shift);
+
+    std::uint64_t subnormal_fraction = 0;
+    if (shift_u == 0)
+    {
+        subnormal_fraction = significand;
+    }
+    else
+    {
+        const std::uint64_t truncated = significand >> shift_u;
+        const std::uint64_t remainder_mask = (std::uint64_t{ 1 } << shift_u) - 1;
+        const std::uint64_t remainder = significand & remainder_mask;
+        const std::uint64_t halfway = std::uint64_t{ 1 } << (shift_u - 1);
+        const bool round_up =
+            (remainder > halfway) ||
+            (remainder == halfway && (truncated & 1u) != 0);
+
+        subnormal_fraction = truncated + static_cast<std::uint64_t>(round_up);
+    }
+
+    if (subnormal_fraction >= hidden_bit)
+        return std::bit_cast<double>(sign | (std::uint64_t{ 1 } << 52));
+
+    if (subnormal_fraction == 0)
+        return std::bit_cast<double>(sign);
+
+    return std::bit_cast<double>(sign | subnormal_fraction);
+}
+FORCE_INLINE constexpr double ldexp_constexpr2(double value, int exp) noexcept
+{
+    return scalbn_constexpr2(value, exp);
+}
+FORCE_INLINE constexpr double log_series_reduced_constexpr(double z) noexcept
+{
+    const double z2 = z * z;
+    const double poly =
+        1.0 + z2 * (
+        1.0 / 3.0 + z2 * (
+        1.0 / 5.0 + z2 * (
+        1.0 / 7.0 + z2 * (
+        1.0 / 9.0 + z2 * (
+        1.0 / 11.0 + z2 * (
+        1.0 / 13.0 + z2 * (
+        1.0 / 15.0 + z2 * (
+        1.0 / 17.0 + z2 * (
+        1.0 / 19.0 + z2 * (
+        1.0 / 21.0 + z2 * (
+        1.0 / 23.0 + z2 * (
+        1.0 / 25.0 + z2 * (
+        1.0 / 27.0 + z2 * (
+        1.0 / 29.0 + z2 * (
+        1.0 / 31.0)))))))))))))));
+
+    return 2.0 * z * poly;
+}
+FORCE_INLINE constexpr double log_constexpr(double x) noexcept
+{
+    constexpr double ln2 = 0.6931471805599453094172321214581765680755;
+    constexpr double sqrt_half = 0.7071067811865475244008443621048490392848;
+
+    if (isnan(x)) return  std::numeric_limits<double>::quiet_NaN();
+    if (x == 0.0) return -std::numeric_limits<double>::infinity();
+    if (x < 0.0)  return  std::numeric_limits<double>::quiet_NaN();
+    if (isinf(x)) return  std::numeric_limits<double>::infinity();
+
+    int e = frexp_exponent_constexpr(x);
+    double m = ldexp_constexpr2(x, -e);
+
+    if (m < sqrt_half)
+    {
+        m *= 2.0;
+        --e;
+    }
+
+    const double z = (m - 1.0) / (m + 1.0);
+    return static_cast<double>(e) * ln2 + log_series_reduced_constexpr(z);
+}
+FORCE_INLINE constexpr double log1p_constexpr(double x) noexcept
+{
+    if (x == -1.0) return -std::numeric_limits<double>::infinity();
+    if (x < -1.0 || isnan(x)) return std::numeric_limits<double>::quiet_NaN();
+    if (isinf(x)) return x;
+    if (x == 0.0) return x;
+
+    const double ax = absd(x);
+    if (ax < 0.5)
+        return log_series_reduced_constexpr(x / (2.0 + x));
+
+    return log_constexpr(1.0 + x);
+}
+
+
+FORCE_INLINE constexpr bool   signbit_constexpr(double x) noexcept
+{
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(x);
+    return (bits >> 63) != 0;
+}
+FORCE_INLINE constexpr double fabs_constexpr(double x) noexcept
+{
+    return absd(x);
+}
+FORCE_INLINE constexpr double floor_constexpr(double x) noexcept
+{
+    if (isnan(x) || isinf(x) || x == 0.0)
+        return x;
+
+    const double ax = absd(x);
+    if (ax >= 4503599627370496.0)
+        return x;
+
+    const long long i = static_cast<long long>(x);
+    double di = static_cast<double>(i);
+    if (di > x)
+        di -= 1.0;
+    if (di == 0.0)
+        return signbit_constexpr(x) ? -0.0 : 0.0;
+    return di;
+}
+FORCE_INLINE constexpr double ceil_constexpr(double x) noexcept
+{
+    if (isnan(x) || isinf(x) || x == 0.0)
+        return x;
+
+    const double ax = absd(x);
+    if (ax >= 4503599627370496.0)
+        return x;
+
+    const long long i = static_cast<long long>(x);
+    double di = static_cast<double>(i);
+    if (di < x)
+        di += 1.0;
+    if (di == 0.0)
+        return signbit_constexpr(x) ? -0.0 : 0.0;
+    return di;
+}
+FORCE_INLINE constexpr double trunc_constexpr(double x) noexcept
+{
+    return signbit_constexpr(x) ? ceil_constexpr(x) : floor_constexpr(x);
+}
+FORCE_INLINE constexpr long long llround_constexpr(double x) noexcept
+{
+    if (isnan(x) || isinf(x))
+        return 0;
+
+    const double rounded = signbit_constexpr(x) ? (x - 0.5) : (x + 0.5);
+
+    constexpr double min_ll = static_cast<double>(std::numeric_limits<long long>::min());
+    constexpr double max_ll = static_cast<double>(std::numeric_limits<long long>::max());
+
+    if (rounded < min_ll || rounded > max_ll)
+        return 0;
+
+    return static_cast<long long>(rounded);
+}
+FORCE_INLINE constexpr double fmod_constexpr(double x, double y) noexcept
+{
+    if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
+        return std::numeric_limits<double>::quiet_NaN();
+    if (isinf(y) || x == 0.0)
+        return x;
+
+    const double q = trunc_constexpr(x / y);
+    return x - q * y;
+}
+FORCE_INLINE constexpr bool   double_integer_is_odd(double x) noexcept
+{
+    const double ax = absd(x);
+    if (!isfinite(x) || ax < 1.0 || ax >= 9007199254740992.0)
+        return false;
+    const long long i = static_cast<long long>(x);
+    return (i & 1ll) != 0;
+}
+FORCE_INLINE constexpr double nearbyint_ties_even(double x) noexcept
+{
+    if (isnan(x) || isinf(x) || x == 0.0)
+        return x;
+
+    const double t = floor_constexpr(x);
+    const double frac = x - t;
+    if (frac < 0.5)
+        return t;
+    if (frac > 0.5)
+        return t + 1.0;
+    double out = double_integer_is_odd(t) ? (t + 1.0) : t;
+    if (out == 0.0)
+        return signbit_constexpr(x) ? -0.0 : 0.0;
+    return out;
+}
+
+FORCE_INLINE constexpr double atan_series_constexpr(double x) noexcept
+{
+    const double x2 = x * x;
+    double term = x;
+    double sum = x;
+    for (int k = 3; k <= 41; k += 2)
+    {
+        term *= -x2;
+        sum += term / static_cast<double>(k);
+    }
+    return sum;
+}
+FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
+{
+    constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
+    constexpr double pi_4 = 0.7853981633974483096156608458198757210493;
+    constexpr double tan_pi_8 = 0.4142135623730950488016887242096980785697;
+
+    if (isnan(x))
+        return std::numeric_limits<double>::quiet_NaN();
+    if (isinf(x))
+        return signbit_constexpr(x) ? -pi_2 : pi_2;
+    if (x == 0.0)
+        return x;
+
+    const bool neg = x < 0.0;
+    const double ax = neg ? -x : x;
+
+    double out = 0.0;
+    if (ax > 1.0)
+    {
+        out = pi_2 - atan_constexpr(1.0 / ax);
+    }
+    else if (ax > tan_pi_8)
+    {
+        const double t = (ax - 1.0) / (ax + 1.0);
+        out = pi_4 + atan_series_constexpr(t);
+    }
+    else
+        out = atan_series_constexpr(ax);
+
+    return neg ? -out : out;
+}
+FORCE_INLINE constexpr double atan2_constexpr(double y, double x) noexcept
+{
+    constexpr double pi = 3.1415926535897932384626433832795028841972;
+    constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
+
+    if (isnan(x) || isnan(y))
+        return std::numeric_limits<double>::quiet_NaN();
+    if (x == 0.0)
+    {
+        if (y == 0.0)
+            return std::numeric_limits<double>::quiet_NaN();
+        return signbit_constexpr(y) ? -pi_2 : pi_2;
+    }
+
+    const double a = atan_constexpr(y / x);
+    if (x < 0.0)
+        return signbit_constexpr(y) ? (a - pi) : (a + pi);
+    return a;
+}
+FORCE_INLINE constexpr void   sincos_constexpr(double x, double& s, double& c) noexcept
+{
+    constexpr double pi_2_hi = 0x1.921fb54442d18p+0;
+    constexpr double pi_2_lo = 0x1.1a62633145c07p-54;
+    constexpr double inv_pi_2 = 0x1.45f306dc9c883p-1;
+
+    if (isnan(x) || isinf(x))
+    {
+        s = std::numeric_limits<double>::quiet_NaN();
+        c = s;
+        return;
+    }
+
+    const double n = nearbyint_ties_even(x * inv_pi_2);
+    double r = (x - n * pi_2_hi) - n * pi_2_lo;
+
+    if (r > 0x1.921fb54442d18p-1)
+        r -= pi_2_hi;
+    else if (r < -0x1.921fb54442d18p-1)
+        r += pi_2_hi;
+
+    const double t = r * r;
+
+    double sp = 2.8114572543455206e-15;
+    sp = sp * t - 7.6471637318198164e-13;
+    sp = sp * t + 1.6059043836821615e-10;
+    sp = sp * t - 2.5052108385441719e-8;
+    sp = sp * t + 2.7557319223985891e-6;
+    sp = sp * t - 1.9841269841269841e-4;
+    sp = sp * t + 8.3333333333333332e-3;
+    sp = sp * t - 1.6666666666666666e-1;
+    const double sr = r + r * t * sp;
+
+    double cp = -7.6471637318198164e-13;
+    cp = cp * t + 1.6059043836821615e-10;
+    cp = cp * t - 2.7557319223985891e-8;
+    cp = cp * t + 2.4801587301587302e-5;
+    cp = cp * t - 1.3888888888888889e-3;
+    cp = cp * t + 4.1666666666666664e-2;
+    cp = cp * t - 5.0e-1;
+    const double cr = 1.0 + t * cp;
+
+    const int q = static_cast<int>(n) & 3;
+    switch (q)
+    {
+    case 0: s = sr; c = cr; break;
+    case 1: s = cr; c = -sr; break;
+    case 2: s = -sr; c = -cr; break;
+    default: s = -cr; c = sr; break;
+    }
+}
+FORCE_INLINE constexpr double sin_constexpr(double x) noexcept
+{
+    double s{}, c{};
+    sincos_constexpr(x, s, c);
+    return s;
+}
+FORCE_INLINE constexpr double cos_constexpr(double x) noexcept
+{
+    double s{}, c{};
+    sincos_constexpr(x, s, c);
+    return c;
+}
+FORCE_INLINE constexpr double tan_constexpr(double x) noexcept
+{
+    double s{}, c{};
+    sincos_constexpr(x, s, c);
+    return s / c;
+}
+FORCE_INLINE constexpr double sqrt_seed_constexpr(double x) noexcept
+{
+    if (!(x > 0.0) || isnan(x) || isinf(x))
+        return x;
+
+    int exp2 = frexp_exponent_constexpr(x);
+    double m = ldexp_constexpr2(x, -exp2);
+
+    if ((exp2 & 1) != 0)
+    {
+        m *= 2.0;
+        --exp2;
+    }
+
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(m);
+    const std::uint64_t seed = (bits >> 1) + 0x1ff8000000000000ULL;
+    double y = std::bit_cast<double>(seed);
+
+    y = 0.5 * (y + m / y);
+    y = 0.5 * (y + m / y);
+    y = 0.5 * (y + m / y);
+
+    return ldexp_constexpr2(y, exp2 / 2);
+}
 
 BL_PUSH_PRECISE
 FORCE_INLINE constexpr void two_sum_precise(double a, double b, double& s, double& e) noexcept
@@ -157,13 +594,11 @@ FORCE_INLINE constexpr void two_sum_precise(double a, double b, double& s, doubl
     double bv = s - a;
     e = (a - (s - bv)) + (b - bv);
 }
-
 FORCE_INLINE constexpr void quick_two_sum_precise(double a, double b, double& s, double& e) noexcept
 {
     s = a + b;
     e = b - (s - a);
 }
-
 FORCE_INLINE constexpr void two_prod_precise_dekker(double a, double b, double& p, double& err) noexcept
 {
     constexpr double split = 134217729.0;
@@ -188,14 +623,21 @@ FORCE_INLINE double fma1(double a, double b, double c) noexcept
 }
 #endif
 
-FORCE_INLINE CONSTEXPR_NO_FMA void two_prod_precise(double a, double b, double& p, double& err) noexcept
+FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, double& err) noexcept
 {
-#ifdef FMA_AVAILABLE
-    p = a * b;
-    err = fma1(a, b, -p);
-#else
+    #ifdef FMA_AVAILABLE
+    if consteval
+    {
+        two_prod_precise_dekker(a, b, p, err);
+    }
+    else
+    {
+        p = a * b;
+        err = fma1(a, b, -p);
+    }
+    #else
     two_prod_precise_dekker(a, b, p, err);
-#endif
+    #endif
 }
 
 FORCE_INLINE constexpr void split_uint64_to_doubles(std::uint64_t value, double& hi, double& lo) noexcept
@@ -203,7 +645,6 @@ FORCE_INLINE constexpr void split_uint64_to_doubles(std::uint64_t value, double&
     hi = static_cast<double>(value >> 32) * 4294967296.0;
     lo = static_cast<double>(value & 0xFFFFFFFFull);
 }
-
 FORCE_INLINE constexpr std::uint64_t magnitude_u64(std::int64_t value) noexcept
 {
     return (value < 0) ? (std::uint64_t{0} - static_cast<std::uint64_t>(value)) : static_cast<std::uint64_t>(value);
@@ -220,9 +661,9 @@ struct biguint
     std::uint32_t words[max_words]{};
     int size = 0;
 
-    biguint() noexcept = default;
+    constexpr biguint() noexcept = default;
 
-    explicit biguint(std::uint64_t value) noexcept
+    constexpr explicit biguint(std::uint64_t value) noexcept
     {
         if (value == 0)
             return;
@@ -238,28 +679,28 @@ struct biguint
         }
     }
 
-    void clear() noexcept
+    constexpr void clear() noexcept
     {
         size = 0;
     }
 
-    [[nodiscard]] bool is_zero() const noexcept
+    [[nodiscard]] constexpr bool is_zero() const noexcept
     {
         return size == 0;
     }
 
-    [[nodiscard]] bool is_odd() const noexcept
+    [[nodiscard]] constexpr bool is_odd() const noexcept
     {
         return size != 0 && (words[0] & 1u) != 0;
     }
 
-    void trim() noexcept
+    constexpr void trim() noexcept
     {
         while (size > 0 && words[size - 1] == 0)
             --size;
     }
 
-    [[nodiscard]] int bit_length() const noexcept
+    [[nodiscard]] constexpr int bit_length() const noexcept
     {
         if (size == 0)
             return 0;
@@ -274,7 +715,7 @@ struct biguint
         return bits;
     }
 
-    [[nodiscard]] bool get_bit(int index) const noexcept
+    [[nodiscard]] constexpr bool get_bit(int index) const noexcept
     {
         if (index < 0)
             return false;
@@ -286,7 +727,7 @@ struct biguint
         return ((words[word_index] >> (index & 31)) & 1u) != 0;
     }
 
-    [[nodiscard]] std::uint64_t get_bits(int start, int count) const noexcept
+    [[nodiscard]] constexpr std::uint64_t get_bits(int start, int count) const noexcept
     {
         std::uint64_t value = 0;
         for (int i = 0; i < count; ++i)
@@ -297,7 +738,7 @@ struct biguint
         return value;
     }
 
-    void set_bit(int index) noexcept
+    constexpr void set_bit(int index) noexcept
     {
         if (index < 0)
             return;
@@ -312,7 +753,7 @@ struct biguint
         words[word_index] |= (1u << (index & 31));
     }
 
-    void add_small(std::uint32_t value) noexcept
+    constexpr void add_small(std::uint32_t value) noexcept
     {
         std::uint64_t carry = value;
         int i = 0;
@@ -333,7 +774,7 @@ struct biguint
         }
     }
 
-    void add_inplace(const biguint& other) noexcept
+    constexpr void add_inplace(const biguint& other) noexcept
     {
         if (size < other.size)
         {
@@ -366,7 +807,7 @@ struct biguint
         }
     }
 
-    void mul_small(std::uint32_t factor) noexcept
+    constexpr void mul_small(std::uint32_t factor) noexcept
     {
         if (factor == 0 || size == 0)
         {
@@ -386,7 +827,7 @@ struct biguint
             words[size++] = static_cast<std::uint32_t>(carry);
     }
 
-    std::uint32_t div_small(std::uint32_t divisor) noexcept
+    constexpr std::uint32_t div_small(std::uint32_t divisor) noexcept
     {
         std::uint64_t rem = 0;
         for (int i = size - 1; i >= 0; --i)
@@ -399,7 +840,7 @@ struct biguint
         return static_cast<std::uint32_t>(rem);
     }
 
-    void shl1() noexcept
+    constexpr void shl1() noexcept
     {
         if (size == 0)
             return;
@@ -416,7 +857,7 @@ struct biguint
             words[size++] = static_cast<std::uint32_t>(carry);
     }
 
-    void shr1() noexcept
+    constexpr void shr1() noexcept
     {
         if (size == 0)
             return;
@@ -431,7 +872,7 @@ struct biguint
         trim();
     }
 
-    void shl_bits(int bits) noexcept
+    constexpr void shl_bits(int bits) noexcept
     {
         if (bits <= 0 || size == 0)
             return;
@@ -439,21 +880,53 @@ struct biguint
         const int word_shift = bits >> 5;
         const int bit_shift = bits & 31;
 
-        std::uint32_t out[max_words];
-        const int old_size = size;
-        int new_size = std::min(max_words, old_size + word_shift + (bit_shift != 0 ? 1 : 0));
+        if (word_shift >= max_words)
+        {
+            size = 0;
+            return;
+        }
 
-        for (int i = 0; i < new_size; ++i)
+        const int old_size = size;
+        const int src_count = std::min(old_size, max_words - word_shift);
+        if (src_count <= 0)
+        {
+            size = 0;
+            return;
+        }
+
+        if (bit_shift == 0)
+        {
+            for (int i = src_count - 1; i >= 0; --i)
+                words[i + word_shift] = words[i];
+
+            for (int i = 0; i < word_shift; ++i)
+                words[i] = 0;
+
+            size = src_count + word_shift;
+            return;
+        }
+
+        std::uint32_t out[max_words]{};
+
+        for (int i = 0; i < word_shift; ++i)
             out[i] = 0;
 
-        for (int i = 0; i < old_size; ++i)
-        {
-            const int dst = i + word_shift;
-            if (dst < max_words)
-                out[dst] |= static_cast<std::uint32_t>(static_cast<std::uint64_t>(words[i]) << bit_shift);
+        std::uint32_t carry = 0;
+        int dst = word_shift;
 
-            if (bit_shift != 0 && dst + 1 < max_words)
-                out[dst + 1] |= static_cast<std::uint32_t>(words[i] >> (32 - bit_shift));
+        for (int i = 0; i < src_count; ++i, ++dst)
+        {
+            const std::uint32_t word = words[i];
+            out[dst] = static_cast<std::uint32_t>(
+                (static_cast<std::uint64_t>(word) << bit_shift) | carry);
+            carry = static_cast<std::uint32_t>(word >> (32 - bit_shift));
+        }
+
+        int new_size = src_count + word_shift;
+        if (carry != 0 && new_size < max_words)
+        {
+            out[new_size] = carry;
+            ++new_size;
         }
 
         for (int i = 0; i < new_size; ++i)
@@ -463,7 +936,7 @@ struct biguint
         trim();
     }
 
-    [[nodiscard]] int compare(const biguint& other) const noexcept
+    [[nodiscard]] constexpr int compare(const biguint& other) const noexcept
     {
         if (size < other.size) return -1;
         if (size > other.size) return 1;
@@ -476,7 +949,7 @@ struct biguint
         return 0;
     }
 
-    void sub_inplace(const biguint& other) noexcept
+    constexpr void sub_inplace(const biguint& other) noexcept
     {
         std::uint64_t borrow = 0;
         for (int i = 0; i < size; ++i)
@@ -499,18 +972,103 @@ struct biguint
     }
 };
 
-[[nodiscard]] inline int compare(const biguint& a, const biguint& b) noexcept
+[[nodiscard]] constexpr inline int compare(const biguint& a, const biguint& b) noexcept
 {
     return a.compare(b);
 }
 
-[[nodiscard]] inline biguint shifted(biguint v, int bits) noexcept
+[[nodiscard]] constexpr inline biguint shifted(biguint v, int bits) noexcept
 {
     v.shl_bits(bits);
     return v;
 }
 
-inline biguint mul_big(const biguint& a, const biguint& b) noexcept
+[[nodiscard]] constexpr inline int high_word_index_shifted(const biguint& value, int bits) noexcept
+{
+    if (value.is_zero())
+        return -1;
+
+    const int word_shift = bits >> 5;
+    const int bit_shift = bits & 31;
+    const bool extra_word = bit_shift != 0 && (value.words[value.size - 1] >> (32 - bit_shift)) != 0;
+    return word_shift + value.size - 1 + (extra_word ? 1 : 0);
+}
+
+[[nodiscard]] constexpr inline std::uint32_t shifted_word_at(const biguint& value, int index, int bits) noexcept
+{
+    if (index < 0 || value.is_zero())
+        return 0;
+
+    const int word_shift = bits >> 5;
+    const int bit_shift = bits & 31;
+    const int src = index - word_shift;
+
+    if (bit_shift == 0)
+        return (src >= 0 && src < value.size) ? value.words[src] : 0u;
+
+    std::uint32_t out = 0;
+    if (src >= 0 && src < value.size)
+        out |= static_cast<std::uint32_t>(static_cast<std::uint64_t>(value.words[src]) << bit_shift);
+    if (src - 1 >= 0 && src - 1 < value.size)
+        out |= static_cast<std::uint32_t>(value.words[src - 1] >> (32 - bit_shift));
+    return out;
+}
+
+[[nodiscard]] constexpr inline int compare_shifted(const biguint& a, const biguint& b, int bits) noexcept
+{
+    const int a_hi = a.size - 1;
+    const int b_hi = high_word_index_shifted(b, bits);
+    if (a_hi < b_hi) return -1;
+    if (a_hi > b_hi) return 1;
+
+    for (int i = a_hi; i >= 0; --i)
+    {
+        const std::uint32_t bw = shifted_word_at(b, i, bits);
+        if (a.words[i] < bw) return -1;
+        if (a.words[i] > bw) return 1;
+    }
+    return 0;
+}
+
+constexpr inline void sub_shifted_inplace(biguint& a, const biguint& b, int bits) noexcept
+{
+    const int a_size = a.size;
+    std::uint64_t borrow = 0;
+    for (int i = 0; i < a_size; ++i)
+    {
+        const std::uint64_t bi = shifted_word_at(b, i, bits);
+        const std::uint64_t sub = bi + borrow;
+        const std::uint64_t ai = a.words[i];
+        if (ai < sub)
+        {
+            a.words[i] = static_cast<std::uint32_t>((std::uint64_t{1} << 32) + ai - sub);
+            borrow = 1;
+        }
+        else
+        {
+            a.words[i] = static_cast<std::uint32_t>(ai - sub);
+            borrow = 0;
+        }
+    }
+    a.trim();
+}
+
+constexpr inline void mod_shift_subtract(const biguint& numerator, const biguint& denominator, biguint& remainder) noexcept
+{
+    remainder = numerator;
+    if (denominator.is_zero())
+        return;
+
+    while (remainder.compare(denominator) >= 0)
+    {
+        int shift = (remainder.bit_length() - 1) - (denominator.bit_length() - 1);
+        if (shift > 0 && compare_shifted(remainder, denominator, shift) < 0)
+            --shift;
+        sub_shifted_inplace(remainder, denominator, shift);
+    }
+}
+
+constexpr inline biguint mul_big(const biguint& a, const biguint& b) noexcept
 {
     biguint out;
     if (a.is_zero() || b.is_zero())
@@ -549,7 +1107,7 @@ inline biguint mul_big(const biguint& a, const biguint& b) noexcept
     return out;
 }
 
-[[nodiscard]] inline biguint pow5_big(int exponent) noexcept
+[[nodiscard]] constexpr inline biguint pow5_big(int exponent) noexcept
 {
     biguint out{1};
     for (int i = 0; i < exponent; ++i)
@@ -557,7 +1115,7 @@ inline biguint mul_big(const biguint& a, const biguint& b) noexcept
     return out;
 }
 
-[[nodiscard]] inline biguint pow10_big(int exponent) noexcept
+[[nodiscard]] constexpr inline biguint pow10_big(int exponent) noexcept
 {
     biguint out{1};
     for (int i = 0; i < exponent; ++i)
@@ -565,7 +1123,7 @@ inline biguint mul_big(const biguint& a, const biguint& b) noexcept
     return out;
 }
 
-inline void divmod_bitwise(const biguint& numerator, const biguint& denominator, biguint& quotient, biguint& remainder) noexcept
+constexpr inline void divmod_bitwise(const biguint& numerator, const biguint& denominator, biguint& quotient, biguint& remainder) noexcept
 {
     quotient.clear();
     remainder.clear();
@@ -591,7 +1149,7 @@ inline void divmod_bitwise(const biguint& numerator, const biguint& denominator,
     remainder.trim();
 }
 
-[[nodiscard]] inline int floor_log2_ratio(const biguint& numerator, const biguint& denominator) noexcept
+[[nodiscard]] constexpr inline int floor_log2_ratio(const biguint& numerator, const biguint& denominator) noexcept
 {
     int k = (numerator.bit_length() - 1) - (denominator.bit_length() - 1);
 
@@ -619,7 +1177,7 @@ struct signed_biguint
     bool neg = false;
 };
 
-inline void add_signed(signed_biguint& acc, biguint term, bool term_neg) noexcept
+constexpr inline void add_signed(signed_biguint& acc, biguint term, bool term_neg) noexcept
 {
     if (acc.mag.is_zero())
     {
@@ -653,7 +1211,7 @@ inline void add_signed(signed_biguint& acc, biguint term, bool term_neg) noexcep
     acc.neg = term_neg;
 }
 
-[[nodiscard]] inline std::uint64_t decompose_double_mantissa(double x, int& exponent, bool& neg) noexcept
+[[nodiscard]] constexpr inline std::uint64_t decompose_double_mantissa(double x, int& exponent, bool& neg) noexcept
 {
     const std::uint64_t bits = std::bit_cast<std::uint64_t>(x);
     neg = (bits >> 63) != 0;
@@ -668,7 +1226,7 @@ inline void add_signed(signed_biguint& acc, biguint term, bool term_neg) noexcep
     return (std::uint64_t{1} << 52) | frac;
 }
 
-[[nodiscard]] inline int compare_scaled_with_pow10exp(const biguint& mag, int bin_exp, int dec_exp) noexcept
+[[nodiscard]] constexpr inline int compare_scaled_with_pow10exp(const biguint& mag, int bin_exp, int dec_exp) noexcept
 {
     if (dec_exp >= 0)
     {
@@ -824,7 +1382,7 @@ template<class Traits>
 }
 
 template<class Traits>
-inline typename Traits::value_type exact_decimal_to_value(const biguint& coeff, int dec_exp, bool neg) noexcept
+constexpr inline typename Traits::value_type exact_decimal_to_value(const biguint& coeff, int dec_exp, bool neg) noexcept
 {
     if (coeff.is_zero())
         return Traits::zero(neg);
@@ -1043,7 +1601,7 @@ FORCE_INLINE void emit_scientific_sig(std::string& out, const typename Traits::v
 }
 
 template<typename Token>
-inline void scan_decimal_digits(const char*& p, Token& token, bool fractional) noexcept
+constexpr inline void scan_decimal_digits(const char*& p, Token& token, bool fractional) noexcept
 {
     while (*p >= '0' && *p <= '9')
     {
@@ -1063,7 +1621,7 @@ inline void scan_decimal_digits(const char*& p, Token& token, bool fractional) n
 }
 
 template<typename Token>
-inline void scan_optional_exp10(const char*& p, Token& token) noexcept
+constexpr inline void scan_optional_exp10(const char*& p, Token& token) noexcept
 {
     if (*p != 'e' && *p != 'E')
         return;
@@ -1092,7 +1650,7 @@ inline void scan_optional_exp10(const char*& p, Token& token) noexcept
 }
 
 template<typename Token>
-inline bool scan_decimal_token(const char*& p, Token& token) noexcept
+constexpr inline bool scan_decimal_token(const char*& p, Token& token) noexcept
 {
     scan_decimal_digits(p, token, false);
     if (*p == '.')
@@ -1107,7 +1665,7 @@ inline bool scan_decimal_token(const char*& p, Token& token) noexcept
 }
 
 template<class Traits>
-inline bool parse_special(const char*& p, bool neg, typename Traits::value_type& out) noexcept
+constexpr inline bool parse_special(const char*& p, bool neg, typename Traits::value_type& out) noexcept
 {
     if (ascii_lower(p[0]) == 'n' && ascii_lower(p[1]) == 'a' && ascii_lower(p[2]) == 'n')
     {
@@ -1128,7 +1686,7 @@ inline bool parse_special(const char*& p, bool neg, typename Traits::value_type&
 }
 
 template<class Traits>
-inline bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
+constexpr inline bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
 {
     using token_type = typename Traits::parse_token;
 
@@ -1259,4 +1817,4 @@ inline std::ostream& write_to_stream(std::ostream& os, const typename Traits::va
     return os;
 }
 
-} // namespace bl::fltx_common
+} // namespace bl::fltx::common

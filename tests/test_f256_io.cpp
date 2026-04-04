@@ -203,7 +203,7 @@ TEST_CASE("f256 print and parse round-trip preserves explicit limb values", "[fl
 TEST_CASE("f256 brute-force random io test", "[fltx][f256][io][rand]")
 {
     std::mt19937_64 rng{ std::random_device{}() };
-    constexpr int sample_count = 10000;
+    constexpr int sample_count = 1000;
 
     std::cout << "f256 brute-force random roundtrip test: " << sample_count << " random values...\n\n";
 

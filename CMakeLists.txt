@@ -6,8 +6,15 @@ find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
 include(CTest)
 
-file(GLOB UTILITY_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
-add_executable(fltx ${UTILITY_TESTS})
+file(GLOB FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/fltx/*.h")
+file(GLOB FLTX_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
+add_executable(fltx ${FLTX_HEADERS} ${FLTX_TESTS})
+
+if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	target_compile_options(fltx PRIVATE -Wa,-mbig-obj)
+elseif (MSVC)
+	target_compile_options(fltx PRIVATE /bigobj)
+endif()
 
 find_path(MPFR_INCLUDE_DIR NAMES mpfr.h REQUIRED)
 find_library(MPFR_LIBRARY NAMES mpfr REQUIRED)
