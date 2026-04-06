@@ -1,59 +1,60 @@
 cmake_minimum_required(VERSION 3.21)
-project(fltx LANGUAGES CXX)
+project(fltx VERSION 0.1.0 LANGUAGES CXX)
 
-find_package(Catch2 3 CONFIG REQUIRED)
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
-include(Catch)
+add_library(fltx INTERFACE)
+add_library(fltx::fltx ALIAS fltx)
+
+target_include_directories(fltx
+    INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+target_compile_features(fltx INTERFACE cxx_std_20)
+
+install(TARGETS fltx
+    EXPORT fltxTargets
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(DIRECTORY include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(EXPORT fltxTargets
+    FILE fltxTargets.cmake
+    NAMESPACE fltx::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fltx
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/fltxConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/fltxConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/fltxConfig.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/fltx"
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/fltxConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/fltxConfigVersion.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/fltx"
+)
+
 include(CTest)
 
-file(GLOB FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/fltx/*.h")
-file(GLOB FLTX_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/fltx/*.cpp")
-file(GLOB FLTX_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
-add_executable(fltx ${FLTX_SOURCE} ${FLTX_HEADERS} ${FLTX_TESTS})
-
-if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-	target_compile_options(fltx PRIVATE -Wa,-mbig-obj)
-elseif (MSVC)
-	target_compile_options(fltx PRIVATE /bigobj)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
 endif()
 
-find_path(MPFR_INCLUDE_DIR NAMES mpfr.h REQUIRED)
-find_library(MPFR_LIBRARY NAMES mpfr REQUIRED)
-
-find_path(GMP_INCLUDE_DIR NAMES gmp.h REQUIRED)
-find_library(GMP_LIBRARY NAMES gmp REQUIRED)
-
-set(FLTX_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/include")
-
-target_include_directories(fltx PRIVATE
-    ${MPFR_INCLUDE_DIR}
-    ${GMP_INCLUDE_DIR}
-    ${FLTX_INCLUDE_DIR}
-)
-
-target_link_libraries(fltx PRIVATE
-    Catch2::Catch2WithMain
-    ${MPFR_LIBRARY}
-    ${GMP_LIBRARY}
-)
-
-target_compile_features(fltx PRIVATE cxx_std_20)
-
-if (MSVC)
-    target_compile_options(fltx PRIVATE /Bt+)
-    target_link_options(fltx PRIVATE /TIME)
+if(PROJECT_IS_TOP_LEVEL)
+    add_subdirectory(examples)
 endif()
 
-catch_discover_tests(fltx REPORTER console EXTRA_ARGS -s)
-
-set_property(TARGET fltx PROPERTY VS_DEBUGGER_COMMAND_ARGUMENTS "--reporter console --success")
-
-add_executable(examples
-    ${FLTX_SOURCE}
-    ${FLTX_HEADERS}
-    "${CMAKE_CURRENT_SOURCE_DIR}/examples/basic_usage.cpp"
-)
-target_compile_features(examples PRIVATE cxx_std_20)
-target_include_directories(examples PRIVATE
-    ${FLTX_INCLUDE_DIR}
-)
