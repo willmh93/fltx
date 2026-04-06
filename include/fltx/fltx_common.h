@@ -30,6 +30,18 @@
 #endif
 #endif
 
+#ifndef NO_INLINE
+#if defined(_MSC_VER)
+#define NO_INLINE [[msvc::noinline]]
+#elif defined(__clang__)
+#define NO_INLINE [[clang::noinline]]
+#elif defined(__GNUC__)
+#define NO_INLINE __attribute__((noinline))
+#else
+#define NO_INLINE
+#endif
+#endif
+
 #ifndef BL_LIKELY
 #if defined(__clang__) || defined(__GNUC__)
 #define BL_LIKELY(x)   __builtin_expect(!!(x), 1)
@@ -474,7 +486,7 @@ FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
 
     return neg ? -out : out;
 }
-FORCE_INLINE constexpr double atan2_constexpr(double y, double x) noexcept
+NO_INLINE constexpr double atan2_constexpr(double y, double x) noexcept
 {
     constexpr double pi = 3.1415926535897932384626433832795028841972;
     constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
@@ -493,7 +505,7 @@ FORCE_INLINE constexpr double atan2_constexpr(double y, double x) noexcept
         return signbit_constexpr(y) ? (a - pi) : (a + pi);
     return a;
 }
-FORCE_INLINE constexpr void   sincos_constexpr(double x, double& s, double& c) noexcept
+NO_INLINE constexpr void   sincos_constexpr(double x, double& s, double& c) noexcept
 {
     constexpr double pi_2_hi = 0x1.921fb54442d18p+0;
     constexpr double pi_2_lo = 0x1.1a62633145c07p-54;
@@ -626,7 +638,7 @@ FORCE_INLINE double fma1(double a, double b, double c) noexcept
 FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, double& err) noexcept
 {
     #ifdef FMA_AVAILABLE
-    if consteval
+    if (std::is_constant_evaluated())
     {
         two_prod_precise_dekker(a, b, p, err);
     }
@@ -1443,7 +1455,7 @@ constexpr inline typename Traits::value_type exact_decimal_to_value(const biguin
 } // namespace exact_decimal
 
 template<typename CharsResult, typename Writer>
-inline void write_chars_to_string(std::string& out, std::size_t cap, Writer&& writer)
+NO_INLINE void write_chars_to_string(std::string& out, std::size_t cap, Writer&& writer)
 {
     out.resize(cap);
     char* first = out.data();
@@ -1479,7 +1491,7 @@ FORCE_INLINE constexpr const char* skip_ascii_space(const char* p) noexcept
     return p;
 }
 
-inline void ensure_decimal_point(std::string& s)
+inline NO_INLINE void ensure_decimal_point(std::string& s)
 {
     const std::size_t e = s.find_first_of("eE");
     const std::size_t d = s.find('.');
@@ -1491,7 +1503,7 @@ inline void ensure_decimal_point(std::string& s)
         s.insert(e, ".");
 }
 
-inline void apply_stream_decorations(std::string& s, bool showpos, bool uppercase)
+inline NO_INLINE void apply_stream_decorations(std::string& s, bool showpos, bool uppercase)
 {
     if (showpos && (s.empty() || s[0] != '-'))
         s.insert(s.begin(), '+');
@@ -1601,7 +1613,7 @@ FORCE_INLINE void emit_scientific_sig(std::string& out, const typename Traits::v
 }
 
 template<typename Token>
-constexpr inline void scan_decimal_digits(const char*& p, Token& token, bool fractional) noexcept
+constexpr NO_INLINE void scan_decimal_digits(const char*& p, Token& token, bool fractional) noexcept
 {
     while (*p >= '0' && *p <= '9')
     {
@@ -1621,7 +1633,7 @@ constexpr inline void scan_decimal_digits(const char*& p, Token& token, bool fra
 }
 
 template<typename Token>
-constexpr inline void scan_optional_exp10(const char*& p, Token& token) noexcept
+constexpr NO_INLINE void scan_optional_exp10(const char*& p, Token& token) noexcept
 {
     if (*p != 'e' && *p != 'E')
         return;
@@ -1650,7 +1662,7 @@ constexpr inline void scan_optional_exp10(const char*& p, Token& token) noexcept
 }
 
 template<typename Token>
-constexpr inline bool scan_decimal_token(const char*& p, Token& token) noexcept
+constexpr NO_INLINE bool scan_decimal_token(const char*& p, Token& token) noexcept
 {
     scan_decimal_digits(p, token, false);
     if (*p == '.')
@@ -1665,7 +1677,7 @@ constexpr inline bool scan_decimal_token(const char*& p, Token& token) noexcept
 }
 
 template<class Traits>
-constexpr inline bool parse_special(const char*& p, bool neg, typename Traits::value_type& out) noexcept
+constexpr NO_INLINE bool parse_special(const char*& p, bool neg, typename Traits::value_type& out) noexcept
 {
     if (ascii_lower(p[0]) == 'n' && ascii_lower(p[1]) == 'a' && ascii_lower(p[2]) == 'n')
     {
@@ -1686,7 +1698,7 @@ constexpr inline bool parse_special(const char*& p, bool neg, typename Traits::v
 }
 
 template<class Traits>
-constexpr inline bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
+constexpr NO_INLINE bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
 {
     using token_type = typename Traits::parse_token;
 
@@ -1747,7 +1759,7 @@ constexpr inline bool parse_flt(const char* s, typename Traits::value_type& out,
 }
 
 template<class Traits>
-inline std::ostream& write_to_stream(std::ostream& os, const typename Traits::value_type& x)
+NO_INLINE std::ostream& write_to_stream(std::ostream& os, const typename Traits::value_type& x)
 {
     int prec = static_cast<int>(os.precision());
     if (prec < 0)

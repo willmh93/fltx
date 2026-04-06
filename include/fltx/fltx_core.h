@@ -70,7 +70,7 @@ namespace bl
     }
 
     template<typename T>
-    std::string to_string_collapsed(T value, int max_precision, int peek_front=4, int peek_back=10)
+    std::string to_string_collapsed(T value, int max_precision, int peek_front = 4, int peek_back = 10)
     {
         if (max_precision < 0) max_precision = 0;
         if (peek_front < 0) peek_front = 0;

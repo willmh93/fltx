@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
+
 #include "fltx_core.h"
 
 namespace bl

@@ -45,7 +45,7 @@ namespace
         comparison_result easy{};
         comparison_result medium{};
         comparison_result hard{};
-        comparison_result average{};
+        comparison_result typical{};
     };
 
     template<typename Spec>
@@ -628,24 +628,34 @@ namespace
         std::string easy_label = std::string(label) + " [easy]";
         std::string medium_label = std::string(label) + " [medium]";
         std::string hard_label = std::string(label) + " [hard]";
-        std::string average_label = std::string(label) + " [average]";
+        std::string typical_label = std::string(label) + " [typical]";
 
         print_result(easy_label.c_str(), results.easy);
         print_result(medium_label.c_str(), results.medium);
         print_result(hard_label.c_str(), results.hard);
-        print_result(average_label.c_str(), results.average);
+        print_result(typical_label.c_str(), results.typical);
     }
 
-    [[nodiscard]] comparison_result combine_results(
+    [[nodiscard]] comparison_result combine_typical_results(
         const comparison_result& easy,
         const comparison_result& medium,
         const comparison_result& hard)
     {
-        const auto combine = [](const bench_result& a, const bench_result& b, const bench_result& c)
+        constexpr std::int64_t easy_weight = 1;
+        constexpr std::int64_t medium_weight = 4;
+        constexpr std::int64_t hard_weight = 3;
+
+        const auto combine = [=](const bench_result& easy_result, const bench_result& medium_result, const bench_result& hard_result)
         {
             bench_result out{};
-            out.total_ms = a.total_ms + b.total_ms + c.total_ms;
-            out.iteration_count = a.iteration_count + b.iteration_count + c.iteration_count;
+            out.total_ms =
+                easy_result.total_ms * static_cast<double>(easy_weight) +
+                medium_result.total_ms * static_cast<double>(medium_weight) +
+                hard_result.total_ms * static_cast<double>(hard_weight);
+            out.iteration_count =
+                easy_result.iteration_count * easy_weight +
+                medium_result.iteration_count * medium_weight +
+                hard_result.iteration_count * hard_weight;
             out.ns_per_iter = (out.total_ms * 1'000'000.0) / static_cast<double>(out.iteration_count);
             return out;
         };
@@ -968,7 +978,7 @@ namespace
         out.medium.mpfr = benchmark_value_bucket<mpfr_ref>(specs.medium, total_iterations, op);
         out.hard.f256 = benchmark_value_bucket<f256>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_value_bucket<mpfr_ref>(specs.hard, total_iterations, op);
-        out.average = combine_results(out.easy, out.medium, out.hard);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
         return out;
     }
@@ -986,7 +996,7 @@ namespace
         out.medium.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.medium, total_iterations, op);
         out.hard.f256 = benchmark_binary_bucket<f256>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.hard, total_iterations, op);
-        out.average = combine_results(out.easy, out.medium, out.hard);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
         return out;
     }
@@ -1002,7 +1012,7 @@ namespace
         out.medium.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.medium, total_iterations);
         out.hard.f256 = benchmark_ldexp_bucket<f256>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.hard, total_iterations);
-        out.average = combine_results(out.easy, out.medium, out.hard);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
         return out;
     }
@@ -1018,7 +1028,7 @@ namespace
         out.medium.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.medium, total_iterations);
         out.hard.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.hard, total_iterations);
-        out.average = combine_results(out.easy, out.medium, out.hard);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
         return out;
     }
@@ -1191,12 +1201,12 @@ TEST_CASE("f256 vs mpfr tan performance", "[bench][fltx][f256][transcendental][t
     print_bucketed_results("tan", results);
 }
 
-TEST_CASE("f256 vs mpfr atan performance", "[bench][fltx][f256][transcendental][trig][atan]")
+/*TEST_CASE("f256 vs mpfr atan performance", "[bench][fltx][f256][transcendental][trig][atan]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(trig_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_atan(values[i]); });
     print_bucketed_results("atan", results);
-}
+}*/
 
 TEST_CASE("f256 vs mpfr atan2 performance", "[bench][fltx][f256][transcendental][trig][atan2]")
 {

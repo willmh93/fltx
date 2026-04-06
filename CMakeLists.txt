@@ -7,8 +7,9 @@ include(Catch)
 include(CTest)
 
 file(GLOB FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/fltx/*.h")
+file(GLOB FLTX_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/fltx/*.cpp")
 file(GLOB FLTX_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
-add_executable(fltx ${FLTX_HEADERS} ${FLTX_TESTS})
+add_executable(fltx ${FLTX_SOURCE} ${FLTX_HEADERS} ${FLTX_TESTS})
 
 if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	target_compile_options(fltx PRIVATE -Wa,-mbig-obj)
@@ -36,8 +37,23 @@ target_link_libraries(fltx PRIVATE
     ${GMP_LIBRARY}
 )
 
-target_compile_features(fltx PRIVATE cxx_std_23)
+target_compile_features(fltx PRIVATE cxx_std_20)
+
+if (MSVC)
+    target_compile_options(fltx PRIVATE /Bt+)
+    target_link_options(fltx PRIVATE /TIME)
+endif()
 
 catch_discover_tests(fltx REPORTER console EXTRA_ARGS -s)
 
 set_property(TARGET fltx PROPERTY VS_DEBUGGER_COMMAND_ARGUMENTS "--reporter console --success")
+
+add_executable(examples
+    ${FLTX_SOURCE}
+    ${FLTX_HEADERS}
+    "${CMAKE_CURRENT_SOURCE_DIR}/examples/basic_usage.cpp"
+)
+target_compile_features(examples PRIVATE cxx_std_20)
+target_include_directories(examples PRIVATE
+    ${FLTX_INCLUDE_DIR}
+)
