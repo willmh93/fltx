@@ -5,6 +5,7 @@
 #include <cmath>
 #include <ios>
 #include <limits>
+#include <numbers>
 #include <ostream>
 #include <string>
 #include <cstring>
@@ -112,6 +113,27 @@
 // change bl::fltx::common to  bl::fltx::common
 // put numeric_types in       bl::fltx
 // constexpr_dispatch in      bl::
+
+namespace bl
+{
+    // include in bl namespace in case user includes them f128/f256 manually
+    enum struct FloatType
+    {
+        F32,
+        F64,
+        F128,
+        F256,
+        COUNT
+    };
+
+    static inline const char* FloatTypeNames[(int)FloatType::COUNT] =
+    {
+        "F32",
+        "F64",
+        "F128",
+        "F256"
+    };
+}
 
 namespace bl::fltx::common {
 

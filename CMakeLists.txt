@@ -16,6 +16,12 @@ target_include_directories(fltx
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+target_sources(fltx
+    INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/fltx.natvis>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/fltx.natvis>
+)
+
 target_compile_features(fltx INTERFACE cxx_std_20)
 
 install(TARGETS fltx

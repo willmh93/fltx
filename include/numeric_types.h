@@ -20,22 +20,16 @@ namespace bl
     typedef float  f32;
     typedef double f64;
 
-    template<class T> concept is_f32  = std::is_same_v<T, f32>;
-    template<class T> concept is_f64  = std::is_same_v<T, f64>;
-    template<class T> concept is_f128 = std::is_same_v<T, f128> || std::is_same_v<T, f128_t>;
-    template<class T> concept is_f256 = std::is_same_v<T, f256> || std::is_same_v<T, f256_t>;
+    template<class T> concept is_f32_v  = std::is_same_v<T, f32>;
+    template<class T> concept is_f64_v  = std::is_same_v<T, f64>;
+    template<class T> concept is_f128_v = std::is_same_v<T, f128> || std::is_same_v<T, f128_t>;
+    template<class T> concept is_f256_v = std::is_same_v<T, f256> || std::is_same_v<T, f256_t>;
 
-    template<class T> concept is_fltx_v           = std::same_as<T, f128> || std::same_as<T, f256> || std::same_as<T, f128_t> || std::same_as<T, f256_t>;
+    template<class T> concept is_fltx_v           = std::same_as<T, f128>   || std::same_as<T, f256> ||
+                                                    std::same_as<T, f128_t> || std::same_as<T, f256_t>;
+
+    // match std style
     template<class T> concept is_floating_point_v = std::is_floating_point_v<T> || is_fltx_v<T>;
     template<class T> concept is_arithmetic_v     = std::is_arithmetic_v<T> || is_fltx_v<T>;
     template<class T> concept is_integral_v       = std::is_integral_v<T>;
-
-    enum struct FloatType
-    {
-        F32,
-        F64,
-        F128,
-        F256,
-        COUNT
-    };
 }
