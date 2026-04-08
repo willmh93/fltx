@@ -13,13 +13,13 @@
 #include <type_traits>
 #include <utility>
 
-#include <fltx/f256.h>
+#include <f256.h>
 
 using namespace bl;
 
 namespace
 {
-    constexpr unsigned mpfr_digits10 = std::numeric_limits<f256>::digits10;
+    constexpr unsigned mpfr_digits10 = std::numeric_limits<f256_s>::digits10;
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
@@ -80,7 +80,7 @@ namespace
 
     volatile double benchmark_sink = 0.0;
 
-    void consume_result(const f256& value)
+    void consume_result(const f256_s& value)
     {
         benchmark_sink += value.x0;
     }
@@ -101,7 +101,7 @@ namespace
     [[nodiscard]] T parse_benchmark_value(const char* text);
 
     template<>
-    [[nodiscard]] f256 parse_benchmark_value<f256>(const char* text)
+    [[nodiscard]] f256_s parse_benchmark_value<f256_s>(const char* text)
     {
         return to_f256(text);
     }
@@ -972,11 +972,11 @@ namespace
         Op&& op)
     {
         bucketed_comparison_result out{};
-        out.easy.f256 = benchmark_value_bucket<f256>(specs.easy, total_iterations, op);
+        out.easy.f256 = benchmark_value_bucket<f256_s>(specs.easy, total_iterations, op);
         out.easy.mpfr = benchmark_value_bucket<mpfr_ref>(specs.easy, total_iterations, op);
-        out.medium.f256 = benchmark_value_bucket<f256>(specs.medium, total_iterations, op);
+        out.medium.f256 = benchmark_value_bucket<f256_s>(specs.medium, total_iterations, op);
         out.medium.mpfr = benchmark_value_bucket<mpfr_ref>(specs.medium, total_iterations, op);
-        out.hard.f256 = benchmark_value_bucket<f256>(specs.hard, total_iterations, op);
+        out.hard.f256 = benchmark_value_bucket<f256_s>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_value_bucket<mpfr_ref>(specs.hard, total_iterations, op);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
@@ -990,11 +990,11 @@ namespace
         Op&& op)
     {
         bucketed_comparison_result out{};
-        out.easy.f256 = benchmark_binary_bucket<f256>(specs.easy, total_iterations, op);
+        out.easy.f256 = benchmark_binary_bucket<f256_s>(specs.easy, total_iterations, op);
         out.easy.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.easy, total_iterations, op);
-        out.medium.f256 = benchmark_binary_bucket<f256>(specs.medium, total_iterations, op);
+        out.medium.f256 = benchmark_binary_bucket<f256_s>(specs.medium, total_iterations, op);
         out.medium.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.medium, total_iterations, op);
-        out.hard.f256 = benchmark_binary_bucket<f256>(specs.hard, total_iterations, op);
+        out.hard.f256 = benchmark_binary_bucket<f256_s>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.hard, total_iterations, op);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
@@ -1006,11 +1006,11 @@ namespace
         std::int64_t total_iterations)
     {
         bucketed_comparison_result out{};
-        out.easy.f256 = benchmark_ldexp_bucket<f256>(specs.easy, total_iterations);
+        out.easy.f256 = benchmark_ldexp_bucket<f256_s>(specs.easy, total_iterations);
         out.easy.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.easy, total_iterations);
-        out.medium.f256 = benchmark_ldexp_bucket<f256>(specs.medium, total_iterations);
+        out.medium.f256 = benchmark_ldexp_bucket<f256_s>(specs.medium, total_iterations);
         out.medium.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.medium, total_iterations);
-        out.hard.f256 = benchmark_ldexp_bucket<f256>(specs.hard, total_iterations);
+        out.hard.f256 = benchmark_ldexp_bucket<f256_s>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.hard, total_iterations);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
@@ -1022,11 +1022,11 @@ namespace
         std::int64_t total_iterations)
     {
         bucketed_comparison_result out{};
-        out.easy.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.easy, total_iterations);
+        out.easy.f256 = benchmark_mixed_recurrence_bucket<f256_s>(specs.easy, total_iterations);
         out.easy.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.easy, total_iterations);
-        out.medium.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.medium, total_iterations);
+        out.medium.f256 = benchmark_mixed_recurrence_bucket<f256_s>(specs.medium, total_iterations);
         out.medium.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.medium, total_iterations);
-        out.hard.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.hard, total_iterations);
+        out.hard.f256 = benchmark_mixed_recurrence_bucket<f256_s>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.hard, total_iterations);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 

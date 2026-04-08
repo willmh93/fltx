@@ -10,7 +10,7 @@
 #include <string>
 #include <utility>
 
-#include <fltx/f256.h>
+#include <f256.h>
 
 using namespace bl;
 
@@ -22,8 +22,8 @@ namespace
 
     using mpfr_random = boost::multiprecision::mpfr_float_100;
 
-    constexpr int checked_digits = std::numeric_limits<f256>::digits10 - 4;
-    constexpr int print_digits = std::numeric_limits<f256>::max_digits10;
+    constexpr int checked_digits = std::numeric_limits<f256_s>::digits10 - 4;
+    constexpr int print_digits = std::numeric_limits<f256_s>::max_digits10;
 
     [[nodiscard]] mpfr_check abs_check(const mpfr_check& value)
     {
@@ -47,7 +47,7 @@ namespace
         return decimal_epsilon(checked_digits) * scale;
     }
 
-    [[nodiscard]] std::string to_text(const f256& value)
+    [[nodiscard]] std::string to_text(const f256_s& value)
     {
         return bl::to_string(value, print_digits, false, true, false);
     }
@@ -66,7 +66,7 @@ namespace
         return mpfr_check{ std::string{text} };
     }
 
-    [[nodiscard]] mpfr_check to_ref_exact(const f256& value)
+    [[nodiscard]] mpfr_check to_ref_exact(const f256_s& value)
     {
         mpfr_check sum = 0;
         sum += mpfr_check{ value.x0 };
@@ -76,7 +76,7 @@ namespace
         return sum;
     }
 
-    void require_close(const f256& actual, const mpfr_check& expected)
+    void require_close(const f256_s& actual, const mpfr_check& expected)
     {
         const mpfr_check got = to_ref_exact(actual);
         const mpfr_check tolerance = comparison_tolerance(expected);
@@ -96,7 +96,7 @@ namespace
 
     void check_parse_case(const char* text)
     {
-        f256 parsed{};
+        f256_s parsed{};
         const char* end = nullptr;
         const bool ok = parse_flt256(text, parsed, &end);
 
@@ -108,10 +108,10 @@ namespace
         require_close(parsed, to_ref(text));
     }
 
-    void check_roundtrip_case(const char* label, const f256& value)
+    void check_roundtrip_case(const char* label, const f256_s& value)
     {
         const std::string text = to_text(value);
-        const f256 reparsed = to_f256(text);
+        const f256_s reparsed = to_f256(text);
         const mpfr_check expected = to_ref_exact(value);
         const mpfr_check got = to_ref_exact(reparsed);
         const mpfr_check tolerance = comparison_tolerance(expected);
@@ -185,15 +185,15 @@ TEST_CASE("f256 parses decimal and scientific strings accurately", "[fltx][f256]
 
 TEST_CASE("f256 print and parse round-trip preserves explicit limb values", "[fltx][f256][io][roundtrip]")
 {
-    const std::array<std::pair<const char*, f256>, 8> cases = {{
-        { "zero", f256{ 0.0, 0.0, 0.0, 0.0 } },
-        { "one", f256{ 1.0, 0.0, 0.0, 0.0 } },
-        { "neg_one_point_25", f256{ -1.25, 0.0, 0.0, 0.0 } },
-        { "two_limb_small", f256{ 0.5, std::ldexp(1.0, -60), 0.0, 0.0 } },
-        { "three_limb_mix", f256{ std::ldexp(1.0, 100), -std::ldexp(1.0, 40), std::ldexp(1.0, -20), 0.0 } },
-        { "four_limb_mix", f256{ 1.0, std::ldexp(1.0, -55), -std::ldexp(1.0, -110), std::ldexp(1.0, -165) } },
-        { "large_with_tail", f256{ std::ldexp(1.0, 200), std::ldexp(1.0, 140), -std::ldexp(1.0, 80), std::ldexp(1.0, 20) } },
-        { "small_with_tail", f256{ std::ldexp(1.0, -200), -std::ldexp(1.0, -255), std::ldexp(1.0, -310), -std::ldexp(1.0, -365) } },
+    const std::array<std::pair<const char*, f256_s>, 8> cases = {{
+        { "zero", f256_s{ 0.0, 0.0, 0.0, 0.0 } },
+        { "one", f256_s{ 1.0, 0.0, 0.0, 0.0 } },
+        { "neg_one_point_25", f256_s{ -1.25, 0.0, 0.0, 0.0 } },
+        { "two_limb_small", f256_s{ 0.5, std::ldexp(1.0, -60), 0.0, 0.0 } },
+        { "three_limb_mix", f256_s{ std::ldexp(1.0, 100), -std::ldexp(1.0, 40), std::ldexp(1.0, -20), 0.0 } },
+        { "four_limb_mix", f256_s{ 1.0, std::ldexp(1.0, -55), -std::ldexp(1.0, -110), std::ldexp(1.0, -165) } },
+        { "large_with_tail", f256_s{ std::ldexp(1.0, 200), std::ldexp(1.0, 140), -std::ldexp(1.0, 80), std::ldexp(1.0, 20) } },
+        { "small_with_tail", f256_s{ std::ldexp(1.0, -200), -std::ldexp(1.0, -255), std::ldexp(1.0, -310), -std::ldexp(1.0, -365) } },
     }};
 
     for (const auto& [label, value] : cases)
@@ -212,7 +212,7 @@ TEST_CASE("f256 brute-force random io test", "[fltx][f256][io][rand]")
         const mpfr_random value = random_large_finite_for_f256(rng);
         const std::string expected = to_scientific_string(value, print_digits);
 
-        const f256 parsed = to_f256(expected);
+        const f256_s parsed = to_f256(expected);
         const std::string actual = to_text(parsed);
 
         INFO("iteration: " << i);

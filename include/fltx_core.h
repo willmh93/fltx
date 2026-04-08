@@ -92,25 +92,25 @@ namespace bl
     FORCE_INLINE constexpr double log_as_double(double a) { return fltx::common::fp::log_constexpr(a); }
 
     // todo: Move to "fltx_conversions.h" and check which headers were actually included?
-    FORCE_INLINE constexpr f256::operator f128() const noexcept { return f128{ x0, x1 }; }
-    FORCE_INLINE constexpr f256::operator f128_t() const noexcept { return f128{ x0, x1 }; }
-    FORCE_INLINE constexpr f128::operator f256() const noexcept { return f256{ hi, lo }; }
+    FORCE_INLINE constexpr f256_s::operator f128_s() const noexcept { return f128_s{ x0, x1 }; }
+    FORCE_INLINE constexpr f256_s::operator f128() const noexcept   { return f128_s{ x0, x1 }; }
+    FORCE_INLINE constexpr f128_s::operator f256_s() const noexcept { return f256_s{ hi, lo }; }
 
-    FORCE_INLINE constexpr f128_t::operator f256() const noexcept { return f256{ hi, lo }; }
-    FORCE_INLINE constexpr f128_t::operator f256_t() const noexcept { return f256{ hi, lo }; }
+    FORCE_INLINE constexpr f128::operator f256_s() const noexcept { return f256_s{ hi, lo }; }
+    FORCE_INLINE constexpr f128::operator f256() const noexcept   { return f256_s{ hi, lo }; }
 
-    FORCE_INLINE constexpr f256_t::operator f128() const noexcept { return f128{ x0, x1 }; }
-    FORCE_INLINE constexpr f256_t::operator f128_t() const noexcept { return f128{ x0, x1 }; }
+    FORCE_INLINE constexpr f256::operator f128_s() const noexcept { return f128_s{ x0, x1 }; }
+    FORCE_INLINE constexpr f256::operator f128() const noexcept   { return f128_s{ x0, x1 }; }
 
-    FORCE_INLINE constexpr f256_t::f256_t(f128 x) noexcept {
+    FORCE_INLINE constexpr f256::f256(f128_s x) noexcept {
         x0 = x.hi; x1 = x.lo; x2 = 0.0; x3 = 0.0;
     }
 
-    FORCE_INLINE constexpr f128& f128::operator=(f256 x) noexcept {
+    FORCE_INLINE constexpr f128_s& f128_s::operator=(f256_s x) noexcept {
         hi = x.x0; lo = x.x1;
         return *this;
     }
-    FORCE_INLINE constexpr f256& f256::operator=(f128 x) noexcept {
+    FORCE_INLINE constexpr f256_s& f256_s::operator=(f128_s x) noexcept {
         x0 = x.hi; x1 = x.lo; x2 = 0.0; x3 = 0.0;
         return *this;
     }
@@ -124,7 +124,7 @@ namespace bl
         std::string out;
         _f128_detail::to_string_into(
             out,
-            f128{ static_cast<double>(a), 0.0 },
+            f128_s{ static_cast<double>(a), 0.0 },
             max_precision,
             fixed,
             scientific,
@@ -142,7 +142,7 @@ namespace bl
         std::string out;
         _f128_detail::to_string_into(
             out,
-            f128{ a, 0.0 },
+            f128_s{ a, 0.0 },
             max_precision,
             fixed,
             scientific,

@@ -26,8 +26,8 @@ namespace
         boost::multiprecision::mpfr_float_backend<192>,
         boost::multiprecision::et_off>;
 
-    constexpr int checked_digits = std::numeric_limits<f128>::digits10 - 2;
-    constexpr int printed_digits = std::numeric_limits<f128>::max_digits10;
+    constexpr int checked_digits = std::numeric_limits<f128_s>::digits10 - 2;
+    constexpr int printed_digits = std::numeric_limits<f128_s>::max_digits10;
 
     constexpr std::uint64_t random_seed = 1ull;
     constexpr const char* type_label = "f128";
@@ -51,7 +51,7 @@ namespace
         return epsilon;
     }
 
-    [[nodiscard]] std::string to_text(const f128& value)
+    [[nodiscard]] std::string to_text(const f128_s& value)
     {
         return bl::to_string(value, printed_digits, false, true, false);
     }
@@ -65,7 +65,7 @@ namespace
         return out.str();
     }
 
-    [[nodiscard]] mpfr_ref to_ref_exact(const f128& value)
+    [[nodiscard]] mpfr_ref to_ref_exact(const f128_s& value)
     {
         mpfr_ref sum = 0;
         sum += mpfr_ref{ value.hi };
@@ -238,10 +238,10 @@ namespace
     template<typename F128Op, typename RefOp>
     void check_binary_op(const char* op_name, const char* lhs_text, const char* rhs_text, F128Op&& f128_op, RefOp&& ref_op)
     {
-        const f128 lhs = to_f128(lhs_text);
-        const f128 rhs = to_f128(rhs_text);
+        const f128_s lhs = to_f128(lhs_text);
+        const f128_s rhs = to_f128(rhs_text);
 
-        const f128 got = f128_op(lhs, rhs);
+        const f128_s got = f128_op(lhs, rhs);
         const mpfr_ref got_ref = to_ref_exact(got);
         const mpfr_ref expected = ref_op(to_ref_exact(lhs), to_ref_exact(rhs));
 
@@ -272,9 +272,9 @@ namespace
     template<typename F128Op, typename RefOp>
     void check_unary_op(const char* op_name, const char* input_text, F128Op&& f128_op, RefOp&& ref_op)
     {
-        const f128 input = to_f128(input_text);
+        const f128_s input = to_f128(input_text);
 
-        const f128 got = f128_op(input);
+        const f128_s got = f128_op(input);
         const mpfr_ref input_ref = to_ref_exact(input);
         const mpfr_ref got_ref = to_ref_exact(got);
         const mpfr_ref expected = ref_op(input_ref);
@@ -317,9 +317,9 @@ namespace
         F128Op&& f128_op,
         RefOp&& ref_op)
     {
-        const f128 input = to_f128(input_text);
+        const f128_s input = to_f128(input_text);
 
-        const f128 got = f128_op(input);
+        const f128_s got = f128_op(input);
         const mpfr_ref input_ref = to_ref_exact(input);
         const mpfr_ref got_ref = to_ref_exact(got);
         const mpfr_ref expected = ref_op(input_ref);
@@ -370,10 +370,10 @@ namespace
         F128Op&& f128_op,
         RefOp&& ref_op)
     {
-        const f128 lhs = to_f128(lhs_text);
-        const f128 rhs = to_f128(rhs_text);
+        const f128_s lhs = to_f128(lhs_text);
+        const f128_s rhs = to_f128(rhs_text);
 
-        const f128 got = f128_op(lhs, rhs);
+        const f128_s got = f128_op(lhs, rhs);
         const mpfr_ref got_ref = to_ref_exact(got);
         const mpfr_ref expected = ref_op(to_ref_exact(lhs), to_ref_exact(rhs));
 
@@ -628,7 +628,7 @@ namespace
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::sin(value); },
+            [](const f128_s& value) { return bl::sin(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::sin(value); });
     }
 
@@ -648,7 +648,7 @@ namespace
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::cos(value); },
+            [](const f128_s& value) { return bl::cos(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::cos(value); });
     }
 
@@ -660,8 +660,8 @@ namespace
         INFO("input_text: " << input_text);
         INFO("exponent: " << exponent);
 
-        const f128 input_value = to_f128(input_text.c_str());
-        const f128 got = bl::ldexp(input_value, exponent);
+        const f128_s input_value = to_f128(input_text.c_str());
+        const f128_s got = bl::ldexp(input_value, exponent);
         const mpfr_ref got_ref = to_ref_exact(got);
         const mpfr_ref expected = ref_ldexp(to_ref_exact(input_value), exponent);
 
@@ -709,7 +709,7 @@ namespace
             exponent_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& x, const f128& y) { return bl::pow(x, y); },
+            [](const f128_s& x, const f128_s& y) { return bl::pow(x, y); },
             [](const mpfr_ref& x, const mpfr_ref& y) { return ref_pow(x, y); });
     }
 
@@ -734,19 +734,19 @@ TEST_CASE("f128 matches MPFR for + - * /", "[fltx][f128][precision][arithmetic]"
     for (const auto& [lhs, rhs] : cases)
     {
         check_binary_op("add", lhs, rhs,
-            [](const f128& a, const f128& b) { return a + b; },
+            [](const f128_s& a, const f128_s& b) { return a + b; },
             [](const mpfr_ref& a, const mpfr_ref& b) { return a + b; });
 
         check_binary_op("subtract", lhs, rhs,
-            [](const f128& a, const f128& b) { return a - b; },
+            [](const f128_s& a, const f128_s& b) { return a - b; },
             [](const mpfr_ref& a, const mpfr_ref& b) { return a - b; });
 
         check_binary_op("multiply", lhs, rhs,
-            [](const f128& a, const f128& b) { return a * b; },
+            [](const f128_s& a, const f128_s& b) { return a * b; },
             [](const mpfr_ref& a, const mpfr_ref& b) { return a * b; });
 
         check_binary_op("divide", lhs, rhs,
-            [](const f128& a, const f128& b) { return a / b; },
+            [](const f128_s& a, const f128_s& b) { return a / b; },
             [](const mpfr_ref& a, const mpfr_ref& b) { return a / b; });
     }
 }
@@ -773,21 +773,21 @@ TEST_CASE("f128 brute-force random arithmetic matches MPFR within tolerance", "[
         INFO("rhs_text: " << rhs_text);
 
         check_binary_op("add", lhs_text.c_str(), rhs_text.c_str(),
-            [](const f128& a, const f128& b) { return a + b; },
+            [](const f128_s& a, const f128_s& b) { return a + b; },
             [](const mpfr_ref& a, const mpfr_ref& b) { return a + b; });
 
         check_binary_op("subtract", lhs_text.c_str(), rhs_text.c_str(),
-            [](const f128& a, const f128& b) { return a - b; },
+            [](const f128_s& a, const f128_s& b) { return a - b; },
             [](const mpfr_ref& a, const mpfr_ref& b) { return a - b; });
 
         check_binary_op("multiply", lhs_text.c_str(), rhs_text.c_str(),
-            [](const f128& a, const f128& b) { return a * b; },
+            [](const f128_s& a, const f128_s& b) { return a * b; },
             [](const mpfr_ref& a, const mpfr_ref& b) { return a * b; });
 
         if (rhs_big != 0)
         {
             check_binary_op("divide", lhs_text.c_str(), rhs_text.c_str(),
-                [](const f128& a, const f128& b) { return a / b; },
+                [](const f128_s& a, const f128_s& b) { return a / b; },
                 [](const mpfr_ref& a, const mpfr_ref& b) { return a / b; });
         }
     }
@@ -850,7 +850,7 @@ TEST_CASE("f128 sin matches MPFR on random reduced-range inputs", "[fltx][f128][
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::sin(value); },
+            [](const f128_s& value) { return bl::sin(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::sin(value); });
     }
 }
@@ -878,7 +878,7 @@ TEST_CASE("f128 sin matches MPFR on random range-reduced inputs", "[fltx][f128][
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::sin(value); },
+            [](const f128_s& value) { return bl::sin(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::sin(value); });
     }
 }
@@ -940,7 +940,7 @@ TEST_CASE("f128 cos matches MPFR on random reduced-range inputs", "[fltx][f128][
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::cos(value); },
+            [](const f128_s& value) { return bl::cos(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::cos(value); });
     }
 }
@@ -968,7 +968,7 @@ TEST_CASE("f128 cos matches MPFR on random range-reduced inputs", "[fltx][f128][
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::cos(value); },
+            [](const f128_s& value) { return bl::cos(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::cos(value); });
     }
 }
@@ -998,19 +998,19 @@ TEST_CASE("f128 floor ceil trunc and round match MPFR for fixed values", "[fltx]
     for (const char* input : cases)
     {
         check_unary_op("floor", input,
-            [](const f128& value) { return bl::floor(value); },
+            [](const f128_s& value) { return bl::floor(value); },
             [](const mpfr_ref& value) { return ref_floor(value); });
 
         check_unary_op("ceil", input,
-            [](const f128& value) { return bl::ceil(value); },
+            [](const f128_s& value) { return bl::ceil(value); },
             [](const mpfr_ref& value) { return ref_ceil(value); });
 
         check_unary_op("trunc", input,
-            [](const f128& value) { return bl::trunc(value); },
+            [](const f128_s& value) { return bl::trunc(value); },
             [](const mpfr_ref& value) { return ref_trunc(value); });
 
         check_unary_op("round", input,
-            [](const f128& value) { return bl::round(value); },
+            [](const f128_s& value) { return bl::round(value); },
             [](const mpfr_ref& value) { return ref_round_to_even(value); });
     }
 }
@@ -1021,13 +1021,13 @@ TEST_CASE("f128 floor ceil trunc and round match MPFR for large-limb regression 
     check_unary_op(
         "floor",
         "4.6958550912494028428400315673292717414e+19",
-        [](const f128& value) { return bl::floor(value); },
+        [](const f128_s& value) { return bl::floor(value); },
         [](const mpfr_ref& value) { return boost::multiprecision::floor(value); });
 
     check_unary_op(
         "trunc",
         "-1.5848854675958108400285213569604012722e+23",
-        [](const f128& value) { return bl::trunc(value); },
+        [](const f128_s& value) { return bl::trunc(value); },
         [](const mpfr_ref& value) { return boost::multiprecision::trunc(value); });
 }
 
@@ -1048,19 +1048,19 @@ TEST_CASE("f128 floor ceil trunc and round match MPFR on random finite inputs", 
         INFO("input_text: " << input_text);
 
         check_unary_op("floor", input_text.c_str(),
-            [](const f128& value) { return bl::floor(value); },
+            [](const f128_s& value) { return bl::floor(value); },
             [](const mpfr_ref& value) { return ref_floor(value); });
 
         check_unary_op("ceil", input_text.c_str(),
-            [](const f128& value) { return bl::ceil(value); },
+            [](const f128_s& value) { return bl::ceil(value); },
             [](const mpfr_ref& value) { return ref_ceil(value); });
 
         check_unary_op("trunc", input_text.c_str(),
-            [](const f128& value) { return bl::trunc(value); },
+            [](const f128_s& value) { return bl::trunc(value); },
             [](const mpfr_ref& value) { return ref_trunc(value); });
 
         check_unary_op("round", input_text.c_str(),
-            [](const f128& value) { return bl::round(value); },
+            [](const f128_s& value) { return bl::round(value); },
             [](const mpfr_ref& value) { return ref_round_to_even(value); });
     }
 }
@@ -1084,7 +1084,7 @@ TEST_CASE("f128 fmod matches MPFR for fixed values", "[fltx][f128][precision][ma
     for (const auto& [lhs, rhs] : cases)
     {
         check_binary_op("fmod", lhs, rhs,
-            [](const f128& x, const f128& y) { return bl::fmod(x, y); },
+            [](const f128_s& x, const f128_s& y) { return bl::fmod(x, y); },
             [](const mpfr_ref& x, const mpfr_ref& y) { return ref_fmod(x, y); });
     }
 }
@@ -1096,7 +1096,7 @@ TEST_CASE("f128 fmod matches MPFR for huge-quotient regression cases", "[fltx][f
         "fmod",
         "4.6958550912494028428400315673292717414e+19",
         "2.9410562077176174010123838366180003482e+02",
-        [](const f128& lhs, const f128& rhs) { return bl::fmod(lhs, rhs); },
+        [](const f128_s& lhs, const f128_s& rhs) { return bl::fmod(lhs, rhs); },
         [](const mpfr_ref& lhs, const mpfr_ref& rhs) { return boost::multiprecision::fmod(lhs, rhs); });
 }
 
@@ -1126,7 +1126,7 @@ TEST_CASE("f128 fmod matches MPFR on random finite inputs", "[fltx][f128][precis
             rhs_text.c_str(),
             mpfr_ref{ "1e-29" },
             mpfr_ref{ "1e-29" },
-            [](const f128& x, const f128& y) { return bl::fmod(x, y); },
+            [](const f128_s& x, const f128_s& y) { return bl::fmod(x, y); },
             [](const mpfr_ref& x, const mpfr_ref& y) { return ref_fmod(x, y); });
     }
 }
@@ -1148,7 +1148,7 @@ TEST_CASE("f128 sqrt matches MPFR for fixed values", "[fltx][f128][precision][ma
     for (const char* input : cases)
     {
         check_unary_op("sqrt", input,
-            [](const f128& value) { return bl::sqrt(value); },
+            [](const f128_s& value) { return bl::sqrt(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::sqrt(value); });
     }
 }
@@ -1170,7 +1170,7 @@ TEST_CASE("f128 sqrt matches MPFR on random positive inputs", "[fltx][f128][prec
         INFO("input_text: " << input_text);
 
         check_unary_op("sqrt", input_text.c_str(),
-            [](const f128& value) { return bl::sqrt(value); },
+            [](const f128_s& value) { return bl::sqrt(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::sqrt(value); });
     }
 }
@@ -1238,7 +1238,7 @@ TEST_CASE("f128 exp matches MPFR for fixed values", "[fltx][f128][precision][tra
             input,
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::exp(value); },
+            [](const f128_s& value) { return bl::exp(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::exp(value); });
     }
 }
@@ -1266,7 +1266,7 @@ TEST_CASE("f128 exp matches MPFR on random moderate inputs", "[fltx][f128][preci
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::exp(value); },
+            [](const f128_s& value) { return bl::exp(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::exp(value); });
     }
 }
@@ -1295,7 +1295,7 @@ TEST_CASE("f128 exp2 matches MPFR for fixed values", "[fltx][f128][precision][tr
             input,
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::exp2(value); },
+            [](const f128_s& value) { return bl::exp2(value); },
             [](const mpfr_ref& value) { return ref_exp2(value); });
     }
 }
@@ -1323,7 +1323,7 @@ TEST_CASE("f128 exp2 matches MPFR on random moderate inputs", "[fltx][f128][prec
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::exp2(value); },
+            [](const f128_s& value) { return bl::exp2(value); },
             [](const mpfr_ref& value) { return ref_exp2(value); });
     }
 }
@@ -1352,7 +1352,7 @@ TEST_CASE("f128 log matches MPFR for fixed values", "[fltx][f128][precision][tra
             input,
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::log(value); },
+            [](const f128_s& value) { return bl::log(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::log(value); });
     }
 }
@@ -1380,7 +1380,7 @@ TEST_CASE("f128 log matches MPFR on random positive inputs", "[fltx][f128][preci
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::log(value); },
+            [](const f128_s& value) { return bl::log(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::log(value); });
     }
 }
@@ -1409,7 +1409,7 @@ TEST_CASE("f128 log2 matches MPFR for fixed values", "[fltx][f128][precision][tr
             input,
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::log2(value); },
+            [](const f128_s& value) { return bl::log2(value); },
             [](const mpfr_ref& value) { return ref_log2(value); });
     }
 }
@@ -1437,7 +1437,7 @@ TEST_CASE("f128 log2 matches MPFR on random positive inputs", "[fltx][f128][prec
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::log2(value); },
+            [](const f128_s& value) { return bl::log2(value); },
             [](const mpfr_ref& value) { return ref_log2(value); });
     }
 }
@@ -1466,7 +1466,7 @@ TEST_CASE("f128 log10 matches MPFR for fixed values", "[fltx][f128][precision][t
             input,
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::log10(value); },
+            [](const f128_s& value) { return bl::log10(value); },
             [](const mpfr_ref& value) { return ref_log10(value); });
     }
 }
@@ -1494,7 +1494,7 @@ TEST_CASE("f128 log10 matches MPFR on random positive inputs", "[fltx][f128][pre
             input_text.c_str(),
             abs_tolerance,
             rel_tolerance,
-            [](const f128& value) { return bl::log10(value); },
+            [](const f128_s& value) { return bl::log10(value); },
             [](const mpfr_ref& value) { return ref_log10(value); });
     }
 }

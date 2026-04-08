@@ -13,13 +13,13 @@
 #include <type_traits>
 #include <utility>
 
-#include <fltx/fltx_core.h>
+#include <fltx_core.h>
 
 using namespace bl;
 
 namespace
 {
-    constexpr unsigned mpfr_digits10 = std::numeric_limits<f128>::digits10;
+    constexpr unsigned mpfr_digits10 = std::numeric_limits<f128_s>::digits10;
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
@@ -97,7 +97,7 @@ namespace
 
     volatile double benchmark_sink = 0.0;
 
-    void consume_result(const f128& value)
+    void consume_result(const f128_s& value)
     {
         benchmark_sink += static_cast<double>(value);
     }
@@ -152,11 +152,11 @@ namespace
 
     [[nodiscard]] value_spec renorm_spec(double hi, double lo)
     {
-        const f128 r = bl::_f128_detail::renorm(hi, lo);
+        const f128_s r = bl::_f128_detail::renorm(hi, lo);
         return { r.hi, r.lo };
     }
 
-    [[nodiscard]] value_spec spec_from_f128(const f128& value)
+    [[nodiscard]] value_spec spec_from_f128(const f128_s& value)
     {
         return { value.hi, value.lo };
     }
@@ -548,10 +548,10 @@ namespace
         for (auto& value : out.hard)
         {
             const value_spec y_spec = make_random_value_spec(hard_rng, true, true, -100, 100);
-            const f128 y = f128{ y_spec.hi, y_spec.lo };
+            const f128_s y = f128_s{ y_spec.hi, y_spec.lo };
             const double q = std::ldexp(random_real(hard_rng, 0.5, 1.9999999999999998), random_int(hard_rng, 0, 20));
-            const f128 eps = y * std::ldexp(random_sign(hard_rng) * random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 40, 90));
-            f128 x = y * q + eps;
+            const f128_s eps = y * std::ldexp(random_sign(hard_rng) * random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 40, 90));
+            f128_s x = y * q + eps;
             if (random_bool(hard_rng))
                 x = -x;
             value.lhs = spec_from_f128(x);
@@ -606,9 +606,9 @@ namespace
     [[nodiscard]] T make_value(const value_spec& spec);
 
     template<>
-    [[nodiscard]] f128 make_value<f128>(const value_spec& spec)
+    [[nodiscard]] f128_s make_value<f128_s>(const value_spec& spec)
     {
-        return f128{ spec.hi, spec.lo };
+        return f128_s{ spec.hi, spec.lo };
     }
 
     template<>
@@ -999,11 +999,11 @@ namespace
         Op&& op)
     {
         bucketed_comparison_result out{};
-        out.easy.f128 = benchmark_unary_bucket<f128>(specs.easy, total_iterations, op);
+        out.easy.f128 = benchmark_unary_bucket<f128_s>(specs.easy, total_iterations, op);
         out.easy.mpfr = benchmark_unary_bucket<mpfr_ref>(specs.easy, total_iterations, op);
-        out.medium.f128 = benchmark_unary_bucket<f128>(specs.medium, total_iterations, op);
+        out.medium.f128 = benchmark_unary_bucket<f128_s>(specs.medium, total_iterations, op);
         out.medium.mpfr = benchmark_unary_bucket<mpfr_ref>(specs.medium, total_iterations, op);
-        out.hard.f128 = benchmark_unary_bucket<f128>(specs.hard, total_iterations, op);
+        out.hard.f128 = benchmark_unary_bucket<f128_s>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_unary_bucket<mpfr_ref>(specs.hard, total_iterations, op);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
         return out;
@@ -1016,11 +1016,11 @@ namespace
         Op&& op)
     {
         bucketed_comparison_result out{};
-        out.easy.f128 = benchmark_binary_bucket<f128>(specs.easy, total_iterations, op);
+        out.easy.f128 = benchmark_binary_bucket<f128_s>(specs.easy, total_iterations, op);
         out.easy.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.easy, total_iterations, op);
-        out.medium.f128 = benchmark_binary_bucket<f128>(specs.medium, total_iterations, op);
+        out.medium.f128 = benchmark_binary_bucket<f128_s>(specs.medium, total_iterations, op);
         out.medium.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.medium, total_iterations, op);
-        out.hard.f128 = benchmark_binary_bucket<f128>(specs.hard, total_iterations, op);
+        out.hard.f128 = benchmark_binary_bucket<f128_s>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.hard, total_iterations, op);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
         return out;
@@ -1031,11 +1031,11 @@ namespace
         std::int64_t total_iterations)
     {
         bucketed_comparison_result out{};
-        out.easy.f128 = benchmark_ldexp_bucket<f128>(specs.easy, total_iterations);
+        out.easy.f128 = benchmark_ldexp_bucket<f128_s>(specs.easy, total_iterations);
         out.easy.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.easy, total_iterations);
-        out.medium.f128 = benchmark_ldexp_bucket<f128>(specs.medium, total_iterations);
+        out.medium.f128 = benchmark_ldexp_bucket<f128_s>(specs.medium, total_iterations);
         out.medium.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.medium, total_iterations);
-        out.hard.f128 = benchmark_ldexp_bucket<f128>(specs.hard, total_iterations);
+        out.hard.f128 = benchmark_ldexp_bucket<f128_s>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.hard, total_iterations);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
         return out;
@@ -1046,11 +1046,11 @@ namespace
         std::int64_t total_iterations)
     {
         bucketed_comparison_result out{};
-        out.easy.f128 = benchmark_mixed_recurrence_bucket<f128>(specs.easy, total_iterations);
+        out.easy.f128 = benchmark_mixed_recurrence_bucket<f128_s>(specs.easy, total_iterations);
         out.easy.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.easy, total_iterations);
-        out.medium.f128 = benchmark_mixed_recurrence_bucket<f128>(specs.medium, total_iterations);
+        out.medium.f128 = benchmark_mixed_recurrence_bucket<f128_s>(specs.medium, total_iterations);
         out.medium.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.medium, total_iterations);
-        out.hard.f128 = benchmark_mixed_recurrence_bucket<f128>(specs.hard, total_iterations);
+        out.hard.f128 = benchmark_mixed_recurrence_bucket<f128_s>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.hard, total_iterations);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
         return out;

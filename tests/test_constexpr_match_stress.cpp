@@ -10,7 +10,7 @@
 #include <tuple>
 #include <type_traits>
 
-#include <fltx/fltx.h>
+#include <fltx.h>
 #include "generated_constexpr_cases.h"
 
 using namespace bl;
@@ -48,13 +48,13 @@ namespace
     [[nodiscard]] constexpr T parse_from_text(const char* text) noexcept;
 
     template<>
-    [[nodiscard]] constexpr f128 parse_from_text<f128>(const char* text) noexcept
+    [[nodiscard]] constexpr f128_s parse_from_text<f128_s>(const char* text) noexcept
     {
         return bl::to_f128(text);
     }
 
     template<>
-    [[nodiscard]] constexpr f256 parse_from_text<f256>(const char* text) noexcept
+    [[nodiscard]] constexpr f256_s parse_from_text<f256_s>(const char* text) noexcept
     {
         return bl::to_f256(text);
     }
@@ -63,13 +63,13 @@ namespace
     [[nodiscard]] constexpr const char* type_name() noexcept;
 
     template<>
-    [[nodiscard]] constexpr const char* type_name<f128>() noexcept
+    [[nodiscard]] constexpr const char* type_name<f128_s>() noexcept
     {
         return "f128";
     }
 
     template<>
-    [[nodiscard]] constexpr const char* type_name<f256>() noexcept
+    [[nodiscard]] constexpr const char* type_name<f256_s>() noexcept
     {
         return "f256";
     }
@@ -93,19 +93,19 @@ namespace
         return out.str();
     }
 
-    [[nodiscard]] std::string describe_value(const f128& value)
+    [[nodiscard]] std::string describe_value(const f128_s& value)
     {
         std::ostringstream out;
-        out << std::setprecision(std::numeric_limits<f128>::digits10) << value
+        out << std::setprecision(std::numeric_limits<f128_s>::digits10) << value
             << "\n\n{ hi=" << describe_double(value.hi)
             << ", lo=" << describe_double(value.lo) << " }";
         return out.str();
     }
 
-    [[nodiscard]] std::string describe_value(const f256& value)
+    [[nodiscard]] std::string describe_value(const f256_s& value)
     {
         std::ostringstream out;
-        out << std::setprecision(std::numeric_limits<f256>::digits10) << value
+        out << std::setprecision(std::numeric_limits<f256_s>::digits10) << value
             << "{ x0=" << describe_double(value.x0)
             << ", x1=" << describe_double(value.x1)
             << ", x2=" << describe_double(value.x2)
@@ -123,7 +123,7 @@ namespace
         return out.str();
     }
 
-    [[nodiscard]] bool exact_match_or_both_nan(const f128& lhs, const f128& rhs) noexcept
+    [[nodiscard]] bool exact_match_or_both_nan(const f128_s& lhs, const f128_s& rhs) noexcept
     {
         if (bl::isnan(lhs) && bl::isnan(rhs))
             return true;
@@ -132,7 +132,7 @@ namespace
             && bits_of(lhs.lo) == bits_of(rhs.lo);
     }
 
-    [[nodiscard]] bool exact_match_or_both_nan(const f256& lhs, const f256& rhs) noexcept
+    [[nodiscard]] bool exact_match_or_both_nan(const f256_s& lhs, const f256_s& rhs) noexcept
     {
         if (bl::isnan(lhs) && bl::isnan(rhs))
             return true;
@@ -577,48 +577,48 @@ namespace
 
 TEST_CASE("f128 constexpr results exactly match runtime results (reused parsed values)", "[fltx][constexpr][f128][stress]")
 {
-    check_parse_stress_samples<f128>();
+    check_parse_stress_samples<f128_s>();
 
-    check_arithmetic_family<f128, f128_arithmetic_cases, heavy_chunk_size>();
-    check_rounding_family<f128, rounding_cases, medium_chunk_size>();
-    check_sqrt_family<f128, sqrt_cases, medium_chunk_size>();
-    check_positive_family<f128, positive_cases, heavy_chunk_size>();
-    check_exp_family<f128, exp_cases, heavy_chunk_size>();
-    check_trig_family<f128, trig_cases, heavy_chunk_size>();
-    check_atan_family<f128, atan_cases, heavy_chunk_size>();
-    check_inverse_trig_family<f128, inverse_trig_cases, heavy_chunk_size>();
+    check_arithmetic_family<f128_s, f128_arithmetic_cases, heavy_chunk_size>();
+    check_rounding_family<f128_s, rounding_cases, medium_chunk_size>();
+    check_sqrt_family<f128_s, sqrt_cases, medium_chunk_size>();
+    check_positive_family<f128_s, positive_cases, heavy_chunk_size>();
+    check_exp_family<f128_s, exp_cases, heavy_chunk_size>();
+    check_trig_family<f128_s, trig_cases, heavy_chunk_size>();
+    check_atan_family<f128_s, atan_cases, heavy_chunk_size>();
+    check_inverse_trig_family<f128_s, inverse_trig_cases, heavy_chunk_size>();
 
-    check_binary_family<f128, f128_pow_cases, heavy_chunk_size, op_pow<f128>>(
-        "pow", [](const f128& lhs, const f128& rhs) { return bl::pow(lhs, rhs); });
-    check_binary_family<f128, f128_fmod_cases, heavy_chunk_size, op_fmod<f128>>(
-        "fmod", [](const f128& lhs, const f128& rhs) { return bl::fmod(lhs, rhs); });
-    check_binary_family<f128, f128_atan2_cases, heavy_chunk_size, op_atan2<f128>>(
-        "atan2", [](const f128& lhs, const f128& rhs) { return bl::atan2(lhs, rhs); });
-    check_binary_family<f128, f128_remainder_cases, heavy_chunk_size, op_remainder<f128>>(
-        "remainder", [](const f128& lhs, const f128& rhs) { return bl::remainder(lhs, rhs); });
+    check_binary_family<f128_s, f128_pow_cases, heavy_chunk_size, op_pow<f128_s>>(
+        "pow", [](const f128_s& lhs, const f128_s& rhs) { return bl::pow(lhs, rhs); });
+    check_binary_family<f128_s, f128_fmod_cases, heavy_chunk_size, op_fmod<f128_s>>(
+        "fmod", [](const f128_s& lhs, const f128_s& rhs) { return bl::fmod(lhs, rhs); });
+    check_binary_family<f128_s, f128_atan2_cases, heavy_chunk_size, op_atan2<f128_s>>(
+        "atan2", [](const f128_s& lhs, const f128_s& rhs) { return bl::atan2(lhs, rhs); });
+    check_binary_family<f128_s, f128_remainder_cases, heavy_chunk_size, op_remainder<f128_s>>(
+        "remainder", [](const f128_s& lhs, const f128_s& rhs) { return bl::remainder(lhs, rhs); });
 
-    check_ldexp_family<f128, f128_ldexp_cases, medium_chunk_size>();
+    check_ldexp_family<f128_s, f128_ldexp_cases, medium_chunk_size>();
 }
 
 TEST_CASE("f256 constexpr results exactly match runtime results (reused parsed values)", "[fltx][constexpr][f256][stress]")
 {
-    check_parse_stress_samples<f256>();
+    check_parse_stress_samples<f256_s>();
 
-    check_arithmetic_family<f256, f256_arithmetic_cases, heavy_chunk_size>();
-    check_rounding_family<f256, rounding_cases, medium_chunk_size>();
-    check_sqrt_family<f256, sqrt_cases, medium_chunk_size>();
-    check_positive_family<f256, positive_cases, heavy_chunk_size>();
-    check_exp_family<f256, exp_cases, heavy_chunk_size>();
-    check_trig_family<f256, trig_cases, heavy_chunk_size>();
-    check_atan_family<f256, atan_cases, heavy_chunk_size>();
-    check_inverse_trig_family<f256, inverse_trig_cases, heavy_chunk_size>();
+    check_arithmetic_family<f256_s, f256_arithmetic_cases, heavy_chunk_size>();
+    check_rounding_family<f256_s, rounding_cases, medium_chunk_size>();
+    check_sqrt_family<f256_s, sqrt_cases, medium_chunk_size>();
+    check_positive_family<f256_s, positive_cases, heavy_chunk_size>();
+    check_exp_family<f256_s, exp_cases, heavy_chunk_size>();
+    check_trig_family<f256_s, trig_cases, heavy_chunk_size>();
+    check_atan_family<f256_s, atan_cases, heavy_chunk_size>();
+    check_inverse_trig_family<f256_s, inverse_trig_cases, heavy_chunk_size>();
 
-    check_binary_family<f256, f256_pow_cases, heavy_chunk_size, op_pow<f256>>(
-        "pow", [](const f256& lhs, const f256& rhs) { return bl::pow(lhs, rhs); });
-    check_binary_family<f256, f256_fmod_cases, heavy_chunk_size, op_fmod<f256>>(
-        "fmod", [](const f256& lhs, const f256& rhs) { return bl::fmod(lhs, rhs); });
-    check_binary_family<f256, f256_atan2_cases, heavy_chunk_size, op_atan2<f256>>(
-        "atan2", [](const f256& lhs, const f256& rhs) { return bl::atan2(lhs, rhs); });
+    check_binary_family<f256_s, f256_pow_cases, heavy_chunk_size, op_pow<f256_s>>(
+        "pow", [](const f256_s& lhs, const f256_s& rhs) { return bl::pow(lhs, rhs); });
+    check_binary_family<f256_s, f256_fmod_cases, heavy_chunk_size, op_fmod<f256_s>>(
+        "fmod", [](const f256_s& lhs, const f256_s& rhs) { return bl::fmod(lhs, rhs); });
+    check_binary_family<f256_s, f256_atan2_cases, heavy_chunk_size, op_atan2<f256_s>>(
+        "atan2", [](const f256_s& lhs, const f256_s& rhs) { return bl::atan2(lhs, rhs); });
 
-    check_ldexp_family<f256, f256_ldexp_cases, medium_chunk_size>();
+    check_ldexp_family<f256_s, f256_ldexp_cases, medium_chunk_size>();
 }
