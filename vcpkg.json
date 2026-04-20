@@ -5,6 +5,7 @@
   "dependencies": [
     "boost-multiprecision",
     "mpfr",
-    "catch2"
+    "catch2",
+    "matplotplusplus"
   ]
 }

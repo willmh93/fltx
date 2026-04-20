@@ -1,10 +1,10 @@
-#pragma once
+#ifndef FLTX_INCLUDED
+#define FLTX_INCLUDED
 
-#include "fltx_core.h"
-#include "numeric_types.h"
-#include "constexpr_dispatch.h"
+// fltx umbrella header
 
-bl_map_enum_to_type(bl::FloatType::F32,  bl::f32);
-bl_map_enum_to_type(bl::FloatType::F64,  bl::f64);
-bl_map_enum_to_type(bl::FloatType::F128, bl::f128);
-bl_map_enum_to_type(bl::FloatType::F256, bl::f256);
+#include "fltx_io.h"
+#include "fltx_math.h"
+#include "fltx_dispatch.h"
+
+#endif

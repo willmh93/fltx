@@ -1,9 +1,11 @@
-#pragma once
+#ifndef CONSTEXPR_DISPATCH_INCLUDED
+#define CONSTEXPR_DISPATCH_INCLUDED
 
 #include <array>
 #include <type_traits>
 #include <utility>
 #include <functional>
+#include <cstdio>
 
 #ifndef FORCE_INLINE
 #if defined(_MSC_VER)
@@ -437,18 +439,6 @@ namespace constexpr_dispatch_detail
         }
     };
 
-    template<class Fun, class... Ts, class... Rest>
-    struct table_invoke_parse<Fun, type_list<Ts...>, bl::FloatType, Rest...>
-    {
-        static FORCE_INLINE decltype(auto) invoke(Fun& func, bl::FloatType fp, Rest... rest)
-        {
-            return table_invoke_parse<Fun, type_list<Ts...>, bl::mapped_enum<bl::FloatType>, Rest...>::invoke(
-                func,
-                bl::enum_type(fp),
-                rest...);
-        }
-    };
-
     template<class Fun, class... Ts, class First, class... Rest>
     struct table_invoke_parse<Fun, type_list<Ts...>, First, Rest...>
     {
@@ -559,11 +549,6 @@ namespace bl::dispatch_table_info
             using E = mapped_underlying_t<A>;
             return domain_size_v<E>;
         }
-        else if constexpr (std::is_same_v<A, bl::FloatType>)
-        {
-            // legacy direct float selector (if you pass it directly)
-            return domain_size_v<bl::FloatType>;
-        }
         else if constexpr (is_dispatch_arg_v<A>)
         {
             return domain_size_v<A>;
@@ -586,9 +571,10 @@ namespace bl::dispatch_table_info
         constexpr std::size_t sizes[] = { arg_domain_size<std::remove_cvref_t<Args>>()... };
         constexpr std::size_t total = variant_count_types<std::remove_cvref_t<Args>...>();
 
-        blPrint("%s: %zu variants\n", label ? label : "dispatch", total);
+        std::printf("%s: %zu variants\n", label ? label : "dispatch", total);
         for (std::size_t i = 0; i < sizeof...(Args); ++i)
-            blPrint("  arg[%zu] domain=%zu\n", i, sizes[i]);
+            std::printf("  arg[%zu] domain=%zu\n", i, sizes[i]);
     }
 }
 
+#endif
