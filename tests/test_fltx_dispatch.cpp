@@ -35,6 +35,8 @@ TEST_CASE("constexpr construction and conversion", "[fltx][constexpr_dispatch]")
 
     bl::table_invoke(
         bl::dispatch_table(testFunc, true), 
-        bl::FloatType::F32, bl::FloatType::F128, bl::FloatType::F256
+        bl::enum_type(bl::FloatType::F32),
+        bl::enum_type(bl::FloatType::F128),
+        bl::enum_type(bl::FloatType::F256)
     );
 }

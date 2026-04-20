@@ -13,13 +13,13 @@
 #include <type_traits>
 #include <utility>
 
-#include <fltx_core.h>
+#include <f128_math.h>
 
 using namespace bl;
 
 namespace
 {
-    constexpr unsigned mpfr_digits10 = std::numeric_limits<f128_s>::digits10;
+    constexpr unsigned mpfr_digits10 = std::numeric_limits<f128>::digits10;
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
@@ -97,7 +97,7 @@ namespace
 
     volatile double benchmark_sink = 0.0;
 
-    void consume_result(const f128_s& value)
+    void consume_result(const f128& value)
     {
         benchmark_sink += static_cast<double>(value);
     }
@@ -152,11 +152,11 @@ namespace
 
     [[nodiscard]] value_spec renorm_spec(double hi, double lo)
     {
-        const f128_s r = bl::_f128_detail::renorm(hi, lo);
+        const f128 r = bl::_f128_detail::renorm(hi, lo);
         return { r.hi, r.lo };
     }
 
-    [[nodiscard]] value_spec spec_from_f128(const f128_s& value)
+    [[nodiscard]] value_spec spec_from_f128(const f128& value)
     {
         return { value.hi, value.lo };
     }
@@ -346,6 +346,213 @@ namespace
             value = renorm_spec(random_sign(medium_rng) * random_real(medium_rng, 0.0, 16.0), random_sign(medium_rng) * random_real(medium_rng, 0.05, 0.95) * ulp_of(1.0));
         for (auto& value : out.hard)
             value = make_exp_hard_spec(hard_rng);
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> make_log1p_specs()
+    {
+        bucket_array_set<value_spec> out{};
+
+        std::mt19937_64 easy_rng{ 0x1411ull };
+        std::mt19937_64 medium_rng{ 0x1412ull };
+        std::mt19937_64 hard_rng{ 0x1413ull };
+
+        for (auto& value : out.easy)
+            value = renorm_spec(random_real(easy_rng, -0.5, 0.5), 0.0);
+        for (auto& value : out.medium)
+            value = renorm_spec(random_real(medium_rng, -0.95, 4.0), random_sign(medium_rng) * random_real(medium_rng, 0.05, 0.95) * ulp_of(1.0));
+        for (auto& value : out.hard)
+        {
+            if (random_bool(hard_rng))
+            {
+                const double margin = std::ldexp(random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 18, 60));
+                const double hi = -1.0 + margin;
+                const double lo = random_sign(hard_rng) * random_real(hard_rng, 0.05, 0.95) * ulp_of(1.0);
+                value = renorm_spec(hi, lo);
+                if ((value.hi + value.lo) <= -1.0)
+                    value = renorm_spec(std::nextafter(-1.0, 0.0), 0.0);
+            }
+            else
+            {
+                value = make_positive_near_one_spec(hard_rng, true);
+            }
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> make_hyperbolic_specs()
+    {
+        bucket_array_set<value_spec> out{};
+
+        std::mt19937_64 easy_rng{ 0x1421ull };
+        std::mt19937_64 medium_rng{ 0x1422ull };
+        std::mt19937_64 hard_rng{ 0x1423ull };
+
+        for (auto& value : out.easy)
+            value = renorm_spec(random_sign(easy_rng) * random_real(easy_rng, 0.0, 2.0), 0.0);
+        for (auto& value : out.medium)
+            value = renorm_spec(random_sign(medium_rng) * random_real(medium_rng, 0.0, 10.0), random_sign(medium_rng) * random_real(medium_rng, 0.05, 0.95) * ulp_of(10.0));
+        for (auto& value : out.hard)
+        {
+            if (random_bool(hard_rng))
+            {
+                const double hi = random_sign(hard_rng) * std::ldexp(random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 18, 60));
+                const double lo = random_sign(hard_rng) * random_real(hard_rng, 0.05, 0.95) * ulp_of(1.0);
+                value = renorm_spec(hi, lo);
+            }
+            else
+            {
+                value = renorm_spec(random_sign(hard_rng) * random_real(hard_rng, 10.0, 20.0), random_sign(hard_rng) * random_real(hard_rng, 0.05, 0.95) * ulp_of(20.0));
+            }
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> make_acosh_specs()
+    {
+        bucket_array_set<value_spec> out{};
+
+        std::mt19937_64 easy_rng{ 0x1431ull };
+        std::mt19937_64 medium_rng{ 0x1432ull };
+        std::mt19937_64 hard_rng{ 0x1433ull };
+
+        for (auto& value : out.easy)
+            value = renorm_spec(random_real(easy_rng, 1.0, 4.0), 0.0);
+        for (auto& value : out.medium)
+            value = renorm_spec(random_real(medium_rng, 1.0, 64.0), random_sign(medium_rng) * random_real(medium_rng, 0.05, 0.95) * ulp_of(64.0));
+        for (auto& value : out.hard)
+        {
+            if (random_bool(hard_rng))
+            {
+                const double margin = std::ldexp(random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 18, 60));
+                value = renorm_spec(1.0 + margin, random_sign(hard_rng) * random_real(hard_rng, 0.05, 0.95) * ulp_of(1.0));
+                if ((value.hi + value.lo) < 1.0)
+                    value = renorm_spec(1.0, 0.0);
+            }
+            else
+            {
+                value = make_random_value_spec(hard_rng, true, true, -40, 300);
+                if ((value.hi + value.lo) < 1.0)
+                    value = renorm_spec(1.0 + random_real(hard_rng, 0.25, 4.0), 0.0);
+            }
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> make_atanh_specs()
+    {
+        bucket_array_set<value_spec> out{};
+
+        std::mt19937_64 easy_rng{ 0x1441ull };
+        std::mt19937_64 medium_rng{ 0x1442ull };
+        std::mt19937_64 hard_rng{ 0x1443ull };
+
+        for (auto& value : out.easy)
+            value = renorm_spec(random_real(easy_rng, -0.75, 0.75), 0.0);
+        for (auto& value : out.medium)
+        {
+            value = renorm_spec(random_real(medium_rng, -0.999, 0.999), random_sign(medium_rng) * random_real(medium_rng, 0.05, 0.95) * ulp_of(1.0));
+            const double sum = value.hi + value.lo;
+            if (sum >= 1.0)
+                value = renorm_spec(std::nextafter(1.0, 0.0), 0.0);
+            else if (sum <= -1.0)
+                value = renorm_spec(-std::nextafter(1.0, 0.0), 0.0);
+        }
+        for (auto& value : out.hard)
+            value = make_inverse_trig_hard_spec(hard_rng);
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> make_erf_specs()
+    {
+        bucket_array_set<value_spec> out{};
+
+        std::mt19937_64 easy_rng{ 0x1461ull };
+        std::mt19937_64 medium_rng{ 0x1462ull };
+        std::mt19937_64 hard_rng{ 0x1463ull };
+
+        for (auto& value : out.easy)
+            value = renorm_spec(random_real(easy_rng, -1.5, 1.5), 0.0);
+        for (auto& value : out.medium)
+            value = renorm_spec(random_real(medium_rng, -4.0, 4.0), random_sign(medium_rng) * random_real(medium_rng, 0.05, 0.95) * ulp_of(4.0));
+        for (auto& value : out.hard)
+            value = renorm_spec(random_sign(hard_rng) * random_real(hard_rng, 4.0, 10.0), random_sign(hard_rng) * random_real(hard_rng, 0.05, 0.95) * ulp_of(10.0));
+
+        return out;
+    }
+
+    [[nodiscard]] value_spec make_gamma_hard_spec(std::mt19937_64& rng)
+    {
+        if (random_bool(rng))
+        {
+            const double anchor = static_cast<double>(random_int(rng, 1, 32));
+            const double delta = std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 18, 58));
+            return renorm_spec(anchor + random_sign(rng) * delta, 0.0);
+        }
+
+        return make_random_value_spec(rng, true, true, -3, 8);
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> make_gamma_specs()
+    {
+        bucket_array_set<value_spec> out{};
+
+        std::mt19937_64 easy_rng{ 0x1471ull };
+        std::mt19937_64 medium_rng{ 0x1472ull };
+        std::mt19937_64 hard_rng{ 0x1473ull };
+
+        for (auto& value : out.easy)
+            value = renorm_spec(random_real(easy_rng, 0.5, 8.0), 0.0);
+        for (auto& value : out.medium)
+            value = renorm_spec(random_real(medium_rng, 0.125, 24.0), random_sign(medium_rng) * random_real(medium_rng, 0.05, 0.95) * ulp_of(24.0));
+        for (auto& value : out.hard)
+        {
+            value = make_gamma_hard_spec(hard_rng);
+            if ((value.hi + value.lo) <= 0.0)
+                value = renorm_spec(0.125, 0.0);
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<binary_value_spec> make_hypot_specs()
+    {
+        bucket_array_set<binary_value_spec> out{};
+
+        std::mt19937_64 easy_rng{ 0x1481ull };
+        std::mt19937_64 medium_rng{ 0x1482ull };
+        std::mt19937_64 hard_rng{ 0x1483ull };
+
+        for (auto& value : out.easy)
+        {
+            value.lhs = make_random_value_spec(easy_rng, false, false, -20, 20);
+            value.rhs = make_random_value_spec(easy_rng, false, false, -20, 20);
+        }
+
+        for (auto& value : out.medium)
+        {
+            value.lhs = make_random_value_spec(medium_rng, false, true, -80, 80);
+            value.rhs = make_random_value_spec(medium_rng, false, true, -80, 80);
+        }
+
+        for (auto& value : out.hard)
+        {
+            if (random_bool(hard_rng))
+            {
+                value.lhs = make_random_value_spec(hard_rng, false, true, 100, 400);
+                value.rhs = make_random_value_spec(hard_rng, false, true, -120, -20);
+            }
+            else
+            {
+                value.lhs = make_random_value_spec(hard_rng, false, true, -300, 300);
+                value.rhs = make_random_value_spec(hard_rng, false, true, -300, 300);
+            }
+        }
 
         return out;
     }
@@ -548,10 +755,10 @@ namespace
         for (auto& value : out.hard)
         {
             const value_spec y_spec = make_random_value_spec(hard_rng, true, true, -100, 100);
-            const f128_s y = f128_s{ y_spec.hi, y_spec.lo };
+            const f128 y = f128{ y_spec.hi, y_spec.lo };
             const double q = std::ldexp(random_real(hard_rng, 0.5, 1.9999999999999998), random_int(hard_rng, 0, 20));
-            const f128_s eps = y * std::ldexp(random_sign(hard_rng) * random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 40, 90));
-            f128_s x = y * q + eps;
+            const f128 eps = y * std::ldexp(random_sign(hard_rng) * random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 40, 90));
+            f128 x = y * q + eps;
             if (random_bool(hard_rng))
                 x = -x;
             value.lhs = spec_from_f128(x);
@@ -606,9 +813,9 @@ namespace
     [[nodiscard]] T make_value(const value_spec& spec);
 
     template<>
-    [[nodiscard]] f128_s make_value<f128_s>(const value_spec& spec)
+    [[nodiscard]] f128 make_value<f128>(const value_spec& spec)
     {
-        return f128_s{ spec.hi, spec.lo };
+        return f128{ spec.hi, spec.lo };
     }
 
     template<>
@@ -760,6 +967,13 @@ namespace
     }
 
     template<typename T>
+    [[nodiscard]] T apply_expm1(const T& x)
+    {
+        using std::expm1;
+        return expm1(x);
+    }
+
+    template<typename T>
     [[nodiscard]] T apply_log(const T& x)
     {
         using std::log;
@@ -787,10 +1001,31 @@ namespace
     }
 
     template<typename T>
+    [[nodiscard]] T apply_log1p(const T& x)
+    {
+        using std::log1p;
+        return log1p(x);
+    }
+
+    template<typename T>
     [[nodiscard]] T apply_fmod(const T& x, const T& y)
     {
         using std::fmod;
         return fmod(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_remainder(const T& x, const T& y)
+    {
+        using std::remainder;
+        return remainder(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_hypot(const T& x, const T& y)
+    {
+        using std::hypot;
+        return hypot(x, y);
     }
 
     template<typename T>
@@ -854,6 +1089,97 @@ namespace
     {
         using std::ldexp;
         return ldexp(x, exponent);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_nearbyint(const T& x)
+    {
+        using std::nearbyint;
+        return nearbyint(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_rint(const T& x)
+    {
+        using std::rint;
+        return rint(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_sinh(const T& x)
+    {
+        using std::sinh;
+        return sinh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_cosh(const T& x)
+    {
+        using std::cosh;
+        return cosh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_tanh(const T& x)
+    {
+        using std::tanh;
+        return tanh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_asinh(const T& x)
+    {
+        using std::asinh;
+        return asinh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_acosh(const T& x)
+    {
+        using std::acosh;
+        return acosh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_atanh(const T& x)
+    {
+        using std::atanh;
+        return atanh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_cbrt(const T& x)
+    {
+        using std::cbrt;
+        return cbrt(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_erf(const T& x)
+    {
+        using std::erf;
+        return erf(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_erfc(const T& x)
+    {
+        using std::erfc;
+        return erfc(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_lgamma(const T& x)
+    {
+        using std::lgamma;
+        return lgamma(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_tgamma(const T& x)
+    {
+        using std::tgamma;
+        return tgamma(x);
     }
 
     template<typename T, typename Op>
@@ -999,11 +1325,11 @@ namespace
         Op&& op)
     {
         bucketed_comparison_result out{};
-        out.easy.f128 = benchmark_unary_bucket<f128_s>(specs.easy, total_iterations, op);
+        out.easy.f128 = benchmark_unary_bucket<f128>(specs.easy, total_iterations, op);
         out.easy.mpfr = benchmark_unary_bucket<mpfr_ref>(specs.easy, total_iterations, op);
-        out.medium.f128 = benchmark_unary_bucket<f128_s>(specs.medium, total_iterations, op);
+        out.medium.f128 = benchmark_unary_bucket<f128>(specs.medium, total_iterations, op);
         out.medium.mpfr = benchmark_unary_bucket<mpfr_ref>(specs.medium, total_iterations, op);
-        out.hard.f128 = benchmark_unary_bucket<f128_s>(specs.hard, total_iterations, op);
+        out.hard.f128 = benchmark_unary_bucket<f128>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_unary_bucket<mpfr_ref>(specs.hard, total_iterations, op);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
         return out;
@@ -1016,11 +1342,11 @@ namespace
         Op&& op)
     {
         bucketed_comparison_result out{};
-        out.easy.f128 = benchmark_binary_bucket<f128_s>(specs.easy, total_iterations, op);
+        out.easy.f128 = benchmark_binary_bucket<f128>(specs.easy, total_iterations, op);
         out.easy.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.easy, total_iterations, op);
-        out.medium.f128 = benchmark_binary_bucket<f128_s>(specs.medium, total_iterations, op);
+        out.medium.f128 = benchmark_binary_bucket<f128>(specs.medium, total_iterations, op);
         out.medium.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.medium, total_iterations, op);
-        out.hard.f128 = benchmark_binary_bucket<f128_s>(specs.hard, total_iterations, op);
+        out.hard.f128 = benchmark_binary_bucket<f128>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.hard, total_iterations, op);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
         return out;
@@ -1031,11 +1357,11 @@ namespace
         std::int64_t total_iterations)
     {
         bucketed_comparison_result out{};
-        out.easy.f128 = benchmark_ldexp_bucket<f128_s>(specs.easy, total_iterations);
+        out.easy.f128 = benchmark_ldexp_bucket<f128>(specs.easy, total_iterations);
         out.easy.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.easy, total_iterations);
-        out.medium.f128 = benchmark_ldexp_bucket<f128_s>(specs.medium, total_iterations);
+        out.medium.f128 = benchmark_ldexp_bucket<f128>(specs.medium, total_iterations);
         out.medium.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.medium, total_iterations);
-        out.hard.f128 = benchmark_ldexp_bucket<f128_s>(specs.hard, total_iterations);
+        out.hard.f128 = benchmark_ldexp_bucket<f128>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.hard, total_iterations);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
         return out;
@@ -1046,11 +1372,11 @@ namespace
         std::int64_t total_iterations)
     {
         bucketed_comparison_result out{};
-        out.easy.f128 = benchmark_mixed_recurrence_bucket<f128_s>(specs.easy, total_iterations);
+        out.easy.f128 = benchmark_mixed_recurrence_bucket<f128>(specs.easy, total_iterations);
         out.easy.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.easy, total_iterations);
-        out.medium.f128 = benchmark_mixed_recurrence_bucket<f128_s>(specs.medium, total_iterations);
+        out.medium.f128 = benchmark_mixed_recurrence_bucket<f128>(specs.medium, total_iterations);
         out.medium.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.medium, total_iterations);
-        out.hard.f128 = benchmark_mixed_recurrence_bucket<f128_s>(specs.hard, total_iterations);
+        out.hard.f128 = benchmark_mixed_recurrence_bucket<f128>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.hard, total_iterations);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
         return out;
@@ -1083,6 +1409,48 @@ namespace
     [[nodiscard]] bucket_array_set<value_spec> exponent_specs()
     {
         static const bucket_array_set<value_spec> data = make_exponent_specs();
+        return data;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> log1p_specs()
+    {
+        static const bucket_array_set<value_spec> data = make_log1p_specs();
+        return data;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> hyperbolic_specs()
+    {
+        static const bucket_array_set<value_spec> data = make_hyperbolic_specs();
+        return data;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> acosh_specs()
+    {
+        static const bucket_array_set<value_spec> data = make_acosh_specs();
+        return data;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> atanh_specs()
+    {
+        static const bucket_array_set<value_spec> data = make_atanh_specs();
+        return data;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> erf_specs()
+    {
+        static const bucket_array_set<value_spec> data = make_erf_specs();
+        return data;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> gamma_specs()
+    {
+        static const bucket_array_set<value_spec> data = make_gamma_specs();
+        return data;
+    }
+
+    [[nodiscard]] bucket_array_set<binary_value_spec> hypot_specs()
+    {
+        static const bucket_array_set<binary_value_spec> data = make_hypot_specs();
         return data;
     }
 
@@ -1329,3 +1697,121 @@ TEST_CASE("f128 vs mpfr acos performance", "[bench][fltx][f128][transcendental][
     print_bucketed_results("acos", results);
 }
 
+TEST_CASE("f128 vs mpfr nearbyint performance", "[bench][fltx][f128][rounding][nearbyint]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_nearbyint(x); });
+    print_bucketed_results("nearbyint", results);
+}
+
+TEST_CASE("f128 vs mpfr rint performance", "[bench][fltx][f128][rounding][rint]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_rint(x); });
+    print_bucketed_results("rint", results);
+}
+
+TEST_CASE("f128 vs mpfr cbrt performance", "[bench][fltx][f128][cbrt]")
+{
+    const std::int64_t total_iterations = 8000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_cbrt(x); });
+    print_bucketed_results("cbrt", results);
+}
+
+TEST_CASE("f128 vs mpfr expm1 performance", "[bench][fltx][f128][expm1]")
+{
+    const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(exponent_specs(), total_iterations, [](const auto& x) { return apply_expm1(x); });
+    print_bucketed_results("expm1", results);
+}
+
+TEST_CASE("f128 vs mpfr log1p performance", "[bench][fltx][f128][log1p]")
+{
+    const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(log1p_specs(), total_iterations, [](const auto& x) { return apply_log1p(x); });
+    print_bucketed_results("log1p", results);
+}
+
+TEST_CASE("f128 vs mpfr remainder performance", "[bench][fltx][f128][remainder]")
+{
+    const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark(fmod_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_remainder(x, y); });
+    print_bucketed_results("remainder", results);
+}
+
+TEST_CASE("f128 vs mpfr hypot performance", "[bench][fltx][f128][hypot]")
+{
+    const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark(hypot_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_hypot(x, y); });
+    print_bucketed_results("hypot", results);
+}
+
+TEST_CASE("f128 vs mpfr sinh performance", "[bench][fltx][f128][transcendental][hyperbolic][sinh]")
+{
+    const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(hyperbolic_specs(), total_iterations, [](const auto& x) { return apply_sinh(x); });
+    print_bucketed_results("sinh", results);
+}
+
+TEST_CASE("f128 vs mpfr cosh performance", "[bench][fltx][f128][transcendental][hyperbolic][cosh]")
+{
+    const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(hyperbolic_specs(), total_iterations, [](const auto& x) { return apply_cosh(x); });
+    print_bucketed_results("cosh", results);
+}
+
+TEST_CASE("f128 vs mpfr tanh performance", "[bench][fltx][f128][transcendental][hyperbolic][tanh]")
+{
+    const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(hyperbolic_specs(), total_iterations, [](const auto& x) { return apply_tanh(x); });
+    print_bucketed_results("tanh", results);
+}
+
+TEST_CASE("f128 vs mpfr asinh performance", "[bench][fltx][f128][transcendental][hyperbolic][asinh]")
+{
+    const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_asinh(x); });
+    print_bucketed_results("asinh", results);
+}
+
+TEST_CASE("f128 vs mpfr acosh performance", "[bench][fltx][f128][transcendental][hyperbolic][acosh]")
+{
+    const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(acosh_specs(), total_iterations, [](const auto& x) { return apply_acosh(x); });
+    print_bucketed_results("acosh", results);
+}
+
+TEST_CASE("f128 vs mpfr atanh performance", "[bench][fltx][f128][transcendental][hyperbolic][atanh]")
+{
+    const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(atanh_specs(), total_iterations, [](const auto& x) { return apply_atanh(x); });
+    print_bucketed_results("atanh", results);
+}
+
+TEST_CASE("f128 vs mpfr erf performance", "[bench][fltx][f128][special][erf]")
+{
+    const std::int64_t total_iterations = 600ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(erf_specs(), total_iterations, [](const auto& x) { return apply_erf(x); });
+    print_bucketed_results("erf", results);
+}
+
+TEST_CASE("f128 vs mpfr erfc performance", "[bench][fltx][f128][special][erfc]")
+{
+    const std::int64_t total_iterations = 250ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(erf_specs(), total_iterations, [](const auto& x) { return apply_erfc(x); });
+    print_bucketed_results("erfc", results);
+}
+
+TEST_CASE("f128 vs mpfr lgamma performance", "[bench][fltx][f128][special][gamma][lgamma]")
+{
+    const std::int64_t total_iterations = 1200ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(gamma_specs(), total_iterations, [](const auto& x) { return apply_lgamma(x); });
+    print_bucketed_results("lgamma", results);
+}
+
+TEST_CASE("f128 vs mpfr tgamma performance", "[bench][fltx][f128][special][gamma][tgamma]")
+{
+    const std::int64_t total_iterations = 1200ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_unary_benchmark(gamma_specs(), total_iterations, [](const auto& x) { return apply_tgamma(x); });
+    print_bucketed_results("tgamma", results);
+}

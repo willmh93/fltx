@@ -1,7 +1,9 @@
 #include <iostream>
 #include <iomanip>
 
-#include <fltx.h>
+#include <fltx_io.h>
+#include <fltx_math.h>
+#include <fltx_dispatch.h>
 using namespace bl;
 using namespace bl::literals;
 
@@ -11,7 +13,7 @@ void print_precision_example()
     constexpr f256 b = 2_qd / 3_qd;
     constexpr f256 c = a + b;
 
-    std::cout << std::setprecision(std::numeric_limits<f256_s>::digits10)
+    std::cout << std::setprecision(std::numeric_limits<f256>::digits10)
         << "a = " << a << "\n"
         << "b = " << b << "\n"
         << "a + b = " << c << "\n\n";
@@ -47,7 +49,7 @@ void print_math_example()
     for (int i = 0; i < (int)FloatType::COUNT; i++)
     {
         FloatType float_type = (FloatType)i;
-        bl::table_invoke(bl::dispatch_table(print_math, FloatTypeNames[i]), float_type);
+        bl::table_invoke(bl::dispatch_table(print_math, FloatTypeNames[i]), bl::enum_type(float_type));
     }
 
     //bl::table_invoke(bl::dispatch_table(print_math, "F32"),  FloatType::F32);

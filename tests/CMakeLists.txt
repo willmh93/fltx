@@ -23,6 +23,12 @@ find_library(MPFR_LIBRARY NAMES mpfr REQUIRED)
 find_path(GMP_INCLUDE_DIR NAMES gmp.h REQUIRED)
 find_library(GMP_LIBRARY NAMES gmp REQUIRED)
 
+find_package(Matplot++ CONFIG REQUIRED)
+target_link_libraries(tests PRIVATE Matplot++::matplot)
+
+find_path(GCEM_INCLUDE_DIRS "gcem.hpp")
+target_include_directories(tests PRIVATE ${GCEM_INCLUDE_DIRS})
+
 set(FLTX_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/../include")
 
 target_include_directories(tests PRIVATE
@@ -47,4 +53,3 @@ endif()
 catch_discover_tests(tests REPORTER console EXTRA_ARGS -s)
 
 set_property(TARGET tests PROPERTY VS_DEBUGGER_COMMAND_ARGUMENTS "--reporter console --success")
-

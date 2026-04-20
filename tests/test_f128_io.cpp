@@ -10,7 +10,7 @@
 #include <string>
 #include <utility>
 
-#include <f128.h>
+#include <f128_io.h>
 
 using namespace bl;
 
@@ -22,8 +22,8 @@ namespace
 
     using mpfr_random = boost::multiprecision::mpfr_float_50;
 
-    constexpr int checked_digits = std::numeric_limits<f128_s>::digits10 - 4;
-    constexpr int print_digits = std::numeric_limits<f128_s>::max_digits10;
+    constexpr int checked_digits = std::numeric_limits<f128>::digits10 - 4;
+    constexpr int print_digits = std::numeric_limits<f128>::max_digits10;
 
     [[nodiscard]] mpfr_check abs_check(const mpfr_check& value)
     {
@@ -47,7 +47,7 @@ namespace
         return decimal_epsilon(checked_digits) * scale;
     }
 
-    [[nodiscard]] std::string to_text(const f128_s& value)
+    [[nodiscard]] std::string to_text(const f128& value)
     {
         return bl::to_string(value, print_digits, false, true, false);
     }
@@ -66,7 +66,7 @@ namespace
         return mpfr_check{ std::string{text} };
     }
 
-    [[nodiscard]] mpfr_check to_ref_exact(const f128_s& value)
+    [[nodiscard]] mpfr_check to_ref_exact(const f128& value)
     {
         mpfr_check sum = 0;
         sum += mpfr_check{ value.hi };
@@ -74,7 +74,7 @@ namespace
         return sum;
     }
 
-    void require_close(const f128_s& actual, const mpfr_check& expected)
+    void require_close(const f128& actual, const mpfr_check& expected)
     {
         const mpfr_check got = to_ref_exact(actual);
         const mpfr_check tolerance = comparison_tolerance(expected);
@@ -92,7 +92,7 @@ namespace
 
     void check_parse_case(const char* text)
     {
-        f128_s parsed{};
+        f128 parsed{};
         const char* end = nullptr;
         const bool ok = parse_flt128(text, parsed, &end);
 
@@ -104,10 +104,10 @@ namespace
         require_close(parsed, to_ref(text));
     }
 
-    void check_roundtrip_case(const char* label, const f128_s& value)
+    void check_roundtrip_case(const char* label, const f128& value)
     {
         const std::string text = to_text(value);
-        const f128_s reparsed = to_f128(text);
+        const f128 reparsed = to_f128(text);
         const mpfr_check expected = to_ref_exact(value);
         const mpfr_check got = to_ref_exact(reparsed);
         const mpfr_check tolerance = comparison_tolerance(expected);
@@ -177,15 +177,15 @@ TEST_CASE("f128 parses decimal and scientific strings accurately", "[fltx][f128]
 
 TEST_CASE("f128 print and parse round-trip preserves explicit limb values", "[fltx][f128][io][roundtrip]")
 {
-    const std::array<std::pair<const char*, f128_s>, 8> cases = {{
-        { "zero", f128_s{ 0.0, 0.0 } },
-        { "one", f128_s{ 1.0, 0.0 } },
-        { "neg_one_point_25", f128_s{ -1.25, 0.0 } },
-        { "two_limb_small", f128_s{ 0.5, std::ldexp(1.0, -60) } },
-        { "unit_with_tail", f128_s{ 1.0, std::ldexp(1.0, -55) } },
-        { "large_with_tail", f128_s{ std::ldexp(1.0, 200), std::ldexp(1.0, 140) } },
-        { "small_with_tail", f128_s{ std::ldexp(1.0, -200), -std::ldexp(1.0, -255) } },
-        { "mixed_sign_tail", f128_s{ std::ldexp(1.0, 100), -std::ldexp(1.0, 40) } },
+    const std::array<std::pair<const char*, f128>, 8> cases = {{
+        { "zero", f128{ 0.0, 0.0 } },
+        { "one", f128{ 1.0, 0.0 } },
+        { "neg_one_point_25", f128{ -1.25, 0.0 } },
+        { "two_limb_small", f128{ 0.5, std::ldexp(1.0, -60) } },
+        { "unit_with_tail", f128{ 1.0, std::ldexp(1.0, -55) } },
+        { "large_with_tail", f128{ std::ldexp(1.0, 200), std::ldexp(1.0, 140) } },
+        { "small_with_tail", f128{ std::ldexp(1.0, -200), -std::ldexp(1.0, -255) } },
+        { "mixed_sign_tail", f128{ std::ldexp(1.0, 100), -std::ldexp(1.0, 40) } },
     }};
 
     for (const auto& [label, value] : cases)
@@ -204,7 +204,7 @@ TEST_CASE("f128 brute-force random roundtrip test", "[fltx][f128][io][rand]")
         const mpfr_random value = random_large_finite_for_f128(rng);
         const std::string expected = to_scientific_string(value, print_digits);
 
-        const f128_s parsed = to_f128(expected);
+        const f128 parsed = to_f128(expected);
         const std::string actual = to_text(parsed);
 
         INFO("iteration: " << i);

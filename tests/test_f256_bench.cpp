@@ -6,24 +6,30 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
+#include <sstream>
 #include <iostream>
 #include <limits>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
-#include <f256.h>
+#include <f256_math.h>
+#include <f256_io.h>
 
 using namespace bl;
 
 namespace
 {
-    constexpr unsigned mpfr_digits10 = std::numeric_limits<f256_s>::digits10;
+    constexpr unsigned mpfr_digits10 = std::numeric_limits<f256>::digits10;
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 50;
+    constexpr int benchmark_scale = 1;
     constexpr std::size_t bucket_value_count = 8;
     constexpr std::size_t bucket_count = 3;
 
@@ -47,6 +53,348 @@ namespace
         comparison_result hard{};
         comparison_result typical{};
     };
+
+
+    struct typical_ratio_entry
+    {
+        std::string group{};
+        std::string label{};
+        double ratio = 0.0;
+        double f256_ns_per_iter = 0.0;
+        double mpfr_ns_per_iter = 0.0;
+    };
+
+    [[nodiscard]] double calculate_ratio(const comparison_result& result)
+    {
+        if (result.f256.ns_per_iter <= 0.0)
+            return 0.0;
+
+        return result.mpfr.ns_per_iter / result.f256.ns_per_iter;
+    }
+
+    [[nodiscard]] std::string escape_csv(const std::string& text_value)
+    {
+        bool needs_quotes = false;
+        for (const char ch : text_value)
+        {
+            if (ch == ',' || ch == '"' || ch == '\n' || ch == '\r')
+            {
+                needs_quotes = true;
+                break;
+            }
+        }
+
+        if (!needs_quotes)
+            return text_value;
+
+        std::string out;
+        out.reserve(text_value.size() + 2);
+        out.push_back('"');
+        for (const char ch : text_value)
+        {
+            if (ch == '"')
+                out += "\"\"";
+            else
+                out.push_back(ch);
+        }
+        out.push_back('"');
+        return out;
+    }
+
+    [[nodiscard]] std::string escape_svg(std::string_view text_value)
+    {
+        std::string out;
+        out.reserve(text_value.size());
+
+        for (const char ch : text_value)
+        {
+            switch (ch)
+            {
+            case '&': out += "&amp;"; break;
+            case '<': out += "&lt;"; break;
+            case '>': out += "&gt;"; break;
+            case '"': out += "&quot;"; break;
+            case '\'': out += "&apos;"; break;
+            default: out.push_back(ch); break;
+            }
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] std::string format_decimal(double value, int precision)
+    {
+        std::ostringstream out;
+        out << std::fixed << std::setprecision(precision) << value;
+        return out.str();
+    }
+
+    [[nodiscard]] int benchmark_group_rank(std::string_view group)
+    {
+        if (group == "Arithmetic")
+            return 0;
+        if (group == "Rounding")
+            return 1;
+        if (group == "Roots & powers")
+            return 2;
+        if (group == "Exponentials")
+            return 3;
+        if (group == "Logarithms")
+            return 4;
+        if (group == "Remainders")
+            return 5;
+        if (group == "Trigonometric")
+            return 6;
+        if (group == "Hyperbolic")
+            return 7;
+        if (group == "Inverse hyperbolic")
+            return 8;
+        if (group == "Special functions")
+            return 9;
+        return 100;
+    }
+
+    class benchmark_chart_writer
+    {
+    public:
+        void record_typical_result(const char* group, const char* label, const comparison_result& result)
+        {
+            typical_ratio_entry entry{};
+            entry.group = group;
+            entry.label = label;
+            entry.ratio = calculate_ratio(result);
+            entry.f256_ns_per_iter = result.f256.ns_per_iter;
+            entry.mpfr_ns_per_iter = result.mpfr.ns_per_iter;
+
+            const auto found = std::find_if(entries.begin(), entries.end(), [&](const typical_ratio_entry& item)
+            {
+                return item.group == entry.group && item.label == entry.label;
+            });
+
+            if (found != entries.end())
+                *found = std::move(entry);
+            else
+                entries.push_back(std::move(entry));
+        }
+
+        ~benchmark_chart_writer() noexcept
+        {
+            try
+            {
+                write_outputs();
+            }
+            catch (...)
+            {
+            }
+        }
+
+    private:
+        struct grouped_layout_entry
+        {
+            bool is_group_heading = false;
+            std::string text{};
+            typical_ratio_entry value{};
+        };
+
+        std::vector<typical_ratio_entry> entries{};
+
+        static constexpr const char* output_dir = "benchmark_charts";
+        static constexpr const char* csv_output_path = "benchmark_charts/f256_typical_ratios.csv";
+        static constexpr const char* svg_output_path = "benchmark_charts/f256_typical_ratios.svg";
+
+        [[nodiscard]] std::vector<typical_ratio_entry> make_sorted_entries() const
+        {
+            std::vector<typical_ratio_entry> sorted = entries;
+            std::sort(sorted.begin(), sorted.end(), [](const typical_ratio_entry& lhs, const typical_ratio_entry& rhs)
+            {
+                const int lhs_group_rank = benchmark_group_rank(lhs.group);
+                const int rhs_group_rank = benchmark_group_rank(rhs.group);
+                if (lhs_group_rank != rhs_group_rank)
+                    return lhs_group_rank < rhs_group_rank;
+
+                if (lhs.ratio != rhs.ratio)
+                    return lhs.ratio > rhs.ratio;
+
+                return lhs.label < rhs.label;
+            });
+            return sorted;
+        }
+
+        [[nodiscard]] std::vector<grouped_layout_entry> make_layout_entries(const std::vector<typical_ratio_entry>& sorted_entries) const
+        {
+            std::vector<grouped_layout_entry> layout_entries;
+            layout_entries.reserve(sorted_entries.size() * 2);
+
+            std::string current_group;
+            for (const auto& entry : sorted_entries)
+            {
+                if (entry.group != current_group)
+                {
+                    current_group = entry.group;
+                    grouped_layout_entry heading{};
+                    heading.is_group_heading = true;
+                    heading.text = current_group;
+                    layout_entries.push_back(std::move(heading));
+                }
+
+                grouped_layout_entry value{};
+                value.is_group_heading = false;
+                value.value = entry;
+                layout_entries.push_back(std::move(value));
+            }
+
+            return layout_entries;
+        }
+
+        void write_outputs() const
+        {
+            if (entries.empty())
+                return;
+
+            std::filesystem::create_directories(output_dir);
+            const auto sorted_entries = make_sorted_entries();
+            write_csv(sorted_entries);
+            write_svg(sorted_entries);
+        }
+
+        void write_csv(const std::vector<typical_ratio_entry>& sorted_entries) const
+        {
+            std::ofstream out(csv_output_path, std::ios::trunc);
+            if (!out)
+                return;
+
+            out << "group,label,f256_ns_per_iter,mpfr_ns_per_iter,mpfr_to_f256_ratio\n";
+            for (const auto& item : sorted_entries)
+            {
+                out
+                    << escape_csv(item.group) << ','
+                    << escape_csv(item.label) << ','
+                    << std::setprecision(17) << item.f256_ns_per_iter << ','
+                    << std::setprecision(17) << item.mpfr_ns_per_iter << ','
+                    << std::setprecision(17) << item.ratio << '\n';
+            }
+        }
+
+        void write_svg(const std::vector<typical_ratio_entry>& sorted_entries) const
+        {
+            std::ofstream out(svg_output_path, std::ios::trunc);
+            if (!out)
+                return;
+
+            double max_ratio = 1.0;
+            std::size_t longest_label_size = 0;
+            for (const auto& item : sorted_entries)
+            {
+                max_ratio = std::max(max_ratio, item.ratio);
+                longest_label_size = std::max(longest_label_size, item.label.size());
+            }
+
+            const auto layout_entries = make_layout_entries(sorted_entries);
+            const double padded_max_ratio = max_ratio + std::max(0.2, max_ratio * 0.08);
+            const double tick_step = padded_max_ratio <= 1.5 ? 0.25 : (padded_max_ratio <= 3.5 ? 0.5 : 1.0);
+            const double tick_max = std::ceil(padded_max_ratio / tick_step) * tick_step;
+
+            constexpr int group_heading_height = 32;
+            constexpr int row_height = 34;
+            constexpr int bar_height = 24;
+            constexpr int top_margin = 92;
+            constexpr int bottom_margin = 84;
+            const int left_margin = std::max(280, static_cast<int>(longest_label_size * 11) + 48);
+            constexpr int right_margin = 96;
+            constexpr int plot_width = 1180;
+            const int width = left_margin + plot_width + right_margin;
+
+            int content_height = 0;
+            for (const auto& item : layout_entries)
+                content_height += item.is_group_heading ? group_heading_height : row_height;
+
+            const int height = top_margin + bottom_margin + content_height;
+            const int plot_left = left_margin;
+            const int plot_right = left_margin + plot_width;
+            const int plot_top = top_margin - 10;
+            const int plot_bottom = height - bottom_margin + 6;
+
+            const auto map_ratio_to_x = [&](double ratio)
+            {
+                return static_cast<double>(plot_left) + (ratio / tick_max) * static_cast<double>(plot_width);
+            };
+
+            out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+            out << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" << width << "\" height=\"" << height
+                << "\" viewBox=\"0 0 " << width << ' ' << height << "\">\n";
+            out << "  <rect x=\"0\" y=\"0\" width=\"" << width << "\" height=\"" << height << "\" fill=\"#f2f2f2\"/>\n";
+            out << "  <text x=\"" << (width / 2) << "\" y=\"38\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"28\" font-weight=\"600\" fill=\"#222222\">f256 vs MPFR typical benchmark ratios</text>\n";
+
+            for (double tick_value = 0.0; tick_value <= tick_max + 1e-9; tick_value += tick_step)
+            {
+                const double x = map_ratio_to_x(tick_value);
+                out << "  <line x1=\"" << x << "\" y1=\"" << plot_top << "\" x2=\"" << x << "\" y2=\"" << plot_bottom
+                    << "\" stroke=\"#dddddd\" stroke-width=\"1\"/>\n";
+                out << "  <text x=\"" << x << "\" y=\"" << (height - 30)
+                    << "\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"17\" fill=\"#333333\">"
+                    << escape_svg(format_decimal(tick_value, tick_step < 1.0 ? 1 : 0))
+                    << "</text>\n";
+            }
+
+            if (1.0 <= tick_max)
+            {
+                const double x = map_ratio_to_x(1.0);
+                out << "  <line x1=\"" << x << "\" y1=\"" << plot_top << "\" x2=\"" << x << "\" y2=\"" << plot_bottom
+                    << "\" stroke=\"#6da7d9\" stroke-width=\"2\" stroke-dasharray=\"6,6\"/>\n";
+            }
+
+            int y_cursor = plot_top;
+            std::string current_group;
+            for (const auto& item : layout_entries)
+            {
+                if (item.is_group_heading)
+                {
+                    if (!current_group.empty())
+                    {
+                        out << "  <line x1=\"" << (plot_left - 8) << "\" y1=\"" << y_cursor << "\" x2=\"" << plot_right
+                            << "\" y2=\"" << y_cursor << "\" stroke=\"#cfcfcf\" stroke-width=\"1\"/>\n";
+                        y_cursor += 8;
+                    }
+
+                    current_group = item.text;
+                    out << "  <text x=\"" << (plot_left - 8) << "\" y=\"" << (y_cursor + 22)
+                        << "\" text-anchor=\"end\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"20\" font-weight=\"700\" fill=\"#1f1f1f\">"
+                        << escape_svg(item.text)
+                        << "</text>\n";
+                    y_cursor += group_heading_height;
+                    continue;
+                }
+
+                const auto& value = item.value;
+                const double y = static_cast<double>(y_cursor) + (row_height - bar_height) * 0.5;
+                const double x = map_ratio_to_x(value.ratio);
+                const char* fill = value.ratio >= 1.0 ? "#89d88a" : "#2c7fb8";
+
+                out << "  <text x=\"" << (plot_left - 12) << "\" y=\"" << (y + bar_height * 0.5 + 6.0)
+                    << "\" text-anchor=\"end\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"18\" fill=\"#222222\">"
+                    << escape_svg(value.label)
+                    << "</text>\n";
+
+                out << "  <rect x=\"" << plot_left << "\" y=\"" << y << "\" width=\"" << std::max(0.0, x - plot_left) << "\" height=\"" << bar_height
+                    << "\" rx=\"2\" ry=\"2\" fill=\"" << fill << "\"/>\n";
+
+                const double value_label_x = std::min<double>(x + 10.0, static_cast<double>(plot_right - 8));
+                out << "  <text x=\"" << value_label_x
+                    << "\" y=\"" << (y + bar_height * 0.5 + 5.5)
+                    << "\" text-anchor=\"start\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"15\" font-weight=\"600\" fill=\"#444444\">"
+                    << escape_svg(format_decimal(value.ratio, 2))
+                    << "</text>\n";
+
+                y_cursor += row_height;
+            }
+
+            out << "  <text x=\"" << (plot_left + plot_width / 2) << "\" y=\"" << (height - 8)
+                << "\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"19\" fill=\"#333333\">mpfr / fltx ratio</text>\n";
+            out << "</svg>\n";
+        }
+    };
+
+    benchmark_chart_writer chart_writer{};
 
     template<typename Spec>
     struct bucket_array_set
@@ -80,7 +428,7 @@ namespace
 
     volatile double benchmark_sink = 0.0;
 
-    void consume_result(const f256_s& value)
+    void consume_result(const f256& value)
     {
         benchmark_sink += value.x0;
     }
@@ -101,7 +449,7 @@ namespace
     [[nodiscard]] T parse_benchmark_value(const char* text);
 
     template<>
-    [[nodiscard]] f256_s parse_benchmark_value<f256_s>(const char* text)
+    [[nodiscard]] f256 parse_benchmark_value<f256>(const char* text)
     {
         return to_f256(text);
     }
@@ -623,8 +971,9 @@ namespace
             << "\n";
     }
 
-    void print_bucketed_results(const char* label, const bucketed_comparison_result& results)
+    void print_bucketed_results(const char* group, const char* label, const bucketed_comparison_result& results)
     {
+        chart_writer.record_typical_result(group, label, results.typical);
         std::string easy_label = std::string(label) + " [easy]";
         std::string medium_label = std::string(label) + " [medium]";
         std::string hard_label = std::string(label) + " [hard]";
@@ -972,11 +1321,11 @@ namespace
         Op&& op)
     {
         bucketed_comparison_result out{};
-        out.easy.f256 = benchmark_value_bucket<f256_s>(specs.easy, total_iterations, op);
+        out.easy.f256 = benchmark_value_bucket<f256>(specs.easy, total_iterations, op);
         out.easy.mpfr = benchmark_value_bucket<mpfr_ref>(specs.easy, total_iterations, op);
-        out.medium.f256 = benchmark_value_bucket<f256_s>(specs.medium, total_iterations, op);
+        out.medium.f256 = benchmark_value_bucket<f256>(specs.medium, total_iterations, op);
         out.medium.mpfr = benchmark_value_bucket<mpfr_ref>(specs.medium, total_iterations, op);
-        out.hard.f256 = benchmark_value_bucket<f256_s>(specs.hard, total_iterations, op);
+        out.hard.f256 = benchmark_value_bucket<f256>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_value_bucket<mpfr_ref>(specs.hard, total_iterations, op);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
@@ -990,11 +1339,11 @@ namespace
         Op&& op)
     {
         bucketed_comparison_result out{};
-        out.easy.f256 = benchmark_binary_bucket<f256_s>(specs.easy, total_iterations, op);
+        out.easy.f256 = benchmark_binary_bucket<f256>(specs.easy, total_iterations, op);
         out.easy.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.easy, total_iterations, op);
-        out.medium.f256 = benchmark_binary_bucket<f256_s>(specs.medium, total_iterations, op);
+        out.medium.f256 = benchmark_binary_bucket<f256>(specs.medium, total_iterations, op);
         out.medium.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.medium, total_iterations, op);
-        out.hard.f256 = benchmark_binary_bucket<f256_s>(specs.hard, total_iterations, op);
+        out.hard.f256 = benchmark_binary_bucket<f256>(specs.hard, total_iterations, op);
         out.hard.mpfr = benchmark_binary_bucket<mpfr_ref>(specs.hard, total_iterations, op);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
@@ -1006,11 +1355,11 @@ namespace
         std::int64_t total_iterations)
     {
         bucketed_comparison_result out{};
-        out.easy.f256 = benchmark_ldexp_bucket<f256_s>(specs.easy, total_iterations);
+        out.easy.f256 = benchmark_ldexp_bucket<f256>(specs.easy, total_iterations);
         out.easy.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.easy, total_iterations);
-        out.medium.f256 = benchmark_ldexp_bucket<f256_s>(specs.medium, total_iterations);
+        out.medium.f256 = benchmark_ldexp_bucket<f256>(specs.medium, total_iterations);
         out.medium.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.medium, total_iterations);
-        out.hard.f256 = benchmark_ldexp_bucket<f256_s>(specs.hard, total_iterations);
+        out.hard.f256 = benchmark_ldexp_bucket<f256>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_ldexp_bucket<mpfr_ref>(specs.hard, total_iterations);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
 
@@ -1022,13 +1371,426 @@ namespace
         std::int64_t total_iterations)
     {
         bucketed_comparison_result out{};
-        out.easy.f256 = benchmark_mixed_recurrence_bucket<f256_s>(specs.easy, total_iterations);
+        out.easy.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.easy, total_iterations);
         out.easy.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.easy, total_iterations);
-        out.medium.f256 = benchmark_mixed_recurrence_bucket<f256_s>(specs.medium, total_iterations);
+        out.medium.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.medium, total_iterations);
         out.medium.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.medium, total_iterations);
-        out.hard.f256 = benchmark_mixed_recurrence_bucket<f256_s>(specs.hard, total_iterations);
+        out.hard.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.hard, total_iterations);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
+    [[nodiscard]] mpfr_ref ref_floor(const mpfr_ref& value)
+    {
+        return boost::multiprecision::floor(value);
+    }
+
+    [[nodiscard]] mpfr_ref ref_fmod(const mpfr_ref& x, const mpfr_ref& y)
+    {
+        const mpfr_ref q = x / y;
+        mpfr_ref truncated{};
+        if (q < 0)
+            truncated = boost::multiprecision::ceil(q);
+        else
+            truncated = boost::multiprecision::floor(q);
+        return x - truncated * y;
+    }
+
+    [[nodiscard]] mpfr_ref ref_round_to_even(const mpfr_ref& value)
+    {
+        mpfr_ref rounded = ref_floor(value + mpfr_ref{ "0.5" });
+        if ((rounded - value) == mpfr_ref{ "0.5" } && ref_fmod(rounded, mpfr_ref{ 2 }) != mpfr_ref{ 0 })
+            rounded -= 1;
+        return rounded;
+    }
+
+    [[nodiscard]] mpfr_ref ref_remainder_ties_even(const mpfr_ref& x, const mpfr_ref& y)
+    {
+        return x - ref_round_to_even(x / y) * y;
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_nearbyint(const T& x)
+    {
+        using std::nearbyint;
+        return nearbyint(x);
+    }
+
+    template<>
+    [[nodiscard]] mpfr_ref apply_nearbyint<mpfr_ref>(const mpfr_ref& x)
+    {
+        return ref_round_to_even(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_rint(const T& x)
+    {
+        using std::rint;
+        return rint(x);
+    }
+
+    template<>
+    [[nodiscard]] mpfr_ref apply_rint<mpfr_ref>(const mpfr_ref& x)
+    {
+        return ref_round_to_even(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_cbrt(const T& x)
+    {
+        using std::cbrt;
+        return cbrt(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_hypot(const T& x, const T& y)
+    {
+        using std::hypot;
+        return hypot(x, y);
+    }
+
+    template<>
+    [[nodiscard]] mpfr_ref apply_hypot<mpfr_ref>(const mpfr_ref& x, const mpfr_ref& y)
+    {
+        using std::sqrt;
+        return sqrt(x * x + y * y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_expm1(const T& x)
+    {
+        using std::expm1;
+        return expm1(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_log1p(const T& x)
+    {
+        using std::log1p;
+        return log1p(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_remainder(const T& x, const T& y)
+    {
+        using std::remainder;
+        return remainder(x, y);
+    }
+
+    template<>
+    [[nodiscard]] mpfr_ref apply_remainder<mpfr_ref>(const mpfr_ref& x, const mpfr_ref& y)
+    {
+        return ref_remainder_ties_even(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_sinh(const T& x)
+    {
+        using std::sinh;
+        return sinh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_cosh(const T& x)
+    {
+        using std::cosh;
+        return cosh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_tanh(const T& x)
+    {
+        using std::tanh;
+        return tanh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_asinh(const T& x)
+    {
+        using std::asinh;
+        return asinh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_acosh(const T& x)
+    {
+        using std::acosh;
+        return acosh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_atanh(const T& x)
+    {
+        using std::atanh;
+        return atanh(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_erf(const T& x)
+    {
+        using std::erf;
+        return erf(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_erfc(const T& x)
+    {
+        using std::erfc;
+        return erfc(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_lgamma(const T& x)
+    {
+        using std::lgamma;
+        return lgamma(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_tgamma(const T& x)
+    {
+        using std::tgamma;
+        return tgamma(x);
+    }
+
+    [[nodiscard]] bucket_array_set<const char*> log1p_value_buckets()
+    {
+        bucket_array_set<const char*> out{};
+
+        out.easy = {{
+            "-0.875",
+            "-0.5",
+            "-0.125",
+            "-1e-20",
+            "1e-20",
+            "0.125",
+            "1",
+            "10"
+        }};
+
+        out.medium = {{
+            "-0.9500000000000000000000000000000000",
+            "-0.5000000000000000000000000000000001",
+            "-0.1250000000000000000000000000000000",
+            "-0.0000000000000000000000000000000001",
+            "0.0000000000000000000000000000000001",
+            "0.1250000000000000000000000000000000",
+            "1.0000000000000000000000000000000001",
+            "15.5"
+        }};
+
+        out.hard = {{
+            "-0.9999999999999999999999999999999999999999999999999990",
+            "-0.8750000000000000000000000000000000000000000000000000",
+            "-0.1250000000000000000000000000000000000000000000000000",
+            "-0.0000000000000000000000000000000000000000000000000001",
+            "0.0000000000000000000000000000000000000000000000000001",
+            "0.1250000000000000000000000000000000000000000000000000",
+            "1.0000000000000000000000000000000000000000000000000001",
+            "31.0"
+        }};
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<const char*> hyperbolic_value_buckets()
+    {
+        bucket_array_set<const char*> out{};
+
+        out.easy = {{
+            "-2",
+            "-1",
+            "-0.125",
+            "0",
+            "0.125",
+            "1",
+            "2",
+            "4"
+        }};
+
+        out.medium = {{
+            "-8",
+            "-4",
+            "-1",
+            "-0.125",
+            "0.125",
+            "1",
+            "4",
+            "8"
+        }};
+
+        out.hard = {{
+            "-12",
+            "-8",
+            "-2",
+            "-0.125",
+            "0.125",
+            "2",
+            "8",
+            "12"
+        }};
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<const char*> acosh_value_buckets()
+    {
+        bucket_array_set<const char*> out{};
+
+        out.easy = {{
+            "1",
+            "1.125",
+            "1.5",
+            "2",
+            "4",
+            "8",
+            "16",
+            "32"
+        }};
+
+        out.medium = {{
+            "1.0000000000000000000000000000000001",
+            "1.1250000000000000000000000000000000",
+            "1.5",
+            "2",
+            "4",
+            "8",
+            "16",
+            "64"
+        }};
+
+        out.hard = {{
+            "1.0000000000000000000000000000000000000000000000000001",
+            "1.0009765625",
+            "1.1250000000000000000000000000000000000000000000000000",
+            "1.5",
+            "2",
+            "4",
+            "16",
+            "128"
+        }};
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<const char*> atanh_value_buckets()
+    {
+        bucket_array_set<const char*> out{};
+
+        out.easy = {{
+            "-0.95",
+            "-0.5",
+            "-0.125",
+            "-1e-20",
+            "1e-20",
+            "0.125",
+            "0.5",
+            "0.95"
+        }};
+
+        out.medium = {{
+            "-0.9990234375",
+            "-0.95",
+            "-0.5",
+            "-0.125",
+            "0.125",
+            "0.5",
+            "0.95",
+            "0.9990234375"
+        }};
+
+        out.hard = {{
+            "-0.9999999999999999999999999999999999999999999999999990",
+            "-0.9999999999999999999999999999995",
+            "-0.5",
+            "-0.125",
+            "0.125",
+            "0.5",
+            "0.9999999999999999999999999999995",
+            "0.9999999999999999999999999999999999999999999999999990"
+        }};
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<const char*> erf_value_buckets()
+    {
+        bucket_array_set<const char*> out{};
+
+        out.easy = {{
+            "-4",
+            "-1",
+            "-0.125",
+            "-1e-20",
+            "1e-20",
+            "0.125",
+            "1",
+            "4"
+        }};
+
+        out.medium = {{
+            "-4",
+            "-2",
+            "-1",
+            "-0.125",
+            "0.125",
+            "1",
+            "2",
+            "4"
+        }};
+
+        out.hard = {{
+            "-6",
+            "-4",
+            "-2.5",
+            "-0.125",
+            "0.125",
+            "2.5",
+            "4",
+            "6"
+        }};
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<const char*> gamma_value_buckets()
+    {
+        bucket_array_set<const char*> out{};
+
+        out.easy = {{
+            "0.125",
+            "0.5",
+            "0.75",
+            "1",
+            "1.5",
+            "2.5",
+            "5.5",
+            "10"
+        }};
+
+        out.medium = {{
+            "0.125",
+            "0.2502917256654617036630365854587596",
+            "0.5",
+            "0.75",
+            "1.5",
+            "2.2502917256654617036630365854587596",
+            "5.5",
+            "15.875"
+        }};
+
+        out.hard = {{
+            "0.1250000000000000000000000000000000000000000000000000",
+            "0.2502917256654617036630365854587596250705075583428090",
+            "0.5000000000000000000000000000000000000000000000000000",
+            "0.7500000000000000000000000000000000000000000000000000",
+            "1.5000000000000000000000000000000000000000000000000000",
+            "2.2502917256654617036630365854587596250705075583428090",
+            "5.5000000000000000000000000000000000000000000000000000",
+            "31.875"
+        }};
 
         return out;
     }
@@ -1043,7 +1805,7 @@ TEST_CASE("f256 vs mpfr add performance", "[bench][fltx][f256][arithmetic][add]"
         const auto& b = values[(i + 1) % bucket_value_count];
         return a + b;
     });
-    print_bucketed_results("add", results);
+    print_bucketed_results("Arithmetic", "add", results);
 }
 
 TEST_CASE("f256 vs mpfr subtract performance", "[bench][fltx][f256][arithmetic][subtract]")
@@ -1055,7 +1817,7 @@ TEST_CASE("f256 vs mpfr subtract performance", "[bench][fltx][f256][arithmetic][
         const auto& b = values[(i + 1) % bucket_value_count];
         return a - b;
     });
-    print_bucketed_results("subtract", results);
+    print_bucketed_results("Arithmetic", "subtract", results);
 }
 
 TEST_CASE("f256 vs mpfr multiply performance", "[bench][fltx][f256][arithmetic][multiply]")
@@ -1067,7 +1829,7 @@ TEST_CASE("f256 vs mpfr multiply performance", "[bench][fltx][f256][arithmetic][
         const auto& b = values[(i + 3) % bucket_value_count];
         return a * b;
     });
-    print_bucketed_results("multiply", results);
+    print_bucketed_results("Arithmetic", "multiply", results);
 }
 
 TEST_CASE("f256 vs mpfr divide performance", "[bench][fltx][f256][arithmetic][divide]")
@@ -1079,152 +1841,272 @@ TEST_CASE("f256 vs mpfr divide performance", "[bench][fltx][f256][arithmetic][di
         const auto& denominator = values[(i + 5) % bucket_value_count];
         return numerator / denominator;
     });
-    print_bucketed_results("divide", results);
+    print_bucketed_results("Arithmetic", "divide", results);
 }
 
 TEST_CASE("f256 vs mpfr mixed recurrence performance", "[bench][fltx][f256][arithmetic]")
 {
     const std::int64_t total_iterations = 25000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_mixed_recurrence_benchmark(recurrence_specs(), total_iterations);
-    print_bucketed_results("mixed recurrence", results);
+    print_bucketed_results("Arithmetic", "mixed recurrence", results);
 }
 
 TEST_CASE("f256 vs mpfr floor performance", "[bench][fltx][f256][rounding]")
 {
     const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(rounding_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_floor(values[i]); });
-    print_bucketed_results("floor", results);
+    print_bucketed_results("Rounding", "floor", results);
 }
 
 TEST_CASE("f256 vs mpfr ceil performance", "[bench][fltx][f256][rounding]")
 {
     const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(rounding_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_ceil(values[i]); });
-    print_bucketed_results("ceil", results);
+    print_bucketed_results("Rounding", "ceil", results);
 }
 
 TEST_CASE("f256 vs mpfr trunc performance", "[bench][fltx][f256][rounding]")
 {
     const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(rounding_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_trunc(values[i]); });
-    print_bucketed_results("trunc", results);
+    print_bucketed_results("Rounding", "trunc", results);
 }
 
 TEST_CASE("f256 vs mpfr round performance", "[bench][fltx][f256][rounding]")
 {
     const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(rounding_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_round(values[i]); });
-    print_bucketed_results("round", results);
+    print_bucketed_results("Rounding", "round", results);
 }
 
 TEST_CASE("f256 vs mpfr sqrt performance", "[bench][fltx][f256][sqrt]")
 {
     const std::int64_t total_iterations = 8000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(positive_sqrt_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_sqrt(values[i]); });
-    print_bucketed_results("sqrt", results);
+    print_bucketed_results("Roots & powers", "sqrt", results);
 }
 
 TEST_CASE("f256 vs mpfr exp performance", "[bench][fltx][f256][exp]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(exponent_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_exp(values[i]); });
-    print_bucketed_results("exp", results);
+    print_bucketed_results("Exponentials", "exp", results);
 }
 
 TEST_CASE("f256 vs mpfr exp2 performance", "[bench][fltx][f256][exp2]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(exponent_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_exp2(values[i]); });
-    print_bucketed_results("exp2", results);
+    print_bucketed_results("Exponentials", "exp2", results);
 }
 
 TEST_CASE("f256 vs mpfr ldexp performance", "[bench][fltx][f256][ldexp]")
 {
     const std::int64_t total_iterations = 16000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_ldexp_benchmark(ldexp_value_buckets(), total_iterations);
-    print_bucketed_results("ldexp", results);
+    print_bucketed_results("Exponentials", "ldexp", results);
 }
 
 TEST_CASE("f256 vs mpfr log performance", "[bench][fltx][f256][log]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(positive_log_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_log(values[i]); });
-    print_bucketed_results("log", results);
+    print_bucketed_results("Logarithms", "log", results);
 }
 
 TEST_CASE("f256 vs mpfr log2 performance", "[bench][fltx][f256][log2]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(positive_log_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_log2(values[i]); });
-    print_bucketed_results("log2", results);
+    print_bucketed_results("Logarithms", "log2", results);
 }
 
 TEST_CASE("f256 vs mpfr log10 performance", "[bench][fltx][f256][log10]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(positive_log_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_log10(values[i]); });
-    print_bucketed_results("log10", results);
+    print_bucketed_results("Logarithms", "log10", results);
 }
 
 TEST_CASE("f256 vs mpfr fmod performance", "[bench][fltx][f256][fmod]")
 {
     const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_binary_benchmark(fmod_value_buckets(), total_iterations, [](const auto& x, const auto& y) { return apply_fmod(x, y); });
-    print_bucketed_results("fmod", results);
+    print_bucketed_results("Remainders", "fmod", results);
 }
 
 TEST_CASE("f256 vs mpfr pow performance", "[bench][fltx][f256][pow]")
 {
     const std::int64_t total_iterations = 1500ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_binary_benchmark(pow_value_buckets(), total_iterations, [](const auto& x, const auto& y) { return apply_pow(x, y); });
-    print_bucketed_results("pow", results);
+    print_bucketed_results("Roots & powers", "pow", results);
 }
 
 TEST_CASE("f256 vs mpfr sin performance", "[bench][fltx][f256][transcendental][trig][sin]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(trig_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_sin(values[i]); });
-    print_bucketed_results("sin", results);
+    print_bucketed_results("Trigonometric", "sin", results);
 }
 
 TEST_CASE("f256 vs mpfr cos performance", "[bench][fltx][f256][transcendental][trig][cos]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(trig_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_cos(values[i]); });
-    print_bucketed_results("cos", results);
+    print_bucketed_results("Trigonometric", "cos", results);
 }
 
 TEST_CASE("f256 vs mpfr tan performance", "[bench][fltx][f256][transcendental][trig][tan]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(trig_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_tan(values[i]); });
-    print_bucketed_results("tan", results);
+    print_bucketed_results("Trigonometric", "tan", results);
 }
 
-/*TEST_CASE("f256 vs mpfr atan performance", "[bench][fltx][f256][transcendental][trig][atan]")
+TEST_CASE("f256 vs mpfr atan performance", "[bench][fltx][f256][transcendental][trig][atan]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(trig_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_atan(values[i]); });
-    print_bucketed_results("atan", results);
-}*/
+    print_bucketed_results("Trigonometric", "atan", results);
+}
 
 TEST_CASE("f256 vs mpfr atan2 performance", "[bench][fltx][f256][transcendental][trig][atan2]")
 {
     const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_binary_benchmark(atan2_value_buckets(), total_iterations, [](const auto& y, const auto& x) { return apply_atan2(y, x); });
-    print_bucketed_results("atan2", results);
+    print_bucketed_results("Trigonometric", "atan2", results);
 }
 
 TEST_CASE("f256 vs mpfr asin performance", "[bench][fltx][f256][transcendental][trig][asin]")
 {
     const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(inverse_trig_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_asin(values[i]); });
-    print_bucketed_results("asin", results);
+    print_bucketed_results("Trigonometric", "asin", results);
 }
 
 TEST_CASE("f256 vs mpfr acos performance", "[bench][fltx][f256][transcendental][trig][acos]")
 {
     const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(inverse_trig_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_acos(values[i]); });
-    print_bucketed_results("acos", results);
+    print_bucketed_results("Trigonometric", "acos", results);
+}
+
+
+TEST_CASE("f256 vs mpfr nearbyint performance", "[bench][fltx][f256][rounding][nearbyint]")
+{
+    const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(rounding_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_nearbyint(values[i]); });
+    print_bucketed_results("Rounding", "nearbyint", results);
+}
+
+TEST_CASE("f256 vs mpfr rint performance", "[bench][fltx][f256][rounding][rint]")
+{
+    const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(rounding_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_rint(values[i]); });
+    print_bucketed_results("Rounding", "rint", results);
+}
+
+TEST_CASE("f256 vs mpfr cbrt performance", "[bench][fltx][f256][cbrt]")
+{
+    const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(generic_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_cbrt(values[i]); });
+    print_bucketed_results("Roots & powers", "cbrt", results);
+}
+
+TEST_CASE("f256 vs mpfr hypot performance", "[bench][fltx][f256][hypot]")
+{
+    const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark(atan2_value_buckets(), total_iterations, [](const auto& x, const auto& y) { return apply_hypot(x, y); });
+    print_bucketed_results("Roots & powers", "hypot", results);
+}
+
+TEST_CASE("f256 vs mpfr expm1 performance", "[bench][fltx][f256][expm1]")
+{
+    const std::int64_t total_iterations = 2500ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(exponent_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_expm1(values[i]); });
+    print_bucketed_results("Exponentials", "expm1", results);
+}
+
+TEST_CASE("f256 vs mpfr log1p performance", "[bench][fltx][f256][log1p]")
+{
+    const std::int64_t total_iterations = 2500ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(log1p_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_log1p(values[i]); });
+    print_bucketed_results("Logarithms", "log1p", results);
+}
+
+TEST_CASE("f256 vs mpfr remainder performance", "[bench][fltx][f256][remainder]")
+{
+    const std::int64_t total_iterations = 1500ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark(fmod_value_buckets(), total_iterations, [](const auto& x, const auto& y) { return apply_remainder(x, y); });
+    print_bucketed_results("Remainders", "remainder", results);
+}
+
+TEST_CASE("f256 vs mpfr sinh performance", "[bench][fltx][f256][transcendental][hyperbolic][sinh]")
+{
+    const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(hyperbolic_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_sinh(values[i]); });
+    print_bucketed_results("Hyperbolic", "sinh", results);
+}
+
+TEST_CASE("f256 vs mpfr cosh performance", "[bench][fltx][f256][transcendental][hyperbolic][cosh]")
+{
+    const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(hyperbolic_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_cosh(values[i]); });
+    print_bucketed_results("Hyperbolic", "cosh", results);
+}
+
+TEST_CASE("f256 vs mpfr tanh performance", "[bench][fltx][f256][transcendental][hyperbolic][tanh]")
+{
+    const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(hyperbolic_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_tanh(values[i]); });
+    print_bucketed_results("Hyperbolic", "tanh", results);
+}
+
+TEST_CASE("f256 vs mpfr asinh performance", "[bench][fltx][f256][transcendental][inverse_hyperbolic][asinh]")
+{
+    const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(hyperbolic_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_asinh(values[i]); });
+    print_bucketed_results("Inverse hyperbolic", "asinh", results);
+}
+
+TEST_CASE("f256 vs mpfr acosh performance", "[bench][fltx][f256][transcendental][inverse_hyperbolic][acosh]")
+{
+    const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(acosh_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_acosh(values[i]); });
+    print_bucketed_results("Inverse hyperbolic", "acosh", results);
+}
+
+TEST_CASE("f256 vs mpfr atanh performance", "[bench][fltx][f256][transcendental][inverse_hyperbolic][atanh]")
+{
+    const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(atanh_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_atanh(values[i]); });
+    print_bucketed_results("Inverse hyperbolic", "atanh", results);
+}
+
+TEST_CASE("f256 vs mpfr erf performance", "[bench][fltx][f256][transcendental][erf]")
+{
+    const std::int64_t total_iterations = 800ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(erf_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_erf(values[i]); });
+    print_bucketed_results("Special functions", "erf", results);
+}
+
+TEST_CASE("f256 vs mpfr erfc performance", "[bench][fltx][f256][transcendental][erfc]")
+{
+    const std::int64_t total_iterations = 800ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(erf_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_erfc(values[i]); });
+    print_bucketed_results("Special functions", "erfc", results);
+}
+
+TEST_CASE("f256 vs mpfr lgamma performance", "[bench][fltx][f256][transcendental][gamma][lgamma]")
+{
+    const std::int64_t total_iterations = 120ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(gamma_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_lgamma(values[i]); });
+    print_bucketed_results("Special functions", "lgamma", results);
+}
+
+TEST_CASE("f256 vs mpfr tgamma performance", "[bench][fltx][f256][transcendental][gamma][tgamma]")
+{
+    const std::int64_t total_iterations = 120ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(gamma_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_tgamma(values[i]); });
+    print_bucketed_results("Special functions", "tgamma", results);
 }

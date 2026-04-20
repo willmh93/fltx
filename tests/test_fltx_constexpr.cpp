@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
-#include <fltx.h>
 #include <iostream>
+
+#include <fltx.h>
 
 using namespace bl;
 
