@@ -502,6 +502,86 @@ constexpr inline void divmod_bitwise(const biguint& numerator, const biguint& de
     remainder.trim();
 }
 
+[[nodiscard]] constexpr inline std::uint64_t div_quotient_limited(const biguint& numerator, const biguint& denominator, int quotient_bits, biguint& remainder) noexcept
+{
+    remainder = numerator;
+
+    if (denominator.is_zero() || quotient_bits <= 0)
+        return 0;
+
+    const int num_bits = numerator.bit_length();
+    const int den_bits = denominator.bit_length();
+    if (num_bits == 0 || den_bits == 0 || num_bits < den_bits)
+    {
+        remainder.trim();
+        return 0;
+    }
+
+    int shift = num_bits - den_bits;
+    if (shift >= quotient_bits)
+        shift = quotient_bits - 1;
+
+    std::uint64_t quotient = 0;
+    for (int i = shift; i >= 0; --i)
+    {
+        if (compare_shifted(remainder, denominator, i) >= 0)
+        {
+            sub_shifted_inplace(remainder, denominator, i);
+            quotient |= (std::uint64_t{ 1 } << i);
+        }
+    }
+
+    remainder.trim();
+    return quotient;
+}
+
+[[nodiscard]] constexpr inline biguint extract_rounded_significand_chunks(const biguint& numerator, const biguint& denominator, int ratio_exp, int significand_bits) noexcept
+{
+    const int chunk_bits = 53;
+    const int chunk_count = (significand_bits + chunk_bits - 1) / chunk_bits;
+    const int first_chunk_bits = significand_bits - (chunk_count - 1) * chunk_bits;
+    const int first_scale_bits = first_chunk_bits - 1;
+
+    biguint normalized_num = numerator;
+    biguint normalized_den = denominator;
+    if (ratio_exp >= 0)
+        normalized_den.shl_bits(ratio_exp);
+    else
+        normalized_num.shl_bits(-ratio_exp);
+
+    biguint scaled = normalized_num;
+    if (first_scale_bits > 0)
+        scaled.shl_bits(first_scale_bits);
+
+    biguint remainder;
+    const std::uint64_t first_chunk = div_quotient_limited(scaled, normalized_den, first_chunk_bits, remainder);
+
+    biguint q{ first_chunk };
+    for (int chunk_index = 1; chunk_index < chunk_count; ++chunk_index)
+    {
+        if (!remainder.is_zero())
+            remainder.shl_bits(chunk_bits);
+
+        const std::uint64_t chunk = div_quotient_limited(remainder, normalized_den, chunk_bits, remainder);
+        q.shl_bits(chunk_bits);
+        if (chunk != 0)
+            q.add_inplace(biguint{ chunk });
+    }
+
+    if (!remainder.is_zero())
+        remainder.shl_bits(2);
+
+    const std::uint64_t extra_bits = div_quotient_limited(remainder, normalized_den, 2, remainder);
+    const bool guard_bit = (extra_bits & 0x2u) != 0;
+    const bool trailing_bits = (extra_bits & 0x1u) != 0 || !remainder.is_zero();
+
+    if (guard_bit && (trailing_bits || q.is_odd()))
+        q.add_small(1);
+
+    q.trim();
+    return q;
+}
+
 [[nodiscard]] constexpr inline int floor_log2_ratio(const biguint& numerator, const biguint& denominator) noexcept
 {
     int k = (numerator.bit_length() - 1) - (denominator.bit_length() - 1);

@@ -563,27 +563,7 @@ constexpr inline typename Traits::value_type exact_decimal_to_value(const biguin
 
     int ratio_exp = floor_log2_ratio(numerator, denominator);
 
-    biguint scaled_num = numerator;
-    biguint scaled_den = denominator;
-    const int shift = (Traits::significand_bits - 1) - ratio_exp;
-    if (shift >= 0)
-        scaled_num.shl_bits(shift);
-    else
-        scaled_den.shl_bits(-shift);
-
-    biguint q;
-    biguint r;
-    divmod_bitwise(scaled_num, scaled_den, q, r);
-
-    if (!r.is_zero())
-    {
-        biguint twice_r = r;
-        twice_r.shl1();
-        const int cmp = compare(twice_r, scaled_den);
-        if (cmp > 0 || (cmp == 0 && q.is_odd()))
-            q.add_small(1);
-    }
-
+    biguint q = extract_rounded_significand_chunks(numerator, denominator, ratio_exp, Traits::significand_bits);
     if (q.bit_length() > Traits::significand_bits)
     {
         q.shr1();
