@@ -9,8 +9,28 @@
       <Item Name="lo">lo</Item>
     </Expand>
   </Type>
+
+  <Type Name="bl::f128_s">
+    <DisplayString Condition="lo == 0">{hi}</DisplayString>
+    <DisplayString Condition="lo != 0">{hi}…</DisplayString>
+    <Expand>
+      <Item Name="hi">hi</Item>
+      <Item Name="lo">lo</Item>
+    </Expand>
+  </Type>
   
   <Type Name="bl::f256">
+    <DisplayString Condition="x1 == 0">{x0}</DisplayString>
+    <DisplayString Condition="x1 != 0">{x0}…</DisplayString>
+    <Expand>
+      <Item Name="x0">x0</Item>
+      <Item Name="x1">x1</Item>
+      <Item Name="x2">x2</Item>
+      <Item Name="x3">x3</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="bl::f256_s">
     <DisplayString Condition="x1 == 0">{x0}</DisplayString>
     <DisplayString Condition="x1 != 0">{x0}…</DisplayString>
     <Expand>
