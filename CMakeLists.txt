@@ -16,16 +16,19 @@ target_include_directories(fltx
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+# source-tree / VS-project style use
 target_sources(fltx
     INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/fltx.natvis>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/fltx.natvis>
 )
 
-target_link_options(fltx
-    INTERFACE
-        /NATVIS:$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/fltx.natvis>$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/fltx.natvis>
-)
+if(MSVC)
+    target_link_options(fltx
+        INTERFACE
+            $<BUILD_INTERFACE:/NATVIS:${CMAKE_CURRENT_SOURCE_DIR}/include/fltx.natvis>
+            $<INSTALL_INTERFACE:/NATVIS:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/fltx.natvis>
+    )
+endif()
 
 target_compile_features(fltx INTERFACE cxx_std_20)
 
