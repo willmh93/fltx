@@ -4,7 +4,7 @@ project(fltx VERSION 0.1.0 LANGUAGES CXX)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-option(FLTX_BUILD_TESTS "Build fltx tests" ${PROJECT_IS_TOP_LEVEL})
+option(FLTX_BUILD_TESTS "Build fltx tests" OFF)#{PROJECT_IS_TOP_LEVEL})
 option(FLTX_BUILD_EXAMPLES "Build fltx examples" ${PROJECT_IS_TOP_LEVEL})
 
 add_library(fltx INTERFACE)

@@ -476,9 +476,11 @@ namespace bl
     template<typename Fn, typename... Ts>
     void dispatch_table_callable(Fn&& f, Ts... args) {}
 
-    template<class F>
-    constexpr std::remove_cvref_t<F> passthrough(F&& f) {
-        return std::forward<F>(f);
+    namespace detail {
+        template<class F>
+        constexpr std::remove_cvref_t<F> passthrough(F&& f) {
+            return std::forward<F>(f);
+        }
     }
 }
 
@@ -488,7 +490,7 @@ namespace bl
 // ─────────────────────────────────────────────────────────────────────────────
 
 #define dispatch_table(func, ...)                                                     \
-    passthrough([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                  \
+    detail::passthrough([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                  \
         return [&]<typename... Us>(std::tuple<Us...>*) {                              \
             if constexpr (sizeof...(Ts) == 0)                                         \
                 return func<Us::value...>(__VA_ARGS__);                               \
@@ -498,7 +500,7 @@ namespace bl
     })
 
 #define dispatch_table_memfn(obj, method, ...)                                        \
-    passthrough([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                  \
+    detail::passthrough([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                  \
         auto&& _obj = (obj);                                                          \
         return [&]<typename... Us>(std::tuple<Us...>*) {                              \
             if constexpr (sizeof...(Ts) == 0) {                                       \
@@ -510,7 +512,7 @@ namespace bl
     })
 
 #define dispatch_table_callable(func, ...)                                            \
-    passthrough([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                  \
+    detail::passthrough([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                  \
         return [&]<typename... Us>(std::tuple<Us...>*) {                              \
             if constexpr (sizeof...(Ts) == 0)                                         \
                 return func.template operator()<Us::value...>(__VA_ARGS__);           \

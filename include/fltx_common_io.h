@@ -4,13 +4,266 @@
 #include "fltx_common_exact.h"
 
 #include <algorithm>
+#include <array>
 #include <ios>
 #include <ostream>
 #include <string>
+#include <string_view>
+#include <utility>
 
 namespace bl::fltx::common {
 
+
+
 enum class format_kind : unsigned char { general, fixed_frac, scientific_frac, scientific_sig };
+
+
+template<std::size_t capacity>
+struct static_string
+{
+    using size_type = std::size_t;
+
+    static constexpr size_type npos = static_cast<size_type>(-1);
+    static constexpr size_type static_capacity = capacity;
+
+    std::array<char, capacity + 1> chars{};
+    size_type length = 0;
+
+    constexpr static_string() noexcept = default;
+
+    constexpr static_string(const char* text)
+    {
+        assign(text);
+    }
+
+    constexpr static_string(std::string_view text)
+    {
+        assign(text);
+    }
+
+    template<std::size_t size>
+    constexpr static_string(const char (&text)[size])
+    {
+        assign(std::string_view(text, size - 1));
+    }
+
+    constexpr static_string& operator=(const char* text)
+    {
+        assign(text);
+        return *this;
+    }
+
+    constexpr static_string& operator=(std::string_view text)
+    {
+        assign(text);
+        return *this;
+    }
+
+    constexpr operator std::string_view() const noexcept
+    {
+        return view();
+    }
+
+    constexpr operator std::string() const
+    {
+        return std::string(chars.data(), length);
+    }
+
+    constexpr std::string_view view() const noexcept
+    {
+        return std::string_view(chars.data(), length);
+    }
+
+    constexpr char* data() noexcept
+    {
+        return chars.data();
+    }
+
+    constexpr const char* data() const noexcept
+    {
+        return chars.data();
+    }
+
+    constexpr const char* c_str() const noexcept
+    {
+        return chars.data();
+    }
+
+    constexpr size_type size() const noexcept
+    {
+        return length;
+    }
+
+    constexpr bool empty() const noexcept
+    {
+        return length == 0;
+    }
+
+    constexpr char* begin() noexcept
+    {
+        return chars.data();
+    }
+
+    constexpr char* end() noexcept
+    {
+        return chars.data() + length;
+    }
+
+    constexpr const char* begin() const noexcept
+    {
+        return chars.data();
+    }
+
+    constexpr const char* end() const noexcept
+    {
+        return chars.data() + length;
+    }
+
+    constexpr char& operator[](size_type index) noexcept
+    {
+        return chars[index];
+    }
+
+    constexpr const char& operator[](size_type index) const noexcept
+    {
+        return chars[index];
+    }
+
+    constexpr char& front() noexcept
+    {
+        return chars[0];
+    }
+
+    constexpr const char& front() const noexcept
+    {
+        return chars[0];
+    }
+
+    constexpr void clear() noexcept
+    {
+        length = 0;
+        chars[0] = '\0';
+    }
+
+    constexpr void resize(size_type new_length)
+    {
+        require_capacity(new_length);
+        if (new_length > length)
+        {
+            for (size_type index = length; index < new_length; ++index)
+                chars[index] = '\0';
+        }
+        length = new_length;
+        chars[length] = '\0';
+    }
+
+    constexpr void push_back(char value)
+    {
+        require_capacity(length + 1);
+        chars[length++] = value;
+        chars[length] = '\0';
+    }
+
+    constexpr static_string& append(size_type count, char value)
+    {
+        require_capacity(length + count);
+        for (size_type index = 0; index < count; ++index)
+            chars[length + index] = value;
+        length += count;
+        chars[length] = '\0';
+        return *this;
+    }
+
+    constexpr static_string& append(const char* text)
+    {
+        return append(std::string_view(text, const_string_length(text)));
+    }
+
+    constexpr static_string& append(std::string_view text)
+    {
+        require_capacity(length + text.size());
+        for (size_type index = 0; index < text.size(); ++index)
+            chars[length + index] = text[index];
+        length += text.size();
+        chars[length] = '\0';
+        return *this;
+    }
+
+    constexpr static_string& insert(size_type position, const char* text)
+    {
+        return insert(position, std::string_view(text, const_string_length(text)));
+    }
+
+    constexpr static_string& insert(size_type position, std::string_view text)
+    {
+        require_insert_position(position);
+        require_capacity(length + text.size());
+        for (size_type index = length; index > position; --index)
+            chars[index + text.size() - 1] = chars[index - 1];
+        for (size_type index = 0; index < text.size(); ++index)
+            chars[position + index] = text[index];
+        length += text.size();
+        chars[length] = '\0';
+        return *this;
+    }
+
+    constexpr static_string& insert(size_type position, size_type count, char value)
+    {
+        require_insert_position(position);
+        require_capacity(length + count);
+        for (size_type index = length; index > position; --index)
+            chars[index + count - 1] = chars[index - 1];
+        for (size_type index = 0; index < count; ++index)
+            chars[position + index] = value;
+        length += count;
+        chars[length] = '\0';
+        return *this;
+    }
+
+    constexpr void assign(const char* text)
+    {
+        assign(std::string_view(text, const_string_length(text)));
+    }
+
+    constexpr void assign(std::string_view text)
+    {
+        require_capacity(text.size());
+        for (size_type index = 0; index < text.size(); ++index)
+            chars[index] = text[index];
+        length = text.size();
+        chars[length] = '\0';
+    }
+
+private:
+    static constexpr size_type const_string_length(const char* text) noexcept
+    {
+        size_type result = 0;
+        while (text[result] != '\0')
+            ++result;
+        return result;
+    }
+
+    constexpr void require_capacity(size_type requested_capacity) const
+    {
+        if (requested_capacity > capacity)
+            throw "static_string capacity exceeded";
+    }
+
+    constexpr void require_insert_position(size_type position) const
+    {
+        if (position > length)
+            throw "static_string insert position out of range";
+    }
+};
+
+template<std::size_t capacity>
+inline std::ostream& operator<<(std::ostream& os, const static_string<capacity>& text)
+{
+    return os.write(text.data(), static_cast<std::streamsize>(text.size()));
+}
+
+using default_io_string = static_string<512>;
+
 
 template<typename BigUInt>
 struct parse_token
@@ -26,8 +279,8 @@ struct parse_token
 };
 
 
-template<typename CharsResult, typename Writer>
-NO_INLINE void write_chars_to_string(std::string& out, std::size_t cap, Writer&& writer)
+template<typename CharsResult, typename String, typename Writer>
+constexpr NO_INLINE void write_chars_to_string(String& out, std::size_t cap, Writer&& writer)
 {
     out.resize(cap);
     char* first = out.data();
@@ -63,22 +316,62 @@ FORCE_INLINE constexpr const char* skip_ascii_space(const char* p) noexcept
     return p;
 }
 
-inline NO_INLINE void ensure_decimal_point(std::string& s)
+FORCE_INLINE constexpr void copy_chars(char* dst, const char* src, std::size_t count) noexcept
 {
-    const std::size_t e = s.find_first_of("eE");
-    const std::size_t d = s.find('.');
-    if (d != std::string::npos && (e == std::string::npos || d < e))
+    for (std::size_t i = 0; i < count; ++i)
+        dst[i] = src[i];
+}
+
+template<typename UInt>
+FORCE_INLINE constexpr int write_unsigned_decimal_rev(char* dst, UInt value) noexcept
+{
+    int len = 0;
+    do
+    {
+        dst[len++] = static_cast<char>('0' + (value % 10));
+        value /= 10;
+    } while (value != 0);
+    return len;
+}
+
+template<typename String, typename UInt>
+FORCE_INLINE constexpr void append_unsigned_decimal(String& out, UInt value)
+{
+    char buf[32];
+    const int len = write_unsigned_decimal_rev(buf, value);
+    for (int i = len - 1; i >= 0; --i)
+        out.push_back(buf[i]);
+}
+
+constexpr inline std::size_t find_exponent_marker(std::string_view text) noexcept
+{
+    for (std::size_t index = 0; index < text.size(); ++index)
+    {
+        if (text[index] == 'e' || text[index] == 'E')
+            return index;
+    }
+    return std::string_view::npos;
+}
+
+template<typename String>
+inline constexpr NO_INLINE void ensure_decimal_point(String& s)
+{
+    const std::string_view view(s.data(), s.size());
+    const std::size_t e = find_exponent_marker(view);
+    const std::size_t d = view.find('.');
+    if (d != std::string_view::npos && (e == std::string_view::npos || d < e))
         return;
-    if (e == std::string::npos)
+    if (e == std::string_view::npos)
         s.push_back('.');
     else
         s.insert(e, ".");
 }
 
-inline NO_INLINE void apply_stream_decorations(std::string& s, bool showpos, bool uppercase)
+template<typename String>
+inline constexpr NO_INLINE void apply_stream_decorations(String& s, bool showpos, bool uppercase)
 {
     if (showpos && (s.empty() || s[0] != '-'))
-        s.insert(s.begin(), '+');
+        s.insert(0, 1, '+');
     if (!uppercase)
         return;
     for (char& c : s)
@@ -91,7 +384,7 @@ inline NO_INLINE void apply_stream_decorations(std::string& s, bool showpos, boo
 }
 
 template<class Traits>
-inline const char* special_text(const typename Traits::value_type& x, bool uppercase = false) noexcept
+constexpr inline const char* special_text(const typename Traits::value_type& x, bool uppercase = false) noexcept
 {
     if (Traits::isnan(x))
         return uppercase ? "NAN" : "nan";
@@ -100,8 +393,8 @@ inline const char* special_text(const typename Traits::value_type& x, bool upper
     return Traits::is_negative(x) ? (uppercase ? "-INF" : "-inf") : (uppercase ? "INF" : "inf");
 }
 
-template<class Traits>
-inline bool assign_special_string(std::string& out, const typename Traits::value_type& x, bool uppercase = false) noexcept
+template<class Traits, typename String>
+constexpr inline bool assign_special_string(String& out, const typename Traits::value_type& x, bool uppercase = false) noexcept
 {
     if (const char* text = special_text<Traits>(x, uppercase))
     {
@@ -123,8 +416,8 @@ inline bool write_stream_special(std::ostream& os, const typename Traits::value_
     return true;
 }
 
-template<class Traits>
-inline void format_to_string(std::string& out, const typename Traits::value_type& x, int precision, format_kind kind, bool strip_trailing_zeros = false)
+template<class Traits, typename String>
+constexpr inline void format_to_string(String& out, const typename Traits::value_type& x, int precision, format_kind kind, bool strip_trailing_zeros = false)
 {
     if (assign_special_string<Traits>(out, x))
         return;
@@ -158,28 +451,28 @@ inline void format_to_string(std::string& out, const typename Traits::value_type
     });
 }
 
-template<class Traits>
-FORCE_INLINE void to_string_into(std::string& out, const typename Traits::value_type& x, int precision,
+template<class Traits, typename String>
+FORCE_INLINE constexpr void to_string_into(String& out, const typename Traits::value_type& x, int precision,
     bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     const format_kind kind = (fixed && !scientific) ? format_kind::fixed_frac : (scientific && !fixed) ? format_kind::scientific_frac : format_kind::general;
     format_to_string<Traits>(out, x, precision, kind, strip_trailing_zeros);
 }
 
-template<class Traits>
-FORCE_INLINE void emit_scientific(std::string& out, const typename Traits::value_type& x, std::streamsize prec, bool strip_trailing_zeros)
+template<class Traits, typename String>
+FORCE_INLINE constexpr void emit_scientific(String& out, const typename Traits::value_type& x, std::streamsize prec, bool strip_trailing_zeros)
 {
     format_to_string<Traits>(out, x, static_cast<int>(prec), format_kind::scientific_frac, strip_trailing_zeros);
 }
 
-template<class Traits>
-FORCE_INLINE void emit_fixed_dec(std::string& out, const typename Traits::value_type& x, int prec, bool strip_trailing_zeros)
+template<class Traits, typename String>
+FORCE_INLINE constexpr void emit_fixed_dec(String& out, const typename Traits::value_type& x, int prec, bool strip_trailing_zeros)
 {
     format_to_string<Traits>(out, x, prec, format_kind::fixed_frac, strip_trailing_zeros);
 }
 
-template<class Traits>
-FORCE_INLINE void emit_scientific_sig(std::string& out, const typename Traits::value_type& x, std::streamsize sig_digits, bool strip_trailing_zeros)
+template<class Traits, typename String>
+FORCE_INLINE constexpr void emit_scientific_sig(String& out, const typename Traits::value_type& x, std::streamsize sig_digits, bool strip_trailing_zeros)
 {
     format_to_string<Traits>(out, x, static_cast<int>(sig_digits), format_kind::scientific_sig, strip_trailing_zeros);
 }
@@ -405,7 +698,7 @@ NO_INLINE std::ostream& write_to_stream(std::ostream& os, const typename Traits:
 
 namespace bl::fltx::common::exact_decimal {
 
-[[nodiscard]] inline std::string to_decimal_string(biguint value)
+[[nodiscard]] constexpr inline default_io_string to_decimal_string(biguint value)
 {
     if (value.is_zero())
         return "0";
@@ -415,18 +708,21 @@ namespace bl::fltx::common::exact_decimal {
     while (!value.is_zero() && chunk_count < static_cast<int>(sizeof(chunks) / sizeof(chunks[0])))
         chunks[chunk_count++] = value.div_small(1000000000u);
 
-    std::string out = std::to_string(chunks[chunk_count - 1]);
+    default_io_string out;
+    append_unsigned_decimal(out, chunks[chunk_count - 1]);
     for (int i = chunk_count - 2; i >= 0; --i)
     {
-        std::string part = std::to_string(chunks[i]);
-        out.append(static_cast<std::size_t>(9 - part.size()), '0');
-        out += part;
+        char part_buf[16];
+        const int part_len = write_unsigned_decimal_rev(part_buf, chunks[i]);
+        out.append(static_cast<std::size_t>(9 - part_len), '0');
+        for (int j = part_len - 1; j >= 0; --j)
+            out.push_back(part_buf[j]);
     }
     return out;
 }
 
-template<class Traits>
-[[nodiscard]] inline bool exact_scientific_digits(const typename Traits::value_type& x, int sig, std::string& digits, int& exp10)
+template<class Traits, typename String>
+[[nodiscard]] constexpr inline bool exact_scientific_digits(const typename Traits::value_type& x, int sig, String& digits, int& exp10)
 {
     int common_exp = std::numeric_limits<int>::max();
     bool have_term = false;
@@ -472,7 +768,7 @@ template<class Traits>
         return false;
 
     const double log10_2 = 0.30102999566398119521373889472449;
-    int approx = static_cast<int>(std::floor((acc.mag.bit_length() - 1 + common_exp) * log10_2));
+    int approx = static_cast<int>(fp::floor_constexpr((acc.mag.bit_length() - 1 + common_exp) * log10_2));
 
     int guard = 0;
     while (compare_scaled_with_pow10exp(acc.mag, common_exp, approx) < 0)
@@ -534,7 +830,7 @@ template<class Traits>
     if (static_cast<int>(digits.size()) < sig)
     {
         const std::size_t zero_pad_count = static_cast<std::size_t>(sig - static_cast<int>(digits.size()));
-        digits.insert(digits.begin(), zero_pad_count, '0');
+        digits.insert(0, zero_pad_count, '0');
     }
 
     return true;

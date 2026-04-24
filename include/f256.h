@@ -411,15 +411,15 @@ namespace _f256_detail
     FORCE_INLINE constexpr void three_sum(double& a, double& b, double& c) noexcept
     {
         double t1{}, t2{}, t3{};
-        _f256_detail::two_sum_precise(a, b, t1, t2);
-        _f256_detail::two_sum_precise(c, t1, a, t3);
-        _f256_detail::two_sum_precise(t2, t3, b, c);
+        two_sum_precise(a, b, t1, t2);
+        two_sum_precise(c, t1, a, t3);
+        two_sum_precise(t2, t3, b, c);
     }
     FORCE_INLINE constexpr void three_sum2(double& a, double& b, double& c) noexcept
     {
         double t1{}, t2{}, t3{};
-        _f256_detail::two_sum_precise(a, b, t1, t2);
-        _f256_detail::two_sum_precise(c, t1, a, t3);
+        two_sum_precise(a, b, t1, t2);
+        two_sum_precise(c, t1, a, t3);
         b = t2 + t3;
     }
 
@@ -433,94 +433,66 @@ namespace _f256_detail
     {
         double s0{}, s1{}, s2 = 0.0, s3 = 0.0;
 
-        _f256_detail::quick_two_sum_precise(c2, c3, s0, c3);
-        _f256_detail::quick_two_sum_precise(c1, s0, s0, c2);
-        _f256_detail::quick_two_sum_precise(c0, s0, c0, c1);
+        quick_two_sum_precise(c2, c3, s0, c3);
+        quick_two_sum_precise(c1, s0, s0, c2);
+        quick_two_sum_precise(c0, s0, c0, c1);
 
         s0 = c0;
         s1 = c1;
 
         if (s1 != 0.0)
         {
-            _f256_detail::quick_two_sum_precise(s1, c2, s1, s2);
+            quick_two_sum_precise(s1, c2, s1, s2);
             if (s2 != 0.0)
-                _f256_detail::quick_two_sum_precise(s2, c3, s2, s3);
+                quick_two_sum_precise(s2, c3, s2, s3);
             else
-                _f256_detail::quick_two_sum_precise(s1, c3, s1, s2);
+                quick_two_sum_precise(s1, c3, s1, s2);
         }
         else
         {
-            _f256_detail::quick_two_sum_precise(s0, c2, s0, s1);
+            quick_two_sum_precise(s0, c2, s0, s1);
             if (s1 != 0.0)
-                _f256_detail::quick_two_sum_precise(s1, c3, s1, s2);
+                quick_two_sum_precise(s1, c3, s1, s2);
             else
-                _f256_detail::quick_two_sum_precise(s0, c3, s0, s1);
+                quick_two_sum_precise(s0, c3, s0, s1);
         }
 
         return { s0, s1, s2, s3 };
     }
     FORCE_INLINE constexpr f256_s renorm4(double c0, double c1, double c2, double c3) noexcept
     {
-        double s = c2 + c3;
-        double e = c3 - (s - c2);
-        c2 = s;
-        c3 = e;
+        double s, e;
+        s = c2 + c3,  e = c3 - (s - c2);  c2 = s;  c3 = e;
+        s = c1 + c2;  e = c2 - (s - c1);  c1 = s;  c2 = e;
+        s = c0 + c1;  e = c1 - (s - c0);  c0 = s;  c1 = e;
 
-        s = c1 + c2;
-        e = c2 - (s - c1);
-        c1 = s;
-        c2 = e;
-
-        s = c0 + c1;
-        e = c1 - (s - c0);
-        c0 = s;
-        c1 = e;
-
-        double s0 = c0;
-        double s1 = c1;
-        double s2 = 0.0;
-        double s3 = 0.0;
+        double s0 = c0, s1 = c1, s2 = 0.0, s3 = 0.0;
 
         if (c2 != 0.0)
         {
-            if (s1 != 0.0)
-            {
-                s = s1 + c2;
-                e = c2 - (s - s1);
-                s1 = s;
-                s2 = e;
+            if (s1 != 0.0) {
+                s = s1 + c2; e = c2 - (s - s1);
+                s1 = s; s2 = e;
             }
-            else
-            {
-                s = s0 + c2;
-                e = c2 - (s - s0);
-                s0 = s;
-                s1 = e;
+            else {
+                s = s0 + c2; e = c2 - (s - s0);
+                s0 = s; s1 = e;
             }
         }
 
         if (c3 != 0.0)
         {
-            if (s2 != 0.0)
-            {
-                s = s2 + c3;
-                e = c3 - (s - s2);
-                s2 = s;
-                s3 = e;
+            if (s2 != 0.0) {
+                s = s2 + c3; e = c3 - (s - s2);
+                s2 = s; s3 = e;
             }
-            else if (s1 != 0.0)
-            {
-                s = s1 + c3;
-                e = c3 - (s - s1);
-                s1 = s;
-                s2 = e;
+            else if (s1 != 0.0) {
+                s = s1 + c3; e = c3 - (s - s1);
+                s1 = s; s2 = e;
             }
-            else
-            {
-                s = s0 + c3;
-                e = c3 - (s - s0);
-                s0 = s;
-                s1 = e;
+            else {
+                s = s0 + c3; e = c3 - (s - s0);
+                s0 = s; s1 = e;
             }
         }
 
@@ -530,100 +502,58 @@ namespace _f256_detail
     {
         double s, e;
 
-        s = c3 + c4;
-        e = c4 - (s - c3);
-        c3 = s;
-        c4 = e;
+        s = c3 + c4;  e = c4 - (s - c3);  c3 = s;  c4 = e;
+        s = c2 + c3;  e = c3 - (s - c2);  c2 = s;  c3 = e;
+        s = c1 + c2;  e = c2 - (s - c1);  c1 = s;  c2 = e;
+        s = c0 + c1;  e = c1 - (s - c0);  c0 = s;  c1 = e;
 
-        s = c2 + c3;
-        e = c3 - (s - c2);
-        c2 = s;
-        c3 = e;
-
-        s = c1 + c2;
-        e = c2 - (s - c1);
-        c1 = s;
-        c2 = e;
-
-        s = c0 + c1;
-        e = c1 - (s - c0);
-        c0 = s;
-        c1 = e;
-
-        double s0 = c0;
-        double s1 = c1;
-        double s2 = 0.0;
-        double s3 = 0.0;
-
+        double s0 = c0, s1 = c1, s2 = 0.0, s3 = 0.0;
         if (c2 != 0.0)
         {
-            if (s1 != 0.0)
-            {
+            if (s1 != 0.0) {
                 s = s1 + c2;
                 e = c2 - (s - s1);
-                s1 = s;
-                s2 = e;
+                s1 = s; s2 = e;
             }
-            else
-            {
+            else {
                 s = s0 + c2;
                 e = c2 - (s - s0);
-                s0 = s;
-                s1 = e;
+                s0 = s; s1 = e;
             }
         }
 
         if (c3 != 0.0)
         {
-            if (s2 != 0.0)
-            {
-                s = s2 + c3;
-                e = c3 - (s - s2);
-                s2 = s;
-                s3 = e;
+            if (s2 != 0.0) {
+                s = s2 + c3; e = c3 - (s - s2);
+                s2 = s; s3 = e;
             }
-            else if (s1 != 0.0)
-            {
-                s = s1 + c3;
-                e = c3 - (s - s1);
-                s1 = s;
-                s2 = e;
+            else if (s1 != 0.0) {
+                s = s1 + c3; e = c3 - (s - s1);
+                s1 = s; s2 = e;
             }
-            else
-            {
-                s = s0 + c3;
-                e = c3 - (s - s0);
-                s0 = s;
-                s1 = e;
+            else {
+                s = s0 + c3; e = c3 - (s - s0);
+                s0 = s; s1 = e;
             }
         }
 
         if (c4 != 0.0)
         {
-            if (s3 != 0.0)
-            {
+            if (s3 != 0.0) {
                 s3 += c4;
             }
-            else if (s2 != 0.0)
-            {
-                s = s2 + c4;
-                e = c4 - (s - s2);
-                s2 = s;
-                s3 = e;
+            else if (s2 != 0.0) {
+                s = s2 + c4; e = c4 - (s - s2);
+                s2 = s; s3 = e;
             }
-            else if (s1 != 0.0)
-            {
-                s = s1 + c4;
-                e = c4 - (s - s1);
-                s1 = s;
-                s2 = e;
+            else if (s1 != 0.0) {
+                s = s1 + c4; e = c4 - (s - s1);
+                s1 = s; s2 = e;
             }
-            else
-            {
-                s = s0 + c4;
-                e = c4 - (s - s0);
-                s0 = s;
-                s1 = e;
+            else {
+                s = s0 + c4; e = c4 - (s - s0);
+                s0 = s; s1 = e;
             }
         }
 
@@ -854,15 +784,9 @@ NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
     double q0 = 1.0 / b.x0;
     f256_s r = one - (b * q0);
 
-    double q1 = r.x0 / b.x0;
-    r -= (b * q1);
-
-    double q2 = r.x0 / b.x0;
-    r -= (b * q2);
-
-    double q3 = r.x0 / b.x0;
-    r -= (b * q3);
-
+    double q1 = r.x0 / b.x0; r -= (b * q1);
+    double q2 = r.x0 / b.x0; r -= (b * q2);
+    double q3 = r.x0 / b.x0; r -= (b * q3);
     double q4 = r.x0 / b.x0;
 
     return _f256_detail::renorm5(q0, q1, q2, q3, q4);
@@ -875,15 +799,10 @@ namespace _f256_detail
 {
     FORCE_INLINE constexpr f256_s add_scalar_precise(const f256_s& a, double b) noexcept
     {
-        double s0{}, e0{};
-        double s1{}, e1{};
-        double s2{}, e2{};
-        double s3{}, e3{};
-
-        _f256_detail::two_sum_precise(a.x0, b, s0, e0);
-        _f256_detail::two_sum_precise(a.x1, e0, s1, e1);
-        _f256_detail::two_sum_precise(a.x2, e1, s2, e2);
-        _f256_detail::two_sum_precise(a.x3, e2, s3, e3);
+        double s0{}, e0{};  two_sum_precise(a.x0, b, s0, e0);
+        double s1{}, e1{};  two_sum_precise(a.x1, e0, s1, e1);
+        double s2{}, e2{};  two_sum_precise(a.x2, e1, s2, e2);
+        double s3{}, e3{};  two_sum_precise(a.x3, e2, s3, e3);
 
         return renorm5(s0, s1, s2, s3, e3);
     }
@@ -892,7 +811,7 @@ namespace _f256_detail
         if (n <= 0) return {};
 
         double comp[40]{};
-        const int m = _f256_detail::compress_expansion_zeroelim(n, h, comp);
+        const int m = compress_expansion_zeroelim(n, h, comp);
 
         f256_s sum{};
         for (int i = 0; i < m; ++i)
@@ -907,29 +826,29 @@ namespace _f256_detail
         double s1{}, e1{};
 
         #if BL_F256_ENABLE_SIMD
-        if (_f256_detail::f256_runtime_simd_enabled())
+        if (f256_runtime_simd_enabled())
         {
-            const __m128d av = _f256_detail::f256_simd_set(a.x0, a.x1);
-            const __m128d bv = _f256_detail::f256_simd_set(b.x0, b.x1);
+            const __m128d av = f256_simd_set(a.x0, a.x1);
+            const __m128d bv = f256_simd_set(b.x0, b.x1);
             __m128d sv{}, ev{};
-            _f256_detail::f256_simd_two_sum(av, bv, sv, ev);
-            _f256_detail::f256_simd_store(sv, s0, s1);
-            _f256_detail::f256_simd_store(ev, e0, e1);
+            f256_simd_two_sum(av, bv, sv, ev);
+            f256_simd_store(sv, s0, s1);
+            f256_simd_store(ev, e0, e1);
         }
         else
         #endif
         {
-            _f256_detail::two_sum_precise(a.x0, b.x0, s0, e0);
-            _f256_detail::two_sum_precise(a.x1, b.x1, s1, e1);
+            two_sum_precise(a.x0, b.x0, s0, e0);
+            two_sum_precise(a.x1, b.x1, s1, e1);
         }
         _f256_detail::two_sum_precise(s1, e0, s1, e0);
 
         e0 += e1;
 
         if (e0 == 0.0)
-            return _f256_detail::renorm4(s0, s1, 0.0, 0.0);
+            return renorm4(s0, s1, 0.0, 0.0);
 
-        return _f256_detail::renorm5(s0, s1, e0, 0.0, 0.0);
+        return renorm5(s0, s1, e0, 0.0, 0.0);
     }
     FORCE_INLINE constexpr f256_s sub_dd_qd(const f256_s& a, const f256_s& b) noexcept
     {
@@ -939,27 +858,27 @@ namespace _f256_detail
 #if BL_F256_ENABLE_SIMD
         if (_f256_detail::f256_runtime_simd_enabled())
         {
-            const __m128d av = _f256_detail::f256_simd_set(a.x0, a.x1);
-            const __m128d bv = _f256_detail::f256_simd_set(-b.x0, -b.x1);
+            const __m128d av = f256_simd_set(a.x0, a.x1);
+            const __m128d bv = f256_simd_set(-b.x0, -b.x1);
             __m128d sv{}, ev{};
-            _f256_detail::f256_simd_two_sum(av, bv, sv, ev);
-            _f256_detail::f256_simd_store(sv, s0, s1);
-            _f256_detail::f256_simd_store(ev, e0, e1);
+            f256_simd_two_sum(av, bv, sv, ev);
+            f256_simd_store(sv, s0, s1);
+            f256_simd_store(ev, e0, e1);
         }
         else
 #endif
         {
-            _f256_detail::two_sum_precise(a.x0, -b.x0, s0, e0);
-            _f256_detail::two_sum_precise(a.x1, -b.x1, s1, e1);
+            two_sum_precise(a.x0, -b.x0, s0, e0);
+            two_sum_precise(a.x1, -b.x1, s1, e1);
         }
-        _f256_detail::two_sum_precise(s1, e0, s1, e0);
+        two_sum_precise(s1, e0, s1, e0);
 
         e0 += e1;
 
         if (e0 == 0.0)
-            return _f256_detail::renorm4(s0, s1, 0.0, 0.0);
+            return renorm4(s0, s1, 0.0, 0.0);
 
-        return _f256_detail::renorm5(s0, s1, e0, 0.0, 0.0);
+        return renorm5(s0, s1, e0, 0.0, 0.0);
     }
     FORCE_INLINE constexpr f256_s add_qd_qd(const f256_s& a, const f256_s& b) noexcept
     {
@@ -971,29 +890,29 @@ namespace _f256_detail
 #if BL_F256_ENABLE_SIMD
         if (_f256_detail::f256_runtime_simd_enabled())
         {
-            const __m128d a01 = _f256_detail::f256_simd_set(a.x0, a.x1);
-            const __m128d b01 = _f256_detail::f256_simd_set(b.x0, b.x1);
-            const __m128d a23 = _f256_detail::f256_simd_set(a.x2, a.x3);
-            const __m128d b23 = _f256_detail::f256_simd_set(b.x2, b.x3);
+            const __m128d a01 = f256_simd_set(a.x0, a.x1);
+            const __m128d b01 = f256_simd_set(b.x0, b.x1);
+            const __m128d a23 = f256_simd_set(a.x2, a.x3);
+            const __m128d b23 = f256_simd_set(b.x2, b.x3);
             __m128d s01{}, e01{}, s23{}, e23{};
-            _f256_detail::f256_simd_two_sum(a01, b01, s01, e01);
-            _f256_detail::f256_simd_two_sum(a23, b23, s23, e23);
-            _f256_detail::f256_simd_store(s01, s0, s1);
-            _f256_detail::f256_simd_store(e01, e0, e1);
-            _f256_detail::f256_simd_store(s23, s2, s3);
-            _f256_detail::f256_simd_store(e23, e2, e3);
+            f256_simd_two_sum(a01, b01, s01, e01);
+            f256_simd_two_sum(a23, b23, s23, e23);
+            f256_simd_store(s01, s0, s1);
+            f256_simd_store(e01, e0, e1);
+            f256_simd_store(s23, s2, s3);
+            f256_simd_store(e23, e2, e3);
         }
         else
 #endif
         {
-            _f256_detail::two_sum_precise(a.x0, b.x0, s0, e0);
-            _f256_detail::two_sum_precise(a.x1, b.x1, s1, e1);
-            _f256_detail::two_sum_precise(a.x2, b.x2, s2, e2);
-            _f256_detail::two_sum_precise(a.x3, b.x3, s3, e3);
+            two_sum_precise(a.x0, b.x0, s0, e0);
+            two_sum_precise(a.x1, b.x1, s1, e1);
+            two_sum_precise(a.x2, b.x2, s2, e2);
+            two_sum_precise(a.x3, b.x3, s3, e3);
         }
-        _f256_detail::two_sum_precise(s1, e0, s1, e0);
-        _f256_detail::three_sum(s2, e0, e1);
-        _f256_detail::three_sum2(s3, e0, e2);
+        two_sum_precise(s1, e0, s1, e0);
+        three_sum(s2, e0, e1);
+        three_sum2(s3, e0, e2);
 
         e0 += e1 + e3;
 
@@ -1012,29 +931,29 @@ namespace _f256_detail
 #if BL_F256_ENABLE_SIMD
         if (_f256_detail::f256_runtime_simd_enabled())
         {
-            const __m128d a01 = _f256_detail::f256_simd_set(a.x0, a.x1);
-            const __m128d b01 = _f256_detail::f256_simd_set(-b.x0, -b.x1);
-            const __m128d a23 = _f256_detail::f256_simd_set(a.x2, a.x3);
-            const __m128d b23 = _f256_detail::f256_simd_set(-b.x2, -b.x3);
+            const __m128d a01 = f256_simd_set(a.x0, a.x1);
+            const __m128d b01 = f256_simd_set(-b.x0, -b.x1);
+            const __m128d a23 = f256_simd_set(a.x2, a.x3);
+            const __m128d b23 = f256_simd_set(-b.x2, -b.x3);
             __m128d s01{}, e01{}, s23{}, e23{};
-            _f256_detail::f256_simd_two_sum(a01, b01, s01, e01);
-            _f256_detail::f256_simd_two_sum(a23, b23, s23, e23);
-            _f256_detail::f256_simd_store(s01, s0, s1);
-            _f256_detail::f256_simd_store(e01, e0, e1);
-            _f256_detail::f256_simd_store(s23, s2, s3);
-            _f256_detail::f256_simd_store(e23, e2, e3);
+            f256_simd_two_sum(a01, b01, s01, e01);
+            f256_simd_two_sum(a23, b23, s23, e23);
+            f256_simd_store(s01, s0, s1);
+            f256_simd_store(e01, e0, e1);
+            f256_simd_store(s23, s2, s3);
+            f256_simd_store(e23, e2, e3);
         }
         else
 #endif
         {
-            _f256_detail::two_sum_precise(a.x0, -b.x0, s0, e0);
-            _f256_detail::two_sum_precise(a.x1, -b.x1, s1, e1);
-            _f256_detail::two_sum_precise(a.x2, -b.x2, s2, e2);
-            _f256_detail::two_sum_precise(a.x3, -b.x3, s3, e3);
+            two_sum_precise(a.x0, -b.x0, s0, e0);
+            two_sum_precise(a.x1, -b.x1, s1, e1);
+            two_sum_precise(a.x2, -b.x2, s2, e2);
+            two_sum_precise(a.x3, -b.x3, s3, e3);
         }
-        _f256_detail::two_sum_precise(s1, e0, s1, e0);
-        _f256_detail::three_sum(s2, e0, e1);
-        _f256_detail::three_sum2(s3, e0, e2);
+        two_sum_precise(s1, e0, s1, e0);
+        three_sum(s2, e0, e1);
+        three_sum2(s3, e0, e2);
 
         e0 += e1 + e3;
 
@@ -1046,59 +965,24 @@ namespace _f256_detail
 
     FORCE_INLINE constexpr f256_s sub_mul_scalar_fast(const f256_s& r, const f256_s& b, double q) noexcept
     {
-        double p0{}, e0{};
-        double p1{}, e1{};
-        double p2{}, e2{};
-        double p3{}, e3{};
+        double p0{}, e0{}; two_prod_precise(b.x0, q, p0, e0);
+        double p1{}, e1{}; two_prod_precise(b.x1, q, p1, e1);
+        double p2{}, e2{}; two_prod_precise(b.x2, q, p2, e2);
+        double p3{}, e3{}; two_prod_precise(b.x3, q, p3, e3);
 
-        _f256_detail::two_prod_precise(b.x0, q, p0, e0);
-        _f256_detail::two_prod_precise(b.x1, q, p1, e1);
-        _f256_detail::two_prod_precise(b.x2, q, p2, e2);
-        _f256_detail::two_prod_precise(b.x3, q, p3, e3);
+        double s0 = r.x0-p0; double v0 = s0-r.x0; double u0 = s0-v0; double w0 = r.x0-u0;  u0 = -p0 - v0;
+        double s1 = r.x1-p1; double v1 = s1-r.x1; double u1 = s1-v1; double w1 = r.x1-u1;  u1 = -p1 - v1;
+        double s2 = r.x2-p2; double v2 = s2-r.x2; double u2 = s2-v2; double w2 = r.x2-u2;  u2 = -p2 - v2;
+        double s3 = r.x3-p3; double v3 = s3-r.x3; double u3 = s3-v3; double w3 = r.x3-u3;  u3 = -p3 - v3;
 
-        double s0{}, t0{};
-        double s1{}, t1{};
-        double s2{}, t2{};
-        double s3{}, t3{};
+        double t0 = w0 + u0;
+        double t1 = w1 + u1;
+        double t2 = w2 + u2;
+        double t3 = w3 + u3;
 
-        s0 = r.x0 - p0;
-        s1 = r.x1 - p1;
-        s2 = r.x2 - p2;
-        s3 = r.x3 - p3;
-
-        double v0 = s0 - r.x0;
-        double v1 = s1 - r.x1;
-        double v2 = s2 - r.x2;
-        double v3 = s3 - r.x3;
-
-        double u0 = s0 - v0;
-        double u1 = s1 - v1;
-        double u2 = s2 - v2;
-        double u3 = s3 - v3;
-
-        double w0 = r.x0 - u0;
-        double w1 = r.x1 - u1;
-        double w2 = r.x2 - u2;
-        double w3 = r.x3 - u3;
-
-        u0 = -p0 - v0;
-        u1 = -p1 - v1;
-        u2 = -p2 - v2;
-        u3 = -p3 - v3;
-
-        t0 = w0 + u0;
-        t1 = w1 + u1;
-        t2 = w2 + u2;
-        t3 = w3 + u3;
-
-        double tail0 = t0 - e0;
-        _f256_detail::two_sum_precise(s1, tail0, s1, t0);
-
-        double tail1 = t1 - e1;
-        three_sum(s2, t0, tail1);
-
-        double tail2 = t2 - e2;
-        three_sum2(s3, t0, tail2);
+        double tail0 = t0 - e0; two_sum_precise(s1, tail0, s1, t0);
+        double tail1 = t1 - e1; three_sum(s2, t0, tail1);
+        double tail2 = t2 - e2; three_sum2(s3, t0, tail2);
 
         t0 = t0 + tail1 + t3 - e3;
 
@@ -1162,10 +1046,8 @@ namespace _f256_detail
     _f256_detail::three_sum(p3, p4, p5);
 
     _f256_detail::two_sum_precise(p2, p3, s0, t0);
-    _f256_detail::two_sum_precise(q1, p4, s1, t1);
-    s2 = q2 + p5;
-    _f256_detail::two_sum_precise(s1, t0, s1, t0);
-    s2 += (t0 + t1);
+    _f256_detail::two_sum_precise(q1, p4, s1, t1);  s2 = q2 + p5;
+    _f256_detail::two_sum_precise(s1, t0, s1, t0);  s2 += (t0 + t1);
 
     _f256_detail::two_prod_precise(a.x0, b.x3, p6, q6);
     _f256_detail::two_prod_precise(a.x1, b.x2, p7, q7);
@@ -1177,20 +1059,13 @@ namespace _f256_detail
     _f256_detail::two_sum_precise(p6, p7, p6, p7);
     _f256_detail::two_sum_precise(p8, p9, p8, p9);
 
-    _f256_detail::two_sum_precise(q0, q4, t0, t1);
-    t1 += (q3 + q5);
-
-    _f256_detail::two_sum_precise(p6, p8, r0, r1);
-    r1 += (p7 + p9);
-
-    _f256_detail::two_sum_precise(t0, r0, q3, q4);
-    q4 += (t1 + r1);
+    _f256_detail::two_sum_precise(q0, q4, t0, t1);  t1 += (q3 + q5);
+    _f256_detail::two_sum_precise(p6, p8, r0, r1);  r1 += (p7 + p9);
+    _f256_detail::two_sum_precise(t0, r0, q3, q4);  q4 += (t1 + r1);
 
     _f256_detail::two_sum_precise(q3, s1, t0, t1);
     t1 += q4;
-
-    t1 += a.x1 * b.x3 + a.x2 * b.x2 + a.x3 * b.x1
-        + q6 + q7 + q8 + q9 + s2;
+    t1 += a.x1 * b.x3 + a.x2 * b.x2 + a.x3 * b.x1 + q6 + q7 + q8 + q9 + s2;
 
     return _f256_detail::renorm5(p0, p1, s0, t0, t1);
 }
@@ -1225,43 +1100,34 @@ namespace _f256_detail
     double e{};
 
     _f256_detail::two_sum_precise(a.x0, b, c0, e);
-    if (e == 0.0)
-        return { c0, a.x1, a.x2, a.x3 };
+    if (e == 0.0) return { c0, a.x1, a.x2, a.x3 };
 
     _f256_detail::two_sum_precise(a.x1, e, c1, e);
-    if (e == 0.0)
-        return _f256_detail::renorm4(c0, c1, a.x2, a.x3);
+    if (e == 0.0) return _f256_detail::renorm4(c0, c1, a.x2, a.x3);
 
     _f256_detail::two_sum_precise(a.x2, e, c2, e);
-    if (e == 0.0)
-        return _f256_detail::renorm4(c0, c1, c2, a.x3);
+    if (e == 0.0) return _f256_detail::renorm4(c0, c1, c2, a.x3);
 
     _f256_detail::two_sum_precise(a.x3, e, c3, e);
-    if (e == 0.0)
-        return _f256_detail::renorm4(c0, c1, c2, c3);
+    if (e == 0.0) return _f256_detail::renorm4(c0, c1, c2, c3);
 
     return _f256_detail::renorm5(c0, c1, c2, c3, e);
 }
 [[nodiscard]] NO_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept
 {
-    double c0{}, c1{}, c2{}, c3{};
-    double e{};
+    double c0{}, c1{}, c2{}, c3{}, e{};
 
     _f256_detail::two_sum_precise(a.x0, -b, c0, e);
-    if (e == 0.0)
-        return { c0, a.x1, a.x2, a.x3 };
+    if (e == 0.0) return { c0, a.x1, a.x2, a.x3 };
 
     _f256_detail::two_sum_precise(a.x1, e, c1, e);
-    if (e == 0.0)
-        return _f256_detail::renorm4(c0, c1, a.x2, a.x3);
+    if (e == 0.0) return _f256_detail::renorm4(c0, c1, a.x2, a.x3);
 
     _f256_detail::two_sum_precise(a.x2, e, c2, e);
-    if (e == 0.0)
-        return _f256_detail::renorm4(c0, c1, c2, a.x3);
+    if (e == 0.0) return _f256_detail::renorm4(c0, c1, c2, a.x3);
 
     _f256_detail::two_sum_precise(a.x3, e, c3, e);
-    if (e == 0.0)
-        return _f256_detail::renorm4(c0, c1, c2, c3);
+    if (e == 0.0) return _f256_detail::renorm4(c0, c1, c2, c3);
 
     return _f256_detail::renorm5(c0, c1, c2, c3, e);
 }
@@ -1308,14 +1174,14 @@ namespace _f256_detail
 
             const bool neg = _f256_detail::signbit_constexpr(a.x0) ^ _f256_detail::signbit_constexpr(b);
             return f256_s{ neg ? -std::numeric_limits<double>::infinity()
-                             : std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
+                               :  std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
         }
 
         if (isinf(a))
         {
             const bool neg = _f256_detail::signbit_constexpr(a.x0) ^ _f256_detail::signbit_constexpr(b);
             return f256_s{ neg ? -std::numeric_limits<double>::infinity()
-                             : std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
+                               :  std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
         }
     }
 
@@ -1325,15 +1191,9 @@ namespace _f256_detail
     const double q0 = a.x0 * inv_b;
     f256_s r = _f256_detail::sub_mul_scalar_exact(a, divisor, q0);
 
-    const double q1 = r.x0 * inv_b;
-    r = _f256_detail::sub_mul_scalar_fast(r, divisor, q1);
-
-    const double q2 = r.x0 * inv_b;
-    r = _f256_detail::sub_mul_scalar_fast(r, divisor, q2);
-
-    const double q3 = r.x0 * inv_b;
-    r = _f256_detail::sub_mul_scalar_fast(r, divisor, q3);
-
+    const double q1 = r.x0 * inv_b; r = _f256_detail::sub_mul_scalar_fast(r, divisor, q1);
+    const double q2 = r.x0 * inv_b; r = _f256_detail::sub_mul_scalar_fast(r, divisor, q2);
+    const double q3 = r.x0 * inv_b; r = _f256_detail::sub_mul_scalar_fast(r, divisor, q3);
     const double q4 = r.x0 * inv_b;
 
     return _f256_detail::renorm5(q0, q1, q2, q3, q4);

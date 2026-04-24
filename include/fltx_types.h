@@ -38,7 +38,22 @@ namespace bl
     template<class T> concept is_arithmetic_v     = std::is_arithmetic_v<T>     || is_fltx_v<T>;
     template<class T> concept is_integral_v       = std::is_integral_v<T>;
 
-    enum struct FloatType { F32, F64, F128, F256, COUNT };
+    // Convenience macro to enable bitops for one enum type
+    #define bl_enable_enum_bitops(E) \
+    template<> struct enable_enum_bitops<E> : std::true_type {}
+
+    template<class E>
+    struct enable_enum_bitops : std::false_type {};
+
+    template<class E>
+    concept bitmask_enum = std::is_enum_v<E> && enable_enum_bitops<E>::value;
+
+    template<bitmask_enum E>
+    using enum_underlying_t = std::underlying_type_t<E>;
+
+    enum struct FloatType : int { F32, F64, F128, F256, COUNT };
+    bl_enable_enum_bitops(FloatType);
+
     static inline const char* FloatTypeNames[(int)FloatType::COUNT] = { 
         "F32",
         "F64",
