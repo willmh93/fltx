@@ -99,8 +99,8 @@ namespace _f32_detail
             return 0;
 
         const double dx = static_cast<double>(x);
-        const double lo = static_cast<double>(std::numeric_limits<SignedInt>::lowest());
-        const double hi = static_cast<double>(std::numeric_limits<SignedInt>::max());
+        constexpr double lo = static_cast<double>(std::numeric_limits<SignedInt>::lowest());
+        constexpr double hi = static_cast<double>(std::numeric_limits<SignedInt>::max());
         if (dx < lo || dx > hi)
             return 0;
 

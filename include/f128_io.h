@@ -74,7 +74,7 @@ namespace _f128_detail
             f128_s q = floor(n / base);
             f128_s r = n - q * base;
 
-            long long chunk = (long long)std::floor(r.hi);
+            long long chunk = (long long)fltx::common::fp::floor_constexpr(r.hi);
             if (chunk >= 1000000000LL) { chunk -= 1000000000LL; q = q + f128_s{ 1.0 }; }
             if (chunk < 0) chunk = 0;
 
@@ -87,7 +87,7 @@ namespace _f128_detail
             n = q;
         }
 
-        long long last = (long long)std::floor(n.hi);
+        long long last = (long long)fltx::common::fp::floor_constexpr(n.hi);
         if (last == 0) {
             dst[len++] = '0';
         }
@@ -220,7 +220,7 @@ namespace _f128_detail
 
                 uint32_t chunk = 0;
                 if (fp.hi > 0.0) {
-                    const double hi_floor = std::floor(fp.hi);
+                    const double hi_floor = fltx::common::fp::floor_constexpr(fp.hi);
                     if (hi_floor >= (double)kPow10u32[9])
                         chunk = kPow10u32[9] - 1u;
                     else
@@ -252,7 +252,7 @@ namespace _f128_detail
                 uint32_t chunk = 0;
                 const uint32_t chunk_limit = kPow10u32[rem] - 1u;
                 if (fp.hi > 0.0) {
-                    const double hi_floor = std::floor(fp.hi);
+                    const double hi_floor = fltx::common::fp::floor_constexpr(fp.hi);
                     if (hi_floor >= (double)kPow10u32[rem])
                         chunk = chunk_limit;
                     else
@@ -601,7 +601,7 @@ namespace literals
     [[nodiscard]] constexpr f128_s operator""_dd(long double v) noexcept {
         return f128_s{ static_cast<double>(v) };
     }
-    [[nodiscard]] consteval f128_s operator""_dd(const char* text, std::size_t len) noexcept
+    [[nodiscard]] consteval f128_s operator""_dd(const char* text, std::size_t len)
     {
         f128_s out{};
         const char* end = text;

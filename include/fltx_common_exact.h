@@ -240,7 +240,9 @@ struct biguint
         }
 
         const int old_size = size;
-        const int src_count = std::min(old_size, max_words - word_shift);
+        const int writable_count = max_words - word_shift;
+        const int src_count = std::min(old_size, writable_count);
+
         if (src_count <= 0)
         {
             size = 0;
@@ -256,24 +258,24 @@ struct biguint
                 words[i] = 0;
 
             size = src_count + word_shift;
+            trim();
             return;
         }
 
         std::uint32_t out[max_words]{};
 
-        for (int i = 0; i < word_shift; ++i)
-            out[i] = 0;
-
         std::uint32_t carry = 0;
-        int dst = word_shift;
 
-        for (int i = 0; i < src_count; ++i, ++dst)
-        {
-            const std::uint32_t word = words[i];
-            out[dst] = static_cast<std::uint32_t>(
-                (static_cast<std::uint64_t>(word) << bit_shift) | carry);
-            carry = static_cast<std::uint32_t>(word >> (32 - bit_shift));
-        }
+		for (int i = 0; i < src_count; ++i)
+		{
+		    const int dst = word_shift + i;
+		    const std::uint32_t word = words[i];
+
+		    out[dst] = static_cast<std::uint32_t>(
+		        (static_cast<std::uint64_t>(word) << bit_shift) | carry);
+
+		    carry = static_cast<std::uint32_t>(word >> (32 - bit_shift));
+		}
 
         int new_size = src_count + word_shift;
         if (carry != 0 && new_size < max_words)

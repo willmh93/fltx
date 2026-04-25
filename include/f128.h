@@ -375,8 +375,33 @@ namespace _f128_detail
 
 // ------------------ classification ------------------
 
-NO_INLINE    constexpr f128_s pow10_128(int k);
+
 FORCE_INLINE constexpr f128_s abs(const f128_s& a);
+[[nodiscard]] NO_INLINE constexpr f128_s pow10_128(int k)
+{
+    if (k == 0) return f128_s{ 1.0 };
+
+    int n = (k >= 0) ? k : -k;
+
+    // fast small-exponent path
+    if (n <= 16) {
+        f128_s r = f128_s{ 1.0 };
+        const f128_s ten = f128_s{ 10.0 };
+        for (int i = 0; i < n; ++i) r = r * ten;
+        return (k >= 0) ? r : (f128_s{ 1.0 } / r);
+    }
+
+    f128_s r = f128_s{ 1.0 };
+    f128_s base = f128_s{ 10.0 };
+
+    while (n) {
+        if (n & 1) r = r * base;
+        n >>= 1;
+        if (n) base = base * base;
+    }
+
+    return (k >= 0) ? r : (f128_s{ 1.0 } / r);
+}
 
 [[nodiscard]] FORCE_INLINE constexpr bool isnan(const f128_s& x) noexcept      { return fltx::common::fp::isnan(x.hi); }
 [[nodiscard]] FORCE_INLINE constexpr bool isinf(const f128_s& x) noexcept      { return fltx::common::fp::isinf(x.hi); }

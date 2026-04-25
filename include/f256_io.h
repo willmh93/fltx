@@ -112,7 +112,7 @@ namespace _f256_detail
             f256_s q = floor(n / base);
             f256_s r = n - q * base;
 
-            long long chunk = (long long)std::floor(r.x0);
+            long long chunk = (long long)fltx::common::fp::floor_constexpr(r.x0);
             if (chunk >= 1000000000LL) { chunk -= 1000000000LL; q += 1.0; }
             if (chunk < 0) chunk = 0;
 
@@ -125,7 +125,7 @@ namespace _f256_detail
             n = q;
         }
 
-        long long last = (long long)std::floor(n.x0);
+        long long last = (long long)fltx::common::fp::floor_constexpr(n.x0);
         if (last == 0) {
             dst[len++] = '0';
         }
@@ -632,7 +632,7 @@ namespace literals
     [[nodiscard]] constexpr f256_s operator""_qd(long double v) noexcept {
         return f256_s{ static_cast<double>(v) };
     }
-    [[nodiscard]] consteval f256_s operator""_qd(const char* text, std::size_t len) noexcept
+    [[nodiscard]] consteval f256_s operator""_qd(const char* text, std::size_t len)
     {
         f256_s out{};
         const char* end = text;

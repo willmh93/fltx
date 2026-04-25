@@ -1,30 +1,40 @@
 <img src="res/logo.webp" alt="fltx logo" width="90">
 
-A modern C++ header-only library for extended-precision floating-point work.
+A modern C++ header-only library for fixed-width extended-precision floating-point work.
 
-It provides high-precision numeric types designed for code that needs **substantially more precision than `double`**, while staying faster and more light-weight than arbitrary-precision libraries.
+`fltx` provides numeric types for code that needs **substantially more precision than `double`**, without moving all the way to arbitrary precision.
 
-At its core, **`fltx`** focuses on two types:
+The core types are:
 
-- **`f128`** — a double-double type built from two `double` limbs
-- **`f256`** — a quad-double type built from four `double` limbs
+- **`f128`** — double-double precision, stored as two `double` limbs
+- **`f256`** — quad-double precision, stored as four `double` limbs
+
+The goal is simple: **more numerical headroom, `double`-like ergonomics, and strong performance for fixed precision workloads**.
 
 ## Highlights
-- Modern header-only C++ design (literals, operators, conversions, etc)
-- Precision and performance tested against `boost::multiprecision::mpfr_float_backend<digits>` (see results below)
-- Complete `constexpr` support (arithmetic, math functions, parsing/serializing, classification, etc)
-- bitwise parity between constexpr and runtime results (not guaranteed, but high-confidence based on internal testing)
+
+- Header-only modern C++ design
+- `f128` and `f256` extended-precision scalar types
+- Literal support, operators, conversions, comparisons, and common math functions
+- `constexpr` support for arithmetic, math functions, parsing, serialization, classification, and numeric constants
+- High-confidence bitwise parity between constexpr and runtime paths in internal tests
+- Standard-library integration: `std::ostream`, `std::numeric_limits`, `std::numbers`, and stream manipulators such as `std::setprecision`
+- Trivial storage types for low-level layouts, unions, buffers, and interop code
+- Optional runtime-to-compile-time dispatch helpers for building type-specialized kernels from runtime settings
+- Precision and performance tested against `boost::multiprecision::mpfr_float_backend<digits>`
 
 ## Use case
 
-The library is aimed at workloads where *both* speed and precision matters: fractals, simulations, geometric transforms, numerically sensitive kernels, reference-quality math experiments, and other precision-heavy systems where `double` is not enough.
+`fltx` is aimed at workloads where **both speed and precision matter**:
 
-`fltx` is a good fit when you need one or more of the following:
+- fractals and escape-time systems
+- simulations and iterative numerical kernels
+- geometric transforms
+- numerically sensitive reference code
+- constexpr-heavy validation
+- experiments where `double` is not enough, but arbitrary precision is overkill
 
-- Cross-platform uniformity
-- An extended-precision type you can pass around in ordinary C++ code without redesigning your whole project
-- A collection of constexpr-capable math functions that perform quickly and accurately
-- Overall better performance than an arbitrary-precision library when targeting the same level of precision
+It is a good fit when you want an extended-precision type that can still be passed around like a normal scalar in ordinary C++ code.
 
 ## Quick example
 
@@ -33,6 +43,7 @@ The library is aimed at workloads where *both* speed and precision matters: frac
 #include <iomanip>
 
 #include <fltx.h>
+
 using namespace bl;
 using namespace bl::literals;
 
@@ -42,35 +53,172 @@ int main()
     constexpr f256 b = 2_qd / 3_qd;
     constexpr f256 c = a + b;
 
-    std::cout << std::setprecision( std::numeric_limits<f256>::digits10 )
+    std::cout << std::setprecision(std::numeric_limits<f256>::digits10)
         << "a = " << a << "\n"
         << "b = " << b << "\n"
         << "a + b = " << c << "\n";
 }
-
-// output:   a = 0.333333333333333333333333333333333333333333333333333333333333333
-//           b = 0.666666666666666666666666666666666666666666666666666666666666667
-//           a + b = 1
 ```
-## Usage
 
-- full types: `f128` `f256` — user-facing numeric types with implicit converting constructors from supported scalar types
-- base types: `f128_s` `f256_s` — trivial standard-layout storage types, suitable for unions and low-level storage. They are typically initialized with braces, and scalar brace initialization works naturally (`f128_s{5.0}`, `f256_s{5.0}`), with remaining limbs zero-initialized
+Output:
 
+```text
+a = 0.333333333333333333333333333333333333333333333333333333333333333
+b = 0.666666666666666666666666666666666666666666666666666666666666667
+a + b = 1
+```
+
+## Public includes
+
+You can include the umbrella header when you just want everything:
 
 ```cpp
-f128_s a { 5.0 };  // brace initialization of the trivial storage type
-f128 b = 5.0f;     // convenient scalar construction via the full type
+#include <fltx.h>
+```
 
-// after construction, both are usable in nearly the same way in normal library code
+For larger projects, the public headers are split so you can include only the layer you need:
+
+| Header | Use when you want |
+|---|---|
+| `fltx_types.h` | basic aliases, type concepts, `FloatType`, and small enum helpers |
+| `fltx_core.h` | `f128`, `f256`, storage types, core arithmetic, conversions, and standard numeric integration |
+| `f128.h` / `f256.h` | only one extended-precision type and its core operations |
+| `fltx_math.h` | constexpr-capable math functions for `f32`, `f64`, `f128`, and `f256` |
+| `f32_math.h` / `f64_math.h` | constexpr math wrappers for native `float` / `double` |
+| `f128_math.h` / `f256_math.h` | math functions for one extended-precision type |
+| `fltx_io.h` | parsing, formatting, string conversion, stream output, and literals |
+| `f128_io.h` / `f256_io.h` | IO and literals for one extended-precision type |
+| `fltx_dispatch.h` | `FloatType` to C++ type dispatch, built on `constexpr_dispatch.h` |
+| `constexpr_dispatch.h` | standalone constexpr dispatch machinery for custom runtime-to-template dispatch |
+
+The `fltx_common_*` and exact-decimal headers are implementation/detail headers. Normal user code should not need to include them directly.
+
+## Numeric types
+
+`fltx` has two layers of extended-precision type:
+
+- **full types:** `f128`, `f256`
+- **storage types:** `f128_s`, `f256_s`
+
+The full types are the normal user-facing scalar types. They support convenient construction from supported scalar values and are the types most code should use directly.
+
+The storage types are trivial standard-layout types. They are useful for unions, packed layouts, low-level buffers, and places where a simple aggregate representation matters.
+
+```cpp
+f128_s a { 5.0 };
+f128   b = 5.0f;
+
 f128   c = a + b;
 f128_s d = c;
 ```
 
+After construction, the storage and full types are usable in nearly the same way in normal library code.
+
+The basic aliases and concepts are available from `fltx_types.h`:
+
+```cpp
+bl::f32
+bl::f64
+bl::f128
+bl::f256
+
+bl::is_f32_v<T>
+bl::is_f64_v<T>
+bl::is_f128_v<T>
+bl::is_f256_v<T>
+bl::is_fltx_v<T>
+bl::is_floating_point_v<T>
+bl::is_arithmetic_v<T>
+```
+
+## Math and IO
+
+`fltx_math.h` gives you a consistent `bl::` math layer across `float`, `double`, `f128`, and `f256`.
+
+That is useful when writing generic kernels where the precision type is a template parameter, but you still want one set of function names:
+
+```cpp
+template<class T>
+constexpr T radius(T x, T y)
+{
+    return bl::sqrt(x * x + y * y);
+}
+```
+
+`fltx_io.h` adds parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
+
+```cpp
+using namespace bl;
+using namespace bl::literals;
+
+constexpr f128 a = 1.25_dd;
+constexpr f256 b = "3.1415926535897932384626433832795028841971"_qd;
+
+constexpr auto s = bl::to_string(b);
+std::string runtime_s = bl::to_std_string(b);
+```
+
+## constexpr dispatch
+
+`fltx_dispatch.h` includes a small runtime-to-compile-time dispatch layer.
+
+This is useful when a user setting, file format, UI option, or benchmark parameter chooses the precision at runtime, but the actual kernel should still compile as a type-specialized template.
+
+```cpp
+#include <fltx_dispatch.h>
+
+using namespace bl;
+
+template<class T>
+void run_kernel(int width, int height)
+{
+    T scale = T{ 1 } / T{ width + height };
+    (void)scale;
+}
+
+int main()
+{
+    FloatType type = FloatType::F256;
+
+    table_invoke(
+        dispatch_table(run_kernel, 1920, 1080),
+        enum_type(type)
+    );
+}
+```
+
+`enum_type(type)` maps `FloatType::F32`, `FloatType::F64`, `FloatType::F128`, and `FloatType::F256` to `bl::f32`, `bl::f64`, `bl::f128`, and `bl::f256`.
+
+You can also dispatch on enum or bool values as compile-time non-type template arguments, which makes it useful for generating optimized variants of numerical kernels without hand-writing large switch blocks.
+
+## Precision model
+
+`f128` and `f256` are multi-limb floating-point types built from `double` components:
+
+```text
+sizeof(f128) == 16
+sizeof(f256) == 32
+```
+
+The names refer to storage size, not IEEE binary128 or binary256 semantics.
+
+These types give a large precision increase over native `double`, while preserving a familiar floating-point programming model. They are still floating-point approximations, not exact values. Conditioning, cancellation, argument reduction, and algorithm design still matter.
+
+## What fltx is not
+
+`fltx` is **not** an arbitrary-precision library.
+
+It is also not a symbolic math package, decimal arithmetic package, exact rational type, or true IEEE binary128 / binary256 implementation.
+
+If you need unbounded precision, exact rational arithmetic, symbolic manipulation, or decimal semantics, a multiprecision package is still the better tool.
+
+`fltx` is about a different trade-off: **fixed-size extended precision with practical ergonomics and strong performance**.
+
 ## vcpkg
 
-Add the bitloop-registry to your `vcpkg-configuration.json`:
-```
+Add the bitloop registry to `vcpkg-configuration.json`:
+
+```json
 {
   "default-registry": { ... },
   "registries": [
@@ -83,11 +231,13 @@ Add the bitloop-registry to your `vcpkg-configuration.json`:
   ]
 }
 ```
-Then add `"fltx"` to your `vcpkg.json` dependencies:
-```
+
+Then add `fltx` to `vcpkg.json`:
+
+```json
 {
   "name": "myapp",
-  "version-string": "1.0",
+  "version": "1.0.0",
   "dependencies": [
     "fltx"
   ]
@@ -96,99 +246,30 @@ Then add `"fltx"` to your `vcpkg.json` dependencies:
 
 ## CMake
 
+With vcpkg:
+
+```cmake
+find_package(fltx CONFIG REQUIRED)
+
+add_executable(my_app main.cpp)
+target_link_libraries(my_app PRIVATE fltx::fltx)
+```
+
+Or include it directly:
+
 ```cmake
 add_executable(my_app main.cpp)
 target_include_directories(my_app PRIVATE /path/to/fltx/include)
 ```
 
-## Content Overview
+## Test results
 
-- **`fltx.h`** — umbrella header
-- **`fltx_core.h`** — includes f128.h / f256.h types (and necessary conversions)
-- **`f128.h`** — includes `f128` / `f128_s` and associated math functions
-- **`f256.h`** — includes `f256` / `f256_s` and associated math functions
-- **`numeric_types.h`** — includes type-alias and type-traits, e.g.
+`fltx` is tested and benchmarked against `boost::multiprecision::mpfr_float_backend<digits>` at comparable precision levels.
 
-Trivial types:
-
-```
-bl::f32   // (float typedef)
-bl::f64   // (double typedef)
-bl::f128
-bl::f256
-```
-
-Type traits:
-
-```
-bl::is_f32_v<T>             // true if T is f32  (float)
-bl::is_f64_v<T>             // true if T is f64  (double)
-bl::is_f128_v<T>            // true if T is f128 
-bl::is_f256_v<T>            // true if T is f256
-bl::is_fltx_v<T>            // true if T is f128 / f256
-bl::is_floating_point_v<>   // true if T is f32 / f64 / f128 / f256
-```
-
-## Design goals
-
-`fltx` is built around a few explicit goals:
-
-### 1. Fixed-width extended precision
-The library provides practical scalar types with substantially more precision than `double`, while keeping value representation explicit and bounded.
-
-### 2. Performance-conscious implementation
-The implementation favors approaches that remain suitable for heavy arithmetic, iterative kernels, and precision-sensitive pipelines.
-
-### 3. Compile-time and runtime parity
-A large part of the library is designed to work both at compile time and at runtime, making it useful for static validation, deterministic tests, and constexpr-heavy code.
-
-### 4. Seamless integration with the STL
-`fltx` aims to behave like a natural extension of the standard C++ numeric model.
-
-It includes support for common standard-library integration points such as:
-
-- **`std::ostream`** (with compatibility for standard stream manipulators such as **`std::setprecision`**)
-- **`std::numeric_limits`**
-- **`std::numbers`**
-
-This keeps `f128` and `f256` easy to use in existing codebases, generic code, and debugging workflows without forcing a separate "special-case" programming style.
-
-## What `fltx` is not
-
-- `fltx` is **not** an arbitrary-precision library.
-- A true IEEE binary128 / binary256 floating-point type. f128/f256 use [double-double](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#Double-double_arithmetic) / [quad-double](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format) implementations. The sizes in f128/f256 represent memory size, i.e.
-```
-sizeof(f128) == 16
-sizeof(f256) == 32
-```
-
-If you need unbounded precision, decimal arithmetic semantics, symbolic manipulation, or exact rational arithmetic, a multiprecision package is still the better tool.
-
-`fltx` is about a different trade-off: **fixed-size extended precision with strong performance and practical ergonomics**.
-
-## Precision model
-
-`fltx` uses multi-limb floating-point representations based on `double` components:
-
-- **`f128`** stores two `double` limbs
-- **`f256`** stores four `double` limbs
-
-That gives you a large precision increase over native `double`, while preserving a familiar floating-point programming model.
-
-These are still floating-point approximations, not exact values. Precision is improved dramatically, but the normal concerns of numerical computing still apply: conditioning, cancellation, argument reduction, and algorithm design still matter.
-
-
-### Test results
-
-<img src="res/fltx_f128_vs_mpfr_ratio.png" alt="fltx logo" width="600">
-<img src="res/fltx_f256_vs_mpfr_ratio.png" alt="fltx logo" width="600">
+<img src="res/fltx_f128_vs_mpfr_ratio.png" alt="f128 benchmark ratio" width="600">
+<img src="res/fltx_f256_vs_mpfr_ratio.png" alt="f256 benchmark ratio" width="600">
 
 ## License
 
 This project is licensed under the MIT Licence.
 
-## Summary
-
-`fltx` is a focused C++ library for developers who need **fixed-width extended precision** without jumping all the way to arbitrary precision.
-
-If you want `double`-like ergonomics with substantially more numerical headroom, `f128` and `f256` are the point of the library.

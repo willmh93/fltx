@@ -118,8 +118,8 @@ namespace _f64_detail
         if (isnan(x) || isinf(x))
             return 0;
 
-        const double lo = static_cast<double>(std::numeric_limits<SignedInt>::lowest());
-        const double hi = static_cast<double>(std::numeric_limits<SignedInt>::max());
+        constexpr double lo = static_cast<double>(std::numeric_limits<SignedInt>::lowest());
+        constexpr double hi = static_cast<double>(std::numeric_limits<SignedInt>::max());
         if (x < lo || x > hi)
             return 0;
 

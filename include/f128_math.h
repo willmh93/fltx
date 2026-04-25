@@ -897,6 +897,8 @@ namespace _f128_detail
     }
 }
 
+NO_INLINE    constexpr f128_s pow10_128(int k);
+
 // exp
 [[nodiscard]] NO_INLINE constexpr f128_s ldexp(const f128_s& x, int e)
 {
@@ -971,31 +973,7 @@ namespace _f128_detail
 
     return _f128_detail::canonicalize_math_result(exp(y * log(x)));
 }
-[[nodiscard]] NO_INLINE constexpr f128_s pow10_128(int k)
-{
-    if (k == 0) return f128_s{ 1.0 };
 
-    int n = (k >= 0) ? k : -k;
-
-    // fast small-exponent path
-    if (n <= 16) {
-        f128_s r = f128_s{ 1.0 };
-        const f128_s ten = f128_s{ 10.0 };
-        for (int i = 0; i < n; ++i) r = r * ten;
-        return (k >= 0) ? r : (f128_s{ 1.0 } / r);
-    }
-
-    f128_s r = f128_s{ 1.0 };
-    f128_s base = f128_s{ 10.0 };
-
-    while (n) {
-        if (n & 1) r = r * base;
-        n >>= 1;
-        if (n) base = base * base;
-    }
-
-    return (k >= 0) ? r : (f128_s{ 1.0 } / r);
-}
 
 // trig
 [[nodiscard]] NO_INLINE constexpr bool sincos(const f128_s& x, f128_s& s_out, f128_s& c_out)
@@ -1048,11 +1026,16 @@ namespace _f128_detail
     long long n = 0;
     f128_s r{};
     if (!_f128_detail::f128_remainder_pio2(x, n, r))
-        if (bl::is_constant_evaluated()) {
+    {
+        if (bl::is_constant_evaluated()) 
+        {
             return _f128_detail::canonicalize_math_result(f128_s{ fltx::common::fp::sin_constexpr(static_cast<double>(x)) });
-        } else {
+        }
+        else 
+        {
             return _f128_detail::canonicalize_math_result(f128_s{ std::sin((double)x) });
         }
+    }
 
     switch ((int)(n & 3))
     {

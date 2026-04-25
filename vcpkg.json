@@ -3,9 +3,21 @@
   "name": "fltx",
   "version-string": "0.1.0",
   "dependencies": [
-    "boost-multiprecision",
-    "mpfr",
-    "catch2",
-    "matplotplusplus"
+    {
+      "name": "boost-multiprecision",
+      "platform": "!emscripten"
+    },
+    {
+      "name": "mpfr",
+      "platform": "!emscripten"
+    },
+    {
+      "name": "catch2",
+      "platform": "!emscripten"
+    },
+    {
+      "name": "matplotplusplus",
+      "platform": "!emscripten"
+    }
   ]
 }
