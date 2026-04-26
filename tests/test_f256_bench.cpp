@@ -20,6 +20,7 @@
 
 #include <f256_math.h>
 #include <f256_io.h>
+#include "benchmark_chart_writer.h"
 
 using namespace bl;
 
@@ -29,7 +30,7 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 1;
+    constexpr int benchmark_scale = 5;
     constexpr std::size_t bucket_value_count = 8;
     constexpr std::size_t bucket_count = 3;
 
@@ -55,346 +56,13 @@ namespace
     };
 
 
-    struct typical_ratio_entry
-    {
-        std::string group{};
-        std::string label{};
-        double ratio = 0.0;
-        double f256_ns_per_iter = 0.0;
-        double mpfr_ns_per_iter = 0.0;
+    bl::bench::benchmark_chart_writer chart_writer{
+        "f256",
+        "mpfr",
+        "f256 vs MPFR hard benchmark ratios",
+        "benchmark_charts/f256_hard_ratios.csv",
+        "benchmark_charts/f256_hard_ratios.svg"
     };
-
-    [[nodiscard]] double calculate_ratio(const comparison_result& result)
-    {
-        if (result.f256.ns_per_iter <= 0.0)
-            return 0.0;
-
-        return result.mpfr.ns_per_iter / result.f256.ns_per_iter;
-    }
-
-    [[nodiscard]] std::string escape_csv(const std::string& text_value)
-    {
-        bool needs_quotes = false;
-        for (const char ch : text_value)
-        {
-            if (ch == ',' || ch == '"' || ch == '\n' || ch == '\r')
-            {
-                needs_quotes = true;
-                break;
-            }
-        }
-
-        if (!needs_quotes)
-            return text_value;
-
-        std::string out;
-        out.reserve(text_value.size() + 2);
-        out.push_back('"');
-        for (const char ch : text_value)
-        {
-            if (ch == '"')
-                out += "\"\"";
-            else
-                out.push_back(ch);
-        }
-        out.push_back('"');
-        return out;
-    }
-
-    [[nodiscard]] std::string escape_svg(std::string_view text_value)
-    {
-        std::string out;
-        out.reserve(text_value.size());
-
-        for (const char ch : text_value)
-        {
-            switch (ch)
-            {
-            case '&': out += "&amp;"; break;
-            case '<': out += "&lt;"; break;
-            case '>': out += "&gt;"; break;
-            case '"': out += "&quot;"; break;
-            case '\'': out += "&apos;"; break;
-            default: out.push_back(ch); break;
-            }
-        }
-
-        return out;
-    }
-
-    [[nodiscard]] std::string format_decimal(double value, int precision)
-    {
-        std::ostringstream out;
-        out << std::fixed << std::setprecision(precision) << value;
-        return out.str();
-    }
-
-    [[nodiscard]] int benchmark_group_rank(std::string_view group)
-    {
-        if (group == "Arithmetic")
-            return 0;
-        if (group == "Rounding")
-            return 1;
-        if (group == "Roots & powers")
-            return 2;
-        if (group == "Exponentials")
-            return 3;
-        if (group == "Logarithms")
-            return 4;
-        if (group == "Remainders")
-            return 5;
-        if (group == "Trigonometric")
-            return 6;
-        if (group == "Hyperbolic")
-            return 7;
-        if (group == "Inverse hyperbolic")
-            return 8;
-        if (group == "Special functions")
-            return 9;
-        return 100;
-    }
-
-    class benchmark_chart_writer
-    {
-    public:
-        void record_typical_result(const char* group, const char* label, const comparison_result& result)
-        {
-            typical_ratio_entry entry{};
-            entry.group = group;
-            entry.label = label;
-            entry.ratio = calculate_ratio(result);
-            entry.f256_ns_per_iter = result.f256.ns_per_iter;
-            entry.mpfr_ns_per_iter = result.mpfr.ns_per_iter;
-
-            const auto found = std::find_if(entries.begin(), entries.end(), [&](const typical_ratio_entry& item)
-            {
-                return item.group == entry.group && item.label == entry.label;
-            });
-
-            if (found != entries.end())
-                *found = std::move(entry);
-            else
-                entries.push_back(std::move(entry));
-        }
-
-        ~benchmark_chart_writer() noexcept
-        {
-            try
-            {
-                write_outputs();
-            }
-            catch (...)
-            {
-            }
-        }
-
-    private:
-        struct grouped_layout_entry
-        {
-            bool is_group_heading = false;
-            std::string text{};
-            typical_ratio_entry value{};
-        };
-
-        std::vector<typical_ratio_entry> entries{};
-
-        static constexpr const char* output_dir = "benchmark_charts";
-        static constexpr const char* csv_output_path = "benchmark_charts/f256_typical_ratios.csv";
-        static constexpr const char* svg_output_path = "benchmark_charts/f256_typical_ratios.svg";
-
-        [[nodiscard]] std::vector<typical_ratio_entry> make_sorted_entries() const
-        {
-            std::vector<typical_ratio_entry> sorted = entries;
-            std::sort(sorted.begin(), sorted.end(), [](const typical_ratio_entry& lhs, const typical_ratio_entry& rhs)
-            {
-                const int lhs_group_rank = benchmark_group_rank(lhs.group);
-                const int rhs_group_rank = benchmark_group_rank(rhs.group);
-                if (lhs_group_rank != rhs_group_rank)
-                    return lhs_group_rank < rhs_group_rank;
-
-                if (lhs.ratio != rhs.ratio)
-                    return lhs.ratio > rhs.ratio;
-
-                return lhs.label < rhs.label;
-            });
-            return sorted;
-        }
-
-        [[nodiscard]] std::vector<grouped_layout_entry> make_layout_entries(const std::vector<typical_ratio_entry>& sorted_entries) const
-        {
-            std::vector<grouped_layout_entry> layout_entries;
-            layout_entries.reserve(sorted_entries.size() * 2);
-
-            std::string current_group;
-            for (const auto& entry : sorted_entries)
-            {
-                if (entry.group != current_group)
-                {
-                    current_group = entry.group;
-                    grouped_layout_entry heading{};
-                    heading.is_group_heading = true;
-                    heading.text = current_group;
-                    layout_entries.push_back(std::move(heading));
-                }
-
-                grouped_layout_entry value{};
-                value.is_group_heading = false;
-                value.value = entry;
-                layout_entries.push_back(std::move(value));
-            }
-
-            return layout_entries;
-        }
-
-        void write_outputs() const
-        {
-            if (entries.empty())
-                return;
-
-            std::filesystem::create_directories(output_dir);
-            const auto sorted_entries = make_sorted_entries();
-            write_csv(sorted_entries);
-            write_svg(sorted_entries);
-        }
-
-        void write_csv(const std::vector<typical_ratio_entry>& sorted_entries) const
-        {
-            std::ofstream out(csv_output_path, std::ios::trunc);
-            if (!out)
-                return;
-
-            out << "group,label,f256_ns_per_iter,mpfr_ns_per_iter,mpfr_to_f256_ratio\n";
-            for (const auto& item : sorted_entries)
-            {
-                out
-                    << escape_csv(item.group) << ','
-                    << escape_csv(item.label) << ','
-                    << std::setprecision(17) << item.f256_ns_per_iter << ','
-                    << std::setprecision(17) << item.mpfr_ns_per_iter << ','
-                    << std::setprecision(17) << item.ratio << '\n';
-            }
-        }
-
-        void write_svg(const std::vector<typical_ratio_entry>& sorted_entries) const
-        {
-            std::ofstream out(svg_output_path, std::ios::trunc);
-            if (!out)
-                return;
-
-            double max_ratio = 1.0;
-            std::size_t longest_label_size = 0;
-            for (const auto& item : sorted_entries)
-            {
-                max_ratio = std::max(max_ratio, item.ratio);
-                longest_label_size = std::max(longest_label_size, item.label.size());
-            }
-
-            const auto layout_entries = make_layout_entries(sorted_entries);
-            const double padded_max_ratio = max_ratio + std::max(0.2, max_ratio * 0.08);
-            const double tick_step = padded_max_ratio <= 1.5 ? 0.25 : (padded_max_ratio <= 3.5 ? 0.5 : 1.0);
-            const double tick_max = std::ceil(padded_max_ratio / tick_step) * tick_step;
-
-            constexpr int group_heading_height = 32;
-            constexpr int row_height = 34;
-            constexpr int bar_height = 24;
-            constexpr int top_margin = 92;
-            constexpr int bottom_margin = 84;
-            const int left_margin = std::max(280, static_cast<int>(longest_label_size * 11) + 48);
-            constexpr int right_margin = 96;
-            constexpr int plot_width = 1180;
-            const int width = left_margin + plot_width + right_margin;
-
-            int content_height = 0;
-            for (const auto& item : layout_entries)
-                content_height += item.is_group_heading ? group_heading_height : row_height;
-
-            const int height = top_margin + bottom_margin + content_height;
-            const int plot_left = left_margin;
-            const int plot_right = left_margin + plot_width;
-            const int plot_top = top_margin - 10;
-            const int plot_bottom = height - bottom_margin + 6;
-
-            const auto map_ratio_to_x = [&](double ratio)
-            {
-                return static_cast<double>(plot_left) + (ratio / tick_max) * static_cast<double>(plot_width);
-            };
-
-            out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-            out << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" << width << "\" height=\"" << height
-                << "\" viewBox=\"0 0 " << width << ' ' << height << "\">\n";
-            out << "  <rect x=\"0\" y=\"0\" width=\"" << width << "\" height=\"" << height << "\" fill=\"#f2f2f2\"/>\n";
-            out << "  <text x=\"" << (width / 2) << "\" y=\"38\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"28\" font-weight=\"600\" fill=\"#222222\">f256 vs MPFR typical benchmark ratios</text>\n";
-
-            for (double tick_value = 0.0; tick_value <= tick_max + 1e-9; tick_value += tick_step)
-            {
-                const double x = map_ratio_to_x(tick_value);
-                out << "  <line x1=\"" << x << "\" y1=\"" << plot_top << "\" x2=\"" << x << "\" y2=\"" << plot_bottom
-                    << "\" stroke=\"#dddddd\" stroke-width=\"1\"/>\n";
-                out << "  <text x=\"" << x << "\" y=\"" << (height - 30)
-                    << "\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"17\" fill=\"#333333\">"
-                    << escape_svg(format_decimal(tick_value, tick_step < 1.0 ? 1 : 0))
-                    << "</text>\n";
-            }
-
-            if (1.0 <= tick_max)
-            {
-                const double x = map_ratio_to_x(1.0);
-                out << "  <line x1=\"" << x << "\" y1=\"" << plot_top << "\" x2=\"" << x << "\" y2=\"" << plot_bottom
-                    << "\" stroke=\"#6da7d9\" stroke-width=\"2\" stroke-dasharray=\"6,6\"/>\n";
-            }
-
-            int y_cursor = plot_top;
-            std::string current_group;
-            for (const auto& item : layout_entries)
-            {
-                if (item.is_group_heading)
-                {
-                    if (!current_group.empty())
-                    {
-                        out << "  <line x1=\"" << (plot_left - 8) << "\" y1=\"" << y_cursor << "\" x2=\"" << plot_right
-                            << "\" y2=\"" << y_cursor << "\" stroke=\"#cfcfcf\" stroke-width=\"1\"/>\n";
-                        y_cursor += 8;
-                    }
-
-                    current_group = item.text;
-                    out << "  <text x=\"" << (plot_left - 8) << "\" y=\"" << (y_cursor + 22)
-                        << "\" text-anchor=\"end\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"20\" font-weight=\"700\" fill=\"#1f1f1f\">"
-                        << escape_svg(item.text)
-                        << "</text>\n";
-                    y_cursor += group_heading_height;
-                    continue;
-                }
-
-                const auto& value = item.value;
-                const double y = static_cast<double>(y_cursor) + (row_height - bar_height) * 0.5;
-                const double x = map_ratio_to_x(value.ratio);
-                const char* fill = value.ratio >= 1.0 ? "#89d88a" : "#2c7fb8";
-
-                out << "  <text x=\"" << (plot_left - 12) << "\" y=\"" << (y + bar_height * 0.5 + 6.0)
-                    << "\" text-anchor=\"end\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"18\" fill=\"#222222\">"
-                    << escape_svg(value.label)
-                    << "</text>\n";
-
-                out << "  <rect x=\"" << plot_left << "\" y=\"" << y << "\" width=\"" << std::max(0.0, x - plot_left) << "\" height=\"" << bar_height
-                    << "\" rx=\"2\" ry=\"2\" fill=\"" << fill << "\"/>\n";
-
-                const double value_label_x = std::min<double>(x + 10.0, static_cast<double>(plot_right - 8));
-                out << "  <text x=\"" << value_label_x
-                    << "\" y=\"" << (y + bar_height * 0.5 + 5.5)
-                    << "\" text-anchor=\"start\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"15\" font-weight=\"600\" fill=\"#444444\">"
-                    << escape_svg(format_decimal(value.ratio, 2))
-                    << "</text>\n";
-
-                y_cursor += row_height;
-            }
-
-            out << "  <text x=\"" << (plot_left + plot_width / 2) << "\" y=\"" << (height - 8)
-                << "\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"19\" fill=\"#333333\">mpfr / fltx ratio</text>\n";
-            out << "</svg>\n";
-        }
-    };
-
-    benchmark_chart_writer chart_writer{};
 
     template<typename Spec>
     struct bucket_array_set
@@ -427,6 +95,7 @@ namespace
     };
 
     volatile double benchmark_sink = 0.0;
+    volatile std::int64_t benchmark_integer_sink = 0;
 
     void consume_result(const f256& value)
     {
@@ -438,8 +107,13 @@ namespace
         benchmark_sink += static_cast<double>(value);
     }
 
-    template<typename T>
-    void consume_result(const std::pair<T, T>& value)
+    void consume_result(std::int64_t value)
+    {
+        benchmark_integer_sink += value;
+    }
+
+    template<typename T, typename U>
+    void consume_result(const std::pair<T, U>& value)
     {
         consume_result(value.first);
         consume_result(value.second);
@@ -535,6 +209,46 @@ namespace
             "1.0000000000000000000000000000000001",
             "4503599627370495.9999999999999999999999999999999999",
             "4503599627370496.5000000000000000000000000000000001"
+        }};
+
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<const char*> integer_rounding_value_buckets()
+    {
+        bucket_array_set<const char*> out{};
+
+        out.easy = {{
+            "-8.75",
+            "-4.5",
+            "-1.125",
+            "-0.5",
+            "0.5",
+            "1.125",
+            "4.5",
+            "8.75"
+        }};
+
+        out.medium = {{
+            "-1048576.5000000000000000000000000001",
+            "-1024.4999999999999999999999999999",
+            "-16.5000000000000000000000000001",
+            "-0.4999999999999999999999999999",
+            "0.4999999999999999999999999999",
+            "16.5000000000000000000000000001",
+            "1024.4999999999999999999999999999",
+            "1048576.5000000000000000000000000001"
+        }};
+
+        out.hard = {{
+            "-2000000000.4999999999999999999999999999",
+            "-1073741824.5000000000000000000000000001",
+            "-65536.5000000000000000000000000001",
+            "-1.5000000000000000000000000001",
+            "1.5000000000000000000000000001",
+            "65536.5000000000000000000000000001",
+            "1073741824.4999999999999999999999999999",
+            "2000000000.4999999999999999999999999999"
         }};
 
         return out;
@@ -705,36 +419,36 @@ namespace
         bucket_array_set<const char*> out{};
 
         out.easy = {{
-            "-3.1415926535897932384626433832795028841971",
-            "-1.5707963267948966192313216916397514420986",
-            "-0.7853981633974483096156608458198757210493",
-            "0.0",
-            "0.7853981633974483096156608458198757210493",
-            "1.5707963267948966192313216916397514420986",
-            "3.1415926535897932384626433832795028841971",
-            "6.2831853071795864769252867665590057683943"
+            "-2.9137426812345678901234567890123456789012345678901234",
+            "-1.3372469102468135791357913579135791357913579135791358",
+            "-0.6172839450617283945061728394506172839450617283945062",
+            "-0.000000000000000000000000000000000000000000000000000137",
+            "0.000000000000000000000000000000000000000000000000000251",
+            "0.4839201746502987364510298376451029837645102983764510",
+            "1.9283746501928374650192837465019283746501928374650193",
+            "2.7764510298374650192837465019283746501928374650192837"
         }};
 
         out.medium = {{
-            "-31.415926535897932384626433832795028841971",
-            "-6.2831853071795864769252867665590057683943",
-            "-3.1415926535897932384626433832795028841971",
-            "-0.0000000000000000000000000000000001",
-            "0.0000000000000000000000000000000001",
-            "3.1415926535897932384626433832795028841971",
-            "6.2831853071795864769252867665590057683943",
-            "31.415926535897932384626433832795028841971"
+            "-987.6543210123456789012345678901234567890123456789012345",
+            "-271.8281828459045235360287471352662497757247093699959575",
+            "-64.1250000000000000000000000000000000000000000000000125",
+            "-1.0000000000000000000000000000000000000000000000000125",
+            "1.0000000000000000000000000000000000000000000000000250",
+            "37.6991118430775174569050479884012319897331299080235173",
+            "123.4567890123456789012345678901234567890123456789012345",
+            "789.0123456789012345678901234567890123456789012345678901"
         }};
 
         out.hard = {{
-            "-3141592.6535897932384626433832795028841971693993751058209",
-            "-31415.926535897932384626433832795028841971693993751058209",
-            "-3.1415926535897932384626433832795028841971693993751058209",
-            "-0.0000000000000000000000000000000000000000000000000001",
-            "0.0000000000000000000000000000000000000000000000000001",
-            "3.1415926535897932384626433832795028841971693993751058209",
-            "31415.926535897932384626433832795028841971693993751058209",
-            "3141592.6535897932384626433832795028841971693993751058209"
+            "-987654321.1234567890123456789012345678901234567890123456789",
+            "-12345678.901234567890123456789012345678901234567890123456",
+            "-1048576.000000000000000000000000000000000000000000000125",
+            "-4096.000000000000000000000000000000000000000000000000125",
+            "4096.000000000000000000000000000000000000000000000000375",
+            "1048576.000000000000000000000000000000000000000000000625",
+            "12345678.901234567890123456789012345678901234567890123456",
+            "987654321.9876543210987654321098765432109876543210987654321"
         }};
 
         return out;
@@ -973,7 +687,8 @@ namespace
 
     void print_bucketed_results(const char* group, const char* label, const bucketed_comparison_result& results)
     {
-        chart_writer.record_typical_result(group, label, results.typical);
+        if (std::string_view(label) != "fabs")
+            chart_writer.record_result(group, label, results.hard.f256.ns_per_iter, results.hard.mpfr.ns_per_iter);
         std::string easy_label = std::string(label) + " [easy]";
         std::string medium_label = std::string(label) + " [medium]";
         std::string hard_label = std::string(label) + " [hard]";
@@ -1020,6 +735,16 @@ namespace
     {
         return static_cast<T>(value) + acc * T(0.25);
     }
+
+    template<typename T, typename U>
+    [[nodiscard]] std::pair<T, U> blend_result(const std::pair<T, U>& value, const std::pair<T, U>& acc)
+    {
+        return {
+            blend_result(value.first, acc.first),
+            blend_result(value.second, acc.second)
+        };
+    }
+
 
     template<typename T>
     [[nodiscard]] T apply_floor(const T& x)
@@ -1159,6 +884,167 @@ namespace
     {
         using std::ldexp;
         return ldexp(x, exponent);
+    }
+
+
+    template<typename T>
+    [[nodiscard]] T apply_abs(const T& x)
+    {
+        using std::abs;
+        return abs(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fabs(const T& x)
+    {
+        using std::fabs;
+        return fabs(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] long apply_lround(const T& x)
+    {
+        using std::lround;
+        return lround(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] long long apply_llround(const T& x)
+    {
+        using std::llround;
+        return llround(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] long apply_lrint(const T& x)
+    {
+        using std::lrint;
+        return lrint(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] long long apply_llrint(const T& x)
+    {
+        using std::llrint;
+        return llrint(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] std::pair<T, int> apply_remquo(const T& x, const T& y)
+    {
+        int quotient = 0;
+        using std::remquo;
+        T remainder = remquo(x, y, &quotient);
+        return { remainder, quotient };
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fma(const T& x, const T& y, const T& z)
+    {
+        using std::fma;
+        return fma(x, y, z);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fmin(const T& x, const T& y)
+    {
+        using std::fmin;
+        return fmin(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fmax(const T& x, const T& y)
+    {
+        using std::fmax;
+        return fmax(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fdim(const T& x, const T& y)
+    {
+        using std::fdim;
+        return fdim(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_copysign(const T& x, const T& y)
+    {
+        using std::copysign;
+        return copysign(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_scalbn(const T& x, int exponent)
+    {
+        using std::scalbn;
+        return scalbn(x, exponent);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_scalbln(const T& x, long exponent)
+    {
+        using std::scalbln;
+        return scalbln(x, exponent);
+    }
+
+    template<typename T>
+    [[nodiscard]] std::pair<T, int> apply_frexp(const T& x)
+    {
+        int exponent = 0;
+        using std::frexp;
+        T fraction = frexp(x, &exponent);
+        return { fraction, exponent };
+    }
+
+    template<typename T>
+    [[nodiscard]] std::pair<T, T> apply_modf(const T& x)
+    {
+        T integral{};
+        using std::modf;
+        T fractional = modf(x, &integral);
+        return { fractional, integral };
+    }
+
+    template<typename T>
+    [[nodiscard]] int apply_ilogb(const T& x)
+    {
+        using std::ilogb;
+        return ilogb(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_logb(const T& x)
+    {
+        using std::logb;
+        return logb(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_nextafter(const T& from, const T& to)
+    {
+        using std::nextafter;
+        return nextafter(from, to);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_nexttoward(const T& from, const T& to)
+    {
+        using std::nexttoward;
+        return nexttoward(from, to);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_nexttoward_long_double(const T& from, long double to)
+    {
+        using std::nexttoward;
+        return nexttoward(from, to);
+    }
+
+    template<>
+    [[nodiscard]] mpfr_ref apply_nexttoward_long_double<mpfr_ref>(const mpfr_ref& from, long double to)
+    {
+        using boost::multiprecision::nexttoward;
+        return nexttoward(from, mpfr_ref(to));
     }
 
     template<typename T, typename Op>
@@ -1312,6 +1198,270 @@ namespace
 
             return std::pair<T, T>{ acc_x, acc_y };
         });
+    }
+
+
+    template<typename T, typename Result, typename Op>
+    [[nodiscard]] bench_result benchmark_value_bucket_result(
+        const std::array<const char*, bucket_value_count>& texts,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        std::array<T, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+            values[i] = parse_benchmark_value<T>(texts[i]);
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark(iteration_count, [&]()
+        {
+            Result acc = op(values.front());
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i]), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, typename Result, typename Op>
+    [[nodiscard]] bench_result benchmark_binary_bucket_result(
+        const std::array<binary_value_spec, bucket_value_count>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        std::array<std::pair<T, T>, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        {
+            values[i].first = parse_benchmark_value<T>(specs[i].lhs);
+            values[i].second = parse_benchmark_value<T>(specs[i].rhs);
+        }
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark(iteration_count, [&]()
+        {
+            Result acc = op(values.front().first, values.front().second);
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i].first, values[i].second), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, typename Result, typename Op>
+    [[nodiscard]] bench_result benchmark_binary_long_double_bucket_result(
+        const std::array<binary_value_spec, bucket_value_count>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        struct nexttoward_case
+        {
+            T from{};
+            long double to = 0.0L;
+        };
+
+        std::array<nexttoward_case, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        {
+            values[i].from = parse_benchmark_value<T>(specs[i].lhs);
+            const T target = parse_benchmark_value<T>(specs[i].rhs);
+            values[i].to = static_cast<long double>(static_cast<double>(target));
+        }
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark(iteration_count, [&]()
+        {
+            Result acc = op(values.front().from, values.front().to);
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i].from, values[i].to), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, typename Result, typename Exponent, typename Op>
+    [[nodiscard]] bench_result benchmark_exponent_bucket_result(
+        const std::array<ldexp_value_spec, bucket_value_count>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        struct exponent_case
+        {
+            T value{};
+            Exponent exponent{};
+        };
+
+        std::array<exponent_case, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        {
+            values[i].value = parse_benchmark_value<T>(specs[i].value);
+            values[i].exponent = static_cast<Exponent>(specs[i].exponent);
+        }
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark(iteration_count, [&]()
+        {
+            Result acc = op(values.front().value, values.front().exponent);
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i].value, values[i].exponent), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, typename Result, typename Op>
+    [[nodiscard]] bench_result benchmark_ternary_bucket_result(
+        const std::array<recurrence_value_spec, bucket_value_count>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        struct ternary_case
+        {
+            T x{};
+            T y{};
+            T z{};
+        };
+
+        std::array<ternary_case, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        {
+            values[i].x = parse_benchmark_value<T>(specs[i].x);
+            values[i].y = parse_benchmark_value<T>(specs[i].y);
+            values[i].z = parse_benchmark_value<T>(specs[i].a);
+        }
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark(iteration_count, [&]()
+        {
+            Result acc = op(values.front().x, values.front().y, values.front().z);
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i].x, values[i].y, values[i].z), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_value_benchmark_result(
+        const bucket_array_set<const char*>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f256 = benchmark_value_bucket_result<f256, FltxResult>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(specs.easy, total_iterations, op);
+        out.medium.f256 = benchmark_value_bucket_result<f256, FltxResult>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(specs.medium, total_iterations, op);
+        out.hard.f256 = benchmark_value_bucket_result<f256, FltxResult>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_binary_benchmark_result(
+        const bucket_array_set<binary_value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f256 = benchmark_binary_bucket_result<f256, FltxResult>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_binary_bucket_result<mpfr_ref, MpfrResult>(specs.easy, total_iterations, op);
+        out.medium.f256 = benchmark_binary_bucket_result<f256, FltxResult>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_binary_bucket_result<mpfr_ref, MpfrResult>(specs.medium, total_iterations, op);
+        out.hard.f256 = benchmark_binary_bucket_result<f256, FltxResult>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_binary_bucket_result<mpfr_ref, MpfrResult>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_binary_long_double_benchmark_result(
+        const bucket_array_set<binary_value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f256 = benchmark_binary_long_double_bucket_result<f256, FltxResult>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_binary_long_double_bucket_result<mpfr_ref, MpfrResult>(specs.easy, total_iterations, op);
+        out.medium.f256 = benchmark_binary_long_double_bucket_result<f256, FltxResult>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_binary_long_double_bucket_result<mpfr_ref, MpfrResult>(specs.medium, total_iterations, op);
+        out.hard.f256 = benchmark_binary_long_double_bucket_result<f256, FltxResult>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_binary_long_double_bucket_result<mpfr_ref, MpfrResult>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Exponent, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_exponent_benchmark_result(
+        const bucket_array_set<ldexp_value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f256 = benchmark_exponent_bucket_result<f256, FltxResult, Exponent>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_exponent_bucket_result<mpfr_ref, MpfrResult, Exponent>(specs.easy, total_iterations, op);
+        out.medium.f256 = benchmark_exponent_bucket_result<f256, FltxResult, Exponent>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_exponent_bucket_result<mpfr_ref, MpfrResult, Exponent>(specs.medium, total_iterations, op);
+        out.hard.f256 = benchmark_exponent_bucket_result<f256, FltxResult, Exponent>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_exponent_bucket_result<mpfr_ref, MpfrResult, Exponent>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_ternary_benchmark_result(
+        const bucket_array_set<recurrence_value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f256 = benchmark_ternary_bucket_result<f256, FltxResult>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_ternary_bucket_result<mpfr_ref, MpfrResult>(specs.easy, total_iterations, op);
+        out.medium.f256 = benchmark_ternary_bucket_result<f256, FltxResult>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_ternary_bucket_result<mpfr_ref, MpfrResult>(specs.medium, total_iterations, op);
+        out.hard.f256 = benchmark_ternary_bucket_result<f256, FltxResult>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_ternary_bucket_result<mpfr_ref, MpfrResult>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
     }
 
     template<typename Op>
@@ -1851,6 +2001,154 @@ TEST_CASE("f256 vs mpfr mixed recurrence performance", "[bench][fltx][f256][arit
     print_bucketed_results("Arithmetic", "mixed recurrence", results);
 }
 
+
+TEST_CASE("f256 vs mpfr abs performance", "[bench][fltx][f256][arithmetic][abs]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<f256, mpfr_ref>(generic_value_buckets(), total_iterations, [](const auto& x) { return apply_abs(x); });
+    print_bucketed_results("Floating-point utilities", "abs", results);
+}
+
+TEST_CASE("f256 vs mpfr fabs performance", "[bench][fltx][f256][arithmetic][fabs]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<f256, mpfr_ref>(generic_value_buckets(), total_iterations, [](const auto& x) { return apply_fabs(x); });
+    print_bucketed_results("Floating-point utilities", "fabs", results);
+}
+
+TEST_CASE("f256 vs mpfr lround performance", "[bench][fltx][f256][rounding][lround]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<long, long>(integer_rounding_value_buckets(), total_iterations, [](const auto& x) { return apply_lround(x); });
+    print_bucketed_results("Rounding", "lround", results);
+}
+
+TEST_CASE("f256 vs mpfr llround performance", "[bench][fltx][f256][rounding][llround]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<long long, long long>(integer_rounding_value_buckets(), total_iterations, [](const auto& x) { return apply_llround(x); });
+    print_bucketed_results("Rounding", "llround", results);
+}
+
+TEST_CASE("f256 vs mpfr lrint performance", "[bench][fltx][f256][rounding][lrint]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<long, long>(integer_rounding_value_buckets(), total_iterations, [](const auto& x) { return apply_lrint(x); });
+    print_bucketed_results("Rounding", "lrint", results);
+}
+
+TEST_CASE("f256 vs mpfr llrint performance", "[bench][fltx][f256][rounding][llrint]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<long long, long long>(integer_rounding_value_buckets(), total_iterations, [](const auto& x) { return apply_llrint(x); });
+    print_bucketed_results("Rounding", "llrint", results);
+}
+
+TEST_CASE("f256 vs mpfr remquo performance", "[bench][fltx][f256][remquo]")
+{
+    const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<std::pair<f256, int>, std::pair<mpfr_ref, int>>(fmod_value_buckets(), total_iterations, [](const auto& x, const auto& y) { return apply_remquo(x, y); });
+    print_bucketed_results("Remainders", "remquo", results);
+}
+
+TEST_CASE("f256 vs mpfr fma performance", "[bench][fltx][f256][fma]")
+{
+    const std::int64_t total_iterations = 20000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_ternary_benchmark_result<f256, mpfr_ref>(recurrence_specs(), total_iterations, [](const auto& x, const auto& y, const auto& z) { return apply_fma(x, y, z); });
+    print_bucketed_results("Floating-point utilities", "fma", results);
+}
+
+TEST_CASE("f256 vs mpfr fmin performance", "[bench][fltx][f256][fmin]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f256, mpfr_ref>(atan2_value_buckets(), total_iterations, [](const auto& x, const auto& y) { return apply_fmin(x, y); });
+    print_bucketed_results("Floating-point utilities", "fmin", results);
+}
+
+TEST_CASE("f256 vs mpfr fmax performance", "[bench][fltx][f256][fmax]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f256, mpfr_ref>(atan2_value_buckets(), total_iterations, [](const auto& x, const auto& y) { return apply_fmax(x, y); });
+    print_bucketed_results("Floating-point utilities", "fmax", results);
+}
+
+TEST_CASE("f256 vs mpfr fdim performance", "[bench][fltx][f256][fdim]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f256, mpfr_ref>(atan2_value_buckets(), total_iterations, [](const auto& x, const auto& y) { return apply_fdim(x, y); });
+    print_bucketed_results("Floating-point utilities", "fdim", results);
+}
+
+TEST_CASE("f256 vs mpfr copysign performance", "[bench][fltx][f256][copysign]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f256, mpfr_ref>(atan2_value_buckets(), total_iterations, [](const auto& x, const auto& y) { return apply_copysign(x, y); });
+    print_bucketed_results("Floating-point utilities", "copysign", results);
+}
+
+TEST_CASE("f256 vs mpfr scalbn performance", "[bench][fltx][f256][scalbn]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_exponent_benchmark_result<f256, mpfr_ref, int>(ldexp_value_buckets(), total_iterations, [](const auto& x, int e) { return apply_scalbn(x, e); });
+    print_bucketed_results("Floating-point utilities", "scalbn", results);
+}
+
+TEST_CASE("f256 vs mpfr scalbln performance", "[bench][fltx][f256][scalbln]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_exponent_benchmark_result<f256, mpfr_ref, long>(ldexp_value_buckets(), total_iterations, [](const auto& x, long e) { return apply_scalbln(x, e); });
+    print_bucketed_results("Floating-point utilities", "scalbln", results);
+}
+
+TEST_CASE("f256 vs mpfr frexp performance", "[bench][fltx][f256][frexp]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<std::pair<f256, int>, std::pair<mpfr_ref, int>>(generic_value_buckets(), total_iterations, [](const auto& x) { return apply_frexp(x); });
+    print_bucketed_results("Floating-point utilities", "frexp", results);
+}
+
+TEST_CASE("f256 vs mpfr modf performance", "[bench][fltx][f256][modf]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<std::pair<f256, f256>, std::pair<mpfr_ref, mpfr_ref>>(rounding_value_buckets(), total_iterations, [](const auto& x) { return apply_modf(x); });
+    print_bucketed_results("Floating-point utilities", "modf", results);
+}
+
+TEST_CASE("f256 vs mpfr ilogb performance", "[bench][fltx][f256][ilogb]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<int, int>(generic_value_buckets(), total_iterations, [](const auto& x) { return apply_ilogb(x); });
+    print_bucketed_results("Floating-point utilities", "ilogb", results);
+}
+
+TEST_CASE("f256 vs mpfr logb performance", "[bench][fltx][f256][logb]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<f256, mpfr_ref>(generic_value_buckets(), total_iterations, [](const auto& x) { return apply_logb(x); });
+    print_bucketed_results("Floating-point utilities", "logb", results);
+}
+
+TEST_CASE("f256 vs mpfr nextafter performance", "[bench][fltx][f256][nextafter]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f256, mpfr_ref>(atan2_value_buckets(), total_iterations, [](const auto& from, const auto& to) { return apply_nextafter(from, to); });
+    print_bucketed_results("Floating-point utilities", "nextafter", results);
+}
+
+TEST_CASE("f256 vs mpfr nexttoward(type) performance", "[bench][fltx][f256][nexttoward]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f256, mpfr_ref>(atan2_value_buckets(), total_iterations, [](const auto& from, const auto& to) { return apply_nexttoward(from, to); });
+    print_bucketed_results("Floating-point utilities", "nexttoward(type)", results);
+}
+
+TEST_CASE("f256 vs mpfr nexttoward(long double) performance", "[bench][fltx][f256][nexttoward]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_long_double_benchmark_result<f256, mpfr_ref>(atan2_value_buckets(), total_iterations, [](const auto& from, long double to) { return apply_nexttoward_long_double(from, to); });
+    print_bucketed_results("Floating-point utilities", "nexttoward(long double)", results);
+}
+
 TEST_CASE("f256 vs mpfr floor performance", "[bench][fltx][f256][rounding]")
 {
     const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
@@ -1904,7 +2202,7 @@ TEST_CASE("f256 vs mpfr ldexp performance", "[bench][fltx][f256][ldexp]")
 {
     const std::int64_t total_iterations = 16000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_ldexp_benchmark(ldexp_value_buckets(), total_iterations);
-    print_bucketed_results("Exponentials", "ldexp", results);
+    print_bucketed_results("Floating-point utilities", "ldexp", results);
 }
 
 TEST_CASE("f256 vs mpfr log performance", "[bench][fltx][f256][log]")

@@ -9,8 +9,15 @@ endif()
 
 file(GLOB FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h")
 file(GLOB FLTX_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.cpp")
-file(GLOB FLTX_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-add_executable(tests ${FLTX_SOURCE} ${FLTX_HEADERS} ${FLTX_TESTS})
+file(GLOB FLTX_TESTS_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+file(GLOB FLTX_TESTS_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+
+add_executable(tests 
+    ${FLTX_HEADERS} 
+    ${FLTX_SOURCE} 
+    ${FLTX_TESTS_HEADERS}
+    ${FLTX_TESTS_SOURCE}
+)
 
 if (NOT EMSCRIPTEN)
     if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -24,9 +31,6 @@ if (NOT EMSCRIPTEN)
 
     find_path(GMP_INCLUDE_DIR NAMES gmp.h REQUIRED)
     find_library(GMP_LIBRARY NAMES gmp REQUIRED)
-
-    find_package(Matplot++ CONFIG REQUIRED)
-    target_link_libraries(tests PRIVATE Matplot++::matplot)
 endif()
 
 set(FLTX_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/../include")
@@ -51,6 +55,3 @@ if (MSVC)
     target_compile_options(tests PRIVATE /Bt+)
     target_link_options(tests PRIVATE /TIME)
 endif()
-
-#catch_discover_tests(tests REPORTER console EXTRA_ARGS -s)
-#set_property(TARGET tests PROPERTY VS_DEBUGGER_COMMAND_ARGUMENTS "--reporter console --success")

@@ -10,17 +10,27 @@
 #include <limits>
 #include <random>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
 #include <f64_math.h>
+#include "benchmark_chart_writer.h"
 
 namespace
 {
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 25;
+    constexpr int benchmark_scale = 500;
     constexpr std::size_t value_count = 64;
+
+    bl::bench::benchmark_chart_writer chart_writer{
+        "f64",
+        "std",
+        "f64 vs std benchmark ratios",
+        "benchmark_charts/f64_ratios.csv",
+        "benchmark_charts/f64_ratios.svg"
+    };
 
     struct bench_result
     {
@@ -176,9 +186,53 @@ namespace
         return result;
     }
 
+    [[nodiscard]] const char* benchmark_group_for_label(std::string_view label)
+    {
+        if (label == "floor" || label == "ceil" || label == "trunc" || label == "round" ||
+            label == "nearbyint" || label == "rint" || label == "lround" || label == "llround" ||
+            label == "lrint" || label == "llrint")
+            return "Rounding";
+
+        if (label == "fmod" || label == "remainder" || label == "remquo")
+            return "Remainders";
+
+        if (label == "abs" || label == "fabs" ||
+            label == "fma" || label == "fmin" || label == "fmax" || label == "fdim" ||
+            label == "copysign" || label == "ldexp" || label == "scalbn" || label == "scalbln" ||
+            label == "frexp" || label == "modf" || label == "ilogb" || label == "logb" ||
+            label == "nextafter" || label.starts_with("nexttoward"))
+            return "Floating-point utilities";
+
+        if (label == "sqrt" || label == "cbrt" || label == "hypot" || label == "pow")
+            return "Roots & powers";
+
+        if (label == "exp" || label == "exp2" || label == "expm1")
+            return "Exponentials";
+
+        if (label == "log" || label == "log2" || label == "log10" || label == "log1p")
+            return "Logarithms";
+
+        if (label == "sin" || label == "cos" || label == "tan" || label == "atan" ||
+            label == "atan2" || label == "asin" || label == "acos")
+            return "Trigonometric";
+
+        if (label == "sinh" || label == "cosh" || label == "tanh")
+            return "Hyperbolic";
+
+        if (label == "asinh" || label == "acosh" || label == "atanh")
+            return "Inverse hyperbolic";
+
+        if (label == "erf" || label == "erfc" || label == "lgamma" || label == "tgamma")
+            return "Special functions";
+
+        return "Other";
+    }
+
     void print_result(const char* label, const comparison_result& result)
     {
         const double ratio = result.std.ns_per_iter / result.bl.ns_per_iter;
+        if (std::string_view(label) != "fabs")
+            chart_writer.record_result(benchmark_group_for_label(label), label, result.bl.ns_per_iter, result.std.ns_per_iter);
 
         std::cout
             << std::fixed << std::setprecision(2)

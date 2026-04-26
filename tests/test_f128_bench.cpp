@@ -10,10 +10,13 @@
 #include <iostream>
 #include <limits>
 #include <random>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
 #include <f128_math.h>
+#include "benchmark_chart_writer.h"
 
 using namespace bl;
 
@@ -23,9 +26,17 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 50;
+    constexpr int benchmark_scale = 25;
     constexpr std::size_t bucket_value_count = 64;
     constexpr std::size_t bucket_count = 3;
+
+    bl::bench::benchmark_chart_writer chart_writer{
+        "f128",
+        "mpfr",
+        "f128 vs MPFR hard benchmark ratios",
+        "benchmark_charts/f128_hard_ratios.csv",
+        "benchmark_charts/f128_hard_ratios.svg"
+    };
 
     struct bench_result
     {
@@ -96,6 +107,7 @@ namespace
     };
 
     volatile double benchmark_sink = 0.0;
+    volatile std::int64_t benchmark_integer_sink = 0;
 
     void consume_result(const f128& value)
     {
@@ -107,8 +119,13 @@ namespace
         benchmark_sink += static_cast<double>(value);
     }
 
-    template<typename T>
-    void consume_result(const std::pair<T, T>& value)
+    void consume_result(std::int64_t value)
+    {
+        benchmark_integer_sink += value;
+    }
+
+    template<typename T, typename U>
+    void consume_result(const std::pair<T, U>& value)
     {
         consume_result(value.first);
         consume_result(value.second);
@@ -868,8 +885,57 @@ namespace
             << "\n";
     }
 
+    [[nodiscard]] const char* benchmark_group_for_label(std::string_view label)
+    {
+        if (label == "add" || label == "subtract" || label == "multiply" || label == "divide" ||
+            label == "mixed recurrence")
+            return "Arithmetic";
+
+        if (label == "floor" || label == "ceil" || label == "trunc" || label == "round" ||
+            label == "nearbyint" || label == "rint" || label == "lround" || label == "llround" ||
+            label == "lrint" || label == "llrint")
+            return "Rounding";
+
+        if (label == "fmod" || label == "remainder" || label == "remquo")
+            return "Remainders";
+
+        if (label == "abs" || label == "fabs" ||
+            label == "fma" || label == "fmin" || label == "fmax" || label == "fdim" ||
+            label == "copysign" || label == "ldexp" || label == "scalbn" || label == "scalbln" ||
+            label == "frexp" || label == "modf" || label == "ilogb" || label == "logb" ||
+            label == "nextafter" || label.starts_with("nexttoward"))
+            return "Floating-point utilities";
+
+        if (label == "sqrt" || label == "cbrt" || label == "hypot" || label == "pow")
+            return "Roots & powers";
+
+        if (label == "exp" || label == "exp2" || label == "expm1")
+            return "Exponentials";
+
+        if (label == "log" || label == "log2" || label == "log10" || label == "log1p")
+            return "Logarithms";
+
+        if (label == "sin" || label == "cos" || label == "tan" || label == "atan" ||
+            label == "atan2" || label == "asin" || label == "acos")
+            return "Trigonometric";
+
+        if (label == "sinh" || label == "cosh" || label == "tanh")
+            return "Hyperbolic";
+
+        if (label == "asinh" || label == "acosh" || label == "atanh")
+            return "Inverse hyperbolic";
+
+        if (label == "erf" || label == "erfc" || label == "lgamma" || label == "tgamma")
+            return "Special functions";
+
+        return "Other";
+    }
+
     void print_bucketed_results(const char* label, const bucketed_comparison_result& results)
     {
+        if (std::string_view(label) != "fabs")
+            chart_writer.record_result(benchmark_group_for_label(label), label, results.hard.f128.ns_per_iter, results.hard.mpfr.ns_per_iter);
+
         std::string easy_label = std::string(label) + " [easy]";
         std::string medium_label = std::string(label) + " [medium]";
         std::string hard_label = std::string(label) + " [hard]";
@@ -911,10 +977,19 @@ namespace
         return out;
     }
 
-    template<typename T>
-    [[nodiscard]] T blend_result(const T& value, const T& acc)
+    template<typename T, typename U>
+    [[nodiscard]] T blend_result(const U& value, const T& acc)
     {
-        return value + acc * T(0.25);
+        return static_cast<T>(value) + acc * T(0.25);
+    }
+
+    template<typename T, typename U>
+    [[nodiscard]] std::pair<T, U> blend_result(const std::pair<T, U>& value, const std::pair<T, U>& acc)
+    {
+        return {
+            blend_result(value.first, acc.first),
+            blend_result(value.second, acc.second)
+        };
     }
 
     template<typename T>
@@ -1089,6 +1164,167 @@ namespace
     {
         using std::ldexp;
         return ldexp(x, exponent);
+    }
+
+
+    template<typename T>
+    [[nodiscard]] T apply_abs(const T& x)
+    {
+        using std::abs;
+        return abs(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fabs(const T& x)
+    {
+        using std::fabs;
+        return fabs(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] long apply_lround(const T& x)
+    {
+        using std::lround;
+        return lround(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] long long apply_llround(const T& x)
+    {
+        using std::llround;
+        return llround(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] long apply_lrint(const T& x)
+    {
+        using std::lrint;
+        return lrint(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] long long apply_llrint(const T& x)
+    {
+        using std::llrint;
+        return llrint(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] std::pair<T, int> apply_remquo(const T& x, const T& y)
+    {
+        int quotient = 0;
+        using std::remquo;
+        T remainder = remquo(x, y, &quotient);
+        return { remainder, quotient };
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fma(const T& x, const T& y, const T& z)
+    {
+        using std::fma;
+        return fma(x, y, z);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fmin(const T& x, const T& y)
+    {
+        using std::fmin;
+        return fmin(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fmax(const T& x, const T& y)
+    {
+        using std::fmax;
+        return fmax(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_fdim(const T& x, const T& y)
+    {
+        using std::fdim;
+        return fdim(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_copysign(const T& x, const T& y)
+    {
+        using std::copysign;
+        return copysign(x, y);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_scalbn(const T& x, int exponent)
+    {
+        using std::scalbn;
+        return scalbn(x, exponent);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_scalbln(const T& x, long exponent)
+    {
+        using std::scalbln;
+        return scalbln(x, exponent);
+    }
+
+    template<typename T>
+    [[nodiscard]] std::pair<T, int> apply_frexp(const T& x)
+    {
+        int exponent = 0;
+        using std::frexp;
+        T fraction = frexp(x, &exponent);
+        return { fraction, exponent };
+    }
+
+    template<typename T>
+    [[nodiscard]] std::pair<T, T> apply_modf(const T& x)
+    {
+        T integral{};
+        using std::modf;
+        T fractional = modf(x, &integral);
+        return { fractional, integral };
+    }
+
+    template<typename T>
+    [[nodiscard]] int apply_ilogb(const T& x)
+    {
+        using std::ilogb;
+        return ilogb(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_logb(const T& x)
+    {
+        using std::logb;
+        return logb(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_nextafter(const T& from, const T& to)
+    {
+        using std::nextafter;
+        return nextafter(from, to);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_nexttoward(const T& from, const T& to)
+    {
+        using std::nexttoward;
+        return nexttoward(from, to);
+    }
+
+    template<typename T>
+    [[nodiscard]] T apply_nexttoward_long_double(const T& from, long double to)
+    {
+        using std::nexttoward;
+        return nexttoward(from, to);
+    }
+
+    template<>
+    [[nodiscard]] mpfr_ref apply_nexttoward_long_double<mpfr_ref>(const mpfr_ref& from, long double to)
+    {
+        using boost::multiprecision::nexttoward;
+        return nexttoward(from, mpfr_ref(to));
     }
 
     template<typename T>
@@ -1318,6 +1554,270 @@ namespace
         });
     }
 
+
+    template<typename T, typename Result, typename Op>
+    [[nodiscard]] bench_result benchmark_value_bucket_result(
+        const std::array<value_spec, bucket_value_count>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        std::array<T, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+            values[i] = make_value<T>(specs[i]);
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark<Result>(iteration_count, [&]()
+        {
+            Result acc = op(values.front());
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i]), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, typename Result, typename Op>
+    [[nodiscard]] bench_result benchmark_binary_bucket_result(
+        const std::array<binary_value_spec, bucket_value_count>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        std::array<std::pair<T, T>, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        {
+            values[i].first = make_value<T>(specs[i].lhs);
+            values[i].second = make_value<T>(specs[i].rhs);
+        }
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark<Result>(iteration_count, [&]()
+        {
+            Result acc = op(values.front().first, values.front().second);
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i].first, values[i].second), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, typename Result, typename Op>
+    [[nodiscard]] bench_result benchmark_binary_long_double_bucket_result(
+        const std::array<binary_value_spec, bucket_value_count>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        struct nexttoward_case
+        {
+            T from{};
+            long double to = 0.0L;
+        };
+
+        std::array<nexttoward_case, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        {
+            values[i].from = make_value<T>(specs[i].lhs);
+            const T target = make_value<T>(specs[i].rhs);
+            values[i].to = static_cast<long double>(static_cast<double>(target));
+        }
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark<Result>(iteration_count, [&]()
+        {
+            Result acc = op(values.front().from, values.front().to);
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i].from, values[i].to), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, typename Result, typename Exponent, typename Op>
+    [[nodiscard]] bench_result benchmark_exponent_bucket_result(
+        const std::array<ldexp_value_spec, bucket_value_count>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        struct exponent_case
+        {
+            T value{};
+            Exponent exponent{};
+        };
+
+        std::array<exponent_case, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        {
+            values[i].value = make_value<T>(specs[i].value);
+            values[i].exponent = static_cast<Exponent>(specs[i].exponent);
+        }
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark<Result>(iteration_count, [&]()
+        {
+            Result acc = op(values.front().value, values.front().exponent);
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i].value, values[i].exponent), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, typename Result, typename Op>
+    [[nodiscard]] bench_result benchmark_ternary_bucket_result(
+        const std::array<recurrence_value_spec, bucket_value_count>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        struct ternary_case
+        {
+            T x{};
+            T y{};
+            T z{};
+        };
+
+        std::array<ternary_case, bucket_value_count> values{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        {
+            values[i].x = make_value<T>(specs[i].x);
+            values[i].y = make_value<T>(specs[i].y);
+            values[i].z = make_value<T>(specs[i].a);
+        }
+
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, total_iterations / static_cast<std::int64_t>(bucket_count));
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+
+        return run_benchmark<Result>(iteration_count, [&]()
+        {
+            Result acc = op(values.front().x, values.front().y, values.front().z);
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                    acc = blend_result(op(values[i].x, values[i].y, values[i].z), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_value_benchmark_result(
+        const bucket_array_set<value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f128 = benchmark_value_bucket_result<f128, FltxResult>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(specs.easy, total_iterations, op);
+        out.medium.f128 = benchmark_value_bucket_result<f128, FltxResult>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(specs.medium, total_iterations, op);
+        out.hard.f128 = benchmark_value_bucket_result<f128, FltxResult>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_binary_benchmark_result(
+        const bucket_array_set<binary_value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f128 = benchmark_binary_bucket_result<f128, FltxResult>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_binary_bucket_result<mpfr_ref, MpfrResult>(specs.easy, total_iterations, op);
+        out.medium.f128 = benchmark_binary_bucket_result<f128, FltxResult>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_binary_bucket_result<mpfr_ref, MpfrResult>(specs.medium, total_iterations, op);
+        out.hard.f128 = benchmark_binary_bucket_result<f128, FltxResult>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_binary_bucket_result<mpfr_ref, MpfrResult>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_binary_long_double_benchmark_result(
+        const bucket_array_set<binary_value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f128 = benchmark_binary_long_double_bucket_result<f128, FltxResult>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_binary_long_double_bucket_result<mpfr_ref, MpfrResult>(specs.easy, total_iterations, op);
+        out.medium.f128 = benchmark_binary_long_double_bucket_result<f128, FltxResult>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_binary_long_double_bucket_result<mpfr_ref, MpfrResult>(specs.medium, total_iterations, op);
+        out.hard.f128 = benchmark_binary_long_double_bucket_result<f128, FltxResult>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_binary_long_double_bucket_result<mpfr_ref, MpfrResult>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Exponent, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_exponent_benchmark_result(
+        const bucket_array_set<ldexp_value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f128 = benchmark_exponent_bucket_result<f128, FltxResult, Exponent>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_exponent_bucket_result<mpfr_ref, MpfrResult, Exponent>(specs.easy, total_iterations, op);
+        out.medium.f128 = benchmark_exponent_bucket_result<f128, FltxResult, Exponent>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_exponent_bucket_result<mpfr_ref, MpfrResult, Exponent>(specs.medium, total_iterations, op);
+        out.hard.f128 = benchmark_exponent_bucket_result<f128, FltxResult, Exponent>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_exponent_bucket_result<mpfr_ref, MpfrResult, Exponent>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_ternary_benchmark_result(
+        const bucket_array_set<recurrence_value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        out.easy.f128 = benchmark_ternary_bucket_result<f128, FltxResult>(specs.easy, total_iterations, op);
+        out.easy.mpfr = benchmark_ternary_bucket_result<mpfr_ref, MpfrResult>(specs.easy, total_iterations, op);
+        out.medium.f128 = benchmark_ternary_bucket_result<f128, FltxResult>(specs.medium, total_iterations, op);
+        out.medium.mpfr = benchmark_ternary_bucket_result<mpfr_ref, MpfrResult>(specs.medium, total_iterations, op);
+        out.hard.f128 = benchmark_ternary_bucket_result<f128, FltxResult>(specs.hard, total_iterations, op);
+        out.hard.mpfr = benchmark_ternary_bucket_result<mpfr_ref, MpfrResult>(specs.hard, total_iterations, op);
+        out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+
+        return out;
+    }
+
     template<typename Op>
     [[nodiscard]] bucketed_comparison_result run_bucketed_unary_benchmark(
         const bucket_array_set<value_spec>& specs,
@@ -1379,6 +1879,52 @@ namespace
         out.hard.f128 = benchmark_mixed_recurrence_bucket<f128>(specs.hard, total_iterations);
         out.hard.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.hard, total_iterations);
         out.typical = combine_typical_results(out.easy, out.medium, out.hard);
+        return out;
+    }
+
+    [[nodiscard]] bucket_array_set<value_spec> integer_rounding_specs()
+    {
+        constexpr std::array<value_spec, 8> easy_values{{
+            { -8.75, 0.0 },
+            { -4.5, 0.0 },
+            { -1.125, 0.0 },
+            { -0.5, 0.0 },
+            { 0.5, 0.0 },
+            { 1.125, 0.0 },
+            { 4.5, 0.0 },
+            { 8.75, 0.0 }
+        }};
+
+        constexpr std::array<value_spec, 8> medium_values{{
+            { -1048576.25, 0.0 },
+            { -1024.75, 0.0 },
+            { -16.25, 0.0 },
+            { -0.75, 0.0 },
+            { 0.75, 0.0 },
+            { 16.25, 0.0 },
+            { 1024.75, 0.0 },
+            { 1048576.25, 0.0 }
+        }};
+
+        constexpr std::array<value_spec, 8> hard_values{{
+            { -2000000000.25, 0.0 },
+            { -1073741824.75, 0.0 },
+            { -65536.25, 0.0 },
+            { -1.75, 0.0 },
+            { 1.75, 0.0 },
+            { 65536.25, 0.0 },
+            { 1073741824.25, 0.0 },
+            { 2000000000.25, 0.0 }
+        }};
+
+        bucket_array_set<value_spec> out{};
+        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        {
+            out.easy[i] = easy_values[i % easy_values.size()];
+            out.medium[i] = medium_values[i % medium_values.size()];
+            out.hard[i] = hard_values[i % hard_values.size()];
+        }
+
         return out;
     }
 
@@ -1548,6 +2094,154 @@ TEST_CASE("f128 vs mpfr mixed recurrence performance", "[bench][fltx][f128][arit
     const std::int64_t total_iterations = 40000ll * benchmark_scale;
     const auto results = run_bucketed_mixed_recurrence_benchmark(mixed_recurrence_specs(), total_iterations);
     print_bucketed_results("mixed recurrence", results);
+}
+
+
+TEST_CASE("f128 vs mpfr abs performance", "[bench][fltx][f128][arithmetic][abs]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<f128, mpfr_ref>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_abs(x); });
+    print_bucketed_results("abs", results);
+}
+
+TEST_CASE("f128 vs mpfr fabs performance", "[bench][fltx][f128][arithmetic][fabs]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<f128, mpfr_ref>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_fabs(x); });
+    print_bucketed_results("fabs", results);
+}
+
+TEST_CASE("f128 vs mpfr lround performance", "[bench][fltx][f128][rounding][lround]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<long, long>(integer_rounding_specs(), total_iterations, [](const auto& x) { return apply_lround(x); });
+    print_bucketed_results("lround", results);
+}
+
+TEST_CASE("f128 vs mpfr llround performance", "[bench][fltx][f128][rounding][llround]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<long long, long long>(integer_rounding_specs(), total_iterations, [](const auto& x) { return apply_llround(x); });
+    print_bucketed_results("llround", results);
+}
+
+TEST_CASE("f128 vs mpfr lrint performance", "[bench][fltx][f128][rounding][lrint]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<long, long>(integer_rounding_specs(), total_iterations, [](const auto& x) { return apply_lrint(x); });
+    print_bucketed_results("lrint", results);
+}
+
+TEST_CASE("f128 vs mpfr llrint performance", "[bench][fltx][f128][rounding][llrint]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<long long, long long>(integer_rounding_specs(), total_iterations, [](const auto& x) { return apply_llrint(x); });
+    print_bucketed_results("llrint", results);
+}
+
+TEST_CASE("f128 vs mpfr remquo performance", "[bench][fltx][f128][remquo]")
+{
+    const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<std::pair<f128, int>, std::pair<mpfr_ref, int>>(fmod_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_remquo(x, y); });
+    print_bucketed_results("remquo", results);
+}
+
+TEST_CASE("f128 vs mpfr fma performance", "[bench][fltx][f128][fma]")
+{
+    const std::int64_t total_iterations = 20000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_ternary_benchmark_result<f128, mpfr_ref>(mixed_recurrence_specs(), total_iterations, [](const auto& x, const auto& y, const auto& z) { return apply_fma(x, y, z); });
+    print_bucketed_results("fma", results);
+}
+
+TEST_CASE("f128 vs mpfr fmin performance", "[bench][fltx][f128][fmin]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fmin(x, y); });
+    print_bucketed_results("fmin", results);
+}
+
+TEST_CASE("f128 vs mpfr fmax performance", "[bench][fltx][f128][fmax]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fmax(x, y); });
+    print_bucketed_results("fmax", results);
+}
+
+TEST_CASE("f128 vs mpfr fdim performance", "[bench][fltx][f128][fdim]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fdim(x, y); });
+    print_bucketed_results("fdim", results);
+}
+
+TEST_CASE("f128 vs mpfr copysign performance", "[bench][fltx][f128][copysign]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_copysign(x, y); });
+    print_bucketed_results("copysign", results);
+}
+
+TEST_CASE("f128 vs mpfr scalbn performance", "[bench][fltx][f128][scalbn]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_exponent_benchmark_result<f128, mpfr_ref, int>(ldexp_specs(), total_iterations, [](const auto& x, int e) { return apply_scalbn(x, e); });
+    print_bucketed_results("scalbn", results);
+}
+
+TEST_CASE("f128 vs mpfr scalbln performance", "[bench][fltx][f128][scalbln]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_exponent_benchmark_result<f128, mpfr_ref, long>(ldexp_specs(), total_iterations, [](const auto& x, long e) { return apply_scalbln(x, e); });
+    print_bucketed_results("scalbln", results);
+}
+
+TEST_CASE("f128 vs mpfr frexp performance", "[bench][fltx][f128][frexp]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<std::pair<f128, int>, std::pair<mpfr_ref, int>>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_frexp(x); });
+    print_bucketed_results("frexp", results);
+}
+
+TEST_CASE("f128 vs mpfr modf performance", "[bench][fltx][f128][modf]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<std::pair<f128, f128>, std::pair<mpfr_ref, mpfr_ref>>(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_modf(x); });
+    print_bucketed_results("modf", results);
+}
+
+TEST_CASE("f128 vs mpfr ilogb performance", "[bench][fltx][f128][ilogb]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<int, int>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_ilogb(x); });
+    print_bucketed_results("ilogb", results);
+}
+
+TEST_CASE("f128 vs mpfr logb performance", "[bench][fltx][f128][logb]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark_result<f128, mpfr_ref>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_logb(x); });
+    print_bucketed_results("logb", results);
+}
+
+TEST_CASE("f128 vs mpfr nextafter performance", "[bench][fltx][f128][nextafter]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& from, const auto& to) { return apply_nextafter(from, to); });
+    print_bucketed_results("nextafter", results);
+}
+
+TEST_CASE("f128 vs mpfr nexttoward(type) performance", "[bench][fltx][f128][nexttoward]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& from, const auto& to) { return apply_nexttoward(from, to); });
+    print_bucketed_results("nexttoward(type)", results);
+}
+
+TEST_CASE("f128 vs mpfr nexttoward(long double) performance", "[bench][fltx][f128][nexttoward]")
+{
+    const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_binary_long_double_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& from, long double to) { return apply_nexttoward_long_double(from, to); });
+    print_bucketed_results("nexttoward(long double)", results);
 }
 
 TEST_CASE("f128 vs mpfr floor performance", "[bench][fltx][f128][rounding]")

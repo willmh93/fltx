@@ -14,10 +14,6 @@
     {
       "name": "catch2",
       "platform": "!emscripten"
-    },
-    {
-      "name": "matplotplusplus",
-      "platform": "!emscripten"
     }
   ]
 }

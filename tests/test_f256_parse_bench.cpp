@@ -90,7 +90,7 @@ namespace
     }
 }
 
-TEST_CASE("f256 parse benchmark uses 100000 random full-length strings", "[f256][bench][parse]")
+TEST_CASE("f256 parse benchmark uses 100000 random full-length strings", "[f256][bench_parse]")
 {
     static const std::vector<std::string> samples = make_random_f256_strings();
 
