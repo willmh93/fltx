@@ -1,88 +1,47 @@
 <img src="res/logo.webp" alt="fltx logo" width="90">
 
-A C++20 header-only library for fixed-width extended-precision floating-point work.
+A header-only C++20 library for fixed-width extended-precision floating-point work.
 
-The goal is simple: **more numerical headroom, `double`-like ergonomics, and strong performance for fixed precision workloads** without moving all the way to arbitrary precision.
+`fltx` is for code that needs more precision than `double`, but still wants fixed-size scalar types, predictable performance, and ordinary C++ ergonomics.
 
 ## Highlights
 
-- C++20 header-only design
-- `constexpr`-capable math functions for `f32`, `f64`, `f128`, and `f256`, with a `<cmath>`-like API for writing generic numeric code.
-- Literal support, operators, conversions, comparisons, and common math functions
+- `constexpr`-capable math functions for `f32`, `f64`, `f128`, and `f256`, with a `<cmath>`-like API for writing generic numeric code
+- Literal support, operators, conversions, comparisons, parsing, and formatting
 - Standard-library integration: `std::ostream`, `std::numeric_limits`, `std::numbers`, and stream manipulators such as `std::setprecision`
 - **Optional:** Bitwise parity between constexpr and runtime results. To enable, define `FLTX_CONSTEXPR_PARITY` prior to including math headers (impacts performance, only use if required)
 - **Optional:** Runtime-to-compile-time dispatch helpers
 - Benchmarked against `boost::multiprecision::mpfr_float_backend<digits>` at comparable precision (results below)
  
-## core types
+## Core types
 
 | Type | Backing representation |
 |---|---|
-| `f32` | Alias for native `float` |
-| `f64` | Alias for native `double` |
-| `f128` | Double-double precision, stored as two `double` limbs |
-| `f256` | Quad-double precision, stored as four `double` limbs |
+| `bl::f32` | Alias for native `float` |
+| `bl::f64` | Alias for native `double` |
+| `bl::f128` | Double-double precision, stored as two `double` limbs |
+| `bl::f256` | Quad-double precision, stored as four `double` limbs |
 
 ## constexpr support
 
-| Function | `bl::f32` | `bl::f64` | `bl::f128` | `bl::f256` |
-|---|---:|---:|---:|---:|
-| `bl::abs` | ✅ | ✅ | ✅ | ✅ |
-| `bl::floor` | ✅ | ✅ | ✅ | ✅ |
-| `bl::ceil` | ✅ | ✅ | ✅ | ✅ |
-| `bl::trunc` | ✅ | ✅ | ✅ | ✅ |
-| `bl::round` | ✅ | ✅ | ✅ | ✅ |
-| `bl::lround` | ✅ | ✅ | ✅ | ✅ |
-| `bl::llround` | ✅ | ✅ | ✅ | ✅ |
-| `bl::nearbyint` | ✅ | ✅ | ✅ | ✅ |
-| `bl::rint` | ✅ | ✅ | ✅ | ✅ |
-| `bl::lrint` | ✅ | ✅ | ✅ | ✅ |
-| `bl::llrint` | ✅ | ✅ | ✅ | ✅ |
-| `bl::fmod` | ✅ | ✅ | ✅ | ✅ |
-| `bl::remainder` | ✅ | ✅ | ✅ | ✅ |
-| `bl::remquo` | ✅ | ✅ | ✅ | ✅ |
-| `bl::fma` | ✅ | ✅ | ✅ | ✅ |
-| `bl::fmin` | ✅ | ✅ | ✅ | ✅ |
-| `bl::fmax` | ✅ | ✅ | ✅ | ✅ |
-| `bl::fdim` | ✅ | ✅ | ✅ | ✅ |
-| `bl::copysign` | ✅ | ✅ | ✅ | ✅ |
-| `bl::sqrt` | ✅ | ✅ | ✅ | ✅ |
-| `bl::cbrt` | ✅ | ✅ | ✅ | ✅ |
-| `bl::hypot` | ✅ | ✅ | ✅ | ✅ |
-| `bl::exp` | ✅ | ✅ | ✅ | ✅ |
-| `bl::exp2` | ✅ | ✅ | ✅ | ✅ |
-| `bl::expm1` | ✅ | ✅ | ✅ | ✅ |
-| `bl::log` | ✅ | ✅ | ✅ | ✅ |
-| `bl::log2` | ✅ | ✅ | ✅ | ✅ |
-| `bl::log10` | ✅ | ✅ | ✅ | ✅ |
-| `bl::log1p` | ✅ | ✅ | ✅ | ✅ |
-| `bl::pow` | ✅ | ✅ | ✅ | ✅ |
-| `bl::sin` | ✅ | ✅ | ✅ | ✅ |
-| `bl::cos` | ✅ | ✅ | ✅ | ✅ |
-| `bl::tan` | ✅ | ✅ | ✅ | ✅ |
-| `bl::asin` | ✅ | ✅ | ✅ | ✅ |
-| `bl::acos` | ✅ | ✅ | ✅ | ✅ |
-| `bl::atan` | ✅ | ✅ | ✅ | ✅ |
-| `bl::atan2` | ✅ | ✅ | ✅ | ✅ |
-| `bl::sinh` | ✅ | ✅ | ✅ | ✅ |
-| `bl::cosh` | ✅ | ✅ | ✅ | ✅ |
-| `bl::tanh` | ✅ | ✅ | ✅ | ✅ |
-| `bl::asinh` | ✅ | ✅ | ✅ | ✅ |
-| `bl::acosh` | ✅ | ✅ | ✅ | ✅ |
-| `bl::atanh` | ✅ | ✅ | ✅ | ✅ |
-| `bl::erf` | ✅ | ✅ | ✅ | ✅ |
-| `bl::erfc` | ✅ | ✅ | ✅ | ✅ |
-| `bl::lgamma` | ✅ | ✅ | ✅ | ✅ |
-| `bl::tgamma` | ✅ | ✅ | ✅ | ✅ |
-| `bl::ldexp` | ✅ | ✅ | ✅ | ✅ |
-| `bl::scalbn` | ✅ | ✅ | ✅ | ✅ |
-| `bl::scalbln` | ✅ | ✅ | ✅ | ✅ |
-| `bl::frexp` | ✅ | ✅ | ✅ | ✅ |
-| `bl::modf` | ✅ | ✅ | ✅ | ✅ |
-| `bl::ilogb` | ✅ | ✅ | ✅ | ✅ |
-| `bl::logb` | ✅ | ✅ | ✅ | ✅ |
-| `bl::nextafter` | ✅ | ✅ | ✅ | ✅ |
-| `bl::nexttoward` | ✅ | ✅ | ✅ | ✅ |
+`fltx_math.h` provides a `constexpr`-capable, `<cmath>`-style API across `bl::f32`, `bl::f64`, `bl::f128`, and `bl::f256`; every function listed below is supported for each type.
+
+| Category | Functions |
+|---|---|
+| ✅ Absolute value | `bl::abs` |
+| ✅ Rounding | `bl::floor`, `bl::ceil`, `bl::trunc`, `bl::round`, `bl::lround`, `bl::llround`, `bl::nearbyint`, `bl::rint`, `bl::lrint`, `bl::llrint` |
+| ✅ Remainder / quotient | `bl::fmod`, `bl::remainder`, `bl::remquo` |
+| ✅ Min / max / sign | `bl::fmin`, `bl::fmax`, `bl::fdim`, `bl::copysign` |
+| ✅ Fused arithmetic | `bl::fma` |
+| ✅ Roots and distance | `bl::sqrt`, `bl::cbrt`, `bl::hypot` |
+| ✅ Exponential | `bl::exp`, `bl::exp2`, `bl::expm1` |
+| ✅ Logarithmic | `bl::log`, `bl::log2`, `bl::log10`, `bl::log1p`, `bl::logb`, `bl::ilogb` |
+| ✅ Power | `bl::pow` |
+| ✅ Trigonometric | `bl::sin`, `bl::cos`, `bl::tan`, `bl::asin`, `bl::acos`, `bl::atan`, `bl::atan2` |
+| ✅ Hyperbolic | `bl::sinh`, `bl::cosh`, `bl::tanh`, `bl::asinh`, `bl::acosh`, `bl::atanh` |
+| ✅ Error / gamma | `bl::erf`, `bl::erfc`, `bl::lgamma`, `bl::tgamma` |
+| ✅ Scaling / decomposition | `bl::ldexp`, `bl::scalbn`, `bl::scalbln`, `bl::frexp`, `bl::modf` |
+| ✅ Adjacent values | `bl::nextafter`, `bl::nexttoward` |
 
 ## Use case
 
@@ -148,25 +107,19 @@ a + b = 1
 
 The main user-facing types are:
 
-```
-bl::f32
-bl::f64
-bl::f128
-bl::f256
-```
+```text
+bl::f32     // float alias
+bl::f64     // double alias
+bl::f128    // full double-double type
+bl::f256    // full quad-double type
 
-`f32` and `f64` are aliases for native `float` and `double`. `f128` and `f256` are fixed-width extended-precision types.
-
-There are also trivial storage forms:
-
-```cpp
-bl::f128_s
-bl::f256_s
+bl::f128_s  // trivial storage form
+bl::f256_s  // trivial storage form
 ```
 
-These are useful when standard-layout storage matters, such as packed structures, unions, binary buffers, or interop boundaries. They can be used interchangeably. 
+The trivial storage forms are useful when standard-layout storage matters, such as packed structures, unions, binary buffers, or interop boundaries. They convert cleanly to and from the full scalar types:
 
-```cpp
+```text
 f128_s a { 5.0 };
 f128   b = 5.0f;
 
@@ -224,53 +177,83 @@ constexpr f256  d = radius(1.0_qd, 2.0_qd);
 
 `fltx_dispatch.h` includes a small runtime-to-compile-time dispatch layer.
 
-This is useful when a user setting, file format, UI option, or benchmark parameter chooses the precision at runtime, but the actual kernel should still compile as a type-specialized template.
+This lets runtime values such as `FloatType::F128` or `FloatType::F256` select a compile-time `T`, so the called function still compiles as a normal template specialization.
 
 ```cpp
-#include <fltx_dispatch.h>
-
+#include <iostream>
+#include <fltx.h>
 using namespace bl;
 
 template<class T>
 void run_kernel(int width, int height)
 {
-    T scale = 1.0 / T{ width + height };
-    // ...
+    T x = T{ width } / T{ height };
+    T y = bl::sqrt(x) + bl::sin(x);
+
+    std::cout << y << '\n';
 }
 
 int main()
 {
-    FloatType type = FloatType::F256;
+    FloatType precision = FloatType::F256;
 
     table_invoke(
-        dispatch_table(run_kernel, 1920, 1080),
-        enum_type(type)
+        dispatch_table(run_kernel, 1920, 1080), // binds the function and arguments into a dispatch table
+        enum_type(precision) // selects the compile-time type mapped from the runtime FloatType value
     );
 }
 ```
 
-`bl::enum_type(type)` maps `FloatType::F32`, `FloatType::F64`, `FloatType::F128`, and `FloatType::F256` to `bl::f32`, `bl::f64`, `bl::f128`, and `bl::f256`.
+<details>
+<summary>Example: mapping a custom enum to a compile-time type</summary>
+ 
+`constexpr_dispatch.h` is the lower-level dispatch utility used by `fltx_dispatch.h`. It can also be used directly when you want your own runtime enum to select one of several compile-time types:
 
-You can also dispatch on enum or bool values as compile-time non-type template arguments, which makes it useful for generating optimized variants of numerical kernels without hand-writing large switch blocks.
+```cpp
+#include <constexpr_dispatch.h>
+
+enum struct Backend { Cpu, Gpu, COUNT }; // COUNT is required to determine the dispatch domain size
+
+struct CpuBackend {};
+struct GpuBackend {};
+
+bl_map_enum_to_type(Backend::Cpu, CpuBackend);
+bl_map_enum_to_type(Backend::Gpu, GpuBackend);
+
+template<class BackendT, bool Debug>
+void run()
+{
+    if constexpr (Debug)
+    {
+    }
+}
+
+int main()
+{
+    Backend backend = Backend::Gpu;
+    bool debug = true;
+
+    bl::table_invoke(
+        bl::dispatch_table(run),
+        bl::enum_type(backend),
+        debug
+    );
+}
+```
+</details>
 
 ## Precision model
 
-`f128` and `f256` are multi-limb floating-point types built from `double` components:
+`f128` and `f256` are fixed-width, multi-limb floating-point types built from `double` components:
 
 ```text
 sizeof(f128) == 16
 sizeof(f256) == 32
 ```
 
-The names refer to storage size, not IEEE binary128 or binary256 semantics.
+The names refer to storage size. They are not IEEE binary128 / binary256 types, and they are not arbitrary-precision numbers.
 
-These types give a large precision increase over native `double`, while preserving a familiar floating-point programming model. They are still floating-point approximations, not exact values. Conditioning, cancellation, argument reduction, and algorithm design still matter.
-
-## What fltx is not
-
-`fltx` is not an arbitrary-precision library, a symbolic math package, decimal arithmetic package, exact rational type, or true IEEE binary128 / binary256 implementation.
-
-If you need unbounded precision or exact arithmetic, use a multiprecision or symbolic package instead. `fltx` is about a different trade-off: **fixed-size extended precision with practical ergonomics and strong performance**.
+`fltx` gives you more precision than native double while keeping a familiar floating-point model. Values are still approximate, so conditioning, cancellation, argument reduction, and algorithm design still matter.
 
 ## vcpkg
 
