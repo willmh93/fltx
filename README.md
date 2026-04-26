@@ -2,38 +2,87 @@
 
 A C++20 header-only library for fixed-width extended-precision floating-point work.
 
-`fltx` provides numeric types for code that needs **substantially more precision than `double`**, without moving all the way to arbitrary precision.
-
-
-It also provides a constexpr-capable surface for all `<cmath>` functions which can be used consistently in generic kernels.
- 
- ```cpp
-bl::sqrt(x)
-bl::sin(x)
-bl::exp(x)
-bl::log(x)
-```
- 
-
-
-The core types are:
-
-- **`f128`** — double-double precision, stored as two `double` limbs
-- **`f256`** — quad-double precision, stored as four `double` limbs
-
-The goal is simple: **more numerical headroom, `double`-like ergonomics, and strong performance for fixed precision workloads**.
+The goal is simple: **more numerical headroom, `double`-like ergonomics, and strong performance for fixed precision workloads** without moving all the way to arbitrary precision.
 
 ## Highlights
 
-- Header-only C++20 design
-- Single `constexpr`-capable, libm-like `bl::` math interface for `f32`, `f64`, `f128`, and `f256`
+- C++20 header-only design
+- `constexpr`-capable math functions for `f32`, `f64`, `f128`, and `f256`, with a `<cmath>`-like API for writing generic numeric code.
 - Literal support, operators, conversions, comparisons, and common math functions
-- `constexpr` support for arithmetic, math functions, parsing, serialization, classification, and numeric constants
 - Standard-library integration: `std::ostream`, `std::numeric_limits`, `std::numbers`, and stream manipulators such as `std::setprecision`
-- Trivial storage types `f128_s` and `f256_s` for low-level layouts, unions, buffers, and interop code
-- **Optional:** bitwise parity between constexpr and runtime paths in internal tests (define `FLTX_CONSTEXPR_PARITY` before including `fltx.h`)
-- **Optional:** runtime-to-compile-time dispatch helpers
-- Benchmarked against `boost::multiprecision::mpfr_float_backend<digits>` at comparable precision
+- **Optional:** Bitwise parity between constexpr and runtime results. To enable, define `FLTX_CONSTEXPR_PARITY` prior to including math headers (impacts performance, only use if required)
+- **Optional:** Runtime-to-compile-time dispatch helpers
+- Benchmarked against `boost::multiprecision::mpfr_float_backend<digits>` at comparable precision (results below)
+ 
+## core types
+
+| Type | Backing representation |
+|---|---|
+| `f32` | Alias for native `float` |
+| `f64` | Alias for native `double` |
+| `f128` | Double-double precision, stored as two `double` limbs |
+| `f256` | Quad-double precision, stored as four `double` limbs |
+
+## constexpr support
+
+| Function | `bl::f32` | `bl::f64` | `bl::f128` | `bl::f256` |
+|---|---:|---:|---:|---:|
+| `bl::abs` | ✅ | ✅ | ✅ | ✅ |
+| `bl::floor` | ✅ | ✅ | ✅ | ✅ |
+| `bl::ceil` | ✅ | ✅ | ✅ | ✅ |
+| `bl::trunc` | ✅ | ✅ | ✅ | ✅ |
+| `bl::round` | ✅ | ✅ | ✅ | ✅ |
+| `bl::lround` | ✅ | ✅ | ✅ | ✅ |
+| `bl::llround` | ✅ | ✅ | ✅ | ✅ |
+| `bl::nearbyint` | ✅ | ✅ | ✅ | ✅ |
+| `bl::rint` | ✅ | ✅ | ✅ | ✅ |
+| `bl::lrint` | ✅ | ✅ | ✅ | ✅ |
+| `bl::llrint` | ✅ | ✅ | ✅ | ✅ |
+| `bl::fmod` | ✅ | ✅ | ✅ | ✅ |
+| `bl::remainder` | ✅ | ✅ | ✅ | ✅ |
+| `bl::remquo` | ✅ | ✅ | ✅ | ✅ |
+| `bl::fma` | ✅ | ✅ | ✅ | ✅ |
+| `bl::fmin` | ✅ | ✅ | ✅ | ✅ |
+| `bl::fmax` | ✅ | ✅ | ✅ | ✅ |
+| `bl::fdim` | ✅ | ✅ | ✅ | ✅ |
+| `bl::copysign` | ✅ | ✅ | ✅ | ✅ |
+| `bl::sqrt` | ✅ | ✅ | ✅ | ✅ |
+| `bl::cbrt` | ✅ | ✅ | ✅ | ✅ |
+| `bl::hypot` | ✅ | ✅ | ✅ | ✅ |
+| `bl::exp` | ✅ | ✅ | ✅ | ✅ |
+| `bl::exp2` | ✅ | ✅ | ✅ | ✅ |
+| `bl::expm1` | ✅ | ✅ | ✅ | ✅ |
+| `bl::log` | ✅ | ✅ | ✅ | ✅ |
+| `bl::log2` | ✅ | ✅ | ✅ | ✅ |
+| `bl::log10` | ✅ | ✅ | ✅ | ✅ |
+| `bl::log1p` | ✅ | ✅ | ✅ | ✅ |
+| `bl::pow` | ✅ | ✅ | ✅ | ✅ |
+| `bl::sin` | ✅ | ✅ | ✅ | ✅ |
+| `bl::cos` | ✅ | ✅ | ✅ | ✅ |
+| `bl::tan` | ✅ | ✅ | ✅ | ✅ |
+| `bl::asin` | ✅ | ✅ | ✅ | ✅ |
+| `bl::acos` | ✅ | ✅ | ✅ | ✅ |
+| `bl::atan` | ✅ | ✅ | ✅ | ✅ |
+| `bl::atan2` | ✅ | ✅ | ✅ | ✅ |
+| `bl::sinh` | ✅ | ✅ | ✅ | ✅ |
+| `bl::cosh` | ✅ | ✅ | ✅ | ✅ |
+| `bl::tanh` | ✅ | ✅ | ✅ | ✅ |
+| `bl::asinh` | ✅ | ✅ | ✅ | ✅ |
+| `bl::acosh` | ✅ | ✅ | ✅ | ✅ |
+| `bl::atanh` | ✅ | ✅ | ✅ | ✅ |
+| `bl::erf` | ✅ | ✅ | ✅ | ✅ |
+| `bl::erfc` | ✅ | ✅ | ✅ | ✅ |
+| `bl::lgamma` | ✅ | ✅ | ✅ | ✅ |
+| `bl::tgamma` | ✅ | ✅ | ✅ | ✅ |
+| `bl::ldexp` | ✅ | ✅ | ✅ | ✅ |
+| `bl::scalbn` | ✅ | ✅ | ✅ | ✅ |
+| `bl::scalbln` | ✅ | ✅ | ✅ | ✅ |
+| `bl::frexp` | ✅ | ✅ | ✅ | ✅ |
+| `bl::modf` | ✅ | ✅ | ✅ | ✅ |
+| `bl::ilogb` | ✅ | ✅ | ✅ | ✅ |
+| `bl::logb` | ✅ | ✅ | ✅ | ✅ |
+| `bl::nextafter` | ✅ | ✅ | ✅ | ✅ |
+| `bl::nexttoward` | ✅ | ✅ | ✅ | ✅ |
 
 ## Use case
 
@@ -53,7 +102,6 @@ It is a good fit when you want an extended-precision type that can still be pass
 #include <iomanip>
 
 #include <fltx.h>
-
 using namespace bl;
 using namespace bl::literals;
 
@@ -80,31 +128,27 @@ a + b = 1
 
 ## Public headers
 
-Use the umbrella header when you want the full library:
-
-```cpp
-#include <fltx.h>
-```
-
-Or include a smaller layer directly:
-
-| Header | Provides |
+| Umbrella Headers | Provides |
 |---|---|
-| `fltx_core.h` | `f32`, `f64`, `f128`, `f256`, storage types (`f128_s`, `f256_s`), arithmetic, conversions, and standard numeric integration (no math functions)|
+| `fltx.h` | full library |
+| `fltx_core.h` | `f32`, `f64`, `f128`, `f256`, storage types (`f128_s`, `f256_s`)<br>arithmetic, conversions, and standard numeric integration |
 | `fltx_math.h` | `f32`, `f64`, `f128`, `f256` constexpr-capable `<cmath>` math interface |
 | `fltx_io.h` | `f32`, `f64`, `f128`, `f256` parsing, formatting, string conversion, stream output, and literals |
-| `f128.h` / `f256.h` | individual extended-precision types and their core operations |
-| `f32_math.h` / `f64_math.h` / `f128_math.h` / `f256_math.h` | constexpr-capable `<cmath>` math interface for individual floating-point types |
-| `f128_io.h` / `f256_io.h` | IO and literals for one extended-precision type |
+
+| Individual Headers | Provides |
+|---|---|
+| `f128.h`<br>`f256.h` | individual extended-precision types and their core operations |
+| `f32_math.h`<br>`f64_math.h`<br>`f128_math.h`<br>`f256_math.h` | constexpr-capable `<cmath>` math interface for individual floating-point types |
+| `f128_io.h`<br>`f256_io.h` | IO and literals for one extended-precision type |
 | `fltx_types.h` | aliases, concepts, `FloatType`, and enum helpers |
 | `constexpr_dispatch.h` | standalone constexpr dispatch utility |
-| `fltx_dispatch.h` | includes `constexpr_dispatch.h` along with `bl::enum_type(FloatType) -> [f32, f64, f128, f256]` type mapping |
+| `fltx_dispatch.h` | includes `constexpr_dispatch.h`<br>and `bl::enum_type(FloatType) -> [f32, f64, f128, f256]` type mapping |
 
 ## Numeric types
 
 The main user-facing types are:
 
-```cpp
+```
 bl::f32
 bl::f64
 bl::f128
@@ -120,7 +164,7 @@ bl::f128_s
 bl::f256_s
 ```
 
-These are useful when standard-layout storage matters, such as packed structures, unions, binary buffers, or interop boundaries.
+These are useful when standard-layout storage matters, such as packed structures, unions, binary buffers, or interop boundaries. They can be used interchangeably. 
 
 ```cpp
 f128_s a { 5.0 };
@@ -145,7 +189,7 @@ bl::is_arithmetic_v<T>
 
 ## IO and literals
 
-`fltx_io.h` adds parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
+`fltx_io.h` adds constexpr-capable parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
 
 ```cpp
 using namespace bl;
@@ -154,36 +198,27 @@ using namespace bl::literals;
 constexpr f128 a = 1.25_dd;
 constexpr f256 b = "3.1415926535897932384626433832795028841971"_qd;
 
-constexpr auto s      = bl::to_string(b);
-std::string runtime_s = bl::to_std_string(b);
+constexpr auto s1 = bl::to_string(b);
+std::string s2    = bl::to_std_string(b);
 ```
 
 ## Math
 
-`fltx_math.h` gives you the shared libm-like `bl::` math layer across `f32`, `f64`, `f128`, and `f256`. The same function names are available for native `float` / `double` code and for the extended-precision types, with `constexpr` support where the operation is implemented by `fltx`.
+`fltx_math.h` provides a `<cmath>`-style API for `bl::f32`, `bl::f64`, `bl::f128`, and `bl::f256`.
 
-That is useful when writing generic kernels where the precision type is a template parameter, but you still want one math interface instead of separate native and extended-precision paths:
-
+This lets generic numeric code switch precision without changing its math calls:
 ```cpp
 template<class T>
 constexpr T radius(T x, T y)
 {
     return bl::sqrt(x * x + y * y);
 }
-```
 
-The same template can be used with `float`, `double`, `f128`, or `f256`:
-
-```cpp
 constexpr f32   a = radius(1.0f, 2.0f);
 constexpr f64   b = radius(1.0,  2.0);
 constexpr f128  c = radius(1.0_dd, 2.0_dd);
 constexpr f256  d = radius(1.0_qd, 2.0_qd);
 ```
-
-This is the main reason `f32` and `f64` are included in the math layer: native and extended-precision code can share the same call sites.
-
-
 
 ## constexpr dispatch
 
@@ -233,13 +268,9 @@ These types give a large precision increase over native `double`, while preservi
 
 ## What fltx is not
 
-`fltx` is not an arbitrary-precision library.
+`fltx` is not an arbitrary-precision library, a symbolic math package, decimal arithmetic package, exact rational type, or true IEEE binary128 / binary256 implementation.
 
-It is also not a symbolic math package, decimal arithmetic package, exact rational type, or true IEEE binary128 / binary256 implementation.
-
-If you need unbounded precision or exact arithmetic, use a multiprecision or symbolic package instead.
-
-`fltx` is about a different trade-off: **fixed-size extended precision with practical ergonomics and strong performance**.
+If you need unbounded precision or exact arithmetic, use a multiprecision or symbolic package instead. `fltx` is about a different trade-off: **fixed-size extended precision with practical ergonomics and strong performance**.
 
 ## vcpkg
 
