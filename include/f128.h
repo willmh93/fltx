@@ -31,62 +31,62 @@ namespace _f128_detail
     using fltx::common::fp::nearbyint_ties_even;
 }
 
-FORCE_INLINE constexpr f128_s operator+(const f128_s& a, const f128_s& b) noexcept;
-FORCE_INLINE constexpr f128_s operator-(const f128_s& a, const f128_s& b) noexcept;
-FORCE_INLINE constexpr f128_s operator*(const f128_s& a, const f128_s& b) noexcept;
-FORCE_INLINE constexpr f128_s operator/(const f128_s& a, const f128_s& b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator+(const f128_s& a, const f128_s& b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator-(const f128_s& a, const f128_s& b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator*(const f128_s& a, const f128_s& b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator/(const f128_s& a, const f128_s& b) noexcept;
 
-FORCE_INLINE constexpr f128_s operator+(const f128_s& a, double b) noexcept;
-FORCE_INLINE constexpr f128_s operator-(const f128_s& a, double b) noexcept;
-FORCE_INLINE constexpr f128_s operator*(const f128_s& a, double b) noexcept;
-FORCE_INLINE constexpr f128_s operator/(const f128_s& a, double b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator+(const f128_s& a, double b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator-(const f128_s& a, double b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator*(const f128_s& a, double b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator/(const f128_s& a, double b) noexcept;
 
-FORCE_INLINE constexpr f128_s operator+(const f128_s& a, float b) noexcept;
-FORCE_INLINE constexpr f128_s operator-(const f128_s& a, float b) noexcept;
-FORCE_INLINE constexpr f128_s operator*(const f128_s& a, float b) noexcept;
-FORCE_INLINE constexpr f128_s operator/(const f128_s& a, float b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator+(const f128_s& a, float b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator-(const f128_s& a, float b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator*(const f128_s& a, float b) noexcept;
+BL_FORCE_INLINE constexpr f128_s operator/(const f128_s& a, float b) noexcept;
 
 struct f128_s
 {
     double hi, lo;
 
-    FORCE_INLINE constexpr f128_s& operator=(f256_s x) noexcept;
-    FORCE_INLINE constexpr f128_s& operator=(double x) noexcept {
+    BL_FORCE_INLINE constexpr f128_s& operator=(f256_s x) noexcept;
+    BL_FORCE_INLINE constexpr f128_s& operator=(double x) noexcept {
         hi = x; lo = 0.0; return *this;
     }
-    FORCE_INLINE constexpr f128_s& operator=(float x) noexcept {
+    BL_FORCE_INLINE constexpr f128_s& operator=(float x) noexcept {
         hi = static_cast<double>(x); lo = 0.0; return *this;
     }
 
-    FORCE_INLINE constexpr f128_s& operator=(uint64_t u) noexcept;
-    FORCE_INLINE constexpr f128_s& operator=(int64_t v) noexcept;
+    BL_FORCE_INLINE constexpr f128_s& operator=(uint64_t u) noexcept;
+    BL_FORCE_INLINE constexpr f128_s& operator=(int64_t v) noexcept;
 
     template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_signed_v<T> && (sizeof(T) < 8), int> = 0>
-    FORCE_INLINE constexpr f128_s& operator=(T v) noexcept {
+    BL_FORCE_INLINE constexpr f128_s& operator=(T v) noexcept {
         return (*this = static_cast<int64_t>(v));
     }
     template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_unsigned_v<T> && (sizeof(T) < 8), int> = 0>
-    FORCE_INLINE constexpr f128_s& operator=(T v) noexcept {
+    BL_FORCE_INLINE constexpr f128_s& operator=(T v) noexcept {
         return (*this = static_cast<uint64_t>(v));
     }
 
     // f128 ops
-    FORCE_INLINE constexpr f128_s& operator+=(f128_s rhs) noexcept { *this = *this + rhs; return *this; }
-    FORCE_INLINE constexpr f128_s& operator-=(f128_s rhs) noexcept { *this = *this - rhs; return *this; }
-    FORCE_INLINE constexpr f128_s& operator*=(f128_s rhs) noexcept { *this = *this * rhs; return *this; }
-    FORCE_INLINE constexpr f128_s& operator/=(f128_s rhs) noexcept { *this = *this / rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator+=(f128_s rhs) noexcept { *this = *this + rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator-=(f128_s rhs) noexcept { *this = *this - rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator*=(f128_s rhs) noexcept { *this = *this * rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator/=(f128_s rhs) noexcept { *this = *this / rhs; return *this; }
 
     // f64 ops
-    FORCE_INLINE constexpr f128_s& operator+=(double rhs) noexcept { *this = *this + rhs; return *this; }
-    FORCE_INLINE constexpr f128_s& operator-=(double rhs) noexcept { *this = *this - rhs; return *this; }
-    FORCE_INLINE constexpr f128_s& operator*=(double rhs) noexcept { *this = *this * rhs; return *this; }
-    FORCE_INLINE constexpr f128_s& operator/=(double rhs) noexcept { *this = *this / rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator+=(double rhs) noexcept { *this = *this + rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator-=(double rhs) noexcept { *this = *this - rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator*=(double rhs) noexcept { *this = *this * rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator/=(double rhs) noexcept { *this = *this / rhs; return *this; }
 
     // f32 ops
-    FORCE_INLINE constexpr f128_s& operator+=(float rhs) noexcept { *this = *this + rhs; return *this; }
-    FORCE_INLINE constexpr f128_s& operator-=(float rhs) noexcept { *this = *this - rhs; return *this; }
-    FORCE_INLINE constexpr f128_s& operator*=(float rhs) noexcept { *this = *this * rhs; return *this; }
-    FORCE_INLINE constexpr f128_s& operator/=(float rhs) noexcept { *this = *this / rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator+=(float rhs) noexcept { *this = *this + rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator-=(float rhs) noexcept { *this = *this - rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator*=(float rhs) noexcept { *this = *this * rhs; return *this; }
+    BL_FORCE_INLINE constexpr f128_s& operator/=(float rhs) noexcept { *this = *this / rhs; return *this; }
 
     /// ======== conversions ========
     [[nodiscard]] constexpr operator f256_s() const noexcept;
@@ -217,27 +217,27 @@ namespace numbers = std::numbers;
 
 namespace _f128_detail
 {
-    FORCE_INLINE constexpr f128_s renorm(double hi, double lo)
+    BL_FORCE_INLINE constexpr f128_s renorm(double hi, double lo)
     {
         double s{}, e{};
         _f128_detail::two_sum_precise(hi, lo, s, e);
         return { s, e };
     }
-    FORCE_INLINE constexpr f128_s canonicalize_math_result(f128_s value) noexcept
+    BL_FORCE_INLINE constexpr f128_s canonicalize_math_result(f128_s value) noexcept
     {
         value.lo = fltx::common::fp::zero_low_fraction_bits_finite<8>(value.lo);
         return value;
     }
 }
 
-FORCE_INLINE constexpr f128_s& f128_s::operator=(uint64_t u) noexcept {
+BL_FORCE_INLINE constexpr f128_s& f128_s::operator=(uint64_t u) noexcept {
     double a{}, b{};
     _f128_detail::split_uint64_to_doubles(u, a, b);
     double s{}, e{}; _f128_detail::two_sum_precise(a, b, s, e);
     f128_s r = _f128_detail::renorm(s, e);
     hi = r.hi; lo = r.lo; return *this;
 }
-FORCE_INLINE constexpr f128_s& f128_s::operator=(int64_t v) noexcept {
+BL_FORCE_INLINE constexpr f128_s& f128_s::operator=(int64_t v) noexcept {
     uint64_t u = _f128_detail::magnitude_u64(v);
     f128_s r{}; r = u;                       // reuse uint64_t path
     if (v < 0) { r.hi = -r.hi; r.lo = -r.lo; }
@@ -265,14 +265,14 @@ FORCE_INLINE constexpr f128_s& f128_s::operator=(int64_t v) noexcept {
 
 namespace _f128_detail
 {
-    FORCE_INLINE constexpr void uint64_compare_pair(uint64_t value, double& hi, double& lo) noexcept
+    BL_FORCE_INLINE constexpr void uint64_compare_pair(uint64_t value, double& hi, double& lo) noexcept
     {
         double a{}, b{};
         _f128_detail::split_uint64_to_doubles(value, a, b);
         _f128_detail::two_sum_precise(a, b, hi, lo);
     }
 
-    FORCE_INLINE constexpr void int64_compare_pair(int64_t value, double& hi, double& lo) noexcept
+    BL_FORCE_INLINE constexpr void int64_compare_pair(int64_t value, double& hi, double& lo) noexcept
     {
         _f128_detail::uint64_compare_pair(_f128_detail::magnitude_u64(value), hi, lo);
         if (value < 0) { hi = -hi; lo = -lo; }
@@ -280,104 +280,104 @@ namespace _f128_detail
 }
 // ------------------ f128 <=> f128 ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f128_s& a, const f128_s& b)  { return (a.hi < b.hi) || (a.hi == b.hi && a.lo <  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f128_s& a, const f128_s& b)  { return (a.hi > b.hi) || (a.hi == b.hi && a.lo >  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f128_s& a, const f128_s& b) { return (a.hi < b.hi) || (a.hi == b.hi && a.lo <= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f128_s& a, const f128_s& b) { return (a.hi > b.hi) || (a.hi == b.hi && a.lo >= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f128_s& a, const f128_s& b) { return a.hi == b.hi && a.lo == b.lo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f128_s& a, const f128_s& b) { return a.hi != b.hi || a.lo != b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, const f128_s& b)  { return (a.hi < b.hi) || (a.hi == b.hi && a.lo <  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, const f128_s& b)  { return (a.hi > b.hi) || (a.hi == b.hi && a.lo >  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, const f128_s& b) { return (a.hi < b.hi) || (a.hi == b.hi && a.lo <= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, const f128_s& b) { return (a.hi > b.hi) || (a.hi == b.hi && a.lo >= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, const f128_s& b) { return a.hi == b.hi && a.lo == b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, const f128_s& b) { return a.hi != b.hi || a.lo != b.lo; }
 
 // ------------------ double <=> f128 ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f128_s& a, double b)  { return (a.hi < b) || (a.hi == b && a.lo <  0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(double a, const f128_s& b)  { return (a < b.hi) || (a == b.hi && 0.0 <  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f128_s& a, double b)  { return (a.hi > b) || (a.hi == b && a.lo >  0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(double a, const f128_s& b)  { return (a > b.hi) || (a == b.hi && 0.0 >  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f128_s& a, double b) { return (a.hi < b) || (a.hi == b && a.lo <= 0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(double a, const f128_s& b) { return (a < b.hi) || (a == b.hi && 0.0 <= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f128_s& a, double b) { return (a.hi > b) || (a.hi == b && a.lo >= 0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(double a, const f128_s& b) { return (a > b.hi) || (a == b.hi && 0.0 >= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f128_s& a, double b) { return a.hi == b && a.lo == 0.0; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(double a, const f128_s& b) { return a == b.hi && 0.0 == b.lo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f128_s& a, double b) { return a.hi != b || a.lo != 0.0; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(double a, const f128_s& b) { return a != b.hi || 0.0 != b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, double b)  { return (a.hi < b) || (a.hi == b && a.lo <  0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(double a, const f128_s& b)  { return (a < b.hi) || (a == b.hi && 0.0 <  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, double b)  { return (a.hi > b) || (a.hi == b && a.lo >  0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(double a, const f128_s& b)  { return (a > b.hi) || (a == b.hi && 0.0 >  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, double b) { return (a.hi < b) || (a.hi == b && a.lo <= 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(double a, const f128_s& b) { return (a < b.hi) || (a == b.hi && 0.0 <= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, double b) { return (a.hi > b) || (a.hi == b && a.lo >= 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(double a, const f128_s& b) { return (a > b.hi) || (a == b.hi && 0.0 >= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, double b) { return a.hi == b && a.lo == 0.0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(double a, const f128_s& b) { return a == b.hi && 0.0 == b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, double b) { return a.hi != b || a.lo != 0.0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(double a, const f128_s& b) { return a != b.hi || 0.0 != b.lo; }
 
 // ------------------ float <=> f128 ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f128_s& a, float b)  { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <  0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(float a, const f128_s& b)  { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f128_s& a, float b)  { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >  0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(float a, const f128_s& b)  { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f128_s& a, float b) { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <= 0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(float a, const f128_s& b) { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f128_s& a, float b) { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >= 0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(float a, const f128_s& b) { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f128_s& a, float b) { const double bd = (double)b; return a.hi == bd && a.lo == 0.0; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(float a, const f128_s& b) { const double ad = (double)a; return ad == b.hi && 0.0 == b.lo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f128_s& a, float b) { const double bd = (double)b; return a.hi != bd || a.lo != 0.0; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(float a, const f128_s& b) { const double ad = (double)a; return ad != b.hi || 0.0 != b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, float b)  { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <  0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(float a, const f128_s& b)  { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, float b)  { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >  0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(float a, const f128_s& b)  { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, float b) { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <= 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(float a, const f128_s& b) { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, float b) { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >= 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(float a, const f128_s& b) { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, float b) { const double bd = (double)b; return a.hi == bd && a.lo == 0.0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(float a, const f128_s& b) { const double ad = (double)a; return ad == b.hi && 0.0 == b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, float b) { const double bd = (double)b; return a.hi != bd || a.lo != 0.0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(float a, const f128_s& b) { const double ad = (double)a; return ad != b.hi || 0.0 != b.lo; }
 
 // --------------- ints <=> f128 ---------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f128_s& a, int32_t b)  { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <  0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(int32_t a, const f128_s& b)  { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f128_s& a, int32_t b)  { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >  0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(int32_t a, const f128_s& b)  { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f128_s& a, int32_t b) { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <= 0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(int32_t a, const f128_s& b) { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f128_s& a, int32_t b) { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >= 0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(int32_t a, const f128_s& b) { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f128_s& a, int32_t b) { const double bd = (double)b; return a.hi == bd && a.lo == 0.0; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(int32_t a, const f128_s& b) { const double ad = (double)a; return ad == b.hi && 0.0 == b.lo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f128_s& a, int32_t b) { const double bd = (double)b; return a.hi != bd || a.lo != 0.0; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(int32_t a, const f128_s& b) { const double ad = (double)a; return ad != b.hi || 0.0 != b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, int32_t b)  { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <  0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(int32_t a, const f128_s& b)  { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, int32_t b)  { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >  0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(int32_t a, const f128_s& b)  { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, int32_t b) { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <= 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(int32_t a, const f128_s& b) { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, int32_t b) { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >= 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(int32_t a, const f128_s& b) { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, int32_t b) { const double bd = (double)b; return a.hi == bd && a.lo == 0.0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(int32_t a, const f128_s& b) { const double ad = (double)a; return ad == b.hi && 0.0 == b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, int32_t b) { const double bd = (double)b; return a.hi != bd || a.lo != 0.0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(int32_t a, const f128_s& b) { const double ad = (double)a; return ad != b.hi || 0.0 != b.lo; }
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f128_s& a, uint32_t b)  { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <  0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(uint32_t a, const f128_s& b)  { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f128_s& a, uint32_t b)  { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >  0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(uint32_t a, const f128_s& b)  { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f128_s& a, uint32_t b) { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <= 0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(uint32_t a, const f128_s& b) { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f128_s& a, uint32_t b) { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >= 0.0); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(uint32_t a, const f128_s& b) { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f128_s& a, uint32_t b) { const double bd = (double)b; return a.hi == bd && a.lo == 0.0; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(uint32_t a, const f128_s& b) { const double ad = (double)a; return ad == b.hi && 0.0 == b.lo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f128_s& a, uint32_t b) { const double bd = (double)b; return a.hi != bd || a.lo != 0.0; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(uint32_t a, const f128_s& b) { const double ad = (double)a; return ad != b.hi || 0.0 != b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, uint32_t b)  { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <  0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(uint32_t a, const f128_s& b)  { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, uint32_t b)  { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >  0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(uint32_t a, const f128_s& b)  { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, uint32_t b) { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <= 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(uint32_t a, const f128_s& b) { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, uint32_t b) { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >= 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(uint32_t a, const f128_s& b) { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, uint32_t b) { const double bd = (double)b; return a.hi == bd && a.lo == 0.0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(uint32_t a, const f128_s& b) { const double ad = (double)a; return ad == b.hi && 0.0 == b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, uint32_t b) { const double bd = (double)b; return a.hi != bd || a.lo != 0.0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(uint32_t a, const f128_s& b) { const double ad = (double)a; return ad != b.hi || 0.0 != b.lo; }
 
 // ------------------ int64_t/uint64_t <=> f128 ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f128_s& a, int64_t b)  { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <  blo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(int64_t a, const f128_s& b)  { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f128_s& a, int64_t b)  { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >  blo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(int64_t a, const f128_s& b)  { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f128_s& a, int64_t b) { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <= blo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(int64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f128_s& a, int64_t b) { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >= blo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(int64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f128_s& a, int64_t b) { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return a.hi == bhi && a.lo == blo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(int64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return ahi == b.hi && alo == b.lo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f128_s& a, int64_t b) { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return a.hi != bhi || a.lo != blo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(int64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return ahi != b.hi || alo != b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, int64_t b)  { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <  blo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(int64_t a, const f128_s& b)  { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, int64_t b)  { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >  blo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(int64_t a, const f128_s& b)  { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, int64_t b) { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <= blo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(int64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, int64_t b) { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >= blo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(int64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, int64_t b) { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return a.hi == bhi && a.lo == blo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(int64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return ahi == b.hi && alo == b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, int64_t b) { double bhi{}, blo{}; _f128_detail::int64_compare_pair(b, bhi, blo); return a.hi != bhi || a.lo != blo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(int64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::int64_compare_pair(a, ahi, alo); return ahi != b.hi || alo != b.lo; }
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f128_s& a, uint64_t b)  { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <  blo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(uint64_t a, const f128_s& b)  { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f128_s& a, uint64_t b)  { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >  blo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(uint64_t a, const f128_s& b)  { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >  b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <= blo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >= blo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >= b.lo); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f128_s& a, uint64_t b) { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return a.hi == bhi && a.lo == blo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(uint64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return ahi == b.hi && alo == b.lo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return a.hi != bhi || a.lo != blo; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return ahi != b.hi || alo != b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, uint64_t b)  { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <  blo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(uint64_t a, const f128_s& b)  { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, uint64_t b)  { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >  blo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(uint64_t a, const f128_s& b)  { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >  b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <= blo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >= blo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >= b.lo); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, uint64_t b) { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return a.hi == bhi && a.lo == blo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(uint64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return ahi == b.hi && alo == b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; _f128_detail::uint64_compare_pair(b, bhi, blo); return a.hi != bhi || a.lo != blo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; _f128_detail::uint64_compare_pair(a, ahi, alo); return ahi != b.hi || alo != b.lo; }
 
 // ------------------ classification ------------------
 
 
-FORCE_INLINE constexpr f128_s abs(const f128_s& a);
-[[nodiscard]] NO_INLINE constexpr f128_s pow10_128(int k)
+BL_FORCE_INLINE constexpr f128_s abs(const f128_s& a);
+[[nodiscard]] BL_NO_INLINE constexpr f128_s pow10_128(int k)
 {
     if (k == 0) return f128_s{ 1.0 };
 
@@ -403,65 +403,65 @@ FORCE_INLINE constexpr f128_s abs(const f128_s& a);
     return (k >= 0) ? r : (f128_s{ 1.0 } / r);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr bool isnan(const f128_s& x) noexcept      { return fltx::common::fp::isnan(x.hi); }
-[[nodiscard]] FORCE_INLINE constexpr bool isinf(const f128_s& x) noexcept      { return fltx::common::fp::isinf(x.hi); }
-[[nodiscard]] FORCE_INLINE constexpr bool isfinite(const f128_s& x) noexcept   { return fltx::common::fp::isfinite(x.hi); }
-[[nodiscard]] FORCE_INLINE constexpr bool iszero(const f128_s& x) noexcept     { return x.hi == 0.0 && x.lo == 0.0; }
-[[nodiscard]] FORCE_INLINE constexpr bool ispositive(const f128_s& x) noexcept { return x.hi > 0.0 || (x.hi == 0.0 && x.lo > 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isnan(const f128_s& x) noexcept      { return fltx::common::fp::isnan(x.hi); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isinf(const f128_s& x) noexcept      { return fltx::common::fp::isinf(x.hi); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isfinite(const f128_s& x) noexcept   { return fltx::common::fp::isfinite(x.hi); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool iszero(const f128_s& x) noexcept     { return x.hi == 0.0 && x.lo == 0.0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool ispositive(const f128_s& x) noexcept { return x.hi > 0.0 || (x.hi == 0.0 && x.lo > 0.0); }
 
-[[nodiscard]] FORCE_INLINE constexpr bool signbit(const f128_s& x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool signbit(const f128_s& x) noexcept
 {
     return _f128_detail::signbit_constexpr(x.hi) || (x.hi == 0.0 && _f128_detail::signbit_constexpr(x.lo));
 }
-[[nodiscard]] FORCE_INLINE constexpr int  fpclassify(const f128_s& x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr int  fpclassify(const f128_s& x) noexcept
 {
     if (isnan(x))  return FP_NAN;
     if (isinf(x))  return FP_INFINITE;
     if (iszero(x)) return FP_ZERO;
     return abs(x) < std::numeric_limits<f128_s>::min() ? FP_SUBNORMAL : FP_NORMAL;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isnormal(const f128_s& x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isnormal(const f128_s& x) noexcept
 {
     return fpclassify(x) == FP_NORMAL;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isunordered(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isunordered(const f128_s& a, const f128_s& b) noexcept
 {
     return isnan(a) || isnan(b);
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isgreater(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isgreater(const f128_s& a, const f128_s& b) noexcept
 {
     return !isunordered(a, b) && a > b;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isgreaterequal(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isgreaterequal(const f128_s& a, const f128_s& b) noexcept
 {
     return !isunordered(a, b) && a >= b;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isless(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isless(const f128_s& a, const f128_s& b) noexcept
 {
     return !isunordered(a, b) && a < b;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool islessequal(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool islessequal(const f128_s& a, const f128_s& b) noexcept
 {
     return !isunordered(a, b) && a <= b;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool islessgreater(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool islessgreater(const f128_s& a, const f128_s& b) noexcept
 {
     return !isunordered(a, b) && a != b;
 }
 
 /// ------------------ arithmetic operators ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr f128_s clamp(const f128_s& v, const f128_s& lo, const f128_s& hi)
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s clamp(const f128_s& v, const f128_s& lo, const f128_s& hi)
 {
     if (v < lo) return lo;
     if (v > hi) return hi;
     return v;
 }
-[[nodiscard]] FORCE_INLINE constexpr f128_s abs(const f128_s& a)
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s abs(const f128_s& a)
 {
     return (a.hi < 0.0) ? -a : a;
 }
-[[nodiscard]] NO_INLINE constexpr f128_s floor(const f128_s& a)
+[[nodiscard]] BL_NO_INLINE constexpr f128_s floor(const f128_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
@@ -481,7 +481,7 @@ FORCE_INLINE constexpr f128_s abs(const f128_s& a);
         r -= 1.0;
     return r;
 }
-[[nodiscard]] NO_INLINE constexpr f128_s ceil(const f128_s& a)
+[[nodiscard]] BL_NO_INLINE constexpr f128_s ceil(const f128_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
@@ -501,7 +501,7 @@ FORCE_INLINE constexpr f128_s abs(const f128_s& a);
         r += 1.0;
     return r;
 }
-[[nodiscard]] NO_INLINE constexpr f128_s trunc(const f128_s& a)
+[[nodiscard]] BL_NO_INLINE constexpr f128_s trunc(const f128_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
@@ -509,7 +509,7 @@ FORCE_INLINE constexpr f128_s abs(const f128_s& a);
     return (a.hi < 0.0) ? ceil(a) : floor(a);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr f128_s recip(f128_s b)
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s recip(f128_s b)
 {
     constexpr f128_s one = f128_s{ 1.0 };
     f128_s y = f128_s{ 1.0 / b.hi };
@@ -527,7 +527,7 @@ FORCE_INLINE constexpr f128_s abs(const f128_s& a);
 namespace _f128_detail
 {
     BL_PUSH_PRECISE
-    FORCE_INLINE constexpr f128_s quick_two_sum(double a, double b)
+    BL_FORCE_INLINE constexpr f128_s quick_two_sum(double a, double b)
     {
         double s = a + b;
         double err = b - (s - a);
@@ -539,7 +539,7 @@ namespace _f128_detail
 /// ------------------ scalar ------------------
 
 BL_PUSH_PRECISE
-[[nodiscard]] FORCE_INLINE constexpr        f128_s operator+(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr        f128_s operator+(const f128_s& a, const f128_s& b) noexcept
 {
     // accurate sum of the high parts
     double s{}, e{};
@@ -552,7 +552,7 @@ BL_PUSH_PRECISE
     // renormalize
     return _f128_detail::renorm(s, e);
 }
-[[nodiscard]] FORCE_INLINE constexpr        f128_s operator-(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr        f128_s operator-(const f128_s& a, const f128_s& b) noexcept
 {
     double s{}, e{};
     _f128_detail::two_sum_precise(a.hi, -b.hi, s, e);
@@ -564,7 +564,7 @@ BL_PUSH_PRECISE
 }
 BL_POP_PRECISE
 
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator*(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator*(const f128_s& a, const f128_s& b) noexcept
 {
     double p, e;
     _f128_detail::two_prod_precise(a.hi, b.hi, p, e);
@@ -573,7 +573,7 @@ BL_POP_PRECISE
     e += a.lo * b.lo;
     return _f128_detail::renorm(p, e);
 }
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator/(const f128_s& a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator/(const f128_s& a, const f128_s& b) noexcept
 {
     if (b.lo == 0.0)
         return a / b.hi;
@@ -589,21 +589,21 @@ BL_POP_PRECISE
 }
 
 // f128 <=> double
-[[nodiscard]] NO_INLINE constexpr f128_s operator+(const f128_s& a, double b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f128_s operator+(const f128_s& a, double b) noexcept
 {
     double s{}, e{};
     _f128_detail::two_sum_precise(a.hi, b, s, e);
     e += a.lo;
     return _f128_detail::renorm(s, e);
 }
-[[nodiscard]] NO_INLINE constexpr f128_s operator-(const f128_s& a, double b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f128_s operator-(const f128_s& a, double b) noexcept
 {
     double s{}, e{};
     _f128_detail::two_sum_precise(a.hi, -b, s, e);
     e += a.lo;
     return _f128_detail::renorm(s, e);
 }
-[[nodiscard]] NO_INLINE constexpr f128_s operator*(const f128_s& a, double b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f128_s operator*(const f128_s& a, double b) noexcept
 {
     double p{}, e{};
     _f128_detail::two_prod_precise(a.hi, b, p, e);
@@ -611,7 +611,7 @@ BL_POP_PRECISE
 	e += a.lo * b;
     return _f128_detail::renorm(p, e);
 }
-[[nodiscard]] NO_INLINE constexpr f128_s operator/(const f128_s& a, double b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f128_s operator/(const f128_s& a, double b) noexcept
 {
     if (bl::is_constant_evaluated())
     {
@@ -652,16 +652,16 @@ BL_POP_PRECISE
     return _f128_detail::renorm(q0, q1);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator+(double a, const f128_s& b) noexcept { return b + a; }
-[[nodiscard]] NO_INLINE constexpr f128_s operator-(double a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator+(double a, const f128_s& b) noexcept { return b + a; }
+[[nodiscard]] BL_NO_INLINE constexpr f128_s operator-(double a, const f128_s& b) noexcept
 {
     double s{}, e{};
     _f128_detail::two_sum_precise(a, -b.hi, s, e);
     e -= b.lo;
     return _f128_detail::renorm(s, e);
 }
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator*(double a, const f128_s& b) noexcept { return b * a; }
-[[nodiscard]] NO_INLINE constexpr f128_s operator/(double a, const f128_s& b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator*(double a, const f128_s& b) noexcept { return b * a; }
+[[nodiscard]] BL_NO_INLINE constexpr f128_s operator/(double a, const f128_s& b) noexcept
 {
     const double q0 = a / b.hi;
     const f128_s r = f128_s{ a, 0.0 } - b * q0;
@@ -670,15 +670,15 @@ BL_POP_PRECISE
 }
 
 // f128 <=> float
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator+(const f128_s& a, float b) noexcept { return a + (double)b; }
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator-(const f128_s& a, float b) noexcept { return a - (double)b; }
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator*(const f128_s& a, float b) noexcept { return a * (double)b; }
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator/(const f128_s& a, float b) noexcept { return a / (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator+(const f128_s& a, float b) noexcept { return a + (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator-(const f128_s& a, float b) noexcept { return a - (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator*(const f128_s& a, float b) noexcept { return a * (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator/(const f128_s& a, float b) noexcept { return a / (double)b; }
 
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator+(float a, const f128_s& b) noexcept { return (double)a + b; }
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator-(float a, const f128_s& b) noexcept { return (double)a - b; }
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator*(float a, const f128_s& b) noexcept { return (double)a * b; }
-[[nodiscard]] FORCE_INLINE constexpr f128_s operator/(float a, const f128_s& b) noexcept { return (double)a / b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator+(float a, const f128_s& b) noexcept { return (double)a + b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator-(float a, const f128_s& b) noexcept { return (double)a - b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator*(float a, const f128_s& b) noexcept { return (double)a * b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator/(float a, const f128_s& b) noexcept { return (double)a / b; }
 
 
 } // namespace bl

@@ -39,22 +39,22 @@ namespace _f64_detail
     constexpr double inv_ln2     = std::numbers::log2e_v<double>;
     constexpr double inv_ln10    = std::numbers::log10e_v<double>;
 
-    FORCE_INLINE constexpr bool iszero(double x) noexcept
+    BL_FORCE_INLINE constexpr bool iszero(double x) noexcept
     {
         return x == 0.0;
     }
 
-    FORCE_INLINE constexpr double abs(double x) noexcept
+    BL_FORCE_INLINE constexpr double abs(double x) noexcept
     {
         return fabs_constexpr(x);
     }
 
-    FORCE_INLINE constexpr int ilogb_finite_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr int ilogb_finite_constexpr(double x) noexcept
     {
         return frexp_exponent_constexpr(x) - 1;
     }
 
-    FORCE_INLINE constexpr double nearbyint_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double nearbyint_constexpr(double x) noexcept
     {
         const double y = nearbyint_ties_even(x);
         if (iszero(y))
@@ -62,7 +62,7 @@ namespace _f64_detail
         return y;
     }
 
-    FORCE_INLINE constexpr double round_half_away_zero(double x) noexcept
+    BL_FORCE_INLINE constexpr double round_half_away_zero(double x) noexcept
     {
         if (isnan(x) || isinf(x) || iszero(x))
             return x;
@@ -81,7 +81,7 @@ namespace _f64_detail
         return floor_constexpr(x + 0.5);
     }
 
-    FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double to) noexcept
+    BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double to) noexcept
     {
         if (isnan(from) || isnan(to))
             return std::numeric_limits<double>::quiet_NaN();
@@ -103,7 +103,7 @@ namespace _f64_detail
         return std::bit_cast<double>(bits);
     }
 
-    FORCE_INLINE constexpr double copysign_constexpr(double magnitude, double sign_source) noexcept
+    BL_FORCE_INLINE constexpr double copysign_constexpr(double magnitude, double sign_source) noexcept
     {
         const std::uint64_t magnitude_bits = std::bit_cast<std::uint64_t>(magnitude) & 0x7fffffffffffffffULL;
         const std::uint64_t sign_bits = std::bit_cast<std::uint64_t>(sign_source) & 0x8000000000000000ULL;
@@ -111,7 +111,7 @@ namespace _f64_detail
     }
 
     template<typename SignedInt>
-    FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(double x) noexcept
+    BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(double x) noexcept
     {
         static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
 
@@ -126,7 +126,7 @@ namespace _f64_detail
         return static_cast<SignedInt>(x);
     }
 
-    FORCE_INLINE constexpr double powi_nonneg(double base, std::uint64_t exp) noexcept
+    BL_FORCE_INLINE constexpr double powi_nonneg(double base, std::uint64_t exp) noexcept
     {
         double result = 1.0;
         while (exp != 0)
@@ -139,7 +139,7 @@ namespace _f64_detail
         }
         return result;
     }
-    FORCE_INLINE constexpr double powi(double base, long long exp) noexcept
+    BL_FORCE_INLINE constexpr double powi(double base, long long exp) noexcept
     {
         if (exp == 0)
             return 1.0;
@@ -150,7 +150,7 @@ namespace _f64_detail
         return powi_nonneg(base, static_cast<std::uint64_t>(exp));
     }
 
-    FORCE_INLINE constexpr double exp_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double exp_constexpr(double x) noexcept
     {
         constexpr double one = 1.0;
         constexpr double half_pos = 0.5;
@@ -219,7 +219,7 @@ namespace _f64_detail
         const double y = one - ((lo - (x * c) / (2.0 - c)) - hi);
         return ldexp_constexpr2(y, k);
     }
-    FORCE_INLINE constexpr double exp2_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double exp2_constexpr(double x) noexcept
     {
         if (isnan(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -234,7 +234,7 @@ namespace _f64_detail
         return ldexp_constexpr2(exp_constexpr(frac * ln2), k);
     }
 
-    FORCE_INLINE constexpr double expm1_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double expm1_constexpr(double x) noexcept
     {
         if (isnan(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -259,7 +259,7 @@ namespace _f64_detail
         return exp_constexpr(x) - 1.0;
     }
 
-    FORCE_INLINE constexpr double sqrt_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double sqrt_constexpr(double x) noexcept
     {
         if (isnan(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -274,7 +274,7 @@ namespace _f64_detail
         return 0.5 * (y + x / y);
     }
 
-    FORCE_INLINE constexpr double fmod_constexpr_precise(double x, double y) noexcept
+    BL_FORCE_INLINE constexpr double fmod_constexpr_precise(double x, double y) noexcept
     {
         if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -316,7 +316,7 @@ namespace _f64_detail
 
         return neg ? -ax : ax;
     }
-    FORCE_INLINE constexpr double remainder_constexpr(double x, double y) noexcept
+    BL_FORCE_INLINE constexpr double remainder_constexpr(double x, double y) noexcept
     {
         if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -348,15 +348,15 @@ namespace _f64_detail
         return r;
     }
 
-    FORCE_INLINE constexpr double log2_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double log2_constexpr(double x) noexcept
     {
         return log_constexpr(x) * inv_ln2;
     }
-    FORCE_INLINE constexpr double log10_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double log10_constexpr(double x) noexcept
     {
         return log_constexpr(x) * inv_ln10;
     }
-    FORCE_INLINE constexpr double sinh_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double sinh_constexpr(double x) noexcept
     {
         if (isnan(x) || isinf(x) || x == 0.0)
             return x;
@@ -366,7 +366,7 @@ namespace _f64_detail
         double out = (ex - 1.0 / ex) * 0.5;
         return signbit_constexpr(x) ? -out : out;
     }
-    FORCE_INLINE constexpr double cosh_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double cosh_constexpr(double x) noexcept
     {
         if (isnan(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -377,7 +377,7 @@ namespace _f64_detail
         const double ex = exp_constexpr(ax);
         return (ex + 1.0 / ex) * 0.5;
     }
-    FORCE_INLINE constexpr double tanh_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double tanh_constexpr(double x) noexcept
     {
         if (isnan(x) || x == 0.0)
             return x;
@@ -394,7 +394,7 @@ namespace _f64_detail
             out = -out;
         return out;
     }
-    FORCE_INLINE constexpr double asinh_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double asinh_constexpr(double x) noexcept
     {
         if (isnan(x) || isinf(x) || x == 0.0)
             return x;
@@ -408,7 +408,7 @@ namespace _f64_detail
 
         return signbit_constexpr(x) ? -out : out;
     }
-    FORCE_INLINE constexpr double acosh_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double acosh_constexpr(double x) noexcept
     {
         if (isnan(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -424,7 +424,7 @@ namespace _f64_detail
 
         return log_constexpr(x + sqrt_constexpr((x - 1.0) * (x + 1.0)));
     }
-    FORCE_INLINE constexpr double atanh_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double atanh_constexpr(double x) noexcept
     {
         if (isnan(x) || x == 0.0)
             return x;
@@ -440,7 +440,7 @@ namespace _f64_detail
         return 0.5 * (log1p_constexpr(x) - log1p_constexpr(-x));
     }
 
-    FORCE_INLINE constexpr double cbrt_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double cbrt_constexpr(double x) noexcept
     {
         if (isnan(x) || isinf(x) || x == 0.0)
             return x;
@@ -466,7 +466,7 @@ namespace _f64_detail
 
         return neg ? -y : y;
     }
-    FORCE_INLINE constexpr double hypot_constexpr(double x, double y) noexcept
+    BL_FORCE_INLINE constexpr double hypot_constexpr(double x, double y) noexcept
     {
         if (isinf(x) || isinf(y))
             return std::numeric_limits<double>::infinity();
@@ -551,13 +551,13 @@ namespace _f64_detail
     constexpr double erf_sb6 = 4.74528541206955367215e+02;
     constexpr double erf_sb7 = -2.24409524465858183362e+01;
 
-    FORCE_INLINE constexpr double truncate_low_word(double x) noexcept
+    BL_FORCE_INLINE constexpr double truncate_low_word(double x) noexcept
     {
         const std::uint64_t bits = std::bit_cast<std::uint64_t>(x) & 0xffffffff00000000ull;
         return std::bit_cast<double>(bits);
     }
 
-    FORCE_INLINE constexpr double erfc1_constexpr(double ax) noexcept
+    BL_FORCE_INLINE constexpr double erfc1_constexpr(double ax) noexcept
     {
         const double s = ax - 1.0;
         const double p = erf_pa0 + s * (erf_pa1 + s * (erf_pa2 + s * (erf_pa3 + s * (erf_pa4 + s * (erf_pa5 + s * erf_pa6)))));
@@ -565,7 +565,7 @@ namespace _f64_detail
         return 1.0 - erf_erx - p / q;
     }
 
-    FORCE_INLINE constexpr double erfc2_constexpr(double ax) noexcept
+    BL_FORCE_INLINE constexpr double erfc2_constexpr(double ax) noexcept
     {
         const double s = 1.0 / (ax * ax);
 
@@ -586,7 +586,7 @@ namespace _f64_detail
         return exp_constexpr(-z * z - 0.5625) * exp_constexpr((z - ax) * (z + ax) + r / q) / ax;
     }
 
-    FORCE_INLINE constexpr double erf_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double erf_constexpr(double x) noexcept
     {
         if (isnan(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -628,7 +628,7 @@ namespace _f64_detail
         return neg ? -out : out;
     }
 
-    FORCE_INLINE constexpr double erfc_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double erfc_constexpr(double x) noexcept
     {
         if (isnan(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -665,7 +665,7 @@ namespace _f64_detail
         return neg ? 2.0 - 0x1p-1022 : 0x1p-1022 * 0x1p-1022;
     }
 
-    FORCE_INLINE constexpr double lgamma_positive_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double lgamma_positive_constexpr(double x) noexcept
     {
         constexpr double coeffs[] =
         {
@@ -689,7 +689,7 @@ namespace _f64_detail
         return 0.91893853320467274178032973640562 + (z + 0.5) * log_constexpr(t) - t + log_constexpr(y);
     }
 
-    FORCE_INLINE constexpr double lgamma_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double lgamma_constexpr(double x) noexcept
     {
         if (isnan(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -712,7 +712,7 @@ namespace _f64_detail
         return log_constexpr(pi) - log_constexpr(abs(sinpix)) - lgamma_positive_constexpr(1.0 - x);
     }
 
-    FORCE_INLINE constexpr double tgamma_constexpr(double x) noexcept
+    BL_FORCE_INLINE constexpr double tgamma_constexpr(double x) noexcept
     {
         if (isnan(x))
             return std::numeric_limits<double>::quiet_NaN();
@@ -736,106 +736,125 @@ namespace _f64_detail
     }
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double abs(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double abs(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::abs(x);
     return _f64_detail::abs(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double fabs(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double fabs(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::fabs(x);
     return abs(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr bool signbit(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool signbit(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::signbit(x);
     return _f64_detail::signbit_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isnan(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isnan(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::isnan(x);
     return _f64_detail::isnan(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isinf(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isinf(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::isinf(x);
     return _f64_detail::isinf(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isfinite(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isfinite(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::isfinite(x);
     return _f64_detail::isfinite(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr bool iszero(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool iszero(double x) noexcept
 {
     return x == 0.0;
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double floor(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double floor(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::floor(x);
     return _f64_detail::floor_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double ceil(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double ceil(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::ceil(x);
     return _f64_detail::ceil_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double trunc(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double trunc(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::trunc(x);
     return _f64_detail::trunc_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double round(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double round(double x) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::round(x);
     return _f64_detail::round_half_away_zero(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double nearbyint(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double nearbyint(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::nearbyint(x);
     return _f64_detail::nearbyint_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double rint(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double rint(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::rint(x);
     return _f64_detail::nearbyint_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr long lround(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr long lround(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::lround(x);
     return _f64_detail::to_signed_integer_or_zero<long>(_f64_detail::round_half_away_zero(x));
 }
-[[nodiscard]] FORCE_INLINE constexpr long long llround(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr long long llround(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::llround(x);
     return _f64_detail::to_signed_integer_or_zero<long long>(_f64_detail::round_half_away_zero(x));
 }
-[[nodiscard]] FORCE_INLINE constexpr long lrint(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr long lrint(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::lrint(x);
     return _f64_detail::to_signed_integer_or_zero<long>(nearbyint(x));
 }
-[[nodiscard]] FORCE_INLINE constexpr long long llrint(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr long long llrint(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::llrint(x);
     return _f64_detail::to_signed_integer_or_zero<long long>(nearbyint(x));
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double fmod(double x, double y) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double fmod(double x, double y) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::fmod(x, y);
     return _f64_detail::fmod_constexpr_precise(x, y);
 }
-[[nodiscard]] FORCE_INLINE constexpr double remainder(double x, double y) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double remainder(double x, double y) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::remainder(x, y);
     return _f64_detail::remainder_constexpr(x, y);
 }
-[[nodiscard]] FORCE_INLINE constexpr double remquo(double x, double y, int* quo) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double remquo(double x, double y, int* quo) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::remquo(x, y, quo);
+
     if (quo)
         *quo = 0;
 
@@ -911,11 +930,13 @@ namespace _f64_detail
     return r;
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double fma(double x, double y, double z) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double fma(double x, double y, double z) noexcept
 {
+    //if (!bl::use_constexpr_math())
+    //    return std::fma(x, y, z);
     return x * y + z;
 }
-[[nodiscard]] FORCE_INLINE constexpr double fmin(double a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double fmin(double a, double b) noexcept
 {
     if (isnan(a)) return b;
     if (isnan(b)) return a;
@@ -925,7 +946,7 @@ namespace _f64_detail
         return signbit(a) ? a : b;
     return a;
 }
-[[nodiscard]] FORCE_INLINE constexpr double fmax(double a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double fmax(double a, double b) noexcept
 {
     if (isnan(a)) return b;
     if (isnan(b)) return a;
@@ -935,36 +956,39 @@ namespace _f64_detail
         return signbit(a) ? b : a;
     return a;
 }
-[[nodiscard]] FORCE_INLINE constexpr double fdim(double x, double y) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double fdim(double x, double y) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::fdim(x, y);
     return (x > y) ? (x - y) : 0.0;
 }
-[[nodiscard]] FORCE_INLINE constexpr double copysign(double x, double y) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double copysign(double x, double y) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::copysign(x, y);
     return _f64_detail::copysign_constexpr(x, y);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double ldexp(double x, int e) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double ldexp(double x, int e) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::ldexp(x, e);
     return _f64_detail::ldexp_constexpr2(x, e);
 }
-[[nodiscard]] FORCE_INLINE constexpr double scalbn(double x, int e) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double scalbn(double x, int e) noexcept
 {
     return ldexp(x, e);
 }
-[[nodiscard]] FORCE_INLINE constexpr double scalbln(double x, long e) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double scalbln(double x, long e) noexcept
 {
     return ldexp(x, static_cast<int>(e));
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double frexp(double x, int* exp) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double frexp(double x, int* exp) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::frexp(x, exp);
+
     if (exp)
         *exp = 0;
 
@@ -991,7 +1015,7 @@ namespace _f64_detail
 
     return m;
 }
-[[nodiscard]] FORCE_INLINE constexpr double modf(double x, double* iptr) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double modf(double x, double* iptr) noexcept
 {
     const double i = trunc(x);
     if (iptr)
@@ -1002,7 +1026,7 @@ namespace _f64_detail
         frac = signbit(x) ? -0.0 : 0.0;
     return frac;
 }
-[[nodiscard]] FORCE_INLINE constexpr int ilogb(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr int ilogb(double x) noexcept
 {
     if (isnan(x))
         return FP_ILOGBNAN;
@@ -1013,7 +1037,7 @@ namespace _f64_detail
 
     return _f64_detail::ilogb_finite_constexpr(abs(x));
 }
-[[nodiscard]] FORCE_INLINE constexpr double logb(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double logb(double x) noexcept
 {
     if (isnan(x))
         return x;
@@ -1024,126 +1048,177 @@ namespace _f64_detail
 
     return static_cast<double>(ilogb(x));
 }
-[[nodiscard]] FORCE_INLINE constexpr double nextafter(double from, double to) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double nextafter(double from, double to) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::nextafter(from, to);
     return _f64_detail::nextafter_double_constexpr(from, to);
 }
-[[nodiscard]] FORCE_INLINE constexpr double nexttoward(double from, long double to) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double nexttoward(double from, long double to) noexcept
 {
-    if (!bl::is_constant_evaluated())
+    if (!bl::use_constexpr_math())
         return std::nexttoward(from, to);
     return nextafter(from, static_cast<double>(to));
 }
-[[nodiscard]] FORCE_INLINE constexpr double nexttoward(double from, double to) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double nexttoward(double from, double to) noexcept
 {
     return nextafter(from, to);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double exp(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double exp(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::exp(x);
     return _f64_detail::exp_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double exp2(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double exp2(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::exp2(x);
     return _f64_detail::exp2_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double expm1(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double expm1(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::expm1(x);
     return _f64_detail::expm1_constexpr(x);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double log_as_double(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double log_as_double(double x) noexcept
 { 
+    if (!bl::use_constexpr_math())
+        return std::log(x);
     return _f64_detail::log_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double log(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double log(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::log(x);
     return _f64_detail::log_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double log2(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double log2(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::log2(x);
     return _f64_detail::log2_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double log10(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double log10(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::log10(x);
     return _f64_detail::log10_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double log1p(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double log1p(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::log1p(x);
     return _f64_detail::log1p_constexpr(x);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double sqrt(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double sqrt(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::sqrt(x);
     return _f64_detail::sqrt_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double cbrt(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double cbrt(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::cbrt(x);
     return _f64_detail::cbrt_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double hypot(double x, double y) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double hypot(double x, double y) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::hypot(x, y);
     return _f64_detail::hypot_constexpr(x, y);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double sin(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double sin(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::sin(x);
     return _f64_detail::sin_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double cos(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double cos(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::cos(x);
     return _f64_detail::cos_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double tan(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double tan(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::tan(x);
     return _f64_detail::tan_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double atan(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double atan(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::atan(x);
     return _f64_detail::atan_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double atan2(double y, double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double atan2(double y, double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::atan2(y, x);
     return _f64_detail::atan2_constexpr(y, x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double asin(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double asin(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::asin(x);
     return atan2(x, sqrt(1.0 - x * x));
 }
-[[nodiscard]] FORCE_INLINE constexpr double acos(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double acos(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::acos(x);
     return atan2(sqrt(1.0 - x * x), x);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double sinh(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double sinh(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::sinh(x);
     return _f64_detail::sinh_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double cosh(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double cosh(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::cosh(x);
     return _f64_detail::cosh_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double tanh(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double tanh(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::tanh(x);
     return _f64_detail::tanh_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double asinh(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double asinh(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::asinh(x);
     return _f64_detail::asinh_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double acosh(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double acosh(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::acosh(x);
     return _f64_detail::acosh_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double atanh(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double atanh(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::atanh(x);
     return _f64_detail::atanh_constexpr(x);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double pow(double x, double y) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double pow(double x, double y) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::pow(x, y);
+
     if (iszero(y))
         return 1.0;
 
@@ -1172,55 +1247,63 @@ namespace _f64_detail
     return exp(y * log(x));
 }
 
-[[nodiscard]] FORCE_INLINE constexpr double erf(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double erf(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::erf(x);
     return _f64_detail::erf_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double erfc(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double erfc(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::erfc(x);
     return _f64_detail::erfc_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double lgamma(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double lgamma(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::lgamma(x);
     return _f64_detail::lgamma_constexpr(x);
 }
-[[nodiscard]] FORCE_INLINE constexpr double tgamma(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr double tgamma(double x) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::tgamma(x);
     return _f64_detail::tgamma_constexpr(x);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr int fpclassify(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr int fpclassify(double x) noexcept
 {
     if (isnan(x))  return FP_NAN;
     if (isinf(x))  return FP_INFINITE;
     if (iszero(x)) return FP_ZERO;
     return abs(x) < std::numeric_limits<double>::min() ? FP_SUBNORMAL : FP_NORMAL;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isnormal(double x) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isnormal(double x) noexcept
 {
     return fpclassify(x) == FP_NORMAL;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isunordered(double a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isunordered(double a, double b) noexcept
 {
     return isnan(a) || isnan(b);
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isgreater(double a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isgreater(double a, double b) noexcept
 {
     return !isunordered(a, b) && a > b;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isgreaterequal(double a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isgreaterequal(double a, double b) noexcept
 {
     return !isunordered(a, b) && a >= b;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool isless(double a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isless(double a, double b) noexcept
 {
     return !isunordered(a, b) && a < b;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool islessequal(double a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool islessequal(double a, double b) noexcept
 {
     return !isunordered(a, b) && a <= b;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool islessgreater(double a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool islessgreater(double a, double b) noexcept
 {
     return !isunordered(a, b) && a != b;
 }

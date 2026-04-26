@@ -13,11 +13,11 @@ namespace bl {
 namespace _f256_detail
 {
     BL_PUSH_PRECISE;
-    BL_PRINT_NOINLINE FORCE_INLINE f256_s mul_by_double_print(f256_s a, double b) noexcept
+    BL_PRINT_NOINLINE BL_FORCE_INLINE f256_s mul_by_double_print(f256_s a, double b) noexcept
     {
         return a * b;
     }
-    BL_PRINT_NOINLINE FORCE_INLINE f256_s sub_by_double_print(f256_s a, double b) noexcept
+    BL_PRINT_NOINLINE BL_FORCE_INLINE f256_s sub_by_double_print(f256_s a, double b) noexcept
     {
         return a - b;
     }
@@ -510,70 +510,70 @@ namespace _f256_detail
     };
 
     template<typename String, typename Writer>
-    FORCE_INLINE constexpr void write_chars_to_string(String& out, std::size_t cap, Writer writer)
+    BL_FORCE_INLINE constexpr void write_chars_to_string(String& out, std::size_t cap, Writer writer)
     {
         fltx::common::write_chars_to_string<f256_chars_result>(out, cap, writer);
     }
-    FORCE_INLINE const char* special_text_f256(const f256_s& x, bool uppercase = false) noexcept
+    BL_FORCE_INLINE const char* special_text_f256(const f256_s& x, bool uppercase = false) noexcept
     {
         return fltx::common::special_text<f256_io_traits>(x, uppercase);
     }
     template<typename String>
-    FORCE_INLINE constexpr bool assign_special_string(String& out, const f256_s& x, bool uppercase = false) noexcept
+    BL_FORCE_INLINE constexpr bool assign_special_string(String& out, const f256_s& x, bool uppercase = false) noexcept
     {
         return fltx::common::assign_special_string<f256_io_traits>(out, x, uppercase);
     }
     template<typename String>
-    FORCE_INLINE constexpr void ensure_decimal_point(String& s)
+    BL_FORCE_INLINE constexpr void ensure_decimal_point(String& s)
     {
         fltx::common::ensure_decimal_point(s);
     }
     template<typename String>
-    FORCE_INLINE constexpr void apply_stream_decorations(String& s, bool showpos, bool uppercase)
+    BL_FORCE_INLINE constexpr void apply_stream_decorations(String& s, bool showpos, bool uppercase)
     {
         fltx::common::apply_stream_decorations(s, showpos, uppercase);
     }
-    FORCE_INLINE bool write_stream_special(std::ostream& os, const f256_s& x, bool showpos, bool uppercase)
+    BL_FORCE_INLINE bool write_stream_special(std::ostream& os, const f256_s& x, bool showpos, bool uppercase)
     {
         return fltx::common::write_stream_special<f256_io_traits>(os, x, showpos, uppercase);
     }
     template<typename String>
-    FORCE_INLINE constexpr void format_to_string(String& out, const f256_s& x, int precision, f256_format_kind kind, bool strip_trailing_zeros = false)
+    BL_FORCE_INLINE constexpr void format_to_string(String& out, const f256_s& x, int precision, f256_format_kind kind, bool strip_trailing_zeros = false)
     {
         fltx::common::format_to_string<f256_io_traits>(out, x, precision, kind, strip_trailing_zeros);
     }
     template<typename String>
-    FORCE_INLINE constexpr void to_string_into(String& out, const f256_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+    BL_FORCE_INLINE constexpr void to_string_into(String& out, const f256_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
     {
         fltx::common::to_string_into<f256_io_traits>(out, x, precision, fixed, scientific, strip_trailing_zeros);
     }
     template<typename String>
-    FORCE_INLINE constexpr void emit_scientific(String& out, const f256_s& x, std::streamsize prec, bool strip_trailing_zeros)
+    BL_FORCE_INLINE constexpr void emit_scientific(String& out, const f256_s& x, std::streamsize prec, bool strip_trailing_zeros)
     {
         fltx::common::emit_scientific<f256_io_traits>(out, x, prec, strip_trailing_zeros);
     }
     template<typename String>
-    FORCE_INLINE constexpr void emit_fixed_dec(String& out, const f256_s& x, int prec, bool strip_trailing_zeros)
+    BL_FORCE_INLINE constexpr void emit_fixed_dec(String& out, const f256_s& x, int prec, bool strip_trailing_zeros)
     {
         fltx::common::emit_fixed_dec<f256_io_traits>(out, x, prec, strip_trailing_zeros);
     }
     template<typename String>
-    FORCE_INLINE constexpr void emit_scientific_sig(String& out, const f256_s& x, std::streamsize sig_digits, bool strip_trailing_zeros)
+    BL_FORCE_INLINE constexpr void emit_scientific_sig(String& out, const f256_s& x, std::streamsize sig_digits, bool strip_trailing_zeros)
     {
         fltx::common::emit_scientific_sig<f256_io_traits>(out, x, sig_digits, strip_trailing_zeros);
     }
 
     /// ======== Parsing helpers ========
 
-    FORCE_INLINE bool valid_flt256_string(const char* s) noexcept
+    BL_FORCE_INLINE bool valid_flt256_string(const char* s) noexcept
     {
         return fltx::common::valid_float_string(s);
     }
-    FORCE_INLINE unsigned char ascii_lower_f256(char c) noexcept
+    BL_FORCE_INLINE unsigned char ascii_lower_f256(char c) noexcept
     {
         return fltx::common::ascii_lower(c);
     }
-    FORCE_INLINE const char* skip_ascii_space_f256(const char* p) noexcept
+    BL_FORCE_INLINE const char* skip_ascii_space_f256(const char* p) noexcept
     {
         return fltx::common::skip_ascii_space(p);
     }
@@ -582,35 +582,35 @@ namespace _f256_detail
 
 /// ------------------ printing / parsing (public) ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool parse_flt256(const char* s, f256_s& out, const char** endptr = nullptr) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr bool parse_flt256(const char* s, f256_s& out, const char** endptr = nullptr) noexcept
 {
     return fltx::common::parse_flt<_f256_detail::f256_io_traits>(s, out, endptr);
 }
-[[nodiscard]] FORCE_INLINE constexpr f256_s to_f256(const char* s) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s to_f256(const char* s) noexcept
 {
     f256_s ret;
     if (parse_flt256(s, ret))
         return ret;
     return f256_s{ 0.0 };
 }
-[[nodiscard]] FORCE_INLINE constexpr f256_s to_f256(const std::string& s) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s to_f256(const std::string& s) noexcept
 {
     return to_f256(s.c_str());
 }
 template<std::size_t capacity = fltx::common::default_io_string::static_capacity>
-[[nodiscard]] FORCE_INLINE constexpr fltx::common::static_string<capacity> to_static_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE constexpr fltx::common::static_string<capacity> to_static_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     fltx::common::static_string<capacity> out;
     _f256_detail::to_string_into(out, x, precision, fixed, scientific, strip_trailing_zeros);
     return out;
 }
 
-[[nodiscard]] FORCE_INLINE constexpr fltx::common::default_io_string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE constexpr fltx::common::default_io_string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     return to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
 }
 
-[[nodiscard]] FORCE_INLINE std::string to_std_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE std::string to_std_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     const auto text = to_string(x, precision, fixed, scientific, strip_trailing_zeros);
     return std::string(text.data(), text.size());
@@ -618,7 +618,7 @@ template<std::size_t capacity = fltx::common::default_io_string::static_capacity
 
 /// ------------------ stream output ------------------
 
-inline NO_INLINE std::ostream& operator<<(std::ostream& os, const f256_s& x)
+inline BL_NO_INLINE std::ostream& operator<<(std::ostream& os, const f256_s& x)
 {
     return fltx::common::write_to_stream<_f256_detail::f256_io_traits>(os, x);
 }

@@ -4,9 +4,11 @@
 #include <fltx_io.h>
 #include <fltx_math.h>
 
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <type_traits>
 
 using namespace bl;
@@ -47,9 +49,54 @@ void consume(const Values&... values) noexcept
 }
 
 template<typename T>
-T value(double x)
+constexpr T value(double x)
 {
     return static_cast<T>(x);
+}
+
+template<typename A, typename B>
+void expect_equal(const A& actual, const B& expected)
+{
+    if (!(actual == expected))
+        throw std::runtime_error("coverage check failed");
+}
+
+constexpr bool exercise_integral_math_utils_constexpr()
+{
+    return
+        bl::sq(3) == 9 &&
+        bl::sq(-3) == 9 &&
+        bl::clamp(5, 0, 3) == 3 &&
+        bl::clamp(-1, 0, 3) == 0 &&
+        bl::clamp(2, 0, 3) == 2 &&
+        bl::pow(2, 10) == 1024 &&
+        bl::pow(-2, 3) == -8 &&
+        bl::pow(-2, 4u) == 16 &&
+        bl::pow(2u, 5u) == 32u &&
+        bl::pow(2, -3) == 0 &&
+        bl::pow(1, -99) == 1 &&
+        bl::pow(-1, -99) == -1 &&
+        bl::pow(-1, -100) == 1;
+}
+
+template<typename T>
+constexpr bool exercise_typed_math_utils_constexpr()
+{
+    return
+        bl::sq(value<T>(2.0)) == value<T>(4.0) &&
+        bl::sq(value<T>(-2.0)) == value<T>(4.0) &&
+        bl::sq(value<T>(0.0)) == value<T>(0.0) &&
+        bl::clamp(value<T>(0.5), value<T>(-1.0), value<T>(1.0)) == value<T>(0.5) &&
+        bl::clamp(value<T>(-2.0), value<T>(-1.0), value<T>(1.0)) == value<T>(-1.0) &&
+        bl::clamp(value<T>(2.0), value<T>(-1.0), value<T>(1.0)) == value<T>(1.0) &&
+        bl::pow(value<T>(2.0), 0) == value<T>(1.0) &&
+        bl::pow(value<T>(2.0), 1) == value<T>(2.0) &&
+        bl::pow(value<T>(2.0), 3) == value<T>(8.0) &&
+        bl::pow(value<T>(-2.0), 3) == value<T>(-8.0) &&
+        bl::pow(value<T>(-2.0), 4u) == value<T>(16.0) &&
+        bl::pow(value<T>(2.0), -2) == value<T>(0.25) &&
+        bl::pow(value<T>(-1.0), -3) == value<T>(-1.0) &&
+        bl::pow(value<T>(-1.0), -4) == value<T>(1.0);
 }
 
 template<typename T>
@@ -140,6 +187,80 @@ void exercise_arithmetic(T x, T y, T z)
             bl::clamp(x, value<T>(-2.0), value<T>(2.0))
         );
     }
+}
+
+template<typename T>
+void exercise_math_utils()
+{
+    static_assert(exercise_integral_math_utils_constexpr());
+    static_assert(exercise_typed_math_utils_constexpr<T>());
+
+    const T negative_two = value<T>(-2.0);
+    const T negative_one = value<T>(-1.0);
+    const T zero = value<T>(0.0);
+    const T half = value<T>(0.5);
+    const T one = value<T>(1.0);
+    const T two = value<T>(2.0);
+    const T four = value<T>(4.0);
+    const T eight = value<T>(8.0);
+    const T sixteen = value<T>(16.0);
+    const T quarter = value<T>(0.25);
+
+    expect_equal(bl::sq(two), four);
+    expect_equal(bl::sq(negative_two), four);
+    expect_equal(bl::sq(zero), zero);
+
+    expect_equal(bl::clamp(half, negative_one, one), half);
+    expect_equal(bl::clamp(value<T>(-2.0), negative_one, one), negative_one);
+    expect_equal(bl::clamp(two, negative_one, one), one);
+    expect_equal(bl::clamp(negative_one, negative_one, one), negative_one);
+    expect_equal(bl::clamp(one, negative_one, one), one);
+
+    expect_equal(bl::pow(two, 0), one);
+    expect_equal(bl::pow(two, 1), two);
+    expect_equal(bl::pow(two, 3), eight);
+    expect_equal(bl::pow(negative_two, 3), value<T>(-8.0));
+    expect_equal(bl::pow(negative_two, 4u), sixteen);
+    expect_equal(bl::pow(two, -2), quarter);
+    expect_equal(bl::pow(negative_one, -3), negative_one);
+    expect_equal(bl::pow(negative_one, -4), one);
+
+    consume(
+        bl::pow(two, std::int8_t{ 3 }),
+        bl::pow(two, std::uint8_t{ 3 }),
+        bl::pow(two, std::int16_t{ -2 }),
+        bl::pow(two, std::uint16_t{ 4 }),
+        bl::pow(two, std::int32_t{ 3 }),
+        bl::pow(two, std::uint32_t{ 4 }),
+        bl::pow(two, std::int64_t{ -2 }),
+        bl::pow(two, std::uint64_t{ 4 })
+    );
+
+    expect_equal(bl::sq(3), 9);
+    expect_equal(bl::sq(-3), 9);
+    expect_equal(bl::clamp(5, 0, 3), 3);
+    expect_equal(bl::clamp(-1, 0, 3), 0);
+    expect_equal(bl::clamp(2, 0, 3), 2);
+    expect_equal(bl::clamp(0, 0, 3), 0);
+    expect_equal(bl::clamp(3, 0, 3), 3);
+
+    expect_equal(bl::pow(2, 10), 1024);
+    expect_equal(bl::pow(-2, 3), -8);
+    expect_equal(bl::pow(-2, 4u), 16);
+    expect_equal(bl::pow(2u, 5u), 32u);
+    expect_equal(bl::pow(std::int64_t{ 3 }, std::uint32_t{ 4 }), std::int64_t{ 81 });
+    expect_equal(bl::pow(2, -3), 0);
+    expect_equal(bl::pow(1, -99), 1);
+    expect_equal(bl::pow(-1, -99), -1);
+    expect_equal(bl::pow(-1, -100), 1);
+
+    consume(
+        bl::pow(std::int8_t{ -2 }, std::uint8_t{ 3 }),
+        bl::pow(std::int16_t{ -2 }, std::int16_t{ 4 }),
+        bl::pow(std::int32_t{ 2 }, std::int32_t{ -3 }),
+        bl::pow(std::uint32_t{ 2 }, std::uint32_t{ 5 }),
+        bl::pow(std::int64_t{ -1 }, std::int64_t{ -127 })
+    );
 }
 
 template<typename T>
@@ -281,6 +402,7 @@ void exercise_all_functions(const char* type_name)
     exercise_classification(x, y);
     exercise_rounding(z, nonzero);
     exercise_arithmetic(x, y, z);
+    exercise_math_utils<T>();
     exercise_decomposition(positive);
     exercise_exp_log_pow(x, positive, gt_minus_one);
     exercise_trig(x, unit, ge_one);

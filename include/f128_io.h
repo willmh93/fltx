@@ -12,7 +12,7 @@ namespace bl {
 
 namespace _f128_detail
 {
-    FORCE_INLINE constexpr void normalize10(const f128_s& x, f128_s& m, int& exp10)
+    BL_FORCE_INLINE constexpr void normalize10(const f128_s& x, f128_s& m, int& exp10)
     {
         if (x.hi == 0.0 && x.lo == 0.0) { m = f128_s{ 0.0 }; exp10 = 0; return; }
 
@@ -28,7 +28,7 @@ namespace _f128_detail
     }
 
     BL_PUSH_PRECISE;
-    FORCE_INLINE constexpr f128_s mul_by_double_print(f128_s a, double b) noexcept
+    BL_FORCE_INLINE constexpr f128_s mul_by_double_print(f128_s a, double b) noexcept
     {
         double p, err;
         _f128_detail::two_prod_precise(a.hi, b, p, err);
@@ -38,7 +38,7 @@ namespace _f128_detail
         _f128_detail::two_sum_precise(p, err, s, e);
         return f128_s{ s, e };
     }
-    FORCE_INLINE constexpr f128_s sub_by_double_print(f128_s a, double b) noexcept
+    BL_FORCE_INLINE constexpr f128_s sub_by_double_print(f128_s a, double b) noexcept
     {
         double s, e;
         _f128_detail::two_sum_precise(a.hi, -b, s, e);
@@ -56,7 +56,7 @@ namespace _f128_detail
         bool ok = false;
     };
 
-    FORCE_INLINE constexpr int emit_uint_rev_buf(char* dst, f128_s n)
+    BL_FORCE_INLINE constexpr int emit_uint_rev_buf(char* dst, f128_s n)
     {
         // n is a non-negative integer in f128
         const f128_s base = f128_s{ 1000000000.0 }; // 1e9
@@ -101,7 +101,7 @@ namespace _f128_detail
 
         return len;
     }
-    FORCE_INLINE constexpr f128_chars_result append_exp10_to_chars(char* p, char* end, int e10) noexcept
+    BL_FORCE_INLINE constexpr f128_chars_result append_exp10_to_chars(char* p, char* end, int e10) noexcept
     {
         if (p >= end) return { p, false };
         *p++ = 'e';
@@ -169,7 +169,7 @@ namespace _f128_detail
         return fltx::common::exact_decimal::exact_decimal_to_value<exact_traits>(coeff, dec_exp, neg);
     }
 
-    FORCE_INLINE constexpr f128_chars_result emit_fixed_dec_to_chars(char* first, char* last, f128_s x, int prec, bool strip_trailing_zeros) noexcept
+    BL_FORCE_INLINE constexpr f128_chars_result emit_fixed_dec_to_chars(char* first, char* last, f128_s x, int prec, bool strip_trailing_zeros) noexcept
     {
         if (x.hi == 0.0 && x.lo == 0.0) {
             if (first >= last) return { first, false };
@@ -335,7 +335,7 @@ namespace _f128_detail
 
         return { p, true };
     }
-    FORCE_INLINE constexpr f128_chars_result emit_scientific_sig_to_chars_f128(char* first, char* last, const f128_s& x, std::streamsize sig_digits, bool strip_trailing_zeros) noexcept
+    BL_FORCE_INLINE constexpr f128_chars_result emit_scientific_sig_to_chars_f128(char* first, char* last, const f128_s& x, std::streamsize sig_digits, bool strip_trailing_zeros) noexcept
     {
         if (iszero(x)) {
             if (first >= last) return { first, false };
@@ -378,7 +378,7 @@ namespace _f128_detail
         p += exp_len;
         return { p, true };
     }
-    FORCE_INLINE constexpr f128_chars_result emit_scientific_to_chars(char* first, char* last, const f128_s& x, std::streamsize frac_digits, bool strip_trailing_zeros) noexcept
+    BL_FORCE_INLINE constexpr f128_chars_result emit_scientific_to_chars(char* first, char* last, const f128_s& x, std::streamsize frac_digits, bool strip_trailing_zeros) noexcept
     {
         if (frac_digits < 0) frac_digits = 0;
         if (iszero(x)) {
@@ -405,7 +405,7 @@ namespace _f128_detail
         }
         return emit_scientific_sig_to_chars_f128(first, last, x, frac_digits + 1, strip_trailing_zeros);
     }
-    FORCE_INLINE constexpr f128_chars_result to_chars(char* first, char* last, const f128_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false) noexcept
+    BL_FORCE_INLINE constexpr f128_chars_result to_chars(char* first, char* last, const f128_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false) noexcept
     {
         if (precision < 0) precision = 0;
         if (fixed && !scientific)
@@ -481,105 +481,105 @@ namespace _f128_detail
     };
 
     template<typename String, typename Writer>
-    FORCE_INLINE constexpr void write_chars_to_string_f128(String& out, std::size_t cap, Writer writer)
+    BL_FORCE_INLINE constexpr void write_chars_to_string_f128(String& out, std::size_t cap, Writer writer)
     {
         fltx::common::write_chars_to_string<f128_chars_result>(out, cap, writer);
     }
-    FORCE_INLINE const char* special_text_f128(const f128_s& x, bool uppercase = false) noexcept
+    BL_FORCE_INLINE const char* special_text_f128(const f128_s& x, bool uppercase = false) noexcept
     {
         return fltx::common::special_text<f128_io_traits>(x, uppercase);
     }
     template<typename String>
-    FORCE_INLINE constexpr bool assign_special_string_f128(String& out, const f128_s& x, bool uppercase = false) noexcept
+    BL_FORCE_INLINE constexpr bool assign_special_string_f128(String& out, const f128_s& x, bool uppercase = false) noexcept
     {
         return fltx::common::assign_special_string<f128_io_traits>(out, x, uppercase);
     }
     template<typename String>
-    FORCE_INLINE constexpr void ensure_decimal_point_f128(String& s)
+    BL_FORCE_INLINE constexpr void ensure_decimal_point_f128(String& s)
     {
         fltx::common::ensure_decimal_point(s);
     }
     template<typename String>
-    FORCE_INLINE constexpr void apply_stream_decorations_f128(String& s, bool showpos, bool uppercase)
+    BL_FORCE_INLINE constexpr void apply_stream_decorations_f128(String& s, bool showpos, bool uppercase)
     {
         fltx::common::apply_stream_decorations(s, showpos, uppercase);
     }
-    FORCE_INLINE bool write_stream_special_f128(std::ostream& os, const f128_s& x, bool showpos, bool uppercase)
+    BL_FORCE_INLINE bool write_stream_special_f128(std::ostream& os, const f128_s& x, bool showpos, bool uppercase)
     {
         return fltx::common::write_stream_special<f128_io_traits>(os, x, showpos, uppercase);
     }
     template<typename String>
-    FORCE_INLINE constexpr void format_to_string_f128(String& out, const f128_s& x, int precision, f128_format_kind kind, bool strip_trailing_zeros = false)
+    BL_FORCE_INLINE constexpr void format_to_string_f128(String& out, const f128_s& x, int precision, f128_format_kind kind, bool strip_trailing_zeros = false)
     {
         fltx::common::format_to_string<f128_io_traits>(out, x, precision, kind, strip_trailing_zeros);
     }
     template<typename String>
-    FORCE_INLINE constexpr void to_string_into(String& out, const f128_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+    BL_FORCE_INLINE constexpr void to_string_into(String& out, const f128_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
     {
         fltx::common::to_string_into<f128_io_traits>(out, x, precision, fixed, scientific, strip_trailing_zeros);
     }
     template<typename String>
-    FORCE_INLINE constexpr void emit_scientific(String& os, const f128_s& x, std::streamsize prec, bool strip_trailing_zeros)
+    BL_FORCE_INLINE constexpr void emit_scientific(String& os, const f128_s& x, std::streamsize prec, bool strip_trailing_zeros)
     {
         fltx::common::emit_scientific<f128_io_traits>(os, x, prec, strip_trailing_zeros);
     }
     template<typename String>
-    FORCE_INLINE constexpr void emit_fixed_dec(String& os, f128_s x, int prec, bool strip_trailing_zeros)
+    BL_FORCE_INLINE constexpr void emit_fixed_dec(String& os, f128_s x, int prec, bool strip_trailing_zeros)
     {
         fltx::common::emit_fixed_dec<f128_io_traits>(os, x, prec, strip_trailing_zeros);
     }
     template<typename String>
-    FORCE_INLINE constexpr void emit_scientific_sig_f128(String& os, const f128_s& x, std::streamsize sig_digits, bool strip_trailing_zeros)
+    BL_FORCE_INLINE constexpr void emit_scientific_sig_f128(String& os, const f128_s& x, std::streamsize sig_digits, bool strip_trailing_zeros)
     {
         fltx::common::emit_scientific_sig<f128_io_traits>(os, x, sig_digits, strip_trailing_zeros);
     }
 
     /// ======== Parsing helpers ========
 
-    FORCE_INLINE bool valid_flt128_string(const char* s) noexcept
+    BL_FORCE_INLINE bool valid_flt128_string(const char* s) noexcept
     {
         return fltx::common::valid_float_string(s);
     }
-    FORCE_INLINE unsigned char ascii_lower_f128(char c) noexcept
+    BL_FORCE_INLINE unsigned char ascii_lower_f128(char c) noexcept
     {
         return fltx::common::ascii_lower(c);
     }
-    FORCE_INLINE const char* skip_ascii_space_f128(const char* p) noexcept
+    BL_FORCE_INLINE const char* skip_ascii_space_f128(const char* p) noexcept
     {
         return fltx::common::skip_ascii_space(p);
     }
 
 }
 
-FORCE_INLINE constexpr bool parse_flt128(const char* s, f128_s& out, const char** endptr = nullptr) noexcept
+BL_FORCE_INLINE constexpr bool parse_flt128(const char* s, f128_s& out, const char** endptr = nullptr) noexcept
 {
     return fltx::common::parse_flt<_f128_detail::f128_io_traits>(s, out, endptr);
 }
-[[nodiscard]] NO_INLINE constexpr f128_s to_f128(const char* s) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f128_s to_f128(const char* s) noexcept
 {
     f128_s ret;
     if (parse_flt128(s, ret))
         return ret;
     return f128_s{ 0 };
 }
-[[nodiscard]] FORCE_INLINE constexpr f128_s to_f128(const std::string& s) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s to_f128(const std::string& s) noexcept
 {
     return to_f128(s.c_str());
 }
 template<std::size_t capacity = fltx::common::default_io_string::static_capacity>
-[[nodiscard]] FORCE_INLINE constexpr fltx::common::static_string<capacity> to_static_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE constexpr fltx::common::static_string<capacity> to_static_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     fltx::common::static_string<capacity> out;
     _f128_detail::to_string_into(out, x, precision, fixed, scientific, strip_trailing_zeros);
     return out;
 }
 
-[[nodiscard]] FORCE_INLINE constexpr fltx::common::default_io_string to_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE constexpr fltx::common::default_io_string to_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     return to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
 }
 
-[[nodiscard]] FORCE_INLINE std::string to_std_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE std::string to_std_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     const auto text = to_string(x, precision, fixed, scientific, strip_trailing_zeros);
     return std::string(text.data(), text.size());
@@ -587,7 +587,7 @@ template<std::size_t capacity = fltx::common::default_io_string::static_capacity
 
 /// ======== Stream output ========
 
-FORCE_INLINE std::ostream& operator<<(std::ostream& os, const f128_s& x)
+BL_FORCE_INLINE std::ostream& operator<<(std::ostream& os, const f128_s& x)
 {
     return fltx::common::write_to_stream<_f128_detail::f128_io_traits>(os, x);
 }

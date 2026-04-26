@@ -54,7 +54,7 @@ namespace _f256_detail
     using fltx::common::exact_decimal::decompose_double_mantissa;
     using fltx::common::exact_decimal::mod_shift_subtract;
 
-    FORCE_INLINE constexpr bool f256_runtime_simd_enabled() noexcept
+    BL_FORCE_INLINE constexpr bool f256_runtime_simd_enabled() noexcept
     {
         #if BL_F256_ENABLE_SIMD
         return !bl::is_constant_evaluated();
@@ -62,7 +62,7 @@ namespace _f256_detail
         return false;
         #endif
     }
-    FORCE_INLINE constexpr bool f256_runtime_trig_simd_enabled() noexcept
+    BL_FORCE_INLINE constexpr bool f256_runtime_trig_simd_enabled() noexcept
     {
         #if BL_F256_ENABLE_TRIG_SIMD
         return !bl::is_constant_evaluated();
@@ -72,28 +72,28 @@ namespace _f256_detail
     }
 
 #if BL_F256_ENABLE_SIMD
-    FORCE_INLINE __m128d f256_simd_set(double lane0, double lane1) noexcept
+    BL_FORCE_INLINE __m128d f256_simd_set(double lane0, double lane1) noexcept
     {
         return _mm_set_pd(lane1, lane0);
     }
-    FORCE_INLINE __m128d f256_simd_splat(double value) noexcept
+    BL_FORCE_INLINE __m128d f256_simd_splat(double value) noexcept
     {
         return _mm_set1_pd(value);
     }
-    FORCE_INLINE void f256_simd_store(__m128d value, double& lane0, double& lane1) noexcept
+    BL_FORCE_INLINE void f256_simd_store(__m128d value, double& lane0, double& lane1) noexcept
     {
         alignas(16) double lanes[2];
         _mm_storeu_pd(lanes, value);
         lane0 = lanes[0];
         lane1 = lanes[1];
     }
-    FORCE_INLINE void f256_simd_two_sum(__m128d a, __m128d b, __m128d& s, __m128d& e) noexcept
+    BL_FORCE_INLINE void f256_simd_two_sum(__m128d a, __m128d b, __m128d& s, __m128d& e) noexcept
     {
         s = _mm_add_pd(a, b);
         const __m128d bb = _mm_sub_pd(s, a);
         e = _mm_add_pd(_mm_sub_pd(a, _mm_sub_pd(s, bb)), _mm_sub_pd(b, bb));
     }
-    FORCE_INLINE void f256_simd_two_prod(__m128d a, __m128d b, __m128d& p, __m128d& e) noexcept
+    BL_FORCE_INLINE void f256_simd_two_prod(__m128d a, __m128d b, __m128d& p, __m128d& e) noexcept
     {
         p = _mm_mul_pd(a, b);
 
@@ -114,7 +114,7 @@ namespace _f256_detail
 #endif
 
     // Shewchuk-style expansion sum, expansions sorted by increasing magnitude (small -> large)
-    FORCE_INLINE constexpr int fast_expansion_sum_zeroelim(int elen, const double* e, int flen, const double* f, double* h) noexcept
+    BL_FORCE_INLINE constexpr int fast_expansion_sum_zeroelim(int elen, const double* e, int flen, const double* f, double* h) noexcept
     {
         int eindex = 0;
         int findex = 0;
@@ -172,7 +172,7 @@ namespace _f256_detail
         if (Q != 0.0 || hindex == 0) h[hindex++] = Q;
         return hindex;
     }
-    FORCE_INLINE constexpr int scale_expansion_zeroelim(int elen, const double* e, double b, double* h) noexcept
+    BL_FORCE_INLINE constexpr int scale_expansion_zeroelim(int elen, const double* e, double b, double* h) noexcept
     {
         int hindex = 0;
         if (elen == 0 || b == 0.0) return 0;
@@ -197,7 +197,7 @@ namespace _f256_detail
         if (Q != 0.0 || hindex == 0) h[hindex++] = Q;
         return hindex;
     }
-    FORCE_INLINE constexpr int compress_expansion_zeroelim(int elen, const double* e, double* h) noexcept
+    BL_FORCE_INLINE constexpr int compress_expansion_zeroelim(int elen, const double* e, double* h) noexcept
     {
         double g[40]{};
 
@@ -225,62 +225,62 @@ namespace _f256_detail
     }
 }
 
-NO_INLINE constexpr f256_s operator+(const f256_s& a, const f256_s& b) noexcept;
-NO_INLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexcept;
-NO_INLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept;
-NO_INLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept;
+BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, const f256_s& b) noexcept;
+BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexcept;
+BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept;
+BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept;
 
-NO_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept;
-NO_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept;
-NO_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept;
-NO_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept;
+BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept;
+BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept;
+BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept;
+BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept;
 
-NO_INLINE constexpr f256_s operator+(const f256_s& a, float b) noexcept;
-NO_INLINE constexpr f256_s operator-(const f256_s& a, float b) noexcept;
-NO_INLINE constexpr f256_s operator*(const f256_s& a, float b) noexcept;
-NO_INLINE constexpr f256_s operator/(const f256_s& a, float b) noexcept;
+BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, float b) noexcept;
+BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, float b) noexcept;
+BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, float b) noexcept;
+BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, float b) noexcept;
 
 struct f256_s
 {
     double x0, x1, x2, x3; // largest -> smallest
 
-    FORCE_INLINE constexpr f256_s& operator=(f128_s x) noexcept;
-    FORCE_INLINE constexpr f256_s& operator=(double x) noexcept {
+    BL_FORCE_INLINE constexpr f256_s& operator=(f128_s x) noexcept;
+    BL_FORCE_INLINE constexpr f256_s& operator=(double x) noexcept {
         x0 = x; x1 = 0.0; x2 = 0.0; x3 = 0.0; return *this;
     }
-    FORCE_INLINE constexpr f256_s& operator=(float x) noexcept {
+    BL_FORCE_INLINE constexpr f256_s& operator=(float x) noexcept {
         x0 = static_cast<double>(x); x1 = 0.0; x2 = 0.0; x3 = 0.0; return *this;
     }
 
-    FORCE_INLINE constexpr f256_s& operator=(uint64_t u) noexcept;
-    FORCE_INLINE constexpr f256_s& operator=(int64_t v) noexcept;
+    BL_FORCE_INLINE constexpr f256_s& operator=(uint64_t u) noexcept;
+    BL_FORCE_INLINE constexpr f256_s& operator=(int64_t v) noexcept;
 
     template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_signed_v<T> && (sizeof(T) < 8), int> = 0>
-    FORCE_INLINE constexpr f256_s& operator=(T v) noexcept {
+    BL_FORCE_INLINE constexpr f256_s& operator=(T v) noexcept {
         return (*this = static_cast<int64_t>(v));
     }
     template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_unsigned_v<T> && (sizeof(T) < 8), int> = 0>
-    FORCE_INLINE constexpr f256_s& operator=(T v) noexcept {
+    BL_FORCE_INLINE constexpr f256_s& operator=(T v) noexcept {
         return (*this = static_cast<uint64_t>(v));
     }
 
     // f256 ops
-    FORCE_INLINE constexpr f256_s& operator+=(f256_s rhs) noexcept { *this = *this + rhs; return *this; }
-    FORCE_INLINE constexpr f256_s& operator-=(f256_s rhs) noexcept { *this = *this - rhs; return *this; }
-    FORCE_INLINE constexpr f256_s& operator*=(f256_s rhs) noexcept { *this = *this * rhs; return *this; }
-    FORCE_INLINE constexpr f256_s& operator/=(f256_s rhs) noexcept { *this = *this / rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator+=(f256_s rhs) noexcept { *this = *this + rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator-=(f256_s rhs) noexcept { *this = *this - rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator*=(f256_s rhs) noexcept { *this = *this * rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator/=(f256_s rhs) noexcept { *this = *this / rhs; return *this; }
 
     // f64 ops
-    FORCE_INLINE constexpr f256_s& operator+=(double rhs) noexcept { *this = *this + rhs; return *this; }
-    FORCE_INLINE constexpr f256_s& operator-=(double rhs) noexcept { *this = *this - rhs; return *this; }
-    FORCE_INLINE constexpr f256_s& operator*=(double rhs) noexcept { *this = *this * rhs; return *this; }
-    FORCE_INLINE constexpr f256_s& operator/=(double rhs) noexcept { *this = *this / rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator+=(double rhs) noexcept { *this = *this + rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator-=(double rhs) noexcept { *this = *this - rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator*=(double rhs) noexcept { *this = *this * rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator/=(double rhs) noexcept { *this = *this / rhs; return *this; }
 
     // f32 ops
-    FORCE_INLINE constexpr f256_s& operator+=(float rhs) noexcept { *this = *this + rhs; return *this; }
-    FORCE_INLINE constexpr f256_s& operator-=(float rhs) noexcept { *this = *this - rhs; return *this; }
-    FORCE_INLINE constexpr f256_s& operator*=(float rhs) noexcept { *this = *this * rhs; return *this; }
-    FORCE_INLINE constexpr f256_s& operator/=(float rhs) noexcept { *this = *this / rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator+=(float rhs) noexcept { *this = *this + rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator-=(float rhs) noexcept { *this = *this - rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator*=(float rhs) noexcept { *this = *this * rhs; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator/=(float rhs) noexcept { *this = *this / rhs; return *this; }
 
     /// ======== conversions ========
     [[nodiscard]] explicit constexpr operator f128() const noexcept;
@@ -408,14 +408,14 @@ namespace numbers = std::numbers;
 
 namespace _f256_detail
 {
-    FORCE_INLINE constexpr void three_sum(double& a, double& b, double& c) noexcept
+    BL_FORCE_INLINE constexpr void three_sum(double& a, double& b, double& c) noexcept
     {
         double t1{}, t2{}, t3{};
         two_sum_precise(a, b, t1, t2);
         two_sum_precise(c, t1, a, t3);
         two_sum_precise(t2, t3, b, c);
     }
-    FORCE_INLINE constexpr void three_sum2(double& a, double& b, double& c) noexcept
+    BL_FORCE_INLINE constexpr void three_sum2(double& a, double& b, double& c) noexcept
     {
         double t1{}, t2{}, t3{};
         two_sum_precise(a, b, t1, t2);
@@ -423,13 +423,13 @@ namespace _f256_detail
         b = t2 + t3;
     }
 
-    FORCE_INLINE constexpr f256_s canonicalize_math_result(f256_s value) noexcept
+    BL_FORCE_INLINE constexpr f256_s canonicalize_math_result(f256_s value) noexcept
     {
         value.x3 = fltx::common::fp::zero_low_fraction_bits_finite<8>(value.x3);
         return value;
     }
 
-    FORCE_INLINE constexpr f256_s renorm(double c0, double c1, double c2, double c3) noexcept
+    BL_FORCE_INLINE constexpr f256_s renorm(double c0, double c1, double c2, double c3) noexcept
     {
         double s0{}, s1{}, s2 = 0.0, s3 = 0.0;
 
@@ -459,7 +459,7 @@ namespace _f256_detail
 
         return { s0, s1, s2, s3 };
     }
-    FORCE_INLINE constexpr f256_s renorm4(double c0, double c1, double c2, double c3) noexcept
+    BL_FORCE_INLINE constexpr f256_s renorm4(double c0, double c1, double c2, double c3) noexcept
     {
         double s, e;
         s = c2 + c3,  e = c3 - (s - c2);  c2 = s;  c3 = e;
@@ -498,7 +498,7 @@ namespace _f256_detail
 
         return { s0, s1, s2, s3 };
     }
-    FORCE_INLINE constexpr f256_s renorm5(double c0, double c1, double c2, double c3, double c4) noexcept
+    BL_FORCE_INLINE constexpr f256_s renorm5(double c0, double c1, double c2, double c3, double c4) noexcept
     {
         double s, e;
 
@@ -561,25 +561,25 @@ namespace _f256_detail
     }
 }
 
-[[nodiscard]] NO_INLINE constexpr f256_s to_f256(uint64_t u) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s to_f256(uint64_t u) noexcept
 {
     f256_s r{}; r = u;
     return r;
 }
-[[nodiscard]] NO_INLINE constexpr f256_s to_f256(int64_t v) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s to_f256(int64_t v) noexcept
 {
     f256_s r{}; r = v;
     return r;
 }
 
-NO_INLINE constexpr f256_s& f256_s::operator=(uint64_t u) noexcept
+BL_NO_INLINE constexpr f256_s& f256_s::operator=(uint64_t u) noexcept
 {
     double s{}, e{};
     _f256_detail::uint64_to_exact_double_pair(u, s, e);
     *this = _f256_detail::renorm(s, e, 0.0, 0.0);
     return *this;
 }
-NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
+BL_NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
 {
     if (v >= 0) return (*this = static_cast<uint64_t>(v));
 
@@ -593,7 +593,7 @@ NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
 
 // ------------------ f256 <=> f256 ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f256_s& a, const f256_s& b)
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f256_s& a, const f256_s& b)
 {
     if (_f256_detail::isnan(a.x0) || _f256_detail::isnan(b.x0))
         return false;
@@ -609,31 +609,31 @@ NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
 
     return a.x3 < b.x3;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f256_s& a, const f256_s& b)
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f256_s& a, const f256_s& b)
 {
     if (_f256_detail::isnan(a.x0) || _f256_detail::isnan(b.x0))
         return false;
     return b < a;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f256_s& a, const f256_s& b)
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f256_s& a, const f256_s& b)
 {
     if (_f256_detail::isnan(a.x0) || _f256_detail::isnan(b.x0))
         return false;
     return !(b < a);
 }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f256_s& a, const f256_s& b)
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f256_s& a, const f256_s& b)
 {
     if (_f256_detail::isnan(a.x0) || _f256_detail::isnan(b.x0))
         return false;
     return !(a < b);
 }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f256_s& a, const f256_s& b)
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f256_s& a, const f256_s& b)
 {
     if (_f256_detail::isnan(a.x0) || _f256_detail::isnan(b.x0))
         return false;
     return a.x0 == b.x0 && a.x1 == b.x1 && a.x2 == b.x2 && a.x3 == b.x3;
 }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f256_s& a, const f256_s& b)
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f256_s& a, const f256_s& b)
 {
     if (_f256_detail::isnan(a.x0) || _f256_detail::isnan(b.x0))
         return true;
@@ -642,68 +642,68 @@ NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
 
 // ------------------ double <=> f256 ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f256_s& a, double b) { return a < f256_s{b}; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(double a, const f256_s& b) { return f256_s{a} < b; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f256_s& a, double b) { return b < a; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(double a, const f256_s& b) { return b < a; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f256_s& a, double b) { return !(b < a); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(double a, const f256_s& b) { return !(b < a); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f256_s& a, double b) { return !(a < b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(double a, const f256_s& b) { return !(a < b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f256_s& a, double b) { return a == f256_s{b}; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(double a, const f256_s& b) { return f256_s{a} == b; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f256_s& a, double b) { return !(a == b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(double a, const f256_s& b) { return !(a == b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f256_s& a, double b) { return a < f256_s{b}; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(double a, const f256_s& b) { return f256_s{a} < b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f256_s& a, double b) { return b < a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(double a, const f256_s& b) { return b < a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f256_s& a, double b) { return !(b < a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(double a, const f256_s& b) { return !(b < a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f256_s& a, double b) { return !(a < b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(double a, const f256_s& b) { return !(a < b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f256_s& a, double b) { return a == f256_s{b}; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(double a, const f256_s& b) { return f256_s{a} == b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f256_s& a, double b) { return !(a == b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(double a, const f256_s& b) { return !(a == b); }
 
 // ------------------ int64_t/uint64_t <=> f256 ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f256_s& a, int64_t b) { return a < to_f256(b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(int64_t a, const f256_s& b) { return to_f256(a) < b; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f256_s& a, int64_t b) { return b < a; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(int64_t a, const f256_s& b) { return b < a; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f256_s& a, int64_t b) { return !(b < a); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(int64_t a, const f256_s& b) { return !(b < a); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f256_s& a, int64_t b) { return !(a < b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(int64_t a, const f256_s& b) { return !(a < b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f256_s& a, int64_t b) { return a == to_f256(b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(int64_t a, const f256_s& b) { return to_f256(a) == b; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f256_s& a, int64_t b) { return !(a == b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(int64_t a, const f256_s& b) { return !(a == b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f256_s& a, int64_t b) { return a < to_f256(b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(int64_t a, const f256_s& b) { return to_f256(a) < b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f256_s& a, int64_t b) { return b < a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(int64_t a, const f256_s& b) { return b < a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f256_s& a, int64_t b) { return !(b < a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(int64_t a, const f256_s& b) { return !(b < a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f256_s& a, int64_t b) { return !(a < b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(int64_t a, const f256_s& b) { return !(a < b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f256_s& a, int64_t b) { return a == to_f256(b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(int64_t a, const f256_s& b) { return to_f256(a) == b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f256_s& a, int64_t b) { return !(a == b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(int64_t a, const f256_s& b) { return !(a == b); }
 
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(const f256_s& a, uint64_t b) { return a < to_f256(b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<(uint64_t a, const f256_s& b) { return to_f256(a) < b; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(const f256_s& a, uint64_t b) { return b < a; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>(uint64_t a, const f256_s& b) { return b < a; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(const f256_s& a, uint64_t b) { return !(b < a); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator<=(uint64_t a, const f256_s& b) { return !(b < a); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(const f256_s& a, uint64_t b) { return !(a < b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator>=(uint64_t a, const f256_s& b) { return !(a < b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(const f256_s& a, uint64_t b) { return a == to_f256(b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator==(uint64_t a, const f256_s& b) { return to_f256(a) == b; }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(const f256_s& a, uint64_t b) { return !(a == b); }
-[[nodiscard]] FORCE_INLINE constexpr bool operator!=(uint64_t a, const f256_s& b) { return !(a == b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f256_s& a, uint64_t b) { return a < to_f256(b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(uint64_t a, const f256_s& b) { return to_f256(a) < b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f256_s& a, uint64_t b) { return b < a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(uint64_t a, const f256_s& b) { return b < a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f256_s& a, uint64_t b) { return !(b < a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(uint64_t a, const f256_s& b) { return !(b < a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f256_s& a, uint64_t b) { return !(a < b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(uint64_t a, const f256_s& b) { return !(a < b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f256_s& a, uint64_t b) { return a == to_f256(b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(uint64_t a, const f256_s& b) { return to_f256(a) == b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f256_s& a, uint64_t b) { return !(a == b); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(uint64_t a, const f256_s& b) { return !(a == b); }
 
 // ------------------ classification ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr bool isnan(const f256_s& a) noexcept { return _f256_detail::isnan(a.x0); }
-[[nodiscard]] FORCE_INLINE constexpr bool isinf(const f256_s& a) noexcept { return _f256_detail::isinf(a.x0); }
-[[nodiscard]] FORCE_INLINE constexpr bool isfinite(const f256_s& x) noexcept { return _f256_detail::isfinite(x.x0); }
-[[nodiscard]] FORCE_INLINE constexpr bool iszero(const f256_s& a) noexcept { return a.x0 == 0 && a.x1 == 0 && a.x2 == 0 && a.x3 == 0; }
-[[nodiscard]] FORCE_INLINE constexpr bool ispositive(const f256_s& x) noexcept { return x.x0 > 0 || (x.x0 == 0 && (x.x1 > 0 || (x.x1 == 0 && (x.x2 > 0 || (x.x2 == 0 && x.x3 > 0))))); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isnan(const f256_s& a) noexcept { return _f256_detail::isnan(a.x0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isinf(const f256_s& a) noexcept { return _f256_detail::isinf(a.x0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isfinite(const f256_s& x) noexcept { return _f256_detail::isfinite(x.x0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool iszero(const f256_s& a) noexcept { return a.x0 == 0 && a.x1 == 0 && a.x2 == 0 && a.x3 == 0; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool ispositive(const f256_s& x) noexcept { return x.x0 > 0 || (x.x0 == 0 && (x.x1 > 0 || (x.x1 == 0 && (x.x2 > 0 || (x.x2 == 0 && x.x3 > 0))))); }
 
 /// ------------------ arithmetic operators ------------------
 
-[[nodiscard]] FORCE_INLINE constexpr f256_s clamp(const f256_s& v, const f256_s& lo, const f256_s& hi)
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s clamp(const f256_s& v, const f256_s& lo, const f256_s& hi)
 {
     if (v < lo) return lo;
     if (v > hi) return hi;
     return v;
 }
-[[nodiscard]] FORCE_INLINE constexpr f256_s abs(const f256_s& a) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s abs(const f256_s& a) noexcept
 {
     return (a.x0 < 0.0) ? -a : a;
 }
-[[nodiscard]] NO_INLINE constexpr f256_s floor(const f256_s& a)
+[[nodiscard]] BL_NO_INLINE constexpr f256_s floor(const f256_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
@@ -723,7 +723,7 @@ NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
         r -= 1.0;
     return r;
 }
-[[nodiscard]] NO_INLINE constexpr f256_s ceil(const f256_s& a)
+[[nodiscard]] BL_NO_INLINE constexpr f256_s ceil(const f256_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
@@ -743,7 +743,7 @@ NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
         r += 1.0;
     return r;
 }
-[[nodiscard]] NO_INLINE constexpr f256_s trunc(const f256_s& a)
+[[nodiscard]] BL_NO_INLINE constexpr f256_s trunc(const f256_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
@@ -751,7 +751,7 @@ NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
     return (a.x0 < 0.0) ? ceil(a) : floor(a);
 }
 
-[[nodiscard]] NO_INLINE constexpr f256_s pow10_256(int k)
+[[nodiscard]] BL_NO_INLINE constexpr f256_s pow10_256(int k)
 {
     if (k == 0) return f256_s{ 1.0 };
 
@@ -777,7 +777,7 @@ NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
 }
 
 
-[[nodiscard]] FORCE_INLINE constexpr f256_s recip(f256_s b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s recip(f256_s b) noexcept
 {
     constexpr f256_s one = f256_s{ 1.0 };
 
@@ -791,13 +791,13 @@ NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
 
     return _f256_detail::renorm5(q0, q1, q2, q3, q4);
 }
-[[nodiscard]] FORCE_INLINE constexpr f256_s inv(const f256_s& a) { return recip(a); } // todo: Don't FORCE_INLINE, use recip internally elsewhere
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s inv(const f256_s& a) { return recip(a); } // todo: Don't BL_FORCE_INLINE, use recip internally elsewhere
 
 /// ------------------ core helpers ------------------
 
 namespace _f256_detail
 {
-    FORCE_INLINE constexpr f256_s add_scalar_precise(const f256_s& a, double b) noexcept
+    BL_FORCE_INLINE constexpr f256_s add_scalar_precise(const f256_s& a, double b) noexcept
     {
         double s0{}, e0{};  two_sum_precise(a.x0, b, s0, e0);
         double s1{}, e1{};  two_sum_precise(a.x1, e0, s1, e1);
@@ -806,7 +806,7 @@ namespace _f256_detail
 
         return renorm5(s0, s1, s2, s3, e3);
     }
-    FORCE_INLINE constexpr f256_s from_expansion_fast(const double* h, int n) noexcept
+    BL_FORCE_INLINE constexpr f256_s from_expansion_fast(const double* h, int n) noexcept
     {
         if (n <= 0) return {};
 
@@ -820,7 +820,7 @@ namespace _f256_detail
         return sum;
     }
 
-    FORCE_INLINE constexpr f256_s add_dd_qd(const f256_s& a, const f256_s& b) noexcept
+    BL_FORCE_INLINE constexpr f256_s add_dd_qd(const f256_s& a, const f256_s& b) noexcept
     {
         double s0{}, e0{};
         double s1{}, e1{};
@@ -850,7 +850,7 @@ namespace _f256_detail
 
         return renorm5(s0, s1, e0, 0.0, 0.0);
     }
-    FORCE_INLINE constexpr f256_s sub_dd_qd(const f256_s& a, const f256_s& b) noexcept
+    BL_FORCE_INLINE constexpr f256_s sub_dd_qd(const f256_s& a, const f256_s& b) noexcept
     {
         double s0{}, e0{};
         double s1{}, e1{};
@@ -880,7 +880,7 @@ namespace _f256_detail
 
         return renorm5(s0, s1, e0, 0.0, 0.0);
     }
-    FORCE_INLINE constexpr f256_s add_qd_qd(const f256_s& a, const f256_s& b) noexcept
+    BL_FORCE_INLINE constexpr f256_s add_qd_qd(const f256_s& a, const f256_s& b) noexcept
     {
         double s0{}, e0{};
         double s1{}, e1{};
@@ -921,7 +921,7 @@ namespace _f256_detail
 
         return _f256_detail::renorm5(s0, s1, s2, s3, e0);
     }
-    FORCE_INLINE constexpr f256_s sub_qd_qd(const f256_s& a, const f256_s& b) noexcept
+    BL_FORCE_INLINE constexpr f256_s sub_qd_qd(const f256_s& a, const f256_s& b) noexcept
     {
         double s0{}, e0{};
         double s1{}, e1{};
@@ -963,7 +963,7 @@ namespace _f256_detail
         return _f256_detail::renorm5(s0, s1, s2, s3, e0);
     }
 
-    FORCE_INLINE constexpr f256_s sub_mul_scalar_fast(const f256_s& r, const f256_s& b, double q) noexcept
+    BL_FORCE_INLINE constexpr f256_s sub_mul_scalar_fast(const f256_s& r, const f256_s& b, double q) noexcept
     {
         double p0{}, e0{}; two_prod_precise(b.x0, q, p0, e0);
         double p1{}, e1{}; two_prod_precise(b.x1, q, p1, e1);
@@ -988,7 +988,7 @@ namespace _f256_detail
 
         return renorm5(s0, s1, s2, s3, t0);
     }
-    FORCE_INLINE constexpr f256_s sub_mul_scalar_exact(const f256_s& r, const f256_s& b, double q) noexcept
+    BL_FORCE_INLINE constexpr f256_s sub_mul_scalar_exact(const f256_s& r, const f256_s& b, double q) noexcept
     {
         const f256_s prod = b * q;
         return sub_qd_qd(r, prod);
@@ -998,7 +998,7 @@ namespace _f256_detail
 /// ------------------ scalar ------------------
 
 // f256 <=> f256 
-[[nodiscard]] NO_INLINE constexpr f256_s operator+(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, const f256_s& b) noexcept
 {
     if (a.x0 == 0.0 && a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0) return b;
     if (b.x0 == 0.0 && b.x1 == 0.0 && b.x2 == 0.0 && b.x3 == 0.0) return a;
@@ -1011,7 +1011,7 @@ namespace _f256_detail
 
     return _f256_detail::add_qd_qd(a, b);
 }
-[[nodiscard]] NO_INLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexcept
 {
     if (b.x0 == 0.0 && b.x1 == 0.0 && b.x2 == 0.0 && b.x3 == 0.0) return a;
     if (a.x0 == 0.0 && a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0) return -b;
@@ -1024,7 +1024,7 @@ namespace _f256_detail
 
     return _f256_detail::sub_qd_qd(a, b);
 }
-[[nodiscard]] NO_INLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept
 {
     double p0{}, p1{}, p2{}, p3{}, p4{}, p5{};
     double q0{}, q1{}, q2{}, q3{}, q4{}, q5{};
@@ -1069,7 +1069,7 @@ namespace _f256_detail
 
     return _f256_detail::renorm5(p0, p1, s0, t0, t1);
 }
-[[nodiscard]] NO_INLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept
 {
     if (b.x1 == 0.0 && b.x2 == 0.0 && b.x3 == 0.0)
         return a / b.x0;
@@ -1094,7 +1094,7 @@ namespace _f256_detail
 }
                               
 // f256 <=> double            
-[[nodiscard]] NO_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept
 {
     double c0{}, c1{}, c2{}, c3{};
     double e{};
@@ -1113,7 +1113,7 @@ namespace _f256_detail
 
     return _f256_detail::renorm5(c0, c1, c2, c3, e);
 }
-[[nodiscard]] NO_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept
 {
     double c0{}, c1{}, c2{}, c3{}, e{};
 
@@ -1131,7 +1131,7 @@ namespace _f256_detail
 
     return _f256_detail::renorm5(c0, c1, c2, c3, e);
 }
-[[nodiscard]] NO_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept
 {
     double p0{}, p1{}, p2{}, p3{};
     double q0{}, q1{}, q2{};
@@ -1151,7 +1151,7 @@ namespace _f256_detail
 
     return _f256_detail::renorm5(s0, s1, s2, s3, s4);
 }
-[[nodiscard]] NO_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept
 {
     if (bl::is_constant_evaluated())
     {
@@ -1199,21 +1199,21 @@ namespace _f256_detail
     return _f256_detail::renorm5(q0, q1, q2, q3, q4);
 }
 
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator+(double a, const f256_s& b) noexcept { return b + a; }
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator-(double a, const f256_s& b) noexcept { return -(b - a); }
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator*(double a, const f256_s& b) noexcept { return b * a; }
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator/(double a, const f256_s& b) noexcept { return f256_s{ a } / b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(double a, const f256_s& b) noexcept { return b + a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(double a, const f256_s& b) noexcept { return -(b - a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(double a, const f256_s& b) noexcept { return b * a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(double a, const f256_s& b) noexcept { return f256_s{ a } / b; }
 
 // f256 <=> float
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator+(const f256_s& a, float b) noexcept { return a + (double)b; }
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator-(const f256_s& a, float b) noexcept { return a - (double)b; }
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator*(const f256_s& a, float b) noexcept { return a * (double)b; }
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator/(const f256_s& a, float b) noexcept { return a / (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(const f256_s& a, float b) noexcept { return a + (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(const f256_s& a, float b) noexcept { return a - (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(const f256_s& a, float b) noexcept { return a * (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(const f256_s& a, float b) noexcept { return a / (double)b; }
 
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator+(float a, const f256_s& b) noexcept { return (double)a + b; }
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator-(float a, const f256_s& b) noexcept { return (double)a - b; }
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator*(float a, const f256_s& b) noexcept { return (double)a * b; }
-[[nodiscard]] FORCE_INLINE constexpr f256_s operator/(float a, const f256_s& b) noexcept { return (double)a / b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(float a, const f256_s& b) noexcept { return (double)a + b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(float a, const f256_s& b) noexcept { return (double)a - b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(float a, const f256_s& b) noexcept { return (double)a * b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(float a, const f256_s& b) noexcept { return (double)a / b; }
 
 } // namespace bl
 

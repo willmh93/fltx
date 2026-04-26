@@ -2,6 +2,7 @@
 #define FLTX_MATH_INCLUDED
 
 #include "fltx_core.h"
+#include "fltx_math_utils.h"
 
 #include "f32_math.h"
 #include "f64_math.h"

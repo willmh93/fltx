@@ -11,7 +11,7 @@
 namespace bl::fltx::common::fp
 {
         
-FORCE_INLINE constexpr bool isinf(double value) noexcept
+BL_FORCE_INLINE constexpr bool isinf(double value) noexcept
 {
     static_assert(std::numeric_limits<double>::is_iec559,
         "is_inf bit-pattern check requires IEEE 754 / IEC 559 double");
@@ -19,7 +19,7 @@ FORCE_INLINE constexpr bool isinf(double value) noexcept
     const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
     return (bits & 0x7fffffffffffffffULL) == 0x7ff0000000000000ULL;
 }
-FORCE_INLINE constexpr bool isfinite(double value) noexcept
+BL_FORCE_INLINE constexpr bool isfinite(double value) noexcept
 {
     static_assert(std::numeric_limits<double>::is_iec559,
         "isfinite bit-pattern check requires IEEE 754 / IEC 559 double");
@@ -29,7 +29,7 @@ FORCE_INLINE constexpr bool isfinite(double value) noexcept
 }
 
 template<int bits_to_clear>
-FORCE_INLINE constexpr double zero_low_fraction_bits_finite(double value) noexcept
+BL_FORCE_INLINE constexpr double zero_low_fraction_bits_finite(double value) noexcept
 {
     static_assert(bits_to_clear >= 0 && bits_to_clear <= 52);
 
@@ -47,7 +47,7 @@ FORCE_INLINE constexpr double zero_low_fraction_bits_finite(double value) noexce
     const std::uint64_t fraction = bits & fraction_mask;
     return std::bit_cast<double>(sign_and_exponent | (fraction & clear_mask));
 }
-FORCE_INLINE constexpr bool isnan(double value) noexcept
+BL_FORCE_INLINE constexpr bool isnan(double value) noexcept
 {
     static_assert(std::numeric_limits<double>::is_iec559,
         "is_nan bit-pattern check requires IEEE 754 / IEC 559 double");
@@ -56,11 +56,9 @@ FORCE_INLINE constexpr bool isnan(double value) noexcept
     const std::uint64_t abs_bits = bits & 0x7fffffffffffffffULL;
     return abs_bits > 0x7ff0000000000000ULL;
 }
-FORCE_INLINE constexpr double absd(double x) noexcept { return (x < 0.0) ? -x : x; }
+BL_FORCE_INLINE constexpr double absd(double x) noexcept { return (x < 0.0) ? -x : x; }
 
-
-
-FORCE_INLINE constexpr int    frexp_exponent_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr int    frexp_exponent_constexpr(double x) noexcept
 {
     if (x == 0.0 || !isfinite(x))
         return 0;
@@ -79,7 +77,7 @@ FORCE_INLINE constexpr int    frexp_exponent_constexpr(double x) noexcept
     }
     return e + 1;
 }
-FORCE_INLINE constexpr int    highest_bit_index_constexpr(std::uint64_t value) noexcept
+BL_FORCE_INLINE constexpr int    highest_bit_index_constexpr(std::uint64_t value) noexcept
 {
     int index = -1;
     while (value != 0)
@@ -89,7 +87,7 @@ FORCE_INLINE constexpr int    highest_bit_index_constexpr(std::uint64_t value) n
     }
     return index;
 }
-FORCE_INLINE constexpr double scalbn_constexpr2(double value, int exp) noexcept
+BL_FORCE_INLINE constexpr double scalbn_constexpr2(double value, int exp) noexcept
 {
     if (value == 0.0 || isnan(value) || isinf(value) || exp == 0)
         return value;
@@ -164,11 +162,11 @@ FORCE_INLINE constexpr double scalbn_constexpr2(double value, int exp) noexcept
 
     return std::bit_cast<double>(sign | subnormal_fraction);
 }
-FORCE_INLINE constexpr double ldexp_constexpr2(double value, int exp) noexcept
+BL_FORCE_INLINE constexpr double ldexp_constexpr2(double value, int exp) noexcept
 {
     return scalbn_constexpr2(value, exp);
 }
-FORCE_INLINE constexpr double log_series_reduced_constexpr(double z) noexcept
+BL_FORCE_INLINE constexpr double log_series_reduced_constexpr(double z) noexcept
 {
     const double z2 = z * z;
     const double poly =
@@ -191,7 +189,7 @@ FORCE_INLINE constexpr double log_series_reduced_constexpr(double z) noexcept
 
     return 2.0 * z * poly;
 }
-FORCE_INLINE constexpr double log_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double log_constexpr(double x) noexcept
 {
     constexpr double ln2 = 0.6931471805599453094172321214581765680755;
     constexpr double sqrt_half = 0.7071067811865475244008443621048490392848;
@@ -213,7 +211,7 @@ FORCE_INLINE constexpr double log_constexpr(double x) noexcept
     const double z = (m - 1.0) / (m + 1.0);
     return static_cast<double>(e) * ln2 + log_series_reduced_constexpr(z);
 }
-FORCE_INLINE constexpr double log1p_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double log1p_constexpr(double x) noexcept
 {
     if (x == -1.0) return -std::numeric_limits<double>::infinity();
     if (x < -1.0 || isnan(x)) return std::numeric_limits<double>::quiet_NaN();
@@ -228,16 +226,16 @@ FORCE_INLINE constexpr double log1p_constexpr(double x) noexcept
 }
 
 
-FORCE_INLINE constexpr bool   signbit_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr bool   signbit_constexpr(double x) noexcept
 {
     const std::uint64_t bits = std::bit_cast<std::uint64_t>(x);
     return (bits >> 63) != 0;
 }
-FORCE_INLINE constexpr double fabs_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double fabs_constexpr(double x) noexcept
 {
     return absd(x);
 }
-FORCE_INLINE constexpr double floor_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double floor_constexpr(double x) noexcept
 {
     if (isnan(x) || isinf(x) || x == 0.0)
         return x;
@@ -252,7 +250,7 @@ FORCE_INLINE constexpr double floor_constexpr(double x) noexcept
     if (di == 0.0) return signbit_constexpr(x) ? -0.0 : 0.0;
     return di;
 }
-FORCE_INLINE constexpr double ceil_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double ceil_constexpr(double x) noexcept
 {
     if (isnan(x) || isinf(x) || x == 0.0)
         return x;
@@ -269,11 +267,11 @@ FORCE_INLINE constexpr double ceil_constexpr(double x) noexcept
         return signbit_constexpr(x) ? -0.0 : 0.0;
     return di;
 }
-FORCE_INLINE constexpr double trunc_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double trunc_constexpr(double x) noexcept
 {
     return signbit_constexpr(x) ? ceil_constexpr(x) : floor_constexpr(x);
 }
-FORCE_INLINE constexpr long long llround_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr long long llround_constexpr(double x) noexcept
 {
     if (isnan(x) || isinf(x))
         return 0;
@@ -288,7 +286,7 @@ FORCE_INLINE constexpr long long llround_constexpr(double x) noexcept
 
     return static_cast<long long>(rounded);
 }
-FORCE_INLINE constexpr double fmod_constexpr(double x, double y) noexcept
+BL_FORCE_INLINE constexpr double fmod_constexpr(double x, double y) noexcept
 {
     if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
         return std::numeric_limits<double>::quiet_NaN();
@@ -298,7 +296,7 @@ FORCE_INLINE constexpr double fmod_constexpr(double x, double y) noexcept
     const double q = trunc_constexpr(x / y);
     return x - q * y;
 }
-FORCE_INLINE constexpr bool   double_integer_is_odd(double x) noexcept
+BL_FORCE_INLINE constexpr bool   double_integer_is_odd(double x) noexcept
 {
     const double ax = absd(x);
     if (!isfinite(x) || ax < 1.0 || ax >= 9007199254740992.0)
@@ -306,7 +304,7 @@ FORCE_INLINE constexpr bool   double_integer_is_odd(double x) noexcept
     const long long i = static_cast<long long>(x);
     return (i & 1ll) != 0;
 }
-FORCE_INLINE constexpr double nearbyint_ties_even(double x) noexcept
+BL_FORCE_INLINE constexpr double nearbyint_ties_even(double x) noexcept
 {
     if (isnan(x) || isinf(x) || x == 0.0)
         return x;
@@ -323,7 +321,7 @@ FORCE_INLINE constexpr double nearbyint_ties_even(double x) noexcept
     return out;
 }
 
-FORCE_INLINE constexpr double atan_series_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double atan_series_constexpr(double x) noexcept
 {
     const double x2 = x * x;
     double term = x;
@@ -335,7 +333,7 @@ FORCE_INLINE constexpr double atan_series_constexpr(double x) noexcept
     }
     return sum;
 }
-FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
 {
     constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
     constexpr double pi_4 = 0.7853981633974483096156608458198757210493;
@@ -366,7 +364,7 @@ FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
 
     return neg ? -out : out;
 }
-NO_INLINE constexpr double atan2_constexpr(double y, double x) noexcept
+BL_NO_INLINE    constexpr double atan2_constexpr(double y, double x) noexcept
 {
     constexpr double pi = 3.1415926535897932384626433832795028841972;
     constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
@@ -385,7 +383,7 @@ NO_INLINE constexpr double atan2_constexpr(double y, double x) noexcept
         return signbit_constexpr(y) ? (a - pi) : (a + pi);
     return a;
 }
-FORCE_INLINE constexpr void reduce_pi_over_2_constexpr(double x, int& quadrant, double& r) noexcept
+BL_FORCE_INLINE constexpr void   reduce_pi_over_2_constexpr(double x, int& quadrant, double& r) noexcept
 {
     constexpr double pi_2_hi = 0x1.921fb54442d18p+0;
     constexpr double pi_2_lo = 0x1.1a62633145c07p-54;
@@ -411,7 +409,7 @@ FORCE_INLINE constexpr void reduce_pi_over_2_constexpr(double x, int& quadrant, 
         quadrant = q0;
     }
 }
-FORCE_INLINE constexpr double sin_poly_reduced_constexpr(double r) noexcept
+BL_FORCE_INLINE constexpr double sin_poly_reduced_constexpr(double r) noexcept
 {
     const double t = r * r;
 
@@ -427,7 +425,7 @@ FORCE_INLINE constexpr double sin_poly_reduced_constexpr(double r) noexcept
     return r + r * t * p;
 }
 
-FORCE_INLINE constexpr double cos_poly_reduced_constexpr(double r) noexcept
+BL_FORCE_INLINE constexpr double cos_poly_reduced_constexpr(double r) noexcept
 {
     const double t = r * r;
 
@@ -442,7 +440,7 @@ FORCE_INLINE constexpr double cos_poly_reduced_constexpr(double r) noexcept
 
     return 1.0 + t * p;
 }
-NO_INLINE constexpr void   sincos_constexpr(double x, double& s, double& c) noexcept
+BL_NO_INLINE    constexpr void   sincos_constexpr(double x, double& s, double& c) noexcept
 {
     if (isnan(x) || isinf(x))
     {
@@ -466,7 +464,7 @@ NO_INLINE constexpr void   sincos_constexpr(double x, double& s, double& c) noex
     default: s = -cr; c = sr; break;
     }
 }
-FORCE_INLINE constexpr double sin_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double sin_constexpr(double x) noexcept
 {
     if (isnan(x) || isinf(x))
         return std::numeric_limits<double>::quiet_NaN();
@@ -483,7 +481,7 @@ FORCE_INLINE constexpr double sin_constexpr(double x) noexcept
     default: return -cos_poly_reduced_constexpr(r);
     }
 }
-FORCE_INLINE constexpr double cos_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double cos_constexpr(double x) noexcept
 {
     if (isnan(x) || isinf(x))
         return std::numeric_limits<double>::quiet_NaN();
@@ -501,13 +499,13 @@ FORCE_INLINE constexpr double cos_constexpr(double x) noexcept
     }
 }
 
-FORCE_INLINE constexpr double tan_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double tan_constexpr(double x) noexcept
 {
     double s{}, c{};
     sincos_constexpr(x, s, c);
     return s / c;
 }
-FORCE_INLINE constexpr double sqrt_seed_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double sqrt_seed_constexpr(double x) noexcept
 {
     if (!(x > 0.0) || isnan(x) || isinf(x))
         return x;
@@ -533,18 +531,18 @@ FORCE_INLINE constexpr double sqrt_seed_constexpr(double x) noexcept
 }
 
 BL_PUSH_PRECISE
-FORCE_INLINE constexpr void two_sum_precise(double a, double b, double& s, double& e) noexcept
+BL_FORCE_INLINE constexpr void two_sum_precise(double a, double b, double& s, double& e) noexcept
 {
     s = a + b;
     double bv = s - a;
     e = (a - (s - bv)) + (b - bv);
 }
-FORCE_INLINE constexpr void quick_two_sum_precise(double a, double b, double& s, double& e) noexcept
+BL_FORCE_INLINE constexpr void quick_two_sum_precise(double a, double b, double& s, double& e) noexcept
 {
     s = a + b;
     e = b - (s - a);
 }
-FORCE_INLINE constexpr void two_prod_precise_dekker(double a, double b, double& p, double& err) noexcept
+BL_FORCE_INLINE constexpr void two_prod_precise_dekker(double a, double b, double& p, double& err) noexcept
 {
     constexpr double split = 134217729.0;
 
@@ -562,13 +560,13 @@ FORCE_INLINE constexpr void two_prod_precise_dekker(double a, double b, double& 
 BL_POP_PRECISE
 
 #ifdef FMA_AVAILABLE
-FORCE_INLINE double fma1(double a, double b, double c) noexcept
+BL_FORCE_INLINE double fma1(double a, double b, double c) noexcept
 {
     return std::fma(a, b, c);
 }
 #endif
 
-FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, double& err) noexcept
+BL_FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, double& err) noexcept
 {
     #ifdef FMA_AVAILABLE
     if (bl::is_constant_evaluated())
@@ -585,16 +583,16 @@ FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, doub
     #endif
 }
 
-FORCE_INLINE constexpr void split_uint64_to_doubles(std::uint64_t value, double& hi, double& lo) noexcept
+BL_FORCE_INLINE constexpr void split_uint64_to_doubles(std::uint64_t value, double& hi, double& lo) noexcept
 {
     hi = static_cast<double>(value >> 32) * 4294967296.0;
     lo = static_cast<double>(value & 0xFFFFFFFFull);
 }
-FORCE_INLINE constexpr std::uint64_t magnitude_u64(std::int64_t value) noexcept
+BL_FORCE_INLINE constexpr std::uint64_t magnitude_u64(std::int64_t value) noexcept
 {
     return (value < 0) ? (std::uint64_t{0} - static_cast<std::uint64_t>(value)) : static_cast<std::uint64_t>(value);
 }
-FORCE_INLINE constexpr void uint64_to_exact_double_pair(std::uint64_t value, double& sum, double& err) noexcept
+BL_FORCE_INLINE constexpr void uint64_to_exact_double_pair(std::uint64_t value, double& sum, double& err) noexcept
 {
     double hi{}, lo{};
     split_uint64_to_doubles(value, hi, lo);

@@ -4,23 +4,23 @@
 #include <limits>
 #include <type_traits>
 
-#ifndef FORCE_INLINE
+#ifndef BL_FORCE_INLINE
 #if defined(_MSC_VER)
-#define FORCE_INLINE __forceinline
+#define BL_FORCE_INLINE __forceinline
 #elif defined(__clang__) || defined(__GNUC__)
-#define FORCE_INLINE inline __attribute__((always_inline))
+#define BL_FORCE_INLINE inline __attribute__((always_inline))
 #else
-#define FORCE_INLINE inline
+#define BL_FORCE_INLINE inline
 #endif
 #endif
 
-#ifndef NO_INLINE
+#ifndef BL_NO_INLINE
 #if defined(_MSC_VER)
-#define NO_INLINE __declspec(noinline)
+#define BL_NO_INLINE __declspec(noinline)
 #elif defined(__clang__) || defined(__GNUC__)
-#define NO_INLINE __attribute__((noinline))
+#define BL_NO_INLINE __attribute__((noinline))
 #else
-#define NO_INLINE
+#define BL_NO_INLINE
 #endif
 #endif
 
@@ -108,16 +108,28 @@ namespace bl
 {
     namespace _fltx_debug {
         inline bool always_constexpr_path = false;
-        FORCE_INLINE void set_forced_constexpr_path() noexcept { always_constexpr_path = true; }
-        FORCE_INLINE void set_forced_runtime_path() noexcept { always_constexpr_path = false; }
+#ifdef FLTX_CONSTEXPR_PARITY
+        inline bool constexpr_parity_path = true;
+#endif
+        BL_FORCE_INLINE void set_forced_constexpr_path() noexcept { always_constexpr_path = true; }
+        BL_FORCE_INLINE void set_forced_runtime_path() noexcept { always_constexpr_path = false; }
     }
 
-    [[nodiscard]] FORCE_INLINE constexpr bool is_constant_evaluated() noexcept
+    [[nodiscard]] BL_FORCE_INLINE constexpr bool is_constant_evaluated() noexcept
     {
 #ifdef FLTX_CONSTEXPR_PARITY_TEST_MODE
         return std::is_constant_evaluated() ? true : _fltx_debug::always_constexpr_path;
 #else
         return std::is_constant_evaluated();
+#endif
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_math() noexcept
+    {
+#ifdef FLTX_CONSTEXPR_PARITY
+        return std::is_constant_evaluated() ? true : _fltx_debug::constexpr_parity_path;
+#else
+        return is_constant_evaluated();
 #endif
     }
 }

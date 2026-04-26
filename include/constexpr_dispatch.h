@@ -7,13 +7,13 @@
 #include <functional>
 #include <cstdio>
 
-#ifndef FORCE_INLINE
+#ifndef BL_FORCE_INLINE
 #if defined(_MSC_VER)
-#define FORCE_INLINE __forceinline
+#define BL_FORCE_INLINE __forceinline
 #elif defined(__clang__) || defined(__GNUC__)
-#define FORCE_INLINE inline __attribute__((always_inline))
+#define BL_FORCE_INLINE inline __attribute__((always_inline))
 #else
-#define FORCE_INLINE inline
+#define BL_FORCE_INLINE inline
 #endif
 #endif
 
@@ -85,7 +85,7 @@ struct enum_domain_traits
 
     static constexpr std::size_t size = static_cast<std::size_t>(E::COUNT);
 
-    static FORCE_INLINE constexpr std::size_t index(E v)
+    static BL_FORCE_INLINE constexpr std::size_t index(E v)
     {
         const auto i = static_cast<std::size_t>(v);
         #if !defined(NDEBUG)
@@ -101,7 +101,7 @@ struct enum_domain_traits
         return i;
     }
 
-    static FORCE_INLINE constexpr E value(std::size_t i)
+    static BL_FORCE_INLINE constexpr E value(std::size_t i)
     {
         #if !defined(NDEBUG)
         if (i >= size)
@@ -192,7 +192,7 @@ namespace constexpr_dispatch_detail
     };
 
     template<class T>
-    FORCE_INLINE constexpr std::size_t domain_index(T v)
+    BL_FORCE_INLINE constexpr std::size_t domain_index(T v)
     {
         return enum_domain_traits<std::remove_cv_t<T>>::index(v);
     }
@@ -238,7 +238,7 @@ namespace bl
     };
 
     template<class E>
-    FORCE_INLINE constexpr mapped_enum<E> enum_type(E v)
+    BL_FORCE_INLINE constexpr mapped_enum<E> enum_type(E v)
     {
         return mapped_enum<E>{ v };
     }
@@ -274,7 +274,7 @@ namespace constexpr_dispatch_detail
     template<class E, class Cont, class... Ts>
     struct enum_expand_step<E, Cont, type_list<Ts...>>
     {
-        static FORCE_INLINE decltype(auto) invoke(Cont& cont)
+        static BL_FORCE_INLINE decltype(auto) invoke(Cont& cont)
         {
             return cont.template operator()<Ts...>();
         }
@@ -287,7 +287,7 @@ namespace constexpr_dispatch_detail
         using Fn = Ret(*)(Cont&, More...);
 
         template<std::size_t I>
-        static FORCE_INLINE Ret entry(Cont& cont, More... rest)
+        static BL_FORCE_INLINE Ret entry(Cont& cont, More... rest)
         {
             using Mapped = enum_type_map_t<E, enum_domain_traits<E>::value(I)>;
             return enum_expand_step<E, Cont, type_list<Ts..., Mapped>, More...>::invoke(cont, rest...);
@@ -301,21 +301,21 @@ namespace constexpr_dispatch_detail
 
         static constexpr auto table = build(std::make_index_sequence<enum_domain_traits<E>::size>{});
 
-        static FORCE_INLINE decltype(auto) invoke(Cont& cont, E v0, More... rest)
+        static BL_FORCE_INLINE decltype(auto) invoke(Cont& cont, E v0, More... rest)
         {
             return table[enum_domain_traits<E>::index(v0)](cont, rest...);
         }
     };
 
     template<class E, class Cont, class TsList, class... More>
-    FORCE_INLINE decltype(auto) enum_expandN_impl(Cont& cont, More... xs)
+    BL_FORCE_INLINE decltype(auto) enum_expandN_impl(Cont& cont, More... xs)
     {
         return enum_expand_step<E, Cont, TsList, More...>::invoke(cont, xs...);
     }
 }
 
 template<class E, class Cont, class... Ts, class... More>
-FORCE_INLINE decltype(auto) enum_expandN(Cont& cont, More... xs)
+BL_FORCE_INLINE decltype(auto) enum_expandN(Cont& cont, More... xs)
 {
     static_assert(std::is_enum_v<E>, "E must be an enum");
     return constexpr_dispatch_detail::enum_expandN_impl<E, Cont, constexpr_dispatch_detail::type_list<Ts...>>(cont, xs...);
@@ -340,7 +340,7 @@ namespace constexpr_dispatch_detail
     template<class Ret, class Fun, class... Ts, class... Cs>
     struct step_dispatch<Ret, Fun, type_list<Ts...>, type_list<Cs...>>
     {
-        static FORCE_INLINE Ret invoke(Fun& func)
+        static BL_FORCE_INLINE Ret invoke(Fun& func)
         {
             if constexpr (std::is_void_v<Ret>)
             {
@@ -361,7 +361,7 @@ namespace constexpr_dispatch_detail
         using Fn = Ret(*)(Fun&, Rest...);
 
         template<std::size_t I>
-        static FORCE_INLINE Ret entry(Fun& f, Rest... rest)
+        static BL_FORCE_INLINE Ret entry(Fun& f, Rest... rest)
         {
             using C = domain_constant_t<FirstT, I>;
             using NextCs = typename list_push_back<CsList, C>::type;
@@ -376,7 +376,7 @@ namespace constexpr_dispatch_detail
 
         static constexpr auto table = build(std::make_index_sequence<enum_domain_traits<FirstT>::size>{});
 
-        static FORCE_INLINE Ret invoke(Fun& func, First v0, Rest... rest)
+        static BL_FORCE_INLINE Ret invoke(Fun& func, First v0, Rest... rest)
         {
             return table[enum_domain_traits<FirstT>::index(v0)](func, rest...);
         }
@@ -412,7 +412,7 @@ namespace constexpr_dispatch_detail
     template<class Fun, class... Ts>
     struct table_invoke_parse<Fun, type_list<Ts...>>
     {
-        static FORCE_INLINE decltype(auto) invoke(Fun& func)
+        static BL_FORCE_INLINE decltype(auto) invoke(Fun& func)
         {
             return _table_invoke<Ts...>(func);
         }
@@ -421,7 +421,7 @@ namespace constexpr_dispatch_detail
     template<class Fun, class... Ts, class T, class... Rest>
     struct table_invoke_parse<Fun, type_list<Ts...>, bl::type_tag<T>, Rest...>
     {
-        static FORCE_INLINE decltype(auto) invoke(Fun& func, bl::type_tag<T>, Rest... rest)
+        static BL_FORCE_INLINE decltype(auto) invoke(Fun& func, bl::type_tag<T>, Rest... rest)
         {
             return table_invoke_parse<Fun, type_list<Ts..., T>, Rest...>::invoke(func, rest...);
         }
@@ -430,7 +430,7 @@ namespace constexpr_dispatch_detail
     template<class Fun, class... Ts, class E, class... Rest>
     struct table_invoke_parse<Fun, type_list<Ts...>, bl::mapped_enum<E>, Rest...>
     {
-        static FORCE_INLINE decltype(auto) invoke(Fun& func, bl::mapped_enum<E> me, Rest... rest)
+        static BL_FORCE_INLINE decltype(auto) invoke(Fun& func, bl::mapped_enum<E> me, Rest... rest)
         {
             auto cont = [&]<class... AllTypes>() -> decltype(auto) {
                 return table_invoke_parse<Fun, type_list<AllTypes...>, Rest...>::invoke(func, rest...);
@@ -442,7 +442,7 @@ namespace constexpr_dispatch_detail
     template<class Fun, class... Ts, class First, class... Rest>
     struct table_invoke_parse<Fun, type_list<Ts...>, First, Rest...>
     {
-        static FORCE_INLINE decltype(auto) invoke(Fun& func, First first, Rest... rest)
+        static BL_FORCE_INLINE decltype(auto) invoke(Fun& func, First first, Rest... rest)
         {
             static_assert(is_dispatch_arg_v<std::remove_cvref_t<First>>, "type selectors must come before dispatch args");
             static_assert(((is_dispatch_arg_v<std::remove_cvref_t<Rest>> && ...)), "all trailing args must be dispatch args");

@@ -280,7 +280,7 @@ struct parse_token
 
 
 template<typename CharsResult, typename String, typename Writer>
-constexpr NO_INLINE void write_chars_to_string(String& out, std::size_t cap, Writer&& writer)
+constexpr BL_NO_INLINE void write_chars_to_string(String& out, std::size_t cap, Writer&& writer)
 {
     out.resize(cap);
     char* first = out.data();
@@ -293,7 +293,7 @@ constexpr NO_INLINE void write_chars_to_string(String& out, std::size_t cap, Wri
     out.resize(static_cast<std::size_t>(r.ptr - first));
 }
 
-FORCE_INLINE constexpr bool valid_float_string(const char* s) noexcept
+BL_FORCE_INLINE constexpr bool valid_float_string(const char* s) noexcept
 {
     for (const char* p = s; *p; ++p)
     {
@@ -304,26 +304,26 @@ FORCE_INLINE constexpr bool valid_float_string(const char* s) noexcept
     return true;
 }
 
-FORCE_INLINE constexpr unsigned char ascii_lower(char c) noexcept
+BL_FORCE_INLINE constexpr unsigned char ascii_lower(char c) noexcept
 {
     return static_cast<unsigned char>((c >= 'A' && c <= 'Z') ? (c | 0x20) : c);
 }
 
-FORCE_INLINE constexpr const char* skip_ascii_space(const char* p) noexcept
+BL_FORCE_INLINE constexpr const char* skip_ascii_space(const char* p) noexcept
 {
     while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r' || *p == '\f' || *p == '\v')
         ++p;
     return p;
 }
 
-FORCE_INLINE constexpr void copy_chars(char* dst, const char* src, std::size_t count) noexcept
+BL_FORCE_INLINE constexpr void copy_chars(char* dst, const char* src, std::size_t count) noexcept
 {
     for (std::size_t i = 0; i < count; ++i)
         dst[i] = src[i];
 }
 
 template<typename UInt>
-FORCE_INLINE constexpr int write_unsigned_decimal_rev(char* dst, UInt value) noexcept
+BL_FORCE_INLINE constexpr int write_unsigned_decimal_rev(char* dst, UInt value) noexcept
 {
     int len = 0;
     do
@@ -335,7 +335,7 @@ FORCE_INLINE constexpr int write_unsigned_decimal_rev(char* dst, UInt value) noe
 }
 
 template<typename String, typename UInt>
-FORCE_INLINE constexpr void append_unsigned_decimal(String& out, UInt value)
+BL_FORCE_INLINE constexpr void append_unsigned_decimal(String& out, UInt value)
 {
     char buf[32];
     const int len = write_unsigned_decimal_rev(buf, value);
@@ -354,7 +354,7 @@ constexpr inline std::size_t find_exponent_marker(std::string_view text) noexcep
 }
 
 template<typename String>
-inline constexpr NO_INLINE void ensure_decimal_point(String& s)
+inline constexpr BL_NO_INLINE void ensure_decimal_point(String& s)
 {
     const std::string_view view(s.data(), s.size());
     const std::size_t e = find_exponent_marker(view);
@@ -368,7 +368,7 @@ inline constexpr NO_INLINE void ensure_decimal_point(String& s)
 }
 
 template<typename String>
-inline constexpr NO_INLINE void apply_stream_decorations(String& s, bool showpos, bool uppercase)
+inline constexpr BL_NO_INLINE void apply_stream_decorations(String& s, bool showpos, bool uppercase)
 {
     if (showpos && (s.empty() || s[0] != '-'))
         s.insert(0, 1, '+');
@@ -452,7 +452,7 @@ constexpr inline void format_to_string(String& out, const typename Traits::value
 }
 
 template<class Traits, typename String>
-FORCE_INLINE constexpr void to_string_into(String& out, const typename Traits::value_type& x, int precision,
+BL_FORCE_INLINE constexpr void to_string_into(String& out, const typename Traits::value_type& x, int precision,
     bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     const format_kind kind = (fixed && !scientific) ? format_kind::fixed_frac : (scientific && !fixed) ? format_kind::scientific_frac : format_kind::general;
@@ -460,25 +460,25 @@ FORCE_INLINE constexpr void to_string_into(String& out, const typename Traits::v
 }
 
 template<class Traits, typename String>
-FORCE_INLINE constexpr void emit_scientific(String& out, const typename Traits::value_type& x, std::streamsize prec, bool strip_trailing_zeros)
+BL_FORCE_INLINE constexpr void emit_scientific(String& out, const typename Traits::value_type& x, std::streamsize prec, bool strip_trailing_zeros)
 {
     format_to_string<Traits>(out, x, static_cast<int>(prec), format_kind::scientific_frac, strip_trailing_zeros);
 }
 
 template<class Traits, typename String>
-FORCE_INLINE constexpr void emit_fixed_dec(String& out, const typename Traits::value_type& x, int prec, bool strip_trailing_zeros)
+BL_FORCE_INLINE constexpr void emit_fixed_dec(String& out, const typename Traits::value_type& x, int prec, bool strip_trailing_zeros)
 {
     format_to_string<Traits>(out, x, prec, format_kind::fixed_frac, strip_trailing_zeros);
 }
 
 template<class Traits, typename String>
-FORCE_INLINE constexpr void emit_scientific_sig(String& out, const typename Traits::value_type& x, std::streamsize sig_digits, bool strip_trailing_zeros)
+BL_FORCE_INLINE constexpr void emit_scientific_sig(String& out, const typename Traits::value_type& x, std::streamsize sig_digits, bool strip_trailing_zeros)
 {
     format_to_string<Traits>(out, x, static_cast<int>(sig_digits), format_kind::scientific_sig, strip_trailing_zeros);
 }
 
 template<typename Token>
-constexpr NO_INLINE void scan_decimal_digits(const char*& p, Token& token, bool fractional) noexcept
+constexpr BL_NO_INLINE void scan_decimal_digits(const char*& p, Token& token, bool fractional) noexcept
 {
     while (*p >= '0' && *p <= '9')
     {
@@ -498,7 +498,7 @@ constexpr NO_INLINE void scan_decimal_digits(const char*& p, Token& token, bool 
 }
 
 template<typename Token>
-constexpr NO_INLINE void scan_optional_exp10(const char*& p, Token& token) noexcept
+constexpr BL_NO_INLINE void scan_optional_exp10(const char*& p, Token& token) noexcept
 {
     if (*p != 'e' && *p != 'E')
         return;
@@ -527,7 +527,7 @@ constexpr NO_INLINE void scan_optional_exp10(const char*& p, Token& token) noexc
 }
 
 template<typename Token>
-constexpr NO_INLINE bool scan_decimal_token(const char*& p, Token& token) noexcept
+constexpr BL_NO_INLINE bool scan_decimal_token(const char*& p, Token& token) noexcept
 {
     scan_decimal_digits(p, token, false);
     if (*p == '.')
@@ -542,7 +542,7 @@ constexpr NO_INLINE bool scan_decimal_token(const char*& p, Token& token) noexce
 }
 
 template<class Traits>
-constexpr NO_INLINE bool parse_special(const char*& p, bool neg, typename Traits::value_type& out) noexcept
+constexpr BL_NO_INLINE bool parse_special(const char*& p, bool neg, typename Traits::value_type& out) noexcept
 {
     if (ascii_lower(p[0]) == 'n' && ascii_lower(p[1]) == 'a' && ascii_lower(p[2]) == 'n')
     {
@@ -563,7 +563,7 @@ constexpr NO_INLINE bool parse_special(const char*& p, bool neg, typename Traits
 }
 
 template<class Traits>
-constexpr NO_INLINE bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
+constexpr BL_NO_INLINE bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
 {
     using token_type = typename Traits::parse_token;
 
@@ -624,7 +624,7 @@ constexpr NO_INLINE bool parse_flt(const char* s, typename Traits::value_type& o
 }
 
 template<class Traits>
-NO_INLINE std::ostream& write_to_stream(std::ostream& os, const typename Traits::value_type& x)
+BL_NO_INLINE std::ostream& write_to_stream(std::ostream& os, const typename Traits::value_type& x)
 {
     int prec = static_cast<int>(os.precision());
     if (prec < 0)

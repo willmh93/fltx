@@ -12,7 +12,7 @@
 
 namespace bl
 {
-    FORCE_INLINE std::string to_string(f32 a,
+    BL_FORCE_INLINE std::string to_string(f32 a,
         int max_precision = std::numeric_limits<f32>::digits10,
         bool fixed = false,
         bool scientific = false,
@@ -30,7 +30,7 @@ namespace bl
         return out;
     }
 
-    FORCE_INLINE std::string to_string(f64 a,
+    BL_FORCE_INLINE std::string to_string(f64 a,
         int max_precision = std::numeric_limits<f64>::digits10,
         bool fixed = false,
         bool scientific = false,
