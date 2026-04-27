@@ -534,6 +534,19 @@ namespace _f128_detail
         return { s, err };
     }
     BL_POP_PRECISE
+
+    BL_FORCE_INLINE constexpr f128_s sub_mul_scalar_exact(const f128_s& r, const f128_s& b, double q) noexcept
+    {
+        double p{}, e{};
+        two_prod_precise(b.hi, q, p, e);
+        e += b.lo * q;
+
+        double s{}, t{};
+        two_sum_precise(r.hi, -p, s, t);
+        t += r.lo - e;
+
+        return renorm(s, t);
+    }
 }
 
 /// ------------------ scalar ------------------
@@ -581,7 +594,7 @@ BL_POP_PRECISE
     const double inv_b0 = 1.0 / b.hi;
 
     const double q0 = a.hi * inv_b0;
-    f128_s r = a - b * q0;
+    f128_s r = _f128_detail::sub_mul_scalar_exact(a, b, q0);
 
     const double q1 = r.hi * inv_b0;
 
@@ -646,7 +659,7 @@ BL_POP_PRECISE
     }
 
     const double q0 = a.hi / b;
-    const f128_s r = a - f128_s{ b, 0.0 } * q0;
+    const f128_s r = _f128_detail::sub_mul_scalar_exact(a, f128_s{ b, 0.0 }, q0);
     const double q1 = r.hi / b;
 
     return _f128_detail::renorm(q0, q1);
@@ -664,7 +677,7 @@ BL_POP_PRECISE
 [[nodiscard]] BL_NO_INLINE constexpr f128_s operator/(double a, const f128_s& b) noexcept
 {
     const double q0 = a / b.hi;
-    const f128_s r = f128_s{ a, 0.0 } - b * q0;
+    const f128_s r = _f128_detail::sub_mul_scalar_exact(f128_s{ a, 0.0 }, b, q0);
     const double q1 = r.hi / b.hi;
     return _f128_detail::renorm(q0, q1);
 }
