@@ -26,14 +26,14 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 25;
+    constexpr int benchmark_scale = 20;
     constexpr std::size_t bucket_value_count = 64;
     constexpr std::size_t bucket_count = 3;
 
     bl::bench::benchmark_chart_writer chart_writer{
         "f128",
         "mpfr",
-        "f128 vs MPFR hard benchmark ratios",
+        "f128 vs MPFR benchmark ratios",
         "benchmark_charts/f128_hard_ratios.csv",
         "benchmark_charts/f128_hard_ratios.svg"
     };
@@ -102,8 +102,8 @@ namespace
         T y{};
         T a{};
         T b{};
-        T c{};
-        T d{};
+        T denom_x{};
+        T denom_y{};
     };
 
     volatile double benchmark_sink = 0.0;
@@ -849,8 +849,8 @@ namespace
         out.y = make_value<T>(spec.y);
         out.a = make_value<T>(spec.a);
         out.b = make_value<T>(spec.b);
-        out.c = make_value<T>(spec.c);
-        out.d = make_value<T>(spec.d);
+        out.denom_x = make_value<T>(spec.c) + 0.5;
+        out.denom_y = make_value<T>(spec.d) + 1.5;
         return out;
     }
 
@@ -1540,10 +1540,8 @@ namespace
                     const T yy = item.y * item.y;
                     const T xy = item.x * item.y;
 
-                    item.x = (xx - yy) + item.a;
-                    item.y = (xy + xy) + item.b;
-                    item.x = item.x / (item.c + T(0.5));
-                    item.y = item.y / (item.d + T(1.5));
+                    item.x = ((xx - yy) + item.a) / item.denom_x;
+                    item.y = ((xy + xy) + item.b) / item.denom_y;
 
                     acc_x = blend_result(item.x, acc_x);
                     acc_y = blend_result(item.y, acc_y);

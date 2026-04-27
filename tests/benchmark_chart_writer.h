@@ -270,7 +270,7 @@ namespace bl::bench
             if (!out)
                 return;
 
-            constexpr double visible_ratio_cap = 10.0;
+            constexpr double visible_ratio_cap = 8.0;
 
             double max_ratio = 1.0;
             std::size_t longest_label_size = 0;
@@ -288,18 +288,33 @@ namespace bl::bench
             const double tick_max = has_capped_ratios ? visible_ratio_cap : std::ceil(padded_max_ratio / tick_step) * tick_step;
 
             constexpr int group_heading_height = 32;
+            constexpr int group_separator_height = 8;
             constexpr int row_height = 34;
             constexpr int bar_height = 24;
             constexpr int top_margin = 92;
-            constexpr int bottom_margin = 84;
+            constexpr int bottom_margin = 24;
             const int left_margin = std::max(280, static_cast<int>(longest_label_size * 11) + 48);
             const int right_margin = has_capped_ratios ? 184 : 96;
             constexpr int plot_width = 1180;
             const int width = left_margin + plot_width + right_margin;
 
             int content_height = 0;
+            bool has_group_heading = false;
             for (const auto& item : layout_entries)
-                content_height += item.is_group_heading ? group_heading_height : row_height;
+            {
+                if (item.is_group_heading)
+                {
+                    if (has_group_heading)
+                        content_height += group_separator_height;
+
+                    has_group_heading = true;
+                    content_height += group_heading_height;
+                }
+                else
+                {
+                    content_height += row_height;
+                }
+            }
 
             const int height = top_margin + bottom_margin + content_height;
             const int plot_left = left_margin;
@@ -319,22 +334,11 @@ namespace bl::bench
             out << "  <text x=\"" << (width / 2) << "\" y=\"38\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"28\" font-weight=\"600\" fill=\"#222222\">"
                 << escape_svg(title) << "</text>\n";
 
-            if (has_capped_ratios)
-            {
-                out << "  <text x=\"" << (width / 2) << "\" y=\"66\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"16\" fill=\"#555555\">"
-                    << "Visible bars are capped at " << format_decimal(visible_ratio_cap, 0) << "x; labels show the real measured ratio"
-                    << "</text>\n";
-            }
-
             for (double tick_value = 0.0; tick_value <= tick_max + 1e-9; tick_value += tick_step)
             {
                 const double x = map_ratio_to_x(tick_value);
                 out << "  <line x1=\"" << x << "\" y1=\"" << plot_top << "\" x2=\"" << x << "\" y2=\"" << plot_bottom
                     << "\" stroke=\"#dddddd\" stroke-width=\"1\"/>\n";
-                out << "  <text x=\"" << x << "\" y=\"" << (height - 30)
-                    << "\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"17\" fill=\"#333333\">"
-                    << escape_svg(format_decimal(tick_value, tick_step < 1.0 ? 1 : 0))
-                    << "</text>\n";
             }
 
             if (1.0 <= tick_max)
@@ -354,7 +358,7 @@ namespace bl::bench
                     {
                         out << "  <line x1=\"" << (plot_left - 8) << "\" y1=\"" << y_cursor << "\" x2=\"" << plot_right
                             << "\" y2=\"" << y_cursor << "\" stroke=\"#cfcfcf\" stroke-width=\"1\"/>\n";
-                        y_cursor += 8;
+                        y_cursor += group_separator_height;
                     }
 
                     current_group = item.text;
@@ -394,6 +398,7 @@ namespace bl::bench
                 const double value_label_x = is_capped
                     ? static_cast<double>(plot_right + 26)
                     : std::min<double>(x + 10.0, static_cast<double>(plot_right - 8));
+
                 out << "  <text x=\"" << value_label_x
                     << "\" y=\"" << (y + bar_height * 0.5 + 5.5)
                     << "\" text-anchor=\"start\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"15\" font-weight=\"600\" fill=\"#444444\">"
@@ -402,13 +407,6 @@ namespace bl::bench
 
                 y_cursor += row_height;
             }
-
-            out << "  <text x=\"" << (plot_left + plot_width / 2) << "\" y=\"" << (height - 8)
-                << "\" text-anchor=\"middle\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"19\" fill=\"#333333\">"
-                << escape_svg(reference_name) << " / " << escape_svg(candidate_name) << " ratio";
-            if (has_capped_ratios)
-                out << " (visible cap at " << format_decimal(visible_ratio_cap, 0) << "x)";
-            out << "</text>\n";
             out << "</svg>\n";
         }
     };

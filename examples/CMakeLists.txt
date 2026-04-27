@@ -4,6 +4,7 @@ project(fltx LANGUAGES CXX)
 function(fltx_add_example example_name)
     add_executable(${example_name} ${ARGN})
     target_link_libraries(${example_name} PRIVATE fltx::fltx)
+
     target_compile_features(${example_name} PRIVATE cxx_std_20)
     set_target_properties(${example_name} PROPERTIES FOLDER "fltx/examples")
 endfunction()

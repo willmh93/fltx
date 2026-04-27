@@ -407,7 +407,7 @@ namespace
         CAPTURE(to_text_double_hex(got.lo));
 
         record_accuracy_sample(op_name, diff, accuracy_scale, diff <= tolerance);
-        REQUIRE(diff <= tolerance);
+        CHECK(diff <= tolerance);
     }
 
     [[nodiscard]] mpfr_ref ref_floor(const mpfr_ref& value)
@@ -1688,8 +1688,8 @@ TEST_CASE("f128 log10 matches MPFR on random positive inputs", "[fltx][f128][pre
 TEST_CASE("f128 pow matches MPFR for fixed values", "[fltx][f128][precision][transcendental][pow]")
 {
     accuracy_report_scope report_scope{ "f128 pow matches MPFR for fixed values" };
-    const mpfr_ref abs_tolerance{ "5e-27" };
-    const mpfr_ref rel_tolerance{ "5e-26" };
+    const mpfr_ref abs_tolerance = decimal_epsilon(checked_digits);
+    const mpfr_ref rel_tolerance = decimal_epsilon(checked_digits);
 
     check_pow_case("two_to_ten", mpfr_ref{ 2 }, mpfr_ref{ 10 }, abs_tolerance, rel_tolerance);
     check_pow_case("two_to_minus_ten", mpfr_ref{ 2 }, mpfr_ref{ -10 }, abs_tolerance, rel_tolerance);
@@ -1710,8 +1710,8 @@ TEST_CASE("f128 pow matches MPFR on random positive-base inputs", "[fltx][f128][
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "5e-27" };
-    const mpfr_ref rel_tolerance{ "5e-26" };
+    const mpfr_ref abs_tolerance = decimal_epsilon(checked_digits);
+    const mpfr_ref rel_tolerance = decimal_epsilon(checked_digits);
     print_random_run("random pow cases", count);
 
     for (int i = 0; i < count; ++i)

@@ -653,6 +653,208 @@ namespace _f128_detail
         return sum + sum;
     }
 
+
+
+    inline constexpr f128_s lgamma1p_coeff[] = {
+        f128_s{ 0x1.a51a6625307d3p-1, 0x1.1873d8912200cp-56 },
+        f128_s{ -0x1.9a4d55beab2d7p-2, 0x1.4c26d1b465993p-59 },
+        f128_s{ 0x1.151322ac7d848p-2, 0x1.b5f91211196e5p-57 },
+        f128_s{ -0x1.a8b9c17aa6149p-3, -0x1.2e826a4fdae1ap-58 },
+        f128_s{ 0x1.5b40cb100c306p-3, 0x1.4a79940f15696p-59 },
+        f128_s{ -0x1.2703a1dcea3aep-3, -0x1.6307fd0794ac4p-57 },
+        f128_s{ 0x1.010b36af86397p-3, -0x1.741a635b224a6p-59 },
+        f128_s{ -0x1.c806706d57db4p-4, -0x1.56aa806fdd3eep-58 },
+        f128_s{ 0x1.9a01e385d5f8fp-4, 0x1.813418f3768cdp-59 },
+        f128_s{ -0x1.748c33114c6d6p-4, -0x1.ea57624080720p-61 },
+        f128_s{ 0x1.556ad63243bc4p-4, 0x1.5de8580fae81dp-62 },
+        f128_s{ -0x1.3b1d971fc5985p-4, 0x1.e58607e493dfdp-59 },
+        f128_s{ 0x1.2496df8320c5fp-4, 0x1.cf4b4ae040be8p-58 },
+        f128_s{ -0x1.11133476e7fe0p-4, -0x1.dc9a4ff396ee3p-59 },
+        f128_s{ 0x1.00010064cdeb2p-4, 0x1.7879d0156affep-59 },
+        f128_s{ -0x1.e1e2d311e8abdp-5, 0x1.8d2a110ce956bp-59 },
+        f128_s{ 0x1.c71ce3a20b419p-5, -0x1.be9617d035b06p-59 },
+        f128_s{ -0x1.af28a1b5688a0p-5, -0x1.74741e885fefbp-59 },
+        f128_s{ 0x1.9999b3352d5bap-5, 0x1.4951b4c6be56dp-62 },
+        f128_s{ -0x1.86186db77bfbfp-5, -0x1.6dedef1f58778p-59 },
+        f128_s{ 0x1.745d1d1778df9p-5, 0x1.02b8fe0a898e7p-61 },
+        f128_s{ -0x1.642c88591b66dp-5, 0x1.1074551cafc60p-59 },
+        f128_s{ 0x1.555556aaafdcdp-5, 0x1.54a05fce04ef6p-59 },
+        f128_s{ -0x1.47ae151eb9fb7p-5, -0x1.d038d4d4653c2p-59 },
+        f128_s{ 0x1.3b13b189d925ep-5, 0x1.f4ad5a89f860cp-59 },
+        f128_s{ -0x1.2f684c00002bcp-5, -0x1.055a3ba5e6a12p-59 },
+        f128_s{ 0x1.24924936db7bcp-5, 0x1.f2631c34f2cbcp-59 },
+        f128_s{ -0x1.1a7b961a7b9aap-5, 0x1.e116d2f11b9bcp-59 },
+        f128_s{ 0x1.111111155556dp-5, -0x1.527ce242d7c8fp-59 },
+        f128_s{ -0x1.08421086318cep-5, 0x1.1db4d8fcae8c6p-59 },
+        f128_s{ 0x1.0000000100002p-5, 0x1.b8fd913d3546ap-59 },
+        f128_s{ -0x1.f07c1f08ba2eap-6, -0x1.31bb2e9036633p-60 },
+        f128_s{ 0x1.e1e1e1e25a5a6p-6, 0x1.3e46eaa03f9ccp-61 },
+        f128_s{ -0x1.d41d41d457c58p-6, 0x1.0600661f0f0e3p-62 },
+        f128_s{ 0x1.c71c71c738e39p-6, -0x1.d93a55599cf57p-63 },
+        f128_s{ -0x1.bacf914c29837p-6, -0x1.797fe7c73f29ap-60 },
+        f128_s{ 0x1.af286bca21af3p-6, -0x1.df4d835f028bdp-60 },
+        f128_s{ -0x1.a41a41a41d89ep-6, 0x1.d6bf77cbc25c7p-60 },
+        f128_s{ 0x1.999999999b333p-6, 0x1.9ad0584412591p-61 },
+        f128_s{ -0x1.8f9c18f9c2577p-6, 0x1.766fd061292d7p-60 },
+        f128_s{ 0x1.8618618618c31p-6, -0x1.e77d97e1c5a45p-61 },
+        f128_s{ -0x1.7d05f417d08eep-6, -0x1.1dcf2bd1488c1p-61 },
+        f128_s{ 0x1.745d1745d18bap-6, 0x1.7460941753bf5p-61 },
+        f128_s{ -0x1.6c16c16c16ccdp-6, 0x1.9998769b89af0p-61 },
+        f128_s{ 0x1.642c8590b21bdp-6, 0x1.bd3805d865a75p-61 },
+        f128_s{ -0x1.5c9882b931083p-6, 0x1.1b3bdabc05a8dp-60 },
+        f128_s{ 0x1.555555555556bp-6, -0x1.555550480911cp-60 },
+        f128_s{ -0x1.4e5e0a72f0544p-6, 0x1.4e5e03d9bbd88p-62 },
+        f128_s{ 0x1.47ae147ae1480p-6, 0x1.13e7474dcd9a5p-85 },
+        f128_s{ -0x1.4141414141417p-6, 0x1.a5a5a57890971p-60 },
+        f128_s{ 0x1.3b13b13b13b15p-6, -0x1.3b13b1001f8aep-62 },
+        f128_s{ -0x1.3521cfb2b78c2p-6, 0x1.826a4395c1891p-61 },
+        f128_s{ 0x1.2f684bda12f69p-6, -0x1.a12f684a465ffp-60 },
+        f128_s{ -0x1.29e4129e4129ep-6, -0x1.9999999a1db84p-60 },
+        f128_s{ 0x1.2492492492492p-6, 0x1.6db6db6de21c5p-60 }
+    };
+
+    inline constexpr f128_s lgamma1p5_coeff[] = {
+        f128_s{ 0x1.de9e64df22ef3p-2, -0x1.6d48ec9933fbap-57 },
+        f128_s{ -0x1.1ae55b180726cp-3, -0x1.959aeebbe37a9p-59 },
+        f128_s{ 0x1.e0f840dad61dap-5, -0x1.599fc3fe0a24cp-59 },
+        f128_s{ -0x1.da59d5374a543p-6, -0x1.0628c23cf6fdcp-63 },
+        f128_s{ 0x1.f9ca39daa929cp-7, -0x1.69e59f1067e8fp-67 },
+        f128_s{ -0x1.1a8ba4f0ea597p-7, -0x1.7d1f4799cdd85p-61 },
+        f128_s{ 0x1.456f1ad666a3bp-8, -0x1.3247be39407adp-62 },
+        f128_s{ -0x1.7edb812f6426ep-9, -0x1.5cb4446f39441p-64 },
+        f128_s{ 0x1.c9735ae9db2c1p-10, -0x1.00df931d99976p-65 },
+        f128_s{ -0x1.148a319eec639p-10, 0x1.8b9481cc9d8c5p-66 },
+        f128_s{ 0x1.517c5a1579f10p-11, -0x1.6de593e736460p-65 },
+        f128_s{ -0x1.9eff1d1c8bdc2p-12, -0x1.b074a9d2f567bp-68 },
+        f128_s{ 0x1.00c41c13e4c1cp-12, 0x1.23a0bd176970bp-66 },
+        f128_s{ -0x1.3f6dff22ac1c2p-13, 0x1.c991818178cf5p-68 },
+        f128_s{ 0x1.8f3619541742cp-14, -0x1.9194563cfb41ap-69 },
+        f128_s{ -0x1.f4ea079c9c87ap-15, -0x1.f4d6e8d46504bp-71 },
+        f128_s{ 0x1.3b5e73f18d398p-15, 0x1.c67a3cfb2c122p-70 },
+        f128_s{ -0x1.8e583480fb843p-16, 0x1.f69ef26bd25fap-75 },
+        f128_s{ 0x1.f88eb43555368p-17, -0x1.9028d0c42fa7ep-74 },
+        f128_s{ -0x1.4059677eed115p-17, 0x1.7b1825e75d8d6p-73 },
+        f128_s{ 0x1.97b6b03fa7446p-18, -0x1.6f01f1c1c4be3p-72 },
+        f128_s{ -0x1.03fd6bf0808efp-18, -0x1.fd918e6fbcaebp-72 },
+        f128_s{ 0x1.4c355353d5241p-19, -0x1.8b80de6628253p-76 },
+        f128_s{ -0x1.a939cf6ab6697p-20, -0x1.4c9d10090b8a2p-74 },
+        f128_s{ 0x1.109491756a3f0p-20, 0x1.76bf49056fc2fp-74 },
+        f128_s{ -0x1.5dfabe1235651p-21, 0x1.cdba663360cb3p-76 },
+        f128_s{ 0x1.c1f93171f89d3p-22, -0x1.e4e55b85afbc8p-76 },
+        f128_s{ -0x1.21a3531259833p-22, 0x1.bd691063eee70p-77 },
+        f128_s{ 0x1.754fa60ab8b7ap-23, -0x1.ac1c40cde5565p-77 },
+        f128_s{ -0x1.e1b1158537c59p-24, -0x1.a038cdbafc436p-79 },
+        f128_s{ 0x1.3717b2266f892p-24, 0x1.4c81741efeb59p-79 },
+        f128_s{ -0x1.92387e0fdf9f7p-25, -0x1.49d2a7a71b29dp-79 },
+        f128_s{ 0x1.0442ab98bfc68p-25, 0x1.92553e7d00a21p-79 },
+        f128_s{ -0x1.51196689e7eeep-26, 0x1.a18474ec60c9dp-81 },
+        f128_s{ 0x1.b4fafffb9d100p-27, 0x1.a3302fc538f03p-83 },
+        f128_s{ -0x1.1b7260c6f0a98p-27, -0x1.e26f947be4327p-82 },
+        f128_s{ 0x1.6ffbc9ee7fb98p-28, -0x1.e26e0739956f6p-83 },
+        f128_s{ -0x1.de1068c0e801bp-29, -0x1.6cd7c1b959661p-83 },
+        f128_s{ 0x1.36bdddabf16d9p-29, -0x1.d926441c8b4c4p-83 },
+        f128_s{ -0x1.943780143c19dp-30, -0x1.100cc8f4aa6e9p-84 },
+        f128_s{ 0x1.070fcd4094009p-30, 0x1.f83a3a445b423p-86 },
+        f128_s{ -0x1.56978e4716a05p-31, -0x1.9e4fdaf5a2dabp-85 },
+        f128_s{ 0x1.be68640e30872p-32, -0x1.5a5aae6418194p-89 },
+        f128_s{ -0x1.22fde267b9daep-32, -0x1.9c6f37412f9cdp-87 },
+        f128_s{ 0x1.7b8defa86bdb7p-33, 0x1.7abe7975fce0dp-91 },
+        f128_s{ -0x1.ef4e19e105fa4p-34, 0x1.8f318f9909851p-91 },
+        f128_s{ 0x1.4352fb8f40e4ep-34, -0x1.33c691a77efa8p-88 },
+        f128_s{ -0x1.a64d09df9d496p-35, 0x1.c17c3d74dc13ap-89 },
+        f128_s{ 0x1.13e73d105cf63p-35, 0x1.f93f22cf4af99p-89 },
+        f128_s{ -0x1.68a86a97e144dp-36, 0x1.b5c3a7b89ba21p-90 },
+        f128_s{ 0x1.d7a128edfb44ap-37, -0x1.3be7aba9d356bp-93 },
+        f128_s{ -0x1.347cbbc72064fp-37, 0x1.71403302e085ap-91 },
+        f128_s{ 0x1.93b308b268643p-38, 0x1.195a1b5637c85p-92 },
+        f128_s{ -0x1.083d54d1dd741p-38, -0x1.a77a9ad2416c5p-94 },
+        f128_s{ 0x1.5a072c06a19ffp-39, 0x1.a277f2aa37865p-93 },
+        f128_s{ -0x1.c546c66581161p-40, -0x1.52266404da246p-94 },
+        f128_s{ 0x1.28f967804ba17p-40, 0x1.e507a5793f98cp-94 },
+        f128_s{ -0x1.85411e14a2adfp-41, 0x1.e9f2f01cda3ecp-99 },
+        f128_s{ 0x1.fe5b10aef75a5p-42, -0x1.be0c224692c7fp-97 },
+        f128_s{ -0x1.4ea8d461f1e88p-42, 0x1.6971a22ddceddp-96 },
+        f128_s{ 0x1.b7040357324f2p-43, -0x1.fb0047ded483fp-97 },
+        f128_s{ -0x1.20080d0717845p-43, 0x1.92ff4fa145300p-97 },
+        f128_s{ 0x1.7a0a91194edbep-44, -0x1.31aefa4aa973fp-101 },
+        f128_s{ -0x1.f04ce33f6b75fp-45, 0x1.50d6b1d688eddp-99 },
+        f128_s{ 0x1.45da900805e80p-45, 0x1.bbbca6a9ab3ecp-99 },
+        f128_s{ -0x1.abfcade4542c8p-46, -0x1.ed48fc6d40a25p-104 },
+        f128_s{ 0x1.1920f4bba0b3ap-46, 0x1.a51e5ef7eafe1p-100 },
+        f128_s{ -0x1.7167e74d1d5dbp-47, -0x1.424703463268fp-101 },
+        f128_s{ 0x1.e5813e9fdd73cp-48, -0x1.77856885e6f00p-103 },
+        f128_s{ -0x1.3f1c7614f1b4ap-48, 0x1.f8e0424563d70p-102 },
+        f128_s{ 0x1.a39275546d348p-49, 0x1.aeebff90f4bf0p-103 },
+        f128_s{ -0x1.13e20e066adfep-49, -0x1.4458bd2819a7ep-103 },
+        f128_s{ 0x1.6adf8811aa8e4p-50, 0x1.03b5e8b6a3a9fp-104 },
+        f128_s{ -0x1.dd613b8a280e3p-51, -0x1.55e677244df9dp-105 },
+        f128_s{ 0x1.3a10cf9786245p-51, -0x1.53120b9a883f2p-105 },
+        f128_s{ -0x1.9d50dbffed7c4p-52, 0x1.8ea0d2722d1cbp-106 },
+        f128_s{ 0x1.1002e3ee72b89p-52, 0x1.e2e040801e860p-106 },
+        f128_s{ -0x1.66173f813291dp-53, 0x1.5d465546aa135p-107 },
+        f128_s{ 0x1.d77c7a03b5c88p-54, -0x1.2375a930ce7ddp-109 },
+        f128_s{ -0x1.3671909a25851p-54, -0x1.64135363de411p-112 },
+        f128_s{ 0x1.98e0800337a90p-55, 0x1.60030a839fc44p-110 },
+        f128_s{ -0x1.0d4cec7961518p-55, -0x1.ff3f70e2ec811p-114 },
+        f128_s{ 0x1.62caee67064efp-56, -0x1.f8e5727c66691p-112 },
+        f128_s{ -0x1.d37dd6bdf63ddp-57, -0x1.8f1ce56e5d21ap-111 },
+        f128_s{ 0x1.34097d9ee7b5ap-57, 0x1.3e3d23b7c0e31p-111 },
+        f128_s{ -0x1.95fec6eaf0a8dp-58, 0x1.90c9907868b95p-112 },
+        f128_s{ 0x1.0b967777f0122p-58, 0x1.f7bf8ce33021dp-112 },
+        f128_s{ -0x1.60c65e387cbcep-59, 0x1.a17ca2202219cp-113 },
+        f128_s{ 0x1.d123e4872935bp-60, -0x1.22a19e8d18b94p-116 }
+    };
+
+    BL_NO_INLINE constexpr f128_s lgamma1p_series(const f128_s& y) noexcept
+    {
+        constexpr int count = static_cast<int>(sizeof(lgamma1p_coeff) / sizeof(lgamma1p_coeff[0]));
+
+        f128_s p = lgamma1p_coeff[count - 1];
+        for (int i = count - 2; i >= 0; --i)
+            p = p * y + lgamma1p_coeff[i];
+
+        return y * (-_f128_const::egamma + y * p);
+    }
+
+    BL_NO_INLINE constexpr f128_s lgamma1p5_series(const f128_s& y) noexcept
+    {
+        constexpr int count = static_cast<int>(sizeof(lgamma1p5_coeff) / sizeof(lgamma1p5_coeff[0]));
+
+        f128_s p = lgamma1p5_coeff[count - 1];
+        for (int i = count - 2; i >= 0; --i)
+            p = p * y + lgamma1p5_coeff[i];
+
+        const f128_s constant = _f128_const::half_log_two_pi - f128_s{ 1.5 } * _f128_const::ln2;
+        const f128_s linear = f128_s{ 2.0 } - _f128_const::egamma - f128_s{ 2.0 } * _f128_const::ln2;
+        return constant + y * (linear + y * p);
+    }
+
+    BL_FORCE_INLINE constexpr bool try_lgamma_near_one_or_two(const f128_s& x, f128_s& out) noexcept
+    {
+        const f128_s y1 = x - f128_s{ 1.0 };
+        if (abs(y1) <= f128_s{ 0.25 })
+        {
+            out = lgamma1p_series(y1);
+            return true;
+        }
+
+        const f128_s y15 = x - f128_s{ 1.5 };
+        if (abs(y15) <= f128_s{ 0.25 })
+        {
+            out = lgamma1p5_series(y15);
+            return true;
+        }
+
+        const f128_s y2 = x - f128_s{ 2.0 };
+        if (abs(y2) <= f128_s{ 0.25 })
+        {
+            out = f128_log1p_series_reduced(y2) + lgamma1p_series(y2);
+            return true;
+        }
+
+        return false;
+    }
+
     BL_FORCE_INLINE constexpr f128_s f128_exp_kernel_ln2_half(const f128_s& r)
     {
         f128_s p = f128_s{ 8.89679139245057408e-22 };
@@ -966,12 +1168,12 @@ BL_NO_INLINE    constexpr f128_s pow10_128(int k);
         if (!y_is_int)
             return std::numeric_limits<f128_s>::quiet_NaN();
 
-        const f128_s magnitude = exp(y * log(-x));
+        const f128_s magnitude = _f128_detail::_exp(y * _f128_detail::_log(-x));
         const f128_s parity = fmod(abs(yi), f128_s{ 2.0 });
-        return _f128_detail::canonicalize_math_result((parity == f128_s{ 1.0 }) ? -magnitude : magnitude);
+        return (parity == f128_s{ 1.0 }) ? -magnitude : magnitude;
     }
 
-    return _f128_detail::canonicalize_math_result(exp(y * log(x)));
+    return _f128_detail::_exp(y * _f128_detail::_log(x));
 }
 
 
@@ -1251,11 +1453,77 @@ namespace _f128_detail
         series += invpow * (f128_s{ 43867.0 } / f128_s{ 244188.0 });
         invpow *= inv2;
         series -= invpow * (f128_s{ 174611.0 } / f128_s{ 125400.0 });
+        invpow *= inv2;
+        series += invpow * (f128_s{ 77683.0 } / f128_s{ 5796.0 });
+        invpow *= inv2;
+        series -= invpow * (f128_s{ 236364091.0 } / f128_s{ 1506960.0 });
 
         return (z - f128_s{ 0.5 }) * log(z) - z + _f128_const::half_log_two_pi + series;
     }
+    BL_NO_INLINE constexpr f128_s lgamma_positive_low_range(const f128_s& x) noexcept
+    {
+        f128_s y = x;
+        f128_s correction{ 0.0 };
+
+        if (y < f128_s{ 0.75 })
+        {
+            do
+            {
+                correction -= log(y);
+                y += f128_s{ 1.0 };
+            }
+            while (y < f128_s{ 0.75 });
+        }
+        else
+        {
+            while (y > f128_s{ 2.25 })
+            {
+                y -= f128_s{ 1.0 };
+                correction += log(y);
+            }
+        }
+
+        f128_s local{};
+        try_lgamma_near_one_or_two(y, local);
+        return local + correction;
+    }
+
+    BL_NO_INLINE constexpr f128_s gamma_positive_low_range(const f128_s& x) noexcept
+    {
+        f128_s y = x;
+        f128_s product{ 1.0 };
+        bool shifted_up = false;
+
+        if (y < f128_s{ 0.75 })
+        {
+            shifted_up = true;
+            do
+            {
+                product *= y;
+                y += f128_s{ 1.0 };
+            }
+            while (y < f128_s{ 0.75 });
+        }
+        else
+        {
+            while (y > f128_s{ 2.25 })
+            {
+                y -= f128_s{ 1.0 };
+                product *= y;
+            }
+        }
+
+        f128_s local_lgamma{};
+        try_lgamma_near_one_or_two(y, local_lgamma);
+        const f128_s local_gamma = exp(local_lgamma);
+        return shifted_up ? (local_gamma / product) : (local_gamma * product);
+    }
+
     BL_NO_INLINE constexpr f128_s lgamma_positive_recurrence(const f128_s& x) noexcept
     {
+        if (x <= f128_s{ 16.0 })
+            return lgamma_positive_low_range(x);
+
         constexpr f128_s asymptotic_min = f128_s{ 40.0 };
 
         f128_s z = x;
@@ -1286,6 +1554,9 @@ namespace _f128_detail
     }
     BL_NO_INLINE constexpr f128_s gamma_positive_recurrence(const f128_s& x) noexcept
     {
+        if (x <= f128_s{ 16.0 })
+            return gamma_positive_low_range(x);
+
         constexpr f128_s asymptotic_min = f128_s{ 40.0 };
 
         f128_s z = x;

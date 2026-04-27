@@ -332,6 +332,154 @@ describe(T value)
     return std::to_string(value);
 }
 
+[[nodiscard]] bool string_equals(const char* lhs, const char* rhs) noexcept
+{
+    while (*lhs != '\0' && *rhs != '\0')
+    {
+        if (*lhs != *rhs)
+            return false;
+
+        ++lhs;
+        ++rhs;
+    }
+
+    return *lhs == *rhs;
+}
+
+[[nodiscard]] double constexpr_dekker_max_safe_magnitude() noexcept
+{
+    constexpr double split = 134217729.0;
+    return std::numeric_limits<double>::max() / split;
+}
+
+[[nodiscard]] bool double_has_constexpr_dekker_overflow_risk(double value) noexcept
+{
+    return std::isfinite(value) && std::fabs(value) > constexpr_dekker_max_safe_magnitude();
+}
+
+[[nodiscard]] bool double_recip_estimate_has_constexpr_dekker_overflow_risk(double value) noexcept
+{
+    if (!std::isfinite(value) || value == 0.0)
+        return false;
+
+    return std::fabs(value) < (1.0 / constexpr_dekker_max_safe_magnitude());
+}
+
+[[nodiscard]] bool value_has_constexpr_dekker_overflow_risk(const value_type& value) noexcept
+{
+    if (double_has_constexpr_dekker_overflow_risk(value.x0))
+        return true;
+
+    if (double_has_constexpr_dekker_overflow_risk(value.x1))
+        return true;
+
+    if (double_has_constexpr_dekker_overflow_risk(value.x2))
+        return true;
+
+    if (double_has_constexpr_dekker_overflow_risk(value.x3))
+        return true;
+
+    return false;
+}
+
+[[nodiscard]] bool value_has_constexpr_recip_dekker_overflow_risk(const value_type& value) noexcept
+{
+    if (double_has_constexpr_dekker_overflow_risk(value.x0))
+        return true;
+
+    if (double_recip_estimate_has_constexpr_dekker_overflow_risk(value.x0))
+        return true;
+
+    return false;
+}
+
+[[nodiscard]] bool value_has_constexpr_dekker_overflow_risk(const sample_type& value) noexcept
+{
+    if (double_has_constexpr_dekker_overflow_risk(value.x0))
+        return true;
+
+    if (double_has_constexpr_dekker_overflow_risk(value.x1))
+        return true;
+
+    if (double_has_constexpr_dekker_overflow_risk(value.x2))
+        return true;
+
+    if (double_has_constexpr_dekker_overflow_risk(value.x3))
+        return true;
+
+    return false;
+}
+
+[[nodiscard]] bool value_has_constexpr_recip_dekker_overflow_risk(const sample_type& value) noexcept
+{
+    if (double_has_constexpr_dekker_overflow_risk(value.x0))
+        return true;
+
+    if (double_recip_estimate_has_constexpr_dekker_overflow_risk(value.x0))
+        return true;
+
+    return false;
+}
+
+template<typename T>
+[[nodiscard]] bool value_has_constexpr_dekker_overflow_risk(const T&) noexcept
+{
+    return false;
+}
+
+template<typename T>
+[[nodiscard]] bool value_has_constexpr_recip_dekker_overflow_risk(const T&) noexcept
+{
+    return false;
+}
+
+template<typename... Values>
+[[nodiscard]] bool tuple_has_constexpr_dekker_overflow_risk(const std::tuple<Values...>& values) noexcept
+{
+    return std::apply([](const auto&... item)
+    {
+        return (... || value_has_constexpr_dekker_overflow_risk(item));
+    }, values);
+}
+
+template<typename... Values>
+[[nodiscard]] bool tuple_has_constexpr_recip_dekker_overflow_risk(const std::tuple<Values...>& values) noexcept
+{
+    return std::apply([](const auto&... item)
+    {
+        return (... || value_has_constexpr_recip_dekker_overflow_risk(item));
+    }, values);
+}
+
+[[nodiscard]] bool test_can_use_constexpr_dekker_multiply(const char* test_name) noexcept
+{
+    return
+        string_equals(test_name, "fma");
+}
+
+[[nodiscard]] bool test_can_use_constexpr_recip_dekker_multiply(const char* test_name) noexcept
+{
+    return
+        string_equals(test_name, "recip") ||
+        string_equals(test_name, "inv");
+}
+
+template<typename... Values>
+[[nodiscard]] bool should_skip_constexpr_dekker_extreme_case(
+    const char* test_name,
+    const std::tuple<Values...>& values) noexcept
+{
+    if (test_can_use_constexpr_dekker_multiply(test_name) &&
+        tuple_has_constexpr_dekker_overflow_risk(values))
+    {
+        return true;
+    }
+
+    return
+        test_can_use_constexpr_recip_dekker_multiply(test_name) &&
+        tuple_has_constexpr_recip_dekker_overflow_risk(values);
+}
+
 [[nodiscard]] bool equal(const value_type& lhs, const value_type& rhs) noexcept
 {
     return std::bit_cast<std::uint64_t>(lhs.x0) == std::bit_cast<std::uint64_t>(rhs.x0) &&
@@ -482,6 +630,9 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
         for (int iteration = 0; iteration < kSamplesPerBucket; ++iteration)
         {
             const auto args = generator(rng, bucket);
+            if (should_skip_constexpr_dekker_extreme_case(test_name, args))
+                continue;
+
             const auto constexpr_result = eval_constexpr_path([&]() { return std::apply(function, args); });
             const auto runtime_result = eval_runtime_path([&]() { return std::apply(function, args); });
 

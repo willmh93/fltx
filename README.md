@@ -6,43 +6,38 @@ A header-only C++20 library for fixed-width extended-precision floating-point wo
 
 ## Highlights
 
-- `constexpr`-capable math functions for `f32`, `f64`, `f128`, and `f256`, with a `<cmath>`-like API for writing generic numeric code
+- `constexpr`-capable math functions for [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), and [`f256`](include/f256.h), with a [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-like API for writing generic numeric code
 - Literal support, operators, conversions, comparisons, parsing, and formatting
-- Standard-library integration: `std::ostream`, `std::numeric_limits`, `std::numbers`, and stream manipulators such as `std::setprecision`
-- **Optional:** Bitwise parity between constexpr and runtime results. To enable, define `FLTX_CONSTEXPR_PARITY` prior to including math headers (impacts performance, only use if required)
-- **Optional:** Runtime-to-compile-time dispatch helpers
-- Benchmarked against `boost::multiprecision::mpfr_float_backend<digits>` at comparable precision (results below)
+- Standard-library integration: [`std::ostream`](https://en.cppreference.com/w/cpp/io/basic_ostream), [`std::numeric_limits`](https://en.cppreference.com/w/cpp/types/numeric_limits), [`std::numbers`](https://en.cppreference.com/w/cpp/numeric/constants), and stream manipulators such as [`std::setprecision`](https://en.cppreference.com/w/cpp/io/manip/setprecision)
+- Bitwise runtime/`constexpr` parity for [`f128`](include/f128.h) and [`f256`](include/f256.h) by default; [`f32`](include/fltx_types.h) / [`f64`](include/fltx_types.h) match `std::` performance by default, with optional parity mode via [`FLTX_CONSTEXPR_PARITY`](include/fltx_math.h)
+- **Optional:** runtime-to-compile-time dispatch helpers
+- Benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision
  
 ## Core types
 
-| Type | Backing representation |
-|---|---|
-| `bl::f32` | Alias for native `float` |
-| `bl::f64` | Alias for native `double` |
-| `bl::f128` | Double-double precision, stored as two `double` limbs |
-| `bl::f256` | Quad-double precision, stored as four `double` limbs |
+| Type | Backing representation | Tested accuracy |
+|---|---|---|
+| [`bl::f32`](include/fltx_types.h) | Alias for native [`float`](https://en.cppreference.com/w/cpp/language/types) | Native [`float`](https://en.cppreference.com/w/cpp/language/types) precision |
+| [`bl::f64`](include/fltx_types.h) | Alias for native [`double`](https://en.cppreference.com/w/cpp/language/types) | Native [`double`](https://en.cppreference.com/w/cpp/language/types) precision |
+| [`bl::f128`](include/f128.h) | Double-double precision, stored as two [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | At least 29 decimal digits across arithmetic and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style functions |
+| [`bl::f256`](include/f256.h) | Quad-double precision, stored as four [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | At least 59 decimal digits across arithmetic and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style functions |
 
 ## constexpr support
 
-`fltx_math.h` provides a `constexpr`-capable, `<cmath>`-style API across `bl::f32`, `bl::f64`, `bl::f128`, and `bl::f256`; every function listed below is supported for each type.
+[`fltx_math.h`](include/fltx_math.h) provides a `constexpr`-capable, [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style API across [`bl::f32`](include/fltx_types.h), [`bl::f64`](include/fltx_types.h), [`bl::f128`](include/f128.h), and [`bl::f256`](include/f256.h); every function listed below is supported for each type.
 
 | Category | Functions |
 |---|---|
-| ✅ Absolute value | `bl::abs` |
-| ✅ Rounding | `bl::floor`, `bl::ceil`, `bl::trunc`, `bl::round`, `bl::lround`, `bl::llround`, `bl::nearbyint`, `bl::rint`, `bl::lrint`, `bl::llrint` |
-| ✅ Remainder / quotient | `bl::fmod`, `bl::remainder`, `bl::remquo` |
-| ✅ Min / max / sign | `bl::fmin`, `bl::fmax`, `bl::fdim`, `bl::copysign` |
-| ✅ Fused arithmetic | `bl::fma` |
-| ✅ Roots and distance | `bl::sqrt`, `bl::cbrt`, `bl::hypot` |
-| ✅ Exponential | `bl::exp`, `bl::exp2`, `bl::expm1` |
-| ✅ Logarithmic | `bl::log`, `bl::log2`, `bl::log10`, `bl::log1p`, `bl::logb`, `bl::ilogb` |
-| ✅ Power | `bl::pow` |
-| ✅ Trigonometric | `bl::sin`, `bl::cos`, `bl::tan`, `bl::asin`, `bl::acos`, `bl::atan`, `bl::atan2` |
-| ✅ Hyperbolic | `bl::sinh`, `bl::cosh`, `bl::tanh`, `bl::asinh`, `bl::acosh`, `bl::atanh` |
-| ✅ Error / gamma | `bl::erf`, `bl::erfc`, `bl::lgamma`, `bl::tgamma` |
-| ✅ Scaling / decomposition | `bl::ldexp`, `bl::scalbn`, `bl::scalbln`, `bl::frexp`, `bl::modf` |
-| ✅ Adjacent values | `bl::nextafter`, `bl::nexttoward` |
-
+| ✅ Arithmetic | [`bl::abs`](include/fltx_math.h), [`bl::fma`](include/fltx_math.h) |
+| ✅ Rounding | [`bl::floor`](include/fltx_math.h), [`bl::ceil`](include/fltx_math.h), [`bl::trunc`](include/fltx_math.h), [`bl::round`](include/fltx_math.h), [`bl::lround`](include/fltx_math.h), [`bl::llround`](include/fltx_math.h), [`bl::nearbyint`](include/fltx_math.h), [`bl::rint`](include/fltx_math.h), [`bl::lrint`](include/fltx_math.h), [`bl::llrint`](include/fltx_math.h) |
+| ✅ Remainders | [`bl::fmod`](include/fltx_math.h), [`bl::remainder`](include/fltx_math.h), [`bl::remquo`](include/fltx_math.h) |
+| ✅ Min / max / sign | [`bl::fmin`](include/fltx_math.h), [`bl::fmax`](include/fltx_math.h), [`bl::fdim`](include/fltx_math.h), [`bl::copysign`](include/fltx_math.h) |
+| ✅ Roots / powers | [`bl::sqrt`](include/fltx_math.h), [`bl::cbrt`](include/fltx_math.h), [`bl::hypot`](include/fltx_math.h), [`bl::pow`](include/fltx_math.h) |
+| ✅ Exp / log | [`bl::exp`](include/fltx_math.h), [`bl::exp2`](include/fltx_math.h), [`bl::expm1`](include/fltx_math.h), [`bl::log`](include/fltx_math.h), [`bl::log2`](include/fltx_math.h), [`bl::log10`](include/fltx_math.h), [`bl::log1p`](include/fltx_math.h), [`bl::logb`](include/fltx_math.h), [`bl::ilogb`](include/fltx_math.h) |
+| ✅ Trig | [`bl::sin`](include/fltx_math.h), [`bl::cos`](include/fltx_math.h), [`bl::tan`](include/fltx_math.h), [`bl::asin`](include/fltx_math.h), [`bl::acos`](include/fltx_math.h), [`bl::atan`](include/fltx_math.h), [`bl::atan2`](include/fltx_math.h) |
+| ✅ Hyperbolic | [`bl::sinh`](include/fltx_math.h), [`bl::cosh`](include/fltx_math.h), [`bl::tanh`](include/fltx_math.h), [`bl::asinh`](include/fltx_math.h), [`bl::acosh`](include/fltx_math.h), [`bl::atanh`](include/fltx_math.h) |
+| ✅ Special | [`bl::erf`](include/fltx_math.h), [`bl::erfc`](include/fltx_math.h), [`bl::lgamma`](include/fltx_math.h), [`bl::tgamma`](include/fltx_math.h) |
+| ✅ Scaling / layout | [`bl::ldexp`](include/fltx_math.h), [`bl::scalbn`](include/fltx_math.h), [`bl::scalbln`](include/fltx_math.h), [`bl::frexp`](include/fltx_math.h), [`bl::modf`](include/fltx_math.h), [`bl::nextafter`](include/fltx_math.h), [`bl::nexttoward`](include/fltx_math.h) |
 ## Use case
 
 `fltx` is aimed at workloads where **both speed and precision matter**:
@@ -89,19 +84,19 @@ a + b = 1
 
 | Umbrella Headers | Provides |
 |---|---|
-| `fltx.h` | full library |
-| `fltx_core.h` | `f32`, `f64`, `f128`, `f256`, storage types (`f128_s`, `f256_s`)<br>arithmetic, conversions, and standard numeric integration |
-| `fltx_math.h` | `f32`, `f64`, `f128`, `f256` constexpr-capable `<cmath>` math interface |
-| `fltx_io.h` | `f32`, `f64`, `f128`, `f256` parsing, formatting, string conversion, stream output, and literals |
+| **[`fltx.h`](include/fltx.h)** | full library |
+| **[`fltx_core.h`](include/fltx_core.h)** | [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h), storage types ([`f128_s`](include/f128.h), [`f256_s`](include/f256.h))<br>arithmetic, conversions, and standard numeric integration |
+| **[`fltx_math.h`](include/fltx_math.h)** | [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h) constexpr-capable **`<cmath>`** math interface |
+| **[`fltx_io.h`](include/fltx_io.h)** | [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h) parsing, formatting, string conversion, stream output, and literals |
 
 | Individual Headers | Provides |
 |---|---|
-| `f128.h`<br>`f256.h` | individual extended-precision types and their core operations |
-| `f32_math.h`<br>`f64_math.h`<br>`f128_math.h`<br>`f256_math.h` | constexpr-capable `<cmath>` math interface for individual floating-point types |
-| `f128_io.h`<br>`f256_io.h` | IO and literals for one extended-precision type |
-| `fltx_types.h` | aliases, concepts, `FloatType`, and enum helpers |
-| `constexpr_dispatch.h` | standalone constexpr dispatch utility |
-| `fltx_dispatch.h` | includes `constexpr_dispatch.h`<br>and `bl::enum_type(FloatType) -> [f32, f64, f128, f256]` type mapping |
+| **[`f128.h`](include/f128.h)**<br>**[`f256.h`](include/f256.h)** | individual extended-precision types and their core operations |
+| **[`f32_math.h`](include/f32_math.h)**<br>**[`f64_math.h`](include/f64_math.h)**<br>**[`f128_math.h`](include/f128_math.h)**<br>**[`f256_math.h`](include/f256_math.h)** | constexpr-capable **`<cmath>`** math interface for individual floating-point types |
+| **[`f128_io.h`](include/f128_io.h)**<br>**[`f256_io.h`](include/f256_io.h)** | IO and literals for one extended-precision type |
+| **[`fltx_types.h`](include/fltx_types.h)** | aliases, concepts, [`FloatType`](include/fltx_types.h), and enum helpers |
+| **[`constexpr_dispatch.h`](include/constexpr_dispatch.h)** | standalone constexpr dispatch utility |
+| **[`fltx_dispatch.h`](include/fltx_dispatch.h)** | includes **[`constexpr_dispatch.h`](include/constexpr_dispatch.h)**<br>and [`bl::enum_type(FloatType)`](include/fltx_dispatch.h) → [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h) type mapping |
 
 ## Numeric types
 
@@ -142,8 +137,7 @@ bl::is_arithmetic_v<T>
 
 ## IO and literals
 
-`fltx_io.h` adds constexpr-capable parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
-
+[`fltx_io.h`](include/fltx_io.h) adds `constexpr`-capable parsing, formatting, stream output, string conversion, and the [`_dd`](include/f128_io.h) / [`_qd`](include/f256_io.h) literals:
 ```cpp
 using namespace bl;
 using namespace bl::literals;
@@ -157,7 +151,7 @@ std::string s2    = bl::to_std_string(b);
 
 ## Math
 
-`fltx_math.h` provides a `<cmath>`-style API for `bl::f32`, `bl::f64`, `bl::f128`, and `bl::f256`.
+[`fltx_math.h`](include/fltx_math.h) provides a `<cmath>`-style API for [`bl::f32`](include/fltx_types.h), [`bl::f64`](include/fltx_types.h), [`bl::f128`](include/f128.h), and [`bl::f256`](include/f256.h).
 
 This lets generic numeric code switch precision without changing its math calls:
 ```cpp
@@ -175,9 +169,9 @@ constexpr f256  d = radius(1.0_qd, 2.0_qd);
 
 ## constexpr dispatch
 
-`fltx_dispatch.h` includes a small runtime-to-compile-time dispatch layer.
+[`fltx_dispatch.h`](include/fltx_dispatch.h) includes a small runtime-to-compile-time dispatch layer.
 
-This lets runtime values such as `FloatType::F128` or `FloatType::F256` select a compile-time `T`, so the called function still compiles as a normal template specialization.
+This lets runtime values such as [`FloatType::F128`](include/fltx_types.h) or [`FloatType::F256`](include/fltx_types.h) select a compile-time `T`, so the called function still compiles as a normal template specialization.
 
 ```cpp
 #include <iostream>
@@ -206,8 +200,8 @@ int main()
 
 <details>
 <summary>Example: mapping a custom enum to a compile-time type</summary>
- 
-`constexpr_dispatch.h` is the lower-level dispatch utility used by `fltx_dispatch.h`. It can also be used directly when you want your own runtime enum to select one of several compile-time types:
+
+[`constexpr_dispatch.h`](include/constexpr_dispatch.h) is the lower-level dispatch utility used by [`fltx_dispatch.h`](include/fltx_dispatch.h). It can also be used directly when you want your own runtime enum to select one of several compile-time types:
 
 ```cpp
 #include <constexpr_dispatch.h>
@@ -224,8 +218,7 @@ template<class BackendT, bool Debug>
 void run()
 {
     if constexpr (Debug)
-    {
-    }
+    {}
 }
 
 int main()
@@ -244,14 +237,14 @@ int main()
 
 ## Precision model
 
-`f128` and `f256` are fixed-width, multi-limb floating-point types built from `double` components:
+[`bl::f128`](include/f128.h) and [`bl::f256`](include/f256.h) are fixed-width, multi-limb floating-point types built from `double` components:
 
 ```text
 sizeof(f128) == 16
 sizeof(f256) == 32
 ```
 
-The names refer to storage size. They are not IEEE binary128 / binary256 types, and they are not arbitrary-precision numbers.
+The names refer to storage size. They are not IEEE [binary128](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#IEEE_754_quadruple-precision_binary_floating-point_format:_binary128) / [binary256](https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format#IEEE_754_octuple-precision_binary_floating-point_format:_binary256) types, and they are not [arbitrary-precision](https://en.wikipedia.org/wiki/Arbitrary-precision_arithmetic) numbers.
 
 `fltx` gives you more precision than native double while keeping a familiar floating-point model. Values are still approximate, so conditioning, cancellation, argument reduction, and algorithm design still matter.
 
@@ -302,7 +295,7 @@ target_include_directories(main PRIVATE /path/to/fltx/include)
 
 ## Benchmarks
 
-`fltx` is tested and benchmarked against `boost::multiprecision::mpfr_float_backend<digits>` at comparable precision levels.
+`fltx` is tested and benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision levels.
 
 <img src="res/f128_hard_ratios.svg" alt="f128 benchmark ratio" width="600">
 <img src="res/f256_hard_ratios.svg" alt="f256 benchmark ratio" width="600">

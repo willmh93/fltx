@@ -230,10 +230,10 @@ BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexce
 BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept;
 BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept;
 
-BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept;
-BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept;
-BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept;
-BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept;
+BL_FORCE_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept;
+BL_FORCE_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept;
+BL_FORCE_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept;
+BL_FORCE_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept;
 
 BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, float b) noexcept;
 BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, float b) noexcept;
@@ -990,8 +990,39 @@ namespace _f256_detail
     }
     BL_FORCE_INLINE constexpr f256_s sub_mul_scalar_exact(const f256_s& r, const f256_s& b, double q) noexcept
     {
-        const f256_s prod = b * q;
-        return sub_qd_qd(r, prod);
+        double p0{}, p1{}, p2{}, p3{};
+        double q0{}, q1{}, q2{};
+        double s0{}, s1{}, s2{}, s3{}, s4{};
+
+        two_prod_precise(b.x0, q, p0, q0);
+        two_prod_precise(b.x1, q, p1, q1);
+        two_prod_precise(b.x2, q, p2, q2);
+        p3 = b.x3 * q;
+
+        s0 = p0;
+        two_sum_precise(q0, p1, s1, s2);
+        three_sum(s2, q1, p2);
+        three_sum2(q1, q2, p3);
+        s3 = q1;
+        s4 = q2 + p2;
+
+        double c0{}, e0{};
+        double c1{}, e1{};
+        double c2{}, e2{};
+        double c3{}, e3{};
+
+        two_sum_precise(r.x0, -s0, c0, e0);
+        two_sum_precise(r.x1, -s1, c1, e1);
+        two_sum_precise(r.x2, -s2, c2, e2);
+        two_sum_precise(r.x3, -s3, c3, e3);
+
+        two_sum_precise(c1, e0, c1, e0);
+        three_sum(c2, e0, e1);
+        three_sum2(c3, e0, e2);
+
+        e0 += e1 + e3 - s4;
+
+        return renorm5(c0, c1, c2, c3, e0);
     }
 }
 
@@ -1094,7 +1125,7 @@ namespace _f256_detail
 }
                               
 // f256 <=> double            
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept
 {
     double c0{}, c1{}, c2{}, c3{};
     double e{};
@@ -1113,7 +1144,7 @@ namespace _f256_detail
 
     return _f256_detail::renorm5(c0, c1, c2, c3, e);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept
 {
     double c0{}, c1{}, c2{}, c3{}, e{};
 
@@ -1131,7 +1162,7 @@ namespace _f256_detail
 
     return _f256_detail::renorm5(c0, c1, c2, c3, e);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept
 {
     double p0{}, p1{}, p2{}, p3{};
     double q0{}, q1{}, q2{};
@@ -1151,7 +1182,7 @@ namespace _f256_detail
 
     return _f256_detail::renorm5(s0, s1, s2, s3, s4);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept
 {
     if (bl::is_constant_evaluated())
     {

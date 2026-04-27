@@ -654,6 +654,152 @@ namespace _f256_detail
 
         return sum + sum;
     }
+
+
+    inline constexpr f256_s lgamma1p_coeff[] = {
+        f256_s{ 0x1.a51a6625307d3p-1, 0x1.1873d8912200cp-56, -0x1.4c68528ddc956p-110, 0x1.162d8b33582c0p-168 },
+        f256_s{ -0x1.9a4d55beab2d7p-2, 0x1.4c26d1b465993p-59, -0x1.aa121007a9210p-113, 0x1.e77545b273b41p-167 },
+        f256_s{ 0x1.151322ac7d848p-2, 0x1.b5f91211196e5p-57, 0x1.1afde2c358986p-112, -0x1.ff5e9b485c055p-167 },
+        f256_s{ -0x1.a8b9c17aa6149p-3, -0x1.2e826a4fdae1ap-58, 0x1.bec8fd99e4b23p-112, 0x1.c4d2077d59b06p-166 },
+        f256_s{ 0x1.5b40cb100c306p-3, 0x1.4a79940f15696p-59, -0x1.38825ea888f47p-113, -0x1.465029c2b0433p-167 },
+        f256_s{ -0x1.2703a1dcea3aep-3, -0x1.6307fd0794ac4p-57, 0x1.fcb7807245585p-111, 0x1.f0664358361f4p-166 },
+        f256_s{ 0x1.010b36af86397p-3, -0x1.741a635b224a6p-59, 0x1.9336e1bce5c27p-113, 0x1.49afd8254897cp-167 },
+        f256_s{ -0x1.c806706d57db4p-4, -0x1.56aa806fdd3eep-58, 0x1.bbb9c2de4a62ap-112, -0x1.3011b58722bd7p-167 },
+        f256_s{ 0x1.9a01e385d5f8fp-4, 0x1.813418f3768cdp-59, 0x1.9ac3b8f78d2dbp-113, 0x1.f9d6fac7bc2bep-167 },
+        f256_s{ -0x1.748c33114c6d6p-4, -0x1.ea57624080720p-61, 0x1.d4f09980d4de7p-116, -0x1.ecb44a07a7c5dp-170 },
+        f256_s{ 0x1.556ad63243bc4p-4, 0x1.5de8580fae81dp-62, 0x1.cccd6abe647edp-119, 0x1.1be9a3144317ap-173 },
+        f256_s{ -0x1.3b1d971fc5985p-4, 0x1.e58607e493dfdp-59, -0x1.abfc7225b8175p-113, -0x1.2ecb61bf48473p-169 },
+        f256_s{ 0x1.2496df8320c5fp-4, 0x1.cf4b4ae040be8p-58, 0x1.4c882cc4762e8p-112, 0x1.7476f52945b0fp-166 },
+        f256_s{ -0x1.11133476e7fe0p-4, -0x1.dc9a4ff396ee3p-59, -0x1.3b08c41a7a8b6p-113, 0x1.cf5c5597a8f3ep-168 },
+        f256_s{ 0x1.00010064cdeb2p-4, 0x1.7879d0156affep-59, -0x1.0fbd29f2ffe91p-113, 0x1.89bce2341cdd7p-167 },
+        f256_s{ -0x1.e1e2d311e8abdp-5, 0x1.8d2a110ce956bp-59, 0x1.63ee8a858cae0p-113, -0x1.e39f4153afc89p-167 },
+        f256_s{ 0x1.c71ce3a20b419p-5, -0x1.be9617d035b06p-59, 0x1.89baba83cec5cp-115, -0x1.dcfb4b6decc54p-169 },
+        f256_s{ -0x1.af28a1b5688a0p-5, -0x1.74741e885fefbp-59, -0x1.1b477c35fac2fp-113, 0x1.d7c330022aca2p-168 },
+        f256_s{ 0x1.9999b3352d5bap-5, 0x1.4951b4c6be56dp-62, -0x1.ab8f8f67d6af8p-118, 0x1.986c8bd56b1b5p-172 },
+        f256_s{ -0x1.86186db77bfbfp-5, -0x1.6dedef1f58778p-59, 0x1.f067254ca5106p-114, -0x1.fba80968fedbfp-168 },
+        f256_s{ 0x1.745d1d1778df9p-5, 0x1.02b8fe0a898e7p-61, 0x1.c5b2f696e8978p-115, 0x1.8192959451748p-169 },
+        f256_s{ -0x1.642c88591b66dp-5, 0x1.1074551cafc60p-59, -0x1.d738a4a5cbb56p-116, 0x1.1369f37f73d94p-170 },
+        f256_s{ 0x1.555556aaafdcdp-5, 0x1.54a05fce04ef6p-59, 0x1.7588d216e6fc9p-114, -0x1.c8c5449ed87ecp-170 },
+        f256_s{ -0x1.47ae151eb9fb7p-5, -0x1.d038d4d4653c2p-59, -0x1.7ebe42832f35dp-113, -0x1.28f5805cfb70ap-167 },
+        f256_s{ 0x1.3b13b189d925ep-5, 0x1.f4ad5a89f860cp-59, 0x1.c3ba6ba46072cp-113, 0x1.dbc96b627a7eap-167 },
+        f256_s{ -0x1.2f684c00002bcp-5, -0x1.055a3ba5e6a12p-59, 0x1.15f6f174f29fcp-114, -0x1.a4d95a3ce102dp-168 },
+        f256_s{ 0x1.24924936db7bcp-5, 0x1.f2631c34f2cbcp-59, 0x1.6d33663f9d067p-116, -0x1.8e49cb0d4669dp-172 },
+        f256_s{ -0x1.1a7b961a7b9aap-5, 0x1.e116d2f11b9bcp-59, -0x1.7ae84ff57e3e8p-113, 0x1.48411ad6c2f3cp-168 },
+        f256_s{ 0x1.111111155556dp-5, -0x1.527ce242d7c8fp-59, -0x1.c6b75ac93ef74p-116, -0x1.59689b24da75ap-170 },
+        f256_s{ -0x1.08421086318cep-5, 0x1.1db4d8fcae8c6p-59, -0x1.8aff5794eab89p-114, 0x1.29680715cc491p-169 },
+        f256_s{ 0x1.0000000100002p-5, 0x1.b8fd913d3546ap-59, 0x1.815322257c298p-113, -0x1.6a18198001fe7p-168 },
+        f256_s{ -0x1.f07c1f08ba2eap-6, -0x1.31bb2e9036633p-60, 0x1.151f1a77d048fp-115, -0x1.19b08afd4a13dp-171 },
+        f256_s{ 0x1.e1e1e1e25a5a6p-6, 0x1.3e46eaa03f9ccp-61, 0x1.2f952ffc8aa9bp-115, 0x1.b1cb7727dbed5p-172 },
+        f256_s{ -0x1.d41d41d457c58p-6, 0x1.0600661f0f0e3p-62, 0x1.8207e60d9c037p-116, 0x1.aa0de68815246p-170 },
+        f256_s{ 0x1.c71c71c738e39p-6, -0x1.d93a55599cf57p-63, 0x1.4c492654868edp-117, 0x1.710b595a6ccadp-171 },
+        f256_s{ -0x1.bacf914c29837p-6, -0x1.797fe7c73f29ap-60, 0x1.9a39cef32197ap-116, -0x1.a972d739b9af9p-171 },
+        f256_s{ 0x1.af286bca21af3p-6, -0x1.df4d835f028bdp-60, 0x1.a8048d2fde67cp-114, -0x1.762e068021af3p-168 },
+        f256_s{ -0x1.a41a41a41d89ep-6, 0x1.d6bf77cbc25c7p-60, 0x1.aa5ec7c867b9bp-114, 0x1.aec81d4fdf930p-169 },
+        f256_s{ 0x1.999999999b333p-6, 0x1.9ad0584412591p-61, -0x1.5494ee7aa6acbp-115, 0x1.017dce762d13fp-170 },
+        f256_s{ -0x1.8f9c18f9c2577p-6, 0x1.766fd061292d7p-60, 0x1.8f5129cb00964p-114, 0x1.c84bbfd5adbcep-170 },
+        f256_s{ 0x1.8618618618c31p-6, -0x1.e77d97e1c5a45p-61, -0x1.917b2ef884989p-116, -0x1.2370e4fefbcf8p-171 },
+        f256_s{ -0x1.7d05f417d08eep-6, -0x1.1dcf2bd1488c1p-61, 0x1.653c4b9cdc9cbp-119, 0x1.ce66a9ae95282p-173 },
+        f256_s{ 0x1.745d1745d18bap-6, 0x1.7460941753bf5p-61, -0x1.7ff16da4c5b6dp-115, -0x1.a4622b9427056p-169 },
+        f256_s{ -0x1.6c16c16c16ccdp-6, 0x1.9998769b89af0p-61, 0x1.e206e60394ebap-115, 0x1.da1d89108d728p-174 },
+        f256_s{ 0x1.642c8590b21bdp-6, 0x1.bd3805d865a75p-61, 0x1.4fa64231f4873p-116, 0x1.48681770a7db2p-172 },
+        f256_s{ -0x1.5c9882b931083p-6, 0x1.1b3bdabc05a8dp-60, -0x1.e180a2e6d8d8ap-115, -0x1.adf0f5b6511bdp-169 },
+        f256_s{ 0x1.555555555556bp-6, -0x1.555550480911cp-60, -0x1.7e33c2f812c41p-115, 0x1.fc4f9b927ed2fp-173 },
+        f256_s{ -0x1.4e5e0a72f0544p-6, 0x1.4e5e03d9bbd88p-62, 0x1.8ad74f7d864c5p-118, 0x1.de83badc29713p-174 },
+        f256_s{ 0x1.47ae147ae1480p-6, 0x1.13e7474dcd9a5p-85, 0x1.f485e7aa34c2bp-140, 0x1.03954ca6cce4bp-194 },
+        f256_s{ -0x1.4141414141417p-6, 0x1.a5a5a57890971p-60, 0x1.683bc59ca465cp-116, -0x1.bec1a58fd95fbp-170 },
+        f256_s{ 0x1.3b13b13b13b15p-6, -0x1.3b13b1001f8aep-62, -0x1.204bb43c1d47fp-117, -0x1.0119b57ca7085p-171 },
+        f256_s{ -0x1.3521cfb2b78c2p-6, 0x1.826a4395c1891p-61, 0x1.a4b38e003722bp-116, -0x1.cce6803948c97p-170 },
+        f256_s{ 0x1.2f684bda12f69p-6, -0x1.a12f684a465ffp-60, 0x1.bad2fc9ce5f0bp-114, 0x1.bfc93a89e124bp-168 },
+        f256_s{ -0x1.29e4129e4129ep-6, -0x1.9999999a1db84p-60, -0x1.4b1b19906daf9p-114, 0x1.dc501d5c7a0cep-168 },
+        f256_s{ 0x1.2492492492492p-6, 0x1.6db6db6de21c5p-60, 0x1.c06a19ff7e3e7p-115, -0x1.c1d6ed17c4a8ep-173 },
+        f256_s{ -0x1.1f7047dc11f70p-6, -0x1.435e50d7a2602p-60, 0x1.2b58ebdccf2bcp-114, 0x1.3df12156c2cb2p-168 },
+        f256_s{ 0x1.1a7b9611a7b96p-6, 0x1.611a7b9624375p-62, -0x1.53910f155f6e2p-122, 0x1.cdf4e01c19e6fp-176 },
+        f256_s{ -0x1.15b1e5f75270dp-6, -0x1.a08ad8f313fd5p-64, 0x1.694e002134230p-118, -0x1.19c40b553edeep-172 },
+        f256_s{ 0x1.1111111111111p-6, 0x1.2222222224208p-62, -0x1.660eeab940148p-117, 0x1.3f841c542be73p-175 },
+        f256_s{ -0x1.0c9714fbcda3bp-6, 0x1.f368eb043208bp-61, -0x1.9180e02b1ebb4p-115, -0x1.ae60aa3d03da9p-169 },
+        f256_s{ 0x1.0842108421084p-6, 0x1.0a5294a52965cp-61, 0x1.6a716f3fe41bbp-116, -0x1.3966f9e59e4cep-171 },
+        f256_s{ -0x1.0410410410410p-6, -0x1.04924924924dap-60, -0x1.2c9f914026d3ep-114, 0x1.1aa441e1febb5p-170 },
+        f256_s{ 0x1.0000000000000p-6, 0x1.0000000005e83p-70, -0x1.6ea6b12420976p-124, 0x1.46b6024a71bf4p-179 },
+        f256_s{ -0x1.f81f81f81f820p-7, 0x1.f7e07e07e07d1p-61, -0x1.17cedd5cd4340p-119, -0x1.231cb51f5fa1ap-175 },
+        f256_s{ 0x1.f07c1f07c1f08p-7, -0x1.f03e0f83e0f7ap-62, 0x1.37710ca3a5bb1p-116, -0x1.c5ed76f77cd34p-171 },
+        f256_s{ -0x1.e9131abf0b767p-7, -0x1.505bb39503d26p-62, 0x1.12bb0a2d9bbe6p-116, -0x1.08b90d7460356p-173 },
+        f256_s{ 0x1.e1e1e1e1e1e1ep-7, 0x1.e200000000002p-63, 0x1.920f4caafc2b6p-118, -0x1.71978c07e1374p-172 },
+        f256_s{ -0x1.dae6076b981dbp-7, 0x1.9f7a6f4de9bd3p-63, -0x1.f2252e21e87a9p-118, 0x1.83d4b1dbeca59p-172 },
+        f256_s{ 0x1.d41d41d41d41dp-7, 0x1.0752492492492p-61, 0x1.614270fa6214ep-115, -0x1.f77a00fa73fe6p-171 },
+        f256_s{ -0x1.cd85689039b0bp-7, 0x1.76fa976fc64f5p-62, 0x1.2735476e24ed0p-117, -0x1.f8b4320455699p-173 },
+        f256_s{ 0x1.c71c71c71c71cp-7, 0x1.c71ce38e38e39p-61, -0x1.ace34a7163d76p-117, -0x1.1f77c846a312ap-172 },
+        f256_s{ -0x1.c0e070381c0e0p-7, -0x1.c0e0a8542a151p-61, 0x1.5c87938fc211bp-115, 0x1.f7dd13bd0c614p-170 },
+        f256_s{ 0x1.bacf914c1bad0p-7, -0x1.bacf759f22983p-61, -0x1.d5c71a9cd2d7bp-115, -0x1.f2ba4ed0c813cp-171 },
+        f256_s{ -0x1.b4e81b4e81b4fp-7, 0x1.f92c51eb851ecp-61, -0x1.ebc0cadfc39dcp-115, -0x1.d86dcb378da2fp-172 },
+        f256_s{ 0x1.af286bca1af28p-7, 0x1.af287286bca1bp-61, -0x1.ae8b63624e57ep-118, -0x1.858b16f233d73p-176 },
+        f256_s{ -0x1.a98ef606a63bep-7, 0x1.f959c0d4c77b0p-61, 0x1.a9820b7fc62f2p-116, -0x1.f72b8dbc6b5d5p-175 },
+        f256_s{ 0x1.a41a41a41a41ap-7, 0x1.06906aaaaaaabp-61, -0x1.5553354f8d76dp-115, 0x1.0d86d971be33fp-169 },
+        f256_s{ -0x1.9ec8e951033d9p-7, -0x1.d2a209b8b577ep-63, -0x1.84df26ea720dcp-117, 0x1.af04d98dfad02p-172 },
+        f256_s{ 0x1.999999999999ap-7, -0x1.9999993333333p-61, -0x1.999923ba7b188p-116, 0x1.c2ee41f7b15dcp-170 },
+        f256_s{ -0x1.948b0fcd6e9e0p-7, -0x1.948b100000000p-61, -0x1.3671909a8aa7dp-135, -0x1.13181f3d7138fp-189 },
+        f256_s{ 0x1.8f9c18f9c18fap-7, -0x1.f3831f063e706p-62, -0x1.f38305aa29f35p-117, 0x1.a672177cf91d8p-171 },
+        f256_s{ -0x1.8acb90f6bf3aap-7, 0x1.721ed7dafcea7p-61, -0x1.c87b61b7e6f4bp-115, -0x1.5d61cf8be7a0cp-169 },
+        f256_s{ 0x1.8618618618618p-7, 0x1.8618618c30c31p-61, -0x1.e79e7884d38b8p-116, -0x1.9d9fb59a71375p-174 },
+        f256_s{ -0x1.8181818181818p-7, -0x1.8181818d8d8d9p-63, 0x1.39393765bb628p-118, -0x1.3b4d334cdaa33p-172 },
+        f256_s{ 0x1.7d05f417d05f4p-7, 0x1.7d05f41dc4771p-63, 0x1.dc477251cdf4bp-119, 0x1.b79aeab06c17dp-176 },
+        f256_s{ -0x1.78a4c8178a4c8p-7, -0x1.78a4c81a7b961p-63, -0x1.a7b9617ffb47dp-119, 0x1.cb1cecaaf7e8ap-174 },
+        f256_s{ 0x1.745d1745d1746p-7, -0x1.745d17451745dp-62, -0x1.745d1735180cep-118, -0x1.65e2a01ab292dp-172 },
+        f256_s{ -0x1.702e05c0b8170p-7, -0x1.702e05c114228p-62, -0x1.14228451ead7ap-116, -0x1.83351baaf0d6fp-174 },
+        f256_s{ 0x1.6c16c16c16c17p-7, -0x1.f49f49f471c72p-62, 0x1.c71c71c80503cp-117, -0x1.a7fcfb6c46765p-171 },
+        f256_s{ -0x1.6816816816817p-7, 0x1.fa5fa5fa54654p-61, 0x1.951951950626ap-115, -0x1.09210a392fa45p-169 },
+        f256_s{ 0x1.642c8590b2164p-7, 0x1.642c8590bd37ap-62, 0x1.bd37a6f4eb3f9p-116, 0x1.60eb1b25b5ad2p-170 },
+        f256_s{ -0x1.6058160581606p-7, 0x1.fa7e9fa7e739dp-61, -0x1.8c6318c639e26p-117, 0x1.7351b5a7b933ap-172 },
+        f256_s{ 0x1.5c9882b931057p-7, 0x1.310572620d9dfp-62, 0x1.46cefa8d9f550p-116, -0x1.db2f84890bedcp-171 },
+        f256_s{ -0x1.58ed2308158edp-7, -0x1.1840ac7692dcfp-62, -0x1.fa9c4b73e01ddp-116, -0x1.d473788da23dbp-171 },
+        f256_s{ 0x1.5555555555555p-7, 0x1.5555555555aabp-61, -0x1.5555555555423p-115, -0x1.174105986442cp-171 },
+        f256_s{ -0x1.51d07eae2f815p-7, -0x1.d07eae2f81facp-63, 0x1.d07eae2f81389p-117, -0x1.cdf5daadab33dp-173 },
+        f256_s{ 0x1.4e5e0a72f0539p-7, 0x1.e0a72f05398d1p-61, -0x1.4e5e0a72f0324p-119, -0x1.c12afec73670cp-175 },
+        f256_s{ -0x1.4afd6a052bf5bp-7, 0x1.fad40a57eb45dp-61, 0x1.745d1745d171ap-117, -0x1.6fa0eb9403245p-172 },
+        f256_s{ 0x1.47ae147ae147bp-7, -0x1.eb851eb851d71p-63, 0x1.70a3d70a3d719p-117, -0x1.ed1522e63fd11p-172 },
+        f256_s{ -0x1.446f86562d9fbp-7, 0x1.1be1958b67e19p-63, 0x1.62d9faee41e66p-117, -0x1.58747c5a6bc0cp-171 },
+        f256_s{ 0x1.4141414141414p-7, 0x1.4141414141464p-63, 0x1.919191919191bp-117, -0x1.480866d9ca729p-171 },
+        f256_s{ -0x1.3e22cbce4a902p-7, -0x1.f1165e725481ep-61, 0x1.65e7254813e23p-116, -0x1.dc15cf8adce0bp-170 },
+        f256_s{ 0x1.3b13b13b13b14p-7, -0x1.3b13b13b13b0fp-61, 0x1.d89d89d89d89ep-116, -0x1.805e8b12fa608p-170 },
+        f256_s{ -0x1.3813813813814p-7, 0x1.fb1fb1fb1fb1dp-61, 0x1.0750750750750p-115, 0x1.c58bf33315042p-169 },
+        f256_s{ 0x1.3521cfb2b78c1p-7, 0x1.a90e7d95bc60cp-62, 0x1.3521cfb2b78c1p-118, 0x1.f6047d965bd53p-173 },
+        f256_s{ -0x1.323e34a2b10bfp-7, -0x1.9b8396ba9de82p-61, 0x1.a515885fb3707p-116, 0x1.654f614bb639ep-171 },
+        f256_s{ 0x1.2f684bda12f68p-7, 0x1.2f684bda12f69p-61, -0x1.a12f684bda12fp-115, -0x1.a0a91f24de414p-169 },
+        f256_s{ -0x1.2c9fb4d812ca0p-7, 0x1.2c9fb4d812ca0p-61, -0x1.c2ef8f441c2f0p-115, 0x1.c2c335581d907p-169 },
+        f256_s{ 0x1.29e4129e4129ep-7, 0x1.04a7904a7904bp-61, -0x1.d1745d1745d17p-115, -0x1.17372b38419eap-169 },
+        f256_s{ -0x1.27350b8812735p-7, -0x1.71024e6a17103p-64, 0x1.9f22983759f23p-118, -0x1.9f494ebf2163bp-172 },
+        f256_s{ 0x1.2492492492492p-7, 0x1.2492492492492p-61, 0x1.36db6db6db6dbp-115, 0x1.b6dd06f7523c6p-169 }
+    };
+
+    BL_NO_INLINE constexpr f256_s lgamma1p_series(const f256_s& y) noexcept
+    {
+        constexpr int count = static_cast<int>(sizeof(lgamma1p_coeff) / sizeof(lgamma1p_coeff[0]));
+
+        f256_s p = lgamma1p_coeff[count - 1];
+        for (int i = count - 2; i >= 0; --i)
+            p = p * y + lgamma1p_coeff[i];
+
+        return y * (-_f256_const::egamma + y * p);
+    }
+
+    BL_FORCE_INLINE constexpr bool try_lgamma_near_one_or_two(const f256_s& x, f256_s& out) noexcept
+    {
+        const f256_s y1 = x - f256_s{ 1.0 };
+        if (abs(y1) <= f256_s{ 0.25 })
+        {
+            out = lgamma1p_series(y1);
+            return true;
+        }
+
+        const f256_s y2 = x - f256_s{ 2.0 };
+        if (abs(y2) <= f256_s{ 0.25 })
+        {
+            out = f256_log1p_series_reduced(y2) + lgamma1p_series(y2);
+            return true;
+        }
+
+        return false;
+    }
+
     BL_FORCE_INLINE constexpr bool f256_remainder_pi2(const f256_s& x, long long& n_out, f256_s& r_out)
     {
         if (!_f256_detail::isfinite(x.x0))
@@ -1049,7 +1195,7 @@ namespace _f256_detail
                 return canonicalize_exp_result(_f256_detail::renorm(x0, x1, x2, x3));
             }
             else
-                #endif
+            #endif
             {
                 return canonicalize_exp_result(_f256_detail::renorm(a.x0 * s, a.x1 * s, a.x2 * s, a.x3 * s));
             }
@@ -1171,12 +1317,12 @@ namespace _f256_detail
         if (!y_is_int)
             return std::numeric_limits<f256_s>::quiet_NaN();
 
-        const f256_s magnitude = exp(y * log(-x));
+        const f256_s magnitude = _f256_detail::_exp(y * _f256_detail::_log(-x));
         const f256_s parity = fmod(abs(yi), f256_s{ 2.0 });
-        return _f256_detail::canonicalize_math_result((parity == f256_s{ 1.0 }) ? -magnitude : magnitude);
+        return (parity == f256_s{ 1.0 }) ? -magnitude : magnitude;
     }
 
-    return _f256_detail::canonicalize_math_result(exp(y * log(x)));
+    return _f256_detail::canonicalize_math_result(_f256_detail::_exp(y * _f256_detail::_log(x)));
 }
 [[nodiscard]] BL_NO_INLINE constexpr f256_s pow(const f256_s& x, double y)
 {
@@ -1662,7 +1808,11 @@ namespace _f256_detail
         invpow *= inv2;
         series += invpow * (f256_s{ 151628697551.0 } / f256_s{ 3960.0 });
         invpow *= inv2;
-        series -= invpow * (f256_s{ 26315271553053477373.0 } / f256_s{ 5609403360.0 });
+		
+        const f256_s b28_num = to_f256(std::uint64_t{ 2631527155305347737 }) * f256_s{ 10.0 } + f256_s{ 3.0 };
+        series -= invpow * (b28_num / f256_s{ 5609403360.0 });
+        invpow *= inv2;
+        series += invpow * (f256_s{ 154210205991661.0 } / f256_s{ 444.0 });
 
         return (z - f256_s{ 0.5 }) * log(z) - z + _f256_const::half_log_two_pi + series;
     }
@@ -1699,7 +1849,11 @@ namespace _f256_detail
 
     BL_NO_INLINE constexpr f256_s lgamma_positive_recurrence(const f256_s& x) noexcept
     {
-        constexpr f256_s asymptotic_min = f256_s{ 96.0 };
+        f256_s near_value{};
+        if (try_lgamma_near_one_or_two(x, near_value))
+            return near_value;
+
+        constexpr f256_s asymptotic_min = f256_s{ 128.0 };
 
         f256_s z{};
         f256_s product{};
@@ -1713,6 +1867,10 @@ namespace _f256_detail
 
     BL_NO_INLINE constexpr f256_s gamma_positive_recurrence(const f256_s& x) noexcept
     {
+        f256_s near_lgamma{};
+        if (try_lgamma_near_one_or_two(x, near_lgamma))
+            return exp(near_lgamma);
+
         constexpr f256_s asymptotic_min = f256_s{ 128.0 };
 
         f256_s z{};
