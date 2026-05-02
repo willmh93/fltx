@@ -1,29 +1,30 @@
 #include <iostream>
 #include <iomanip>
 
-#include <fltx_io.h>
-#include <fltx_math.h>
-#include <fltx_dispatch.h>
+#include <fltx.h>
 using namespace bl;
 using namespace bl::literals;
 
-/// Notes:
-// - Dispatch tables grow multiplicatively with each dispatched template argument.
-// - Large domains can significantly increase executable size and compile time.
-// - Use dispatch tables sparingly, mainly where runtime performance matters.
-// - Prefer the smallest domain needed for the use case.
+/* Notes:
 
-/// Example:
-/// If only f128/f256 are needed, create a smaller enum and map those types manually:
-// enum struct WideFloatType { F128, F256, COUNT };
-// bl_map_enum_to_type(WideFloatType::F128, bl::f128);
-// bl_map_enum_to_type(WideFloatType::F256, bl::f256);
-// 
-// bl::table_invoke(
-//     bl::dispatch_table(foo, runtime_arg_0, runtime_arg_1),
-//     bl::enum_type(WideFloatType::F128)
-// );
+    - Dispatch tables grow multiplicatively with each dispatched template argument.
+    - Large domains can significantly increase executable size and compile time.
+    - Use dispatch tables sparingly, mainly where runtime performance matters.
+    - Prefer the smallest domain needed for the use case.
 
+Example:
+
+    If only f128/f256 are needed, create a smaller enum and map those types manually:
+
+    enum struct WideFloatType { F128, F256, COUNT };
+    bl_map_enum_to_type(WideFloatType::F128, bl::f128);
+    bl_map_enum_to_type(WideFloatType::F256, bl::f256);
+
+    bl::table_invoke(
+        bl::dispatch_table(foo, runtime_arg0, runtime_arg1),
+        bl::enum_type(WideFloatType::F128)
+    );
+*/
 
 template<typename T1, typename T2, bool Test_Bool>
 void print_math(const char* name)
@@ -89,9 +90,48 @@ int main()
         bl::enum_type(FloatType::F32), // domain size = 4
         true                           // domain size = 2
     );
-
-    /// output:  print_math: 32 variants
-    ///          arg[0] domain = 4
-    ///          arg[1] domain = 4
-    ///          arg[2] domain = 2
 }
+
+/* Output:
+
+
+print_math<F32>():
+   F32 min = 1.17549e-38
+   F32 max = 3.40282e+38
+   F32 PI = 3.14159
+   bl::sin(pi_v / 6.0) = 0.5
+   bl::sin(pi_v / 5.0) = 0.587785
+   c: 0.587785
+   Test_Bool is TRUE
+
+print_math<F64>():
+   F64 min = 2.2250738585072e-308
+   F64 max = 1.79769313486232e+308
+   F64 PI = 3.14159265358979
+   bl::sin(pi_v / 6.0) = 0.5
+   bl::sin(pi_v / 5.0) = 0.587785252292473
+   c: 0.587785
+
+print_math<F128>():
+   F128 min = 2.225073858507201383090232717332e-308
+   F128 max = 1.797693134862315708145274237317e+308
+   F128 PI = 3.14159265358979323846264338328
+   bl::sin(pi_v / 6.0) = 0.5
+   bl::sin(pi_v / 5.0) = 0.5877852522924731291687059546391
+   c: 0.587785
+   Test_Bool is TRUE
+
+print_math<F256>():
+   F256 min = 2.22507385850720138309023271733240406421921598046233183055332742e-308
+   F256 max = 1.79769313486231570814527423731704356798070567525844996598917477e+308
+   F256 PI = 3.14159265358979323846264338327950288419716939937510582097494459
+   bl::sin(pi_v / 6.0) = 0.5
+   bl::sin(pi_v / 5.0) = 0.587785252292473129168705954639072768597652437643145991072272481
+   c: 0.587785
+
+print_math: 32 variants
+  arg[0] domain=4
+  arg[1] domain=4
+  arg[2] domain=2
+
+*/

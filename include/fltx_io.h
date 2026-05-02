@@ -23,8 +23,26 @@
 
 namespace bl
 {
-    BL_FORCE_INLINE std::string to_string(f32 a,
-        int max_precision = std::numeric_limits<f32>::digits10,
+    BL_FORCE_INLINE constexpr detail::default_io_string to_string(f32 value,
+        int precision = std::numeric_limits<f32>::digits10,
+        bool fixed = false,
+        bool scientific = false,
+        bool strip_trailing_zeros = false)
+    {
+        return to_static_string((f128)value, precision, fixed, scientific, strip_trailing_zeros);
+    }
+
+    BL_FORCE_INLINE constexpr detail::default_io_string to_string(f64 value,
+        int precision = std::numeric_limits<f64>::digits10,
+        bool fixed = false,
+        bool scientific = false,
+        bool strip_trailing_zeros = false)
+    {
+        return to_static_string((f128)value, precision, fixed, scientific, strip_trailing_zeros);
+    }
+
+    BL_FORCE_INLINE std::string to_std_string(f32 a,
+        int precision = std::numeric_limits<f32>::digits10,
         bool fixed = false,
         bool scientific = false,
         bool strip_trailing_zeros = false)
@@ -33,7 +51,7 @@ namespace bl
         detail::_f128::to_string_into(
             out,
             f128_s{ static_cast<f64>(a), 0.0 },
-            max_precision,
+            precision,
             fixed,
             scientific,
             strip_trailing_zeros
@@ -41,8 +59,8 @@ namespace bl
         return out;
     }
 
-    BL_FORCE_INLINE std::string to_string(f64 a,
-        int max_precision = std::numeric_limits<f64>::digits10,
+    BL_FORCE_INLINE std::string to_std_string(f64 a,
+        int precision = std::numeric_limits<f64>::digits10,
         bool fixed = false,
         bool scientific = false,
         bool strip_trailing_zeros = false)
@@ -51,7 +69,7 @@ namespace bl
         detail::_f128::to_string_into(
             out,
             f128_s{ a, 0.0 },
-            max_precision,
+            precision,
             fixed,
             scientific,
             strip_trailing_zeros

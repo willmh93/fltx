@@ -636,3 +636,4 @@ constexpr f128::f128(const char* text)
 } // namespace bl
 
 #endif
+

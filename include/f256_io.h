@@ -645,23 +645,6 @@ inline BL_NO_INLINE std::ostream& operator<<(std::ostream& os, const f256_s& x)
 /// ------------------ literals ------------------
 namespace literals
 {
-    //[[nodiscard]] constexpr f256_s operator""_qd(unsigned long long v) noexcept {
-    //    return to_f256(static_cast<uint64_t>(v));
-    //}
-    //[[nodiscard]] constexpr f256_s operator""_qd(long double v) noexcept {
-    //    return f256_s{ static_cast<double>(v) };
-    //}
-    //[[nodiscard]] consteval f256_s operator""_qd(const char* text, std::size_t len)
-    //{
-    //    f256_s out{};
-    //    const char* end = text;
-    //    if (!(parse_flt256(text, out, &end) && (static_cast<std::size_t>(end - text) == len)))
-    //        throw "invalid _qd literal";
-    //
-    //    return out;
-    //}
-
-
     [[nodiscard]] consteval f256_s operator""_qd(const char* text)
     {
         f256_s out{};
@@ -672,7 +655,6 @@ namespace literals
 
         return out;
     }
-
 }
 
 constexpr f256::f256(const char* text)
@@ -681,8 +663,6 @@ constexpr f256::f256(const char* text)
     if (!parse_flt256(text, *this, &end))
         throw "invalid f256";
 }
-
-#define QD(x) bl::to_f256(#x)
 
 } // namespace bl
 
