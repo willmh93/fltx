@@ -135,12 +135,15 @@ namespace bl::bench
             std::string reference_name_value,
             std::string title_value,
             std::string csv_output_path_value,
-            std::string svg_output_path_value)
+            std::string svg_output_path_value,
+            double visible_ratio_cap_value=10.0
+        )
             : candidate_name(std::move(candidate_name_value)),
               reference_name(std::move(reference_name_value)),
               title(std::move(title_value)),
               csv_output_path(std::move(csv_output_path_value)),
-              svg_output_path(std::move(svg_output_path_value))
+              svg_output_path(std::move(svg_output_path_value)),
+            visible_ratio_cap(visible_ratio_cap_value)
         {
         }
 
@@ -211,6 +214,7 @@ namespace bl::bench
         std::string csv_output_path{};
         std::string svg_output_path{};
         std::vector<benchmark_chart_entry> entries{};
+        double visible_ratio_cap = 10.0;
 
         [[nodiscard]] std::vector<benchmark_chart_entry> make_sorted_entries() const
         {
@@ -283,7 +287,7 @@ namespace bl::bench
             if (!out)
                 return;
 
-            constexpr double visible_ratio_cap = 10.0;
+            //constexpr double visible_ratio_cap = 6.0;
 
             double max_ratio = 1.0;
             std::size_t longest_label_size = 0;
@@ -306,9 +310,10 @@ namespace bl::bench
             constexpr int bar_height = 24;
             constexpr int top_margin = 92;
             constexpr int bottom_margin = 24;
-            const int left_margin = std::max(280, static_cast<int>(longest_label_size * 11) + 48);
+            const int left_margin = std::max(250, static_cast<int>(longest_label_size * 11) + 0);
             const int right_margin = has_capped_ratios ? 224 : 160;
-            constexpr int plot_width = 1180;
+            //constexpr int plot_width = 1180;
+            constexpr int plot_width = 500;
             const int width = left_margin + plot_width + right_margin;
 
             int content_height = 0;

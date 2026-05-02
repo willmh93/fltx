@@ -32,7 +32,7 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 10;
+    constexpr int benchmark_scale = 20;
     constexpr bool only_bench_typical = true;
     constexpr std::size_t bucket_value_count = 8;
     constexpr std::size_t bucket_count = 3;
@@ -66,7 +66,8 @@ namespace
         "mpfr",
         "f256 vs MPFR typical benchmark ratios",
         "benchmark_charts/f256_typical_ratios.csv",
-        "benchmark_charts/f256_typical_ratios.svg"
+        "benchmark_charts/f256_typical_ratios.svg",
+        6.0
     };
 
     template<typename Spec>
