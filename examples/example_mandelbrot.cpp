@@ -34,10 +34,10 @@ static unsigned char to_byte(f64 x)
 int main()
 {
     // mandelbrot setup
-    constexpr int max_iter  = 20000;
-    constexpr f128 center_x = DD(-1.73200006480238126967529761198455);
-    constexpr f128 center_y = DD(0.00000019235376499049335337716270);
-    constexpr f128 zoom     = DD(2.0e+28);
+    constexpr int max_iter  =  20000;
+    constexpr f128 center_x = -1.73200006480238126967529761198455_dd;
+    constexpr f128 center_y =  0.00000019235376499049335337716270_dd;
+    constexpr f128 zoom     =  2.0e+28_dd;
 
     // image setup
     constexpr int width = 1024;

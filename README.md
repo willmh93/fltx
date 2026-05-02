@@ -4,14 +4,17 @@ A header-only C++20 library for fixed-width extended-precision floating-point wo
 
 `fltx` is for code that needs more precision than `double`, but still wants fixed-size scalar types, predictable performance, and ordinary C++ ergonomics.
 
+Accuracy and performance are tested against equivalent-precision MPFR, which is used as a reference oracle rather than as the problem `fltx` is trying to replace.
+
 ## Highlights
 
 - `constexpr`-capable math functions for [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), and [`f256`](include/f256.h), with a [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-like API for writing generic numeric code
+- Fixed-size, pure C++ extended-precision types with no GMP/MPFR runtime dependency, making `fltx` suitable for lightweight native and WebAssembly / Emscripten builds
 - Literal support, operators, conversions, comparisons, parsing, and formatting
 - Standard-library integration: [`std::ostream`](https://en.cppreference.com/w/cpp/io/basic_ostream), [`std::numeric_limits`](https://en.cppreference.com/w/cpp/types/numeric_limits), [`std::numbers`](https://en.cppreference.com/w/cpp/numeric/constants), and stream manipulators such as [`std::setprecision`](https://en.cppreference.com/w/cpp/io/manip/setprecision)
 - Bitwise runtime/`constexpr` parity for [`f128`](include/f128.h) and [`f256`](include/f256.h) by default; [`f32`](include/fltx_types.h) / [`f64`](include/fltx_types.h) match `std::` performance by default, with optional parity mode via [`FLTX_CONSTEXPR_PARITY`](include/fltx_math.h)
 - **Optional:** runtime-to-compile-time dispatch helpers
-- Benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision
+- Tested and Benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision
  
 ## Core types
 
@@ -297,8 +300,8 @@ target_include_directories(main PRIVATE /path/to/fltx/include)
 
 `fltx` is tested and benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision levels.
 
-<img src="res/f128_hard_ratios.svg" alt="f128 benchmark ratio" width="600">
-<img src="res/f256_hard_ratios.svg" alt="f256 benchmark ratio" width="600">
+<img src="res/f128_typical_ratios.svg" alt="f128 benchmark ratio" width="600">
+<img src="res/f256_typical_ratios.svg" alt="f256 benchmark ratio" width="600">
 
 ## License
 

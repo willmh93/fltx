@@ -1,3 +1,14 @@
+
+/**
+ * fltx_common_io.h — Exact constexpr printing/parsing logic needed by f128_io.h / f256_io.h
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
+
 #ifndef FLTX_COMMON_IO_INCLUDED
 #define FLTX_COMMON_IO_INCLUDED
 
@@ -11,12 +22,9 @@
 #include <string_view>
 #include <utility>
 
-namespace bl::fltx::common {
-
-
+namespace bl::detail {
 
 enum class format_kind : unsigned char { general, fixed_frac, scientific_frac, scientific_sig };
-
 
 template<std::size_t capacity>
 struct static_string
@@ -276,6 +284,17 @@ struct parse_token
     int exp10 = 0;
     bool any_digit = false;
     bool seen_nonzero = false;
+};
+
+struct small_parse_token
+{
+    std::uint64_t coeff = 0;
+    int frac_digits = 0;
+    int sig_digits = 0;
+    int exp10 = 0;
+    bool any_digit = false;
+    bool seen_nonzero = false;
+    bool coeff_overflow = false;
 };
 
 
@@ -541,6 +560,110 @@ constexpr BL_NO_INLINE bool scan_decimal_token(const char*& p, Token& token) noe
     return true;
 }
 
+BL_FORCE_INLINE constexpr void append_small_decimal_digit(small_parse_token& token, int digit) noexcept
+{
+    if (token.coeff_overflow)
+        return;
+
+    constexpr std::uint64_t max_u64 = ~std::uint64_t{ 0 };
+    const std::uint64_t udigit = static_cast<std::uint64_t>(digit);
+    if (token.coeff > (max_u64 - udigit) / 10)
+    {
+        token.coeff_overflow = true;
+        return;
+    }
+
+    token.coeff = token.coeff * 10 + udigit;
+}
+
+constexpr BL_NO_INLINE void scan_small_decimal_digits(const char*& p, small_parse_token& token, bool fractional) noexcept
+{
+    while (*p >= '0' && *p <= '9')
+    {
+        const int digit = *p - '0';
+        if (digit != 0 || token.seen_nonzero)
+        {
+            append_small_decimal_digit(token, digit);
+            ++token.sig_digits;
+            token.seen_nonzero = true;
+        }
+        ++p;
+        token.any_digit = true;
+        if (fractional)
+            ++token.frac_digits;
+    }
+}
+
+constexpr BL_NO_INLINE bool scan_small_decimal_token(const char*& p, small_parse_token& token) noexcept
+{
+    scan_small_decimal_digits(p, token, false);
+    if (*p == '.')
+    {
+        ++p;
+        scan_small_decimal_digits(p, token, true);
+    }
+    if (!token.any_digit)
+        return false;
+    scan_optional_exp10(p, token);
+    return true;
+}
+
+BL_FORCE_INLINE constexpr bool mul_pow10_u64(std::uint64_t& value, int exp) noexcept
+{
+    if (exp < 0 || exp > 19)
+        return false;
+
+    constexpr std::uint64_t max_u64 = ~std::uint64_t{ 0 };
+    for (int i = 0; i < exp; ++i)
+    {
+        if (value > max_u64 / 10)
+            return false;
+        value *= 10;
+    }
+    return true;
+}
+
+BL_FORCE_INLINE constexpr bool div_pow10_exact_u64(std::uint64_t& value, int exp, int sig_digits) noexcept
+{
+    if (exp < 0 || exp >= sig_digits)
+        return false;
+
+    for (int i = 0; i < exp; ++i)
+    {
+        if ((value % 10) != 0)
+            return false;
+        value /= 10;
+    }
+    return true;
+}
+
+template<class Traits>
+BL_FORCE_INLINE constexpr bool try_parse_small_integer(const small_parse_token& token, int dec_exp, bool neg, typename Traits::value_type& out) noexcept
+{
+    if (token.coeff_overflow)
+        return false;
+
+    std::uint64_t value = token.coeff;
+    if (dec_exp >= 0)
+    {
+        if (!mul_pow10_u64(value, dec_exp))
+            return false;
+    }
+    else if (!div_pow10_exact_u64(value, -dec_exp, token.sig_digits))
+    {
+        return false;
+    }
+
+    out = Traits::exact_uint64_to_value(value, neg);
+    return true;
+}
+
+template<class Traits>
+BL_FORCE_INLINE constexpr bool try_parse_compact_decimal(const small_parse_token& token, int dec_exp, bool neg, typename Traits::value_type& out) noexcept
+{
+    return !token.coeff_overflow && Traits::compact_decimal_to_value(token.coeff, dec_exp, neg, out);
+}
+
 template<class Traits>
 constexpr BL_NO_INLINE bool parse_special(const char*& p, bool neg, typename Traits::value_type& out) noexcept
 {
@@ -566,6 +689,7 @@ template<class Traits>
 constexpr BL_NO_INLINE bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
 {
     using token_type = typename Traits::parse_token;
+    using coeff_type = typename token_type::coeff_type;
 
     const char* p = skip_ascii_space(s);
     bool neg = false;
@@ -582,8 +706,9 @@ constexpr BL_NO_INLINE bool parse_flt(const char* s, typename Traits::value_type
         return true;
     }
 
-    token_type token;
-    if (!scan_decimal_token(p, token))
+    const char* token_start = p;
+    small_parse_token token;
+    if (!scan_small_decimal_token(p, token))
     {
         if (endptr)
             *endptr = s;
@@ -617,7 +742,38 @@ constexpr BL_NO_INLINE bool parse_flt(const char* s, typename Traits::value_type
         return true;
     }
 
-    out = Traits::exact_decimal_to_value(token.coeff, dec_exp, neg);
+    if (try_parse_small_integer<Traits>(token, dec_exp, neg, out))
+    {
+        if (endptr)
+            *endptr = p;
+        return true;
+    }
+
+    if (try_parse_compact_decimal<Traits>(token, dec_exp, neg, out))
+    {
+        if (endptr)
+            *endptr = p;
+        return true;
+    }
+
+    if (!token.coeff_overflow)
+    {
+        out = Traits::exact_decimal_to_value(coeff_type{ token.coeff }, dec_exp, neg);
+        if (endptr)
+            *endptr = p;
+        return true;
+    }
+
+    const char* exact_p = token_start;
+    token_type exact_token;
+    if (!scan_decimal_token(exact_p, exact_token))
+    {
+        if (endptr)
+            *endptr = s;
+        return false;
+    }
+
+    out = Traits::exact_decimal_to_value(exact_token.coeff, dec_exp, neg);
     if (endptr)
         *endptr = p;
     return true;
@@ -694,9 +850,9 @@ BL_NO_INLINE std::ostream& write_to_stream(std::ostream& os, const typename Trai
     return os;
 }
 
-} // namespace bl::fltx::common
+} // namespace bl::detail
 
-namespace bl::fltx::common::exact_decimal {
+namespace bl::detail::exact_decimal {
 
 [[nodiscard]] constexpr inline default_io_string to_decimal_string(biguint value)
 {
@@ -836,6 +992,141 @@ template<class Traits, typename String>
     return true;
 }
 
+[[nodiscard]] constexpr inline int bit_length_u64(std::uint64_t value) noexcept
+{
+    int bits = 0;
+    while (value != 0)
+    {
+        ++bits;
+        value >>= 1;
+    }
+    return bits;
+}
+
+[[nodiscard]] constexpr inline bool pow5_u64(int exponent, std::uint64_t& out) noexcept
+{
+    if (exponent < 0)
+        return false;
+
+    constexpr std::uint64_t max_u64 = ~std::uint64_t{ 0 };
+    std::uint64_t value = 1;
+    for (int i = 0; i < exponent; ++i)
+    {
+        if (value > max_u64 / 5)
+            return false;
+        value *= 5;
+    }
+
+    out = value;
+    return true;
+}
+
+[[nodiscard]] constexpr inline bool pow5_u32(int exponent, std::uint32_t& out) noexcept
+{
+    std::uint64_t value = 0;
+    if (!pow5_u64(exponent, value) || value > static_cast<std::uint64_t>(~std::uint32_t{ 0 }))
+        return false;
+
+    out = static_cast<std::uint32_t>(value);
+    return true;
+}
+
+[[nodiscard]] constexpr inline int floor_log2_ratio_u64(std::uint64_t numerator, std::uint64_t denominator) noexcept
+{
+    int k = bit_length_u64(numerator) - bit_length_u64(denominator);
+
+    if (k >= 0)
+    {
+        const std::uint64_t shifted_den = denominator << k;
+        if (numerator < shifted_den)
+            --k;
+    }
+    else
+    {
+        const std::uint64_t shifted_num = numerator << -k;
+        if (shifted_num < denominator)
+            --k;
+    }
+
+    return k;
+}
+
+template<class Traits>
+constexpr inline bool compact_decimal_to_value(std::uint64_t coeff, int dec_exp, bool neg, typename Traits::value_type& out) noexcept
+{
+    if (coeff == 0)
+    {
+        out = Traits::zero(neg);
+        return true;
+    }
+
+    std::uint64_t numerator = coeff;
+    std::uint32_t denominator = 1;
+    int bin_exp = 0;
+
+    if (dec_exp >= 0)
+    {
+        std::uint64_t scale5 = 0;
+        if (!pow5_u64(dec_exp, scale5) || numerator > (~std::uint64_t{ 0 }) / scale5)
+            return false;
+
+        numerator *= scale5;
+        bin_exp = dec_exp;
+    }
+    else
+    {
+        const int original_pow10 = -dec_exp;
+        int pow5 = original_pow10;
+        while (pow5 > 0 && (numerator % 5) == 0)
+        {
+            numerator /= 5;
+            --pow5;
+        }
+
+        if (!pow5_u32(pow5, denominator))
+            return false;
+
+        bin_exp = -original_pow10;
+    }
+
+    const int ratio_exp = floor_log2_ratio_u64(numerator, denominator);
+    const int scale_bits = Traits::significand_bits - 1 - ratio_exp;
+    if (scale_bits < 0)
+        return false;
+
+    biguint q{ numerator };
+    q.shl_bits(scale_bits);
+
+    std::uint32_t remainder = 0;
+    if (denominator != 1)
+        remainder = q.div_small(denominator);
+
+    if (remainder != 0)
+    {
+        const std::uint64_t twice_remainder = static_cast<std::uint64_t>(remainder) << 1;
+        const int cmp = twice_remainder < denominator ? -1 : twice_remainder > denominator ? 1 : 0;
+        if (cmp > 0 || (cmp == 0 && q.is_odd()))
+            q.add_small(1);
+    }
+
+    int adjusted_ratio_exp = ratio_exp;
+    if (q.bit_length() > Traits::significand_bits)
+    {
+        q.shr1();
+        ++adjusted_ratio_exp;
+    }
+
+    const int e2 = bin_exp + adjusted_ratio_exp;
+    if (e2 > 1023)
+        out = Traits::infinity(neg);
+    else if (e2 < -1074)
+        out = Traits::zero(neg);
+    else
+        out = Traits::pack_from_significand(q, e2, neg);
+
+    return true;
+}
+
 template<class Traits>
 constexpr inline typename Traits::value_type exact_decimal_to_value(const biguint& coeff, int dec_exp, bool neg) noexcept
 {
@@ -875,6 +1166,6 @@ constexpr inline typename Traits::value_type exact_decimal_to_value(const biguin
     return Traits::pack_from_significand(q, e2, neg);
 }
 
-} // namespace bl::fltx::common::exact_decimal
+} // namespace bl::detail::exact_decimal
 
 #endif

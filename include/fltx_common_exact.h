@@ -1,3 +1,14 @@
+
+/**
+ * fltx_common_exact.h — biguint logic needed by fltx_common_io.h
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
+
 #ifndef FLTX_COMMON_EXACT_INCLUDED
 #define FLTX_COMMON_EXACT_INCLUDED
 
@@ -5,7 +16,7 @@
 
 #include <algorithm>
 
-namespace bl::fltx::common::exact_decimal {
+namespace bl::detail::exact_decimal {
 
 struct biguint
 {
@@ -348,7 +359,6 @@ struct biguint
     const bool extra_word = bit_shift != 0 && (value.words[value.size - 1] >> (32 - bit_shift)) != 0;
     return word_shift + value.size - 1 + (extra_word ? 1 : 0);
 }
-
 [[nodiscard]] constexpr inline std::uint32_t shifted_word_at(const biguint& value, int index, int bits) noexcept
 {
     if (index < 0 || value.is_zero())
@@ -407,7 +417,6 @@ constexpr inline void sub_shifted_inplace(biguint& a, const biguint& b, int bits
     }
     a.trim();
 }
-
 constexpr inline void mod_shift_subtract(const biguint& numerator, const biguint& denominator, biguint& remainder) noexcept
 {
     remainder = numerator;
@@ -469,7 +478,6 @@ constexpr inline biguint mul_big(const biguint& a, const biguint& b) noexcept
         out.mul_small(5);
     return out;
 }
-
 [[nodiscard]] constexpr inline biguint pow10_big(int exponent) noexcept
 {
     biguint out{1};
@@ -646,8 +654,6 @@ constexpr inline void add_signed(signed_biguint& acc, biguint term, bool term_ne
     acc.neg = term_neg;
 }
 
-
-
 [[nodiscard]] constexpr inline int compare_scaled_with_pow10exp(const biguint& mag, int bin_exp, int dec_exp) noexcept
 {
     if (dec_exp >= 0)
@@ -686,6 +692,6 @@ constexpr inline void add_signed(signed_biguint& acc, biguint term, bool term_ne
     return (std::uint64_t{ 1 } << 52) | frac;
 }
 
-} // namespace bl::fltx::common::exact_decimal
+} // namespace bl::detail::exact_decimal
 
 #endif

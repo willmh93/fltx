@@ -1,18 +1,30 @@
+
+/**
+ * f32_math.h — f32 (float) constexpr <cmath> style API
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
+
 #ifndef F32_INCLUDED
 #define F32_INCLUDED
 
 #include "f64_math.h"
+#include "fltx_math_utils.h"
 
 namespace bl {
 
 using f32 = float;
 
-namespace _f32_detail
+namespace detail::_f32
 {
-    using fltx::common::fp::nearbyint_ties_even;
-    using fltx::common::fp::floor_constexpr;
-    using fltx::common::fp::ceil_constexpr;
-    using fltx::common::fp::trunc_constexpr;
+    using detail::fp::nearbyint_ties_even;
+    using detail::fp::floor_constexpr;
+    using detail::fp::ceil_constexpr;
+    using detail::fp::trunc_constexpr;
 
     BL_FORCE_INLINE constexpr bool iszero(float x) noexcept
     {
@@ -120,72 +132,72 @@ namespace _f32_detail
 {
     if (!bl::use_constexpr_math())
         return std::abs(x);
-    return _f32_detail::fabs_constexpr(x);
+    return detail::_f32::fabs_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float fabs(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::fabs(x);
-    return _f32_detail::fabs_constexpr(x);
+    return detail::_f32::fabs_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool signbit(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::signbit(x);
-    return _f32_detail::signbit_constexpr(x);
+    return detail::_f32::signbit_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isnan(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::isnan(x);
-    return _f32_detail::isnan(x);
+    return detail::_f32::isnan(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isinf(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::isinf(x);
-    return _f32_detail::isinf(x);
+    return detail::_f32::isinf(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isfinite(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::isfinite(x);
-    return _f32_detail::isfinite(x);
+    return detail::_f32::isfinite(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool iszero(float x) noexcept
 {
-    return _f32_detail::iszero(x);
+    return detail::_f32::iszero(x);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr float floor(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::floor(x);
-    return static_cast<float>(_f32_detail::floor_constexpr(static_cast<double>(x)));
+    return static_cast<float>(detail::_f32::floor_constexpr(static_cast<double>(x)));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float ceil(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::ceil(x);
-    return static_cast<float>(_f32_detail::ceil_constexpr(static_cast<double>(x)));
+    return static_cast<float>(detail::_f32::ceil_constexpr(static_cast<double>(x)));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float trunc(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::trunc(x);
-    return static_cast<float>(_f32_detail::trunc_constexpr(static_cast<double>(x)));
+    return static_cast<float>(detail::_f32::trunc_constexpr(static_cast<double>(x)));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float round(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::round(x);
-    return _f32_detail::round_half_away_zero(x);
+    return detail::_f32::round_half_away_zero(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float nearbyint(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::nearbyint(x);
-    return _f32_detail::nearbyint_constexpr(x);
+    return detail::_f32::nearbyint_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float rint(float x) noexcept
 {
@@ -197,25 +209,25 @@ namespace _f32_detail
 {
     if (!bl::use_constexpr_math())
         return std::lround(x);
-    return _f32_detail::to_signed_integer_or_zero<long>(round(x));
+    return detail::_f32::to_signed_integer_or_zero<long>(round(x));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr long long llround(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::llround(x);
-    return _f32_detail::to_signed_integer_or_zero<long long>(round(x));
+    return detail::_f32::to_signed_integer_or_zero<long long>(round(x));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr long lrint(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::lrint(x);
-    return _f32_detail::to_signed_integer_or_zero<long>(nearbyint(x));
+    return detail::_f32::to_signed_integer_or_zero<long>(nearbyint(x));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr long long llrint(float x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::llrint(x);
-    return _f32_detail::to_signed_integer_or_zero<long long>(nearbyint(x));
+    return detail::_f32::to_signed_integer_or_zero<long long>(nearbyint(x));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr float fmod(float x, float y) noexcept
@@ -238,7 +250,7 @@ namespace _f32_detail
     int q = 0;
     const double r = bl::remquo(static_cast<double>(x), static_cast<double>(y), &q);
     if (quo)
-        *quo = _f32_detail::normalize_remquo_bits(q);
+        *quo = detail::_f32::normalize_remquo_bits(q);
     return static_cast<float>(r);
 }
 
@@ -337,7 +349,7 @@ namespace _f32_detail
 {
     if (!bl::use_constexpr_math())
         return std::nextafter(from, to);
-    return _f32_detail::nextafter_float_constexpr(from, to);
+    return detail::_f32::nextafter_float_constexpr(from, to);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float nexttoward(float from, long double to) noexcept
 {

@@ -1,3 +1,14 @@
+
+/**
+ * fltx_common_base.h — Provides a single constexpr interface for f32/f64/f128/f256 printing/parsing
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
+
 #ifndef FLTX_IO_INCLUDED
 #define FLTX_IO_INCLUDED
 
@@ -19,7 +30,7 @@ namespace bl
         bool strip_trailing_zeros = false)
     {
         std::string out;
-        _f128_detail::to_string_into(
+        detail::_f128::to_string_into(
             out,
             f128_s{ static_cast<f64>(a), 0.0 },
             max_precision,
@@ -37,7 +48,7 @@ namespace bl
         bool strip_trailing_zeros = false)
     {
         std::string out;
-        _f128_detail::to_string_into(
+        detail::_f128::to_string_into(
             out,
             f128_s{ a, 0.0 },
             max_precision,

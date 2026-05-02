@@ -1,3 +1,14 @@
+
+/**
+ * fltx_common_base.h — Macros, floating-point precision control, consteval helpers
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
+
 #ifndef FLTX_COMMON_BASE_INCLUDED
 #define FLTX_COMMON_BASE_INCLUDED
 
@@ -24,14 +35,16 @@
 #endif
 #endif
 
-#ifndef BL_LIKELY
-#if defined(__clang__) || defined(__GNUC__)
-#define BL_LIKELY(x)   __builtin_expect(!!(x), 1)
-#define BL_UNLIKELY(x) __builtin_expect(!!(x), 0)
-#else
-#define BL_LIKELY(x)   (x)
-#define BL_UNLIKELY(x) (x)
+#ifndef FLTX_INLINE_LEVEL
+#define FLTX_INLINE_LEVEL 2
 #endif
+
+#if FLTX_INLINE_LEVEL >= 2
+#define FLTX_CORE_INLINE BL_FORCE_INLINE
+#elif FLTX_INLINE_LEVEL == 1
+#define FLTX_CORE_INLINE inline
+#else
+#define FLTX_CORE_INLINE BL_NO_INLINE
 #endif
 
 #ifndef BL_FAST_MATH
@@ -106,31 +119,35 @@
 
 namespace bl
 {
+#if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE) || defined(FLTX_CONSTEXPR_PARITY)
     namespace _fltx_debug {
         inline bool always_constexpr_path = false;
-#ifdef FLTX_CONSTEXPR_PARITY
+  #ifdef FLTX_CONSTEXPR_PARITY
         inline bool constexpr_parity_path = true;
-#endif
+  #endif
         BL_FORCE_INLINE void set_forced_constexpr_path() noexcept { always_constexpr_path = true; }
         BL_FORCE_INLINE void set_forced_runtime_path() noexcept { always_constexpr_path = false; }
     }
+#endif
 
     [[nodiscard]] BL_FORCE_INLINE constexpr bool is_constant_evaluated() noexcept
     {
-#ifdef FLTX_CONSTEXPR_PARITY_TEST_MODE
+    #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE) //&& defined(FLTX_CONSTEXPR_PARITY)
         return std::is_constant_evaluated() ? true : _fltx_debug::always_constexpr_path;
-#else
+    #else
         return std::is_constant_evaluated();
-#endif
+    #endif
     }
 
     [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_math() noexcept
     {
-#ifdef FLTX_CONSTEXPR_PARITY
-        return std::is_constant_evaluated() ? true : _fltx_debug::constexpr_parity_path;
-#else
+    #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE)// && defined(FLTX_CONSTEXPR_PARITY)
         return is_constant_evaluated();
-#endif
+    #elif defined(FLTX_CONSTEXPR_PARITY)
+        return std::is_constant_evaluated() ? true : _fltx_debug::constexpr_parity_path;
+    #else
+        return std::is_constant_evaluated();
+    #endif
     }
 }
 

@@ -1,3 +1,13 @@
+
+/**
+ * f256_io.h — f256 (quad-double) constexpr printing/parsing + literals
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #ifndef F256_IO_INCLUDED
 #define F256_IO_INCLUDED
 
@@ -10,7 +20,7 @@ namespace bl {
 
 /// ------------------ printing helpers ------------------
 
-namespace _f256_detail
+namespace detail::_f256
 {
     BL_PUSH_PRECISE;
     BL_PRINT_NOINLINE BL_FORCE_INLINE f256_s mul_by_double_print(f256_s a, double b) noexcept
@@ -37,7 +47,7 @@ namespace _f256_detail
     inline constexpr void print_expansion_set(f256_print_expansion& st, const f256_s& x) noexcept
     {
         double tmp[4] = { x.x3, x.x2, x.x1, x.x0 };
-        st.n = _f256_detail::compress_expansion_zeroelim(4, tmp, st.terms);
+        st.n = detail::_f256::compress_expansion_zeroelim(4, tmp, st.terms);
     }
     inline constexpr bool print_expansion_is_zero(const f256_print_expansion& st) noexcept
     {
@@ -50,10 +60,10 @@ namespace _f256_detail
     inline constexpr void print_expansion_scale(f256_print_expansion& st, double b) noexcept
     {
         double tmp[128]{};
-        int n = _f256_detail::scale_expansion_zeroelim(st.n, st.terms, b, tmp);
+        int n = detail::_f256::scale_expansion_zeroelim(st.n, st.terms, b, tmp);
 
         double comp[64]{};
-        st.n = _f256_detail::compress_expansion_zeroelim(n, tmp, comp);
+        st.n = detail::_f256::compress_expansion_zeroelim(n, tmp, comp);
         for (int i = 0; i < st.n; ++i)
             st.terms[i] = comp[i];
     }
@@ -61,10 +71,10 @@ namespace _f256_detail
     {
         double term = b;
         double tmp[128]{};
-        int n = _f256_detail::fast_expansion_sum_zeroelim(st.n, st.terms, 1, &term, tmp);
+        int n = detail::_f256::fast_expansion_sum_zeroelim(st.n, st.terms, 1, &term, tmp);
 
         double comp[64]{};
-        st.n = _f256_detail::compress_expansion_zeroelim(n, tmp, comp);
+        st.n = detail::_f256::compress_expansion_zeroelim(n, tmp, comp);
         for (int i = 0; i < st.n; ++i)
             st.terms[i] = comp[i];
     }
@@ -88,7 +98,7 @@ namespace _f256_detail
 
         int e2 = 0;
         (void)std::frexp(ax.x0, &e2);
-        int e10 = (int)fltx::common::fp::floor_constexpr((e2 - 1) * 0.30102999566398114);
+        int e10 = (int)detail::fp::floor_constexpr((e2 - 1) * 0.30102999566398114);
 
         m = ax * pow10_256(-e10);
         while (m >= f256_s{ 10.0, 0.0, 0.0, 0.0 }) { m = m / f256_s{ 10.0, 0.0, 0.0, 0.0 }; ++e10; }
@@ -112,7 +122,7 @@ namespace _f256_detail
             f256_s q = floor(n / base);
             f256_s r = n - q * base;
 
-            long long chunk = (long long)fltx::common::fp::floor_constexpr(r.x0);
+            long long chunk = (long long)detail::fp::floor_constexpr(r.x0);
             if (chunk >= 1000000000LL) { chunk -= 1000000000LL; q += 1.0; }
             if (chunk < 0) chunk = 0;
 
@@ -125,7 +135,7 @@ namespace _f256_detail
             n = q;
         }
 
-        long long last = (long long)fltx::common::fp::floor_constexpr(n.x0);
+        long long last = (long long)detail::fp::floor_constexpr(n.x0);
         if (last == 0) {
             dst[len++] = '0';
         }
@@ -163,7 +173,7 @@ namespace _f256_detail
         return { p, true };
     }
 
-    using biguint = fltx::common::exact_decimal::biguint;
+    using biguint = detail::exact_decimal::biguint;
 
     struct exact_traits
     {
@@ -197,10 +207,10 @@ namespace _f256_detail
             const std::uint64_t c1 = q.get_bits(106, 53);
             const std::uint64_t c0 = q.get_bits(159, 53);
 
-            const double x0 = c0 ? fltx::common::fp::ldexp_constexpr2(static_cast<double>(c0), e2 - 52) : 0.0;
-            const double x1 = c1 ? fltx::common::fp::ldexp_constexpr2(static_cast<double>(c1), e2 - 105) : 0.0;
-            const double x2 = c2 ? fltx::common::fp::ldexp_constexpr2(static_cast<double>(c2), e2 - 158) : 0.0;
-            const double x3 = c3 ? fltx::common::fp::ldexp_constexpr2(static_cast<double>(c3), e2 - 211) : 0.0;
+            const double x0 = c0 ? detail::fp::ldexp_constexpr2(static_cast<double>(c0), e2 - 52) : 0.0;
+            const double x1 = c1 ? detail::fp::ldexp_constexpr2(static_cast<double>(c1), e2 - 105) : 0.0;
+            const double x2 = c2 ? detail::fp::ldexp_constexpr2(static_cast<double>(c2), e2 - 158) : 0.0;
+            const double x3 = c3 ? detail::fp::ldexp_constexpr2(static_cast<double>(c3), e2 - 211) : 0.0;
 
             f256_s out = renorm(x0, x1, x2, x3);
             if (neg)
@@ -212,11 +222,11 @@ namespace _f256_detail
     template<typename String>
     constexpr inline bool exact_scientific_digits(const f256_s& x, int sig, String& digits, int& exp10)
     {
-        return fltx::common::exact_decimal::exact_scientific_digits<exact_traits>(x, sig, digits, exp10);
+        return detail::exact_decimal::exact_scientific_digits<exact_traits>(x, sig, digits, exp10);
     }
     constexpr inline f256_s exact_decimal_to_f256(const biguint& coeff, int dec_exp, bool neg) noexcept
     {
-        return fltx::common::exact_decimal::exact_decimal_to_value<exact_traits>(coeff, dec_exp, neg);
+        return detail::exact_decimal::exact_decimal_to_value<exact_traits>(coeff, dec_exp, neg);
     }
 
     inline constexpr double pow10_double_table[10] = {
@@ -337,7 +347,7 @@ namespace _f256_detail
 
         if (frac_len > 0) {
             *p++ = '.';
-            fltx::common::copy_chars(p, frac, static_cast<std::size_t>(frac_len));
+            detail::copy_chars(p, frac, static_cast<std::size_t>(frac_len));
             p += frac_len;
         }
 
@@ -357,9 +367,9 @@ namespace _f256_detail
         const f256_s v = neg ? -x : x;
         const int sig = static_cast<int>(sig_digits);
 
-        fltx::common::default_io_string digits;
+        detail::default_io_string digits;
         int e = 0;
-        if (!_f256_detail::exact_scientific_digits(v, sig, digits, e)) {
+        if (!detail::_f256::exact_scientific_digits(v, sig, digits, e)) {
             if (first >= last) return { first, false };
             *first = '0';
             return { first + 1, true };
@@ -386,10 +396,10 @@ namespace _f256_detail
         *p++ = digits[0];
         if (has_frac) {
             *p++ = '.';
-            fltx::common::copy_chars(p, digits.data() + 1, static_cast<std::size_t>(last_frac));
+            detail::copy_chars(p, digits.data() + 1, static_cast<std::size_t>(last_frac));
             p += last_frac;
         }
-        fltx::common::copy_chars(p, exp_buf, static_cast<std::size_t>(exp_len));
+        detail::copy_chars(p, exp_buf, static_cast<std::size_t>(exp_len));
         p += exp_len;
         return { p, true };
     }
@@ -398,7 +408,7 @@ namespace _f256_detail
         if (frac_digits < 0) frac_digits = 0;
 
         if (iszero(x)) {
-            const bool neg = _f256_detail::signbit_constexpr(x.x0);
+            const bool neg = detail::_f256::signbit_constexpr(x.x0);
             int frac_len = strip_trailing_zeros ? 0 : (int)frac_digits;
 
             char exp_buf[16];
@@ -420,7 +430,7 @@ namespace _f256_detail
                 for (int i = 0; i < frac_len; ++i) *p++ = '0';
             }
 
-            fltx::common::copy_chars(p, exp_buf, static_cast<std::size_t>(exp_len));
+            detail::copy_chars(p, exp_buf, static_cast<std::size_t>(exp_len));
             p += exp_len;
             return { p, true };
         }
@@ -446,9 +456,9 @@ namespace _f256_detail
         }
 
         const f256_s ax = (x.x0 < 0.0) ? -x : x;
-        fltx::common::default_io_string digits;
+        detail::default_io_string digits;
         int e10 = 0;
-        if (!_f256_detail::exact_scientific_digits(ax, 1, digits, e10)) {
+        if (!detail::_f256::exact_scientific_digits(ax, 1, digits, e10)) {
             if (first >= last) return { first, false };
             *first = '0';
             return { first + 1, true };
@@ -462,8 +472,8 @@ namespace _f256_detail
         return emit_scientific_sig_to_chars(first, last, x, sig, strip_trailing_zeros);
     }
 
-    using f256_format_kind = fltx::common::format_kind;
-    using f256_parse_token = fltx::common::parse_token<_f256_detail::biguint>;
+    using f256_format_kind = detail::format_kind;
+    using f256_parse_token = detail::parse_token<detail::_f256::biguint>;
 
     struct f256_io_traits
     {
@@ -486,7 +496,7 @@ namespace _f256_detail
             return neg ? -inf : inf;
         }
         static constexpr value_type quiet_nan() noexcept { return std::numeric_limits<value_type>::quiet_NaN(); }
-        static constexpr void normalize10(const value_type& x, value_type& m, int& e10) { _f256_detail::normalize10(x, m, e10); }
+        static constexpr void normalize10(const value_type& x, value_type& m, int& e10) { detail::_f256::normalize10(x, m, e10); }
         static constexpr chars_result to_chars_general(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
         {
             return to_chars(first, last, x, precision, false, false, strip_trailing_zeros);
@@ -503,88 +513,97 @@ namespace _f256_detail
         {
             return emit_scientific_sig_to_chars(first, last, x, precision, strip_trailing_zeros);
         }
+        static constexpr value_type exact_uint64_to_value(std::uint64_t value, bool neg)
+        {
+            value_type out = bl::to_f256(value);
+            return neg ? -out : out;
+        }
+        static constexpr bool compact_decimal_to_value(std::uint64_t coeff, int dec_exp, bool neg, value_type& out)
+        {
+            return detail::exact_decimal::compact_decimal_to_value<detail::_f256::exact_traits>(coeff, dec_exp, neg, out);
+        }
         static constexpr value_type exact_decimal_to_value(const parse_token::coeff_type& coeff, int dec_exp, bool neg)
         {
-            return _f256_detail::exact_decimal_to_f256(coeff, dec_exp, neg);
+            return detail::_f256::exact_decimal_to_f256(coeff, dec_exp, neg);
         }
     };
 
     template<typename String, typename Writer>
     BL_FORCE_INLINE constexpr void write_chars_to_string(String& out, std::size_t cap, Writer writer)
     {
-        fltx::common::write_chars_to_string<f256_chars_result>(out, cap, writer);
+        detail::write_chars_to_string<f256_chars_result>(out, cap, writer);
     }
     BL_FORCE_INLINE const char* special_text_f256(const f256_s& x, bool uppercase = false) noexcept
     {
-        return fltx::common::special_text<f256_io_traits>(x, uppercase);
+        return detail::special_text<f256_io_traits>(x, uppercase);
     }
     template<typename String>
     BL_FORCE_INLINE constexpr bool assign_special_string(String& out, const f256_s& x, bool uppercase = false) noexcept
     {
-        return fltx::common::assign_special_string<f256_io_traits>(out, x, uppercase);
+        return detail::assign_special_string<f256_io_traits>(out, x, uppercase);
     }
     template<typename String>
     BL_FORCE_INLINE constexpr void ensure_decimal_point(String& s)
     {
-        fltx::common::ensure_decimal_point(s);
+        detail::ensure_decimal_point(s);
     }
     template<typename String>
     BL_FORCE_INLINE constexpr void apply_stream_decorations(String& s, bool showpos, bool uppercase)
     {
-        fltx::common::apply_stream_decorations(s, showpos, uppercase);
+        detail::apply_stream_decorations(s, showpos, uppercase);
     }
     BL_FORCE_INLINE bool write_stream_special(std::ostream& os, const f256_s& x, bool showpos, bool uppercase)
     {
-        return fltx::common::write_stream_special<f256_io_traits>(os, x, showpos, uppercase);
+        return detail::write_stream_special<f256_io_traits>(os, x, showpos, uppercase);
     }
     template<typename String>
     BL_FORCE_INLINE constexpr void format_to_string(String& out, const f256_s& x, int precision, f256_format_kind kind, bool strip_trailing_zeros = false)
     {
-        fltx::common::format_to_string<f256_io_traits>(out, x, precision, kind, strip_trailing_zeros);
+        detail::format_to_string<f256_io_traits>(out, x, precision, kind, strip_trailing_zeros);
     }
     template<typename String>
     BL_FORCE_INLINE constexpr void to_string_into(String& out, const f256_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
     {
-        fltx::common::to_string_into<f256_io_traits>(out, x, precision, fixed, scientific, strip_trailing_zeros);
+        detail::to_string_into<f256_io_traits>(out, x, precision, fixed, scientific, strip_trailing_zeros);
     }
     template<typename String>
     BL_FORCE_INLINE constexpr void emit_scientific(String& out, const f256_s& x, std::streamsize prec, bool strip_trailing_zeros)
     {
-        fltx::common::emit_scientific<f256_io_traits>(out, x, prec, strip_trailing_zeros);
+        detail::emit_scientific<f256_io_traits>(out, x, prec, strip_trailing_zeros);
     }
     template<typename String>
     BL_FORCE_INLINE constexpr void emit_fixed_dec(String& out, const f256_s& x, int prec, bool strip_trailing_zeros)
     {
-        fltx::common::emit_fixed_dec<f256_io_traits>(out, x, prec, strip_trailing_zeros);
+        detail::emit_fixed_dec<f256_io_traits>(out, x, prec, strip_trailing_zeros);
     }
     template<typename String>
     BL_FORCE_INLINE constexpr void emit_scientific_sig(String& out, const f256_s& x, std::streamsize sig_digits, bool strip_trailing_zeros)
     {
-        fltx::common::emit_scientific_sig<f256_io_traits>(out, x, sig_digits, strip_trailing_zeros);
+        detail::emit_scientific_sig<f256_io_traits>(out, x, sig_digits, strip_trailing_zeros);
     }
 
     /// ======== Parsing helpers ========
 
     BL_FORCE_INLINE bool valid_flt256_string(const char* s) noexcept
     {
-        return fltx::common::valid_float_string(s);
+        return detail::valid_float_string(s);
     }
     BL_FORCE_INLINE unsigned char ascii_lower_f256(char c) noexcept
     {
-        return fltx::common::ascii_lower(c);
+        return detail::ascii_lower(c);
     }
     BL_FORCE_INLINE const char* skip_ascii_space_f256(const char* p) noexcept
     {
-        return fltx::common::skip_ascii_space(p);
+        return detail::skip_ascii_space(p);
     }
 
 }
 
 /// ------------------ printing / parsing (public) ------------------
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool parse_flt256(const char* s, f256_s& out, const char** endptr = nullptr) noexcept
+[[nodiscard]] BL_NO_INLINE constexpr bool parse_flt256(const char* s, f256_s& out, const char** endptr = nullptr) noexcept
 {
-    return fltx::common::parse_flt<_f256_detail::f256_io_traits>(s, out, endptr);
+    return detail::parse_flt<detail::_f256::f256_io_traits>(s, out, endptr);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s to_f256(const char* s) noexcept
 {
@@ -597,15 +616,15 @@ namespace _f256_detail
 {
     return to_f256(s.c_str());
 }
-template<std::size_t capacity = fltx::common::default_io_string::static_capacity>
-[[nodiscard]] BL_FORCE_INLINE constexpr fltx::common::static_string<capacity> to_static_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+template<std::size_t capacity = detail::default_io_string::static_capacity>
+[[nodiscard]] BL_NO_INLINE constexpr detail::static_string<capacity> to_static_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
-    fltx::common::static_string<capacity> out;
-    _f256_detail::to_string_into(out, x, precision, fixed, scientific, strip_trailing_zeros);
+    detail::static_string<capacity> out;
+    detail::_f256::to_string_into(out, x, precision, fixed, scientific, strip_trailing_zeros);
     return out;
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr fltx::common::default_io_string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE constexpr detail::default_io_string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     return to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
 }
@@ -620,27 +639,40 @@ template<std::size_t capacity = fltx::common::default_io_string::static_capacity
 
 inline BL_NO_INLINE std::ostream& operator<<(std::ostream& os, const f256_s& x)
 {
-    return fltx::common::write_to_stream<_f256_detail::f256_io_traits>(os, x);
+    return detail::write_to_stream<detail::_f256::f256_io_traits>(os, x);
 }
 
 /// ------------------ literals ------------------
 namespace literals
 {
-    [[nodiscard]] constexpr f256_s operator""_qd(unsigned long long v) noexcept {
-        return to_f256(static_cast<uint64_t>(v));
-    }
-    [[nodiscard]] constexpr f256_s operator""_qd(long double v) noexcept {
-        return f256_s{ static_cast<double>(v) };
-    }
-    [[nodiscard]] consteval f256_s operator""_qd(const char* text, std::size_t len)
+    //[[nodiscard]] constexpr f256_s operator""_qd(unsigned long long v) noexcept {
+    //    return to_f256(static_cast<uint64_t>(v));
+    //}
+    //[[nodiscard]] constexpr f256_s operator""_qd(long double v) noexcept {
+    //    return f256_s{ static_cast<double>(v) };
+    //}
+    //[[nodiscard]] consteval f256_s operator""_qd(const char* text, std::size_t len)
+    //{
+    //    f256_s out{};
+    //    const char* end = text;
+    //    if (!(parse_flt256(text, out, &end) && (static_cast<std::size_t>(end - text) == len)))
+    //        throw "invalid _qd literal";
+    //
+    //    return out;
+    //}
+
+
+    [[nodiscard]] consteval f256_s operator""_qd(const char* text)
     {
         f256_s out{};
         const char* end = text;
-        if (!(parse_flt256(text, out, &end) && (static_cast<std::size_t>(end - text) == len)))
+
+        if (!(parse_flt256(text, out, &end) && *end == '\0'))
             throw "invalid _qd literal";
 
         return out;
     }
+
 }
 
 constexpr f256::f256(const char* text)

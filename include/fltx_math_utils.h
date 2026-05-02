@@ -1,10 +1,31 @@
+
+/**
+ * fltx.h — generic templated math functions
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ * 
+ * ------------------------------------------------
+ * 
+ *  fltx_math_utils.h included by all math headers so functions like:
+ *  clamp(), sq(), etc... are available even when included they're included individually
+ * 
+ * - f32_math.h
+ * - f64_math.h
+ * - f128_math.h
+ * - f256_math.h
+ */
+
 #ifndef FLTX_MATH_UTILS
 #define FLTX_MATH_UTILS
+
 
 #include <concepts>
 #include <type_traits>
 
-namespace bl::fltx::common::fp
+namespace bl::detail::fp
 {
     template<class T>
     concept non_bool_integral =
@@ -65,14 +86,14 @@ namespace bl
     }
 
     template<class T, class Exp>
-    requires (!std::integral<std::remove_cvref_t<T>> && fltx::common::fp::non_bool_integral<Exp>)
+    requires (!std::integral<std::remove_cvref_t<T>> && detail::fp::non_bool_integral<Exp>)
     [[nodiscard]] constexpr std::remove_cvref_t<T> pow(T base, Exp exp)
     {
         using R = std::remove_cvref_t<T>;
         using U = std::make_unsigned_t<std::remove_cvref_t<Exp>>;
 
-        const U magnitude = fltx::common::fp::unsigned_abs(exp);
-        const R powered = fltx::common::fp::ipow_nonneg<R, U>(static_cast<R>(base), magnitude);
+        const U magnitude = detail::fp::unsigned_abs(exp);
+        const R powered = detail::fp::ipow_nonneg<R, U>(static_cast<R>(base), magnitude);
 
         if constexpr (std::signed_integral<std::remove_cvref_t<Exp>>)
         {
@@ -84,7 +105,7 @@ namespace bl
     }
 
     template<class T, class U>
-    requires (fltx::common::fp::non_bool_integral<T> && fltx::common::fp::non_bool_integral<U>)
+    requires (detail::fp::non_bool_integral<T> && detail::fp::non_bool_integral<U>)
     [[nodiscard]] constexpr std::common_type_t<T, U> pow(T x, U y)
     {
         using R = std::common_type_t<T, U>;
@@ -110,8 +131,8 @@ namespace bl
             }
         }
 
-        const ExpUnsigned exp = fltx::common::fp::unsigned_abs(y);
-        return fltx::common::fp::ipow_nonneg<R, ExpUnsigned>(base, exp);
+        const ExpUnsigned exp = detail::fp::unsigned_abs(y);
+        return detail::fp::ipow_nonneg<R, ExpUnsigned>(base, exp);
     }
 }
 

@@ -1,7 +1,18 @@
+
+/**
+ * f64_math.h — f64 (double) constexpr <cmath> style API
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #ifndef F64_INCLUDED
 #define F64_INCLUDED
 
 #include "fltx_common_math.h"
+#include "fltx_math_utils.h"
 
 #include <numbers>
 
@@ -9,28 +20,28 @@ namespace bl {
 
 using f64 = double;
 
-namespace _f64_detail
+namespace detail::_f64
 {
-    using fltx::common::fp::isnan;
-    using fltx::common::fp::isinf;
-    using fltx::common::fp::isfinite;
-    using fltx::common::fp::signbit_constexpr;
-    using fltx::common::fp::fabs_constexpr;
-    using fltx::common::fp::floor_constexpr;
-    using fltx::common::fp::ceil_constexpr;
-    using fltx::common::fp::trunc_constexpr;
-    using fltx::common::fp::fmod_constexpr;
-    using fltx::common::fp::nearbyint_ties_even;
-    using fltx::common::fp::frexp_exponent_constexpr;
-    using fltx::common::fp::ldexp_constexpr2;
-    using fltx::common::fp::log_constexpr;
-    using fltx::common::fp::log1p_constexpr;
-    using fltx::common::fp::sin_constexpr;
-    using fltx::common::fp::cos_constexpr;
-    using fltx::common::fp::tan_constexpr;
-    using fltx::common::fp::atan_constexpr;
-    using fltx::common::fp::atan2_constexpr;
-    using fltx::common::fp::sqrt_seed_constexpr;
+    using detail::fp::isnan;
+    using detail::fp::isinf;
+    using detail::fp::isfinite;
+    using detail::fp::signbit_constexpr;
+    using detail::fp::fabs_constexpr;
+    using detail::fp::floor_constexpr;
+    using detail::fp::ceil_constexpr;
+    using detail::fp::trunc_constexpr;
+    using detail::fp::fmod_constexpr;
+    using detail::fp::nearbyint_ties_even;
+    using detail::fp::frexp_exponent_constexpr;
+    using detail::fp::ldexp_constexpr2;
+    using detail::fp::log_constexpr;
+    using detail::fp::log1p_constexpr;
+    using detail::fp::sin_constexpr;
+    using detail::fp::cos_constexpr;
+    using detail::fp::tan_constexpr;
+    using detail::fp::atan_constexpr;
+    using detail::fp::atan2_constexpr;
+    using detail::fp::sqrt_seed_constexpr;
 
     constexpr double pi          = std::numbers::pi_v<double>;
     constexpr double pi_2        = std::numbers::pi_v<double> * 0.5;
@@ -740,7 +751,7 @@ namespace _f64_detail
 {
     if (!bl::use_constexpr_math())
         return std::abs(x);
-    return _f64_detail::abs(x);
+    return detail::_f64::abs(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double fabs(double x) noexcept
 {
@@ -752,25 +763,25 @@ namespace _f64_detail
 {
     if (!bl::use_constexpr_math())
         return std::signbit(x);
-    return _f64_detail::signbit_constexpr(x);
+    return detail::_f64::signbit_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isnan(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::isnan(x);
-    return _f64_detail::isnan(x);
+    return detail::_f64::isnan(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isinf(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::isinf(x);
-    return _f64_detail::isinf(x);
+    return detail::_f64::isinf(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isfinite(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::isfinite(x);
-    return _f64_detail::isfinite(x);
+    return detail::_f64::isfinite(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool iszero(double x) noexcept
 {
@@ -781,74 +792,74 @@ namespace _f64_detail
 {
     if (!bl::use_constexpr_math())
         return std::floor(x);
-    return _f64_detail::floor_constexpr(x);
+    return detail::_f64::floor_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double ceil(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::ceil(x);
-    return _f64_detail::ceil_constexpr(x);
+    return detail::_f64::ceil_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double trunc(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::trunc(x);
-    return _f64_detail::trunc_constexpr(x);
+    return detail::_f64::trunc_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double round(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::round(x);
-    return _f64_detail::round_half_away_zero(x);
+    return detail::_f64::round_half_away_zero(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double nearbyint(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::nearbyint(x);
-    return _f64_detail::nearbyint_constexpr(x);
+    return detail::_f64::nearbyint_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double rint(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::rint(x);
-    return _f64_detail::nearbyint_constexpr(x);
+    return detail::_f64::nearbyint_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr long lround(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::lround(x);
-    return _f64_detail::to_signed_integer_or_zero<long>(_f64_detail::round_half_away_zero(x));
+    return detail::_f64::to_signed_integer_or_zero<long>(detail::_f64::round_half_away_zero(x));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr long long llround(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::llround(x);
-    return _f64_detail::to_signed_integer_or_zero<long long>(_f64_detail::round_half_away_zero(x));
+    return detail::_f64::to_signed_integer_or_zero<long long>(detail::_f64::round_half_away_zero(x));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr long lrint(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::lrint(x);
-    return _f64_detail::to_signed_integer_or_zero<long>(nearbyint(x));
+    return detail::_f64::to_signed_integer_or_zero<long>(nearbyint(x));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr long long llrint(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::llrint(x);
-    return _f64_detail::to_signed_integer_or_zero<long long>(nearbyint(x));
+    return detail::_f64::to_signed_integer_or_zero<long long>(nearbyint(x));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double fmod(double x, double y) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::fmod(x, y);
-    return _f64_detail::fmod_constexpr_precise(x, y);
+    return detail::_f64::fmod_constexpr_precise(x, y);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double remainder(double x, double y) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::remainder(x, y);
-    return _f64_detail::remainder_constexpr(x, y);
+    return detail::_f64::remainder_constexpr(x, y);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double remquo(double x, double y, int* quo) noexcept
 {
@@ -872,17 +883,17 @@ namespace _f64_detail
 
     if (ax >= ay)
     {
-        const int ey = _f64_detail::ilogb_finite_constexpr(ay);
+        const int ey = detail::_f64::ilogb_finite_constexpr(ay);
 
         while (ax >= ay)
         {
-            int shift = _f64_detail::ilogb_finite_constexpr(ax) - ey;
-            double scaled = _f64_detail::ldexp_constexpr2(ay, shift);
+            int shift = detail::_f64::ilogb_finite_constexpr(ax) - ey;
+            double scaled = detail::_f64::ldexp_constexpr2(ay, shift);
 
             if (scaled > ax)
             {
                 --shift;
-                scaled = _f64_detail::ldexp_constexpr2(ay, shift);
+                scaled = detail::_f64::ldexp_constexpr2(ay, shift);
             }
 
             const double next = ax - scaled;
@@ -932,8 +943,8 @@ namespace _f64_detail
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double fma(double x, double y, double z) noexcept
 {
-    //if (!bl::use_constexpr_math())
-    //    return std::fma(x, y, z);
+    if (!bl::use_constexpr_math())
+        return std::fma(x, y, z);
     return x * y + z;
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double fmin(double a, double b) noexcept
@@ -966,14 +977,14 @@ namespace _f64_detail
 {
     if (!bl::use_constexpr_math())
         return std::copysign(x, y);
-    return _f64_detail::copysign_constexpr(x, y);
+    return detail::_f64::copysign_constexpr(x, y);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double ldexp(double x, int e) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::ldexp(x, e);
-    return _f64_detail::ldexp_constexpr2(x, e);
+    return detail::_f64::ldexp_constexpr2(x, e);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double scalbn(double x, int e) noexcept
 {
@@ -995,7 +1006,7 @@ namespace _f64_detail
     if (isnan(x) || isinf(x) || iszero(x))
         return x;
 
-    int e = _f64_detail::frexp_exponent_constexpr(x);
+    int e = detail::_f64::frexp_exponent_constexpr(x);
     double m = ldexp(x, -e);
     const double am = abs(m);
 
@@ -1035,7 +1046,7 @@ namespace _f64_detail
     if (isinf(x))
         return std::numeric_limits<int>::max();
 
-    return _f64_detail::ilogb_finite_constexpr(abs(x));
+    return detail::_f64::ilogb_finite_constexpr(abs(x));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double logb(double x) noexcept
 {
@@ -1052,7 +1063,7 @@ namespace _f64_detail
 {
     if (!bl::use_constexpr_math())
         return std::nextafter(from, to);
-    return _f64_detail::nextafter_double_constexpr(from, to);
+    return detail::_f64::nextafter_double_constexpr(from, to);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double nexttoward(double from, long double to) noexcept
 {
@@ -1069,100 +1080,100 @@ namespace _f64_detail
 {
     if (!bl::use_constexpr_math())
         return std::exp(x);
-    return _f64_detail::exp_constexpr(x);
+    return detail::_f64::exp_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double exp2(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::exp2(x);
-    return _f64_detail::exp2_constexpr(x);
+    return detail::_f64::exp2_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double expm1(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::expm1(x);
-    return _f64_detail::expm1_constexpr(x);
+    return detail::_f64::expm1_constexpr(x);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double log_as_double(double x) noexcept
 { 
     if (!bl::use_constexpr_math())
         return std::log(x);
-    return _f64_detail::log_constexpr(x);
+    return detail::_f64::log_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double log(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::log(x);
-    return _f64_detail::log_constexpr(x);
+    return detail::_f64::log_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double log2(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::log2(x);
-    return _f64_detail::log2_constexpr(x);
+    return detail::_f64::log2_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double log10(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::log10(x);
-    return _f64_detail::log10_constexpr(x);
+    return detail::_f64::log10_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double log1p(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::log1p(x);
-    return _f64_detail::log1p_constexpr(x);
+    return detail::_f64::log1p_constexpr(x);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double sqrt(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::sqrt(x);
-    return _f64_detail::sqrt_constexpr(x);
+    return detail::_f64::sqrt_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double cbrt(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::cbrt(x);
-    return _f64_detail::cbrt_constexpr(x);
+    return detail::_f64::cbrt_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double hypot(double x, double y) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::hypot(x, y);
-    return _f64_detail::hypot_constexpr(x, y);
+    return detail::_f64::hypot_constexpr(x, y);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double sin(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::sin(x);
-    return _f64_detail::sin_constexpr(x);
+    return detail::_f64::sin_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double cos(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::cos(x);
-    return _f64_detail::cos_constexpr(x);
+    return detail::_f64::cos_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double tan(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::tan(x);
-    return _f64_detail::tan_constexpr(x);
+    return detail::_f64::tan_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double atan(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::atan(x);
-    return _f64_detail::atan_constexpr(x);
+    return detail::_f64::atan_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double atan2(double y, double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::atan2(y, x);
-    return _f64_detail::atan2_constexpr(y, x);
+    return detail::_f64::atan2_constexpr(y, x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double asin(double x) noexcept
 {
@@ -1181,37 +1192,37 @@ namespace _f64_detail
 {
     if (!bl::use_constexpr_math())
         return std::sinh(x);
-    return _f64_detail::sinh_constexpr(x);
+    return detail::_f64::sinh_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double cosh(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::cosh(x);
-    return _f64_detail::cosh_constexpr(x);
+    return detail::_f64::cosh_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double tanh(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::tanh(x);
-    return _f64_detail::tanh_constexpr(x);
+    return detail::_f64::tanh_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double asinh(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::asinh(x);
-    return _f64_detail::asinh_constexpr(x);
+    return detail::_f64::asinh_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double acosh(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::acosh(x);
-    return _f64_detail::acosh_constexpr(x);
+    return detail::_f64::acosh_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double atanh(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::atanh(x);
-    return _f64_detail::atanh_constexpr(x);
+    return detail::_f64::atanh_constexpr(x);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double pow(double x, double y) noexcept
@@ -1231,7 +1242,7 @@ namespace _f64_detail
     if (y_is_int && yi >= static_cast<double>(std::numeric_limits<long long>::min()) &&
         yi <= static_cast<double>(std::numeric_limits<long long>::max()))
     {
-        return _f64_detail::powi(x, static_cast<long long>(yi));
+        return detail::_f64::powi(x, static_cast<long long>(yi));
     }
 
     if (x < 0.0 || (x == 0.0 && signbit(x)))
@@ -1251,25 +1262,25 @@ namespace _f64_detail
 {
     if (!bl::use_constexpr_math())
         return std::erf(x);
-    return _f64_detail::erf_constexpr(x);
+    return detail::_f64::erf_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double erfc(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::erfc(x);
-    return _f64_detail::erfc_constexpr(x);
+    return detail::_f64::erfc_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double lgamma(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::lgamma(x);
-    return _f64_detail::lgamma_constexpr(x);
+    return detail::_f64::lgamma_constexpr(x);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double tgamma(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::tgamma(x);
-    return _f64_detail::tgamma_constexpr(x);
+    return detail::_f64::tgamma_constexpr(x);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr int fpclassify(double x) noexcept

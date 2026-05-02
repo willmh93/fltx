@@ -4,8 +4,9 @@ project(fltx VERSION 0.1.0 LANGUAGES CXX)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-option(FLTX_BUILD_TESTS "Build fltx tests" ${PROJECT_IS_TOP_LEVEL})
-option(FLTX_BUILD_EXAMPLES "Build fltx examples" ${PROJECT_IS_TOP_LEVEL})
+option(FLTX_BUILD_TESTS    "Build fltx tests"          ${PROJECT_IS_TOP_LEVEL})
+option(FLTX_BUILD_EXAMPLES "Build fltx examples"       ${PROJECT_IS_TOP_LEVEL})
+option(FLTX_BUILD_ISOLATED "Build fltx isolated units" ${PROJECT_IS_TOP_LEVEL})
 
 add_library(fltx INTERFACE)
 add_library(fltx::fltx ALIAS fltx)
@@ -67,11 +68,14 @@ install(FILES
 
 include(CTest)
 
-if(FLTX_BUILD_TESTS)
-    add_subdirectory(tests)
-endif()
-
 if(FLTX_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
+if(FLTX_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
+
+if(FLTX_BUILD_ISOLATED)
+    add_subdirectory(tests/unit_compile_tests)
+endif()

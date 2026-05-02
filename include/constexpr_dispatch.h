@@ -1,8 +1,20 @@
+
+/**
+ * constexpr_dispatch.h — constexpr dispatch tables for invoking templated
+ *                        functions with runtime enum and bool arguments
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #ifndef CONSTEXPR_DISPATCH_INCLUDED
 #define CONSTEXPR_DISPATCH_INCLUDED
 
 #include <array>
 #include <type_traits>
+#include <tuple>
 #include <utility>
 #include <functional>
 #include <cstdio>
@@ -191,11 +203,6 @@ namespace constexpr_dispatch_detail
         using type = type_list<Ts..., T>;
     };
 
-    template<class T>
-    BL_FORCE_INLINE constexpr std::size_t domain_index(T v)
-    {
-        return enum_domain_traits<std::remove_cv_t<T>>::index(v);
-    }
 
     template<class E>
     using default_constant_t = std::conditional_t<

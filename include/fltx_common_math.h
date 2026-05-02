@@ -1,3 +1,14 @@
+
+/**
+ * fltx_common_math.h — constexpr math logic used by all float types
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
+
 #ifndef FLTX_COMMON_MATH_INCLUDED
 #define FLTX_COMMON_MATH_INCLUDED
 
@@ -8,7 +19,7 @@
 #include <cstdint>
 #include <utility>
 
-namespace bl::fltx::common::fp
+namespace bl::detail::fp
 {
         
 BL_FORCE_INLINE constexpr bool isinf(double value) noexcept
@@ -559,13 +570,6 @@ BL_FORCE_INLINE constexpr void two_prod_precise_dekker(double a, double b, doubl
 }
 BL_POP_PRECISE
 
-#ifdef FMA_AVAILABLE
-BL_FORCE_INLINE double fma1(double a, double b, double c) noexcept
-{
-    return std::fma(a, b, c);
-}
-#endif
-
 BL_FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, double& err) noexcept
 {
     #ifdef FMA_AVAILABLE
@@ -576,7 +580,7 @@ BL_FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, d
     else
     {
         p = a * b;
-        err = fma1(a, b, -p);
+        err = std::fma(a, b, -p);
     }
     #else
     two_prod_precise_dekker(a, b, p, err);
