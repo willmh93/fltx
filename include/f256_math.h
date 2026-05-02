@@ -544,12 +544,10 @@ namespace detail::_f256
         if (!detail::_f256::f256_try_get_int64(integer_part, integer_value) || integer_value < 0)
             return false;
 
-        biguint coeff{ static_cast<std::uint64_t>(integer_value) };
-        for (int i = 0; i < digit_count; ++i)
-        {
-            coeff.mul_small(10);
-            coeff.add_small(static_cast<std::uint32_t>(digits[i] - '0'));
-        }
+        const biguint coeff = detail::fp::append_decimal_digits(
+            biguint{ static_cast<std::uint64_t>(integer_value) },
+            digits,
+            digit_count);
 
         out = detail::_f256::round_decimal_exact_to_f256(coeff, -digit_count, neg);
         return true;
@@ -880,26 +878,23 @@ namespace detail::_f256
     }
 
     BL_NO_INLINE constexpr f256_s f256_mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
-    BL_FORCE_INLINE constexpr f256_s powi(f256_s base, int64_t exp)
+    struct powi_ops
     {
-        if (exp == 0)
-            return f256_s{ 1.0 };
-
-        const bool invert = exp < 0;
-        uint64_t n = invert ? detail::_f256::magnitude_u64(exp) : static_cast<uint64_t>(exp);
-        f256_s result{ 1.0 };
-
-        while (n != 0)
+        BL_FORCE_INLINE constexpr f256_s multiply(f256_s a, const f256_s& b) const noexcept
         {
-            if ((n & 1u) != 0)
-                result *= base;
-
-            n >>= 1;
-            if (n != 0)
-                base *= base;
+            a *= b;
+            return a;
         }
 
-        return invert ? (f256_s{ 1.0 } / result) : result;
+        BL_FORCE_INLINE constexpr f256_s divide(const f256_s& a, const f256_s& b) const noexcept
+        {
+            return a / b;
+        }
+    };
+
+    BL_FORCE_INLINE constexpr f256_s powi(f256_s base, int64_t exp)
+    {
+        return detail::fp::powi_by_squaring(base, exp, powi_ops{});
     }
 }
 
@@ -2384,45 +2379,23 @@ namespace detail::_f256
         return floor(x + f256_s{ 0.5 });
     }
 
-    BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double to) noexcept
+    using detail::fp::nextafter_double_constexpr;
+
+    struct signed_integer_conversion_ops
     {
-        if (detail::fp::isnan(from) || detail::fp::isnan(to))
-            return std::numeric_limits<double>::quiet_NaN();
-
-        if (from == to)
-            return to;
-
-        if (from == 0.0)
-            return detail::fp::signbit_constexpr(to)
-            ? -std::numeric_limits<double>::denorm_min()
-            : std::numeric_limits<double>::denorm_min();
-
-        std::uint64_t bits = std::bit_cast<std::uint64_t>(from);
-        if ((from > 0.0) == (from < to))
-            ++bits;
-        else
-            --bits;
-
-        return std::bit_cast<double>(bits);
-    }
+        BL_FORCE_INLINE constexpr bool is_nan(const f256_s& x) const noexcept { return bl::isnan(x); }
+        BL_FORCE_INLINE constexpr bool is_inf(const f256_s& x) const noexcept { return bl::isinf(x); }
+        BL_FORCE_INLINE constexpr f256_s from_int64(std::int64_t value) const noexcept { return to_f256(value); }
+        BL_FORCE_INLINE constexpr bool try_get_int64(const f256_s& x, std::int64_t& out) const noexcept
+        {
+            return detail::_f256::f256_try_get_int64(x, out);
+        }
+    };
 
     template<typename SignedInt>
     BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(const f256_s& x) noexcept
     {
-        static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
-        if (isnan(x) || isinf(x))
-            return 0;
-
-        const f256_s lo = to_f256(static_cast<int64_t>(std::numeric_limits<SignedInt>::lowest()));
-        const f256_s hi = to_f256(static_cast<int64_t>(std::numeric_limits<SignedInt>::max()));
-        if (x < lo || x > hi)
-            return 0;
-
-        int64_t out = 0;
-        if (!detail::_f256::f256_try_get_int64(x, out))
-            return 0;
-
-        return static_cast<SignedInt>(out);
+        return detail::fp::to_signed_integer_or_zero<SignedInt>(x, signed_integer_conversion_ops{});
     }
 
     BL_FORCE_INLINE constexpr f256_s nearest_integer_ties_even(const f256_s& q) noexcept

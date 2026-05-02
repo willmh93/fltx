@@ -313,6 +313,27 @@ BL_FORCE_INLINE constexpr bool   double_integer_is_odd(double x) noexcept
     const long long i = static_cast<long long>(x);
     return (i & 1ll) != 0;
 }
+BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double to) noexcept
+{
+    if (isnan(from) || isnan(to))
+        return std::numeric_limits<double>::quiet_NaN();
+
+    if (from == to)
+        return to;
+
+    if (from == 0.0)
+        return signbit_constexpr(to)
+            ? -std::numeric_limits<double>::denorm_min()
+            :  std::numeric_limits<double>::denorm_min();
+
+    std::uint64_t bits = std::bit_cast<std::uint64_t>(from);
+    if ((from > 0.0) == (from < to))
+        ++bits;
+    else
+        --bits;
+
+    return std::bit_cast<double>(bits);
+}
 BL_FORCE_INLINE constexpr double nearbyint_ties_even(double x) noexcept
 {
     if (isnan(x) || isinf(x) || x == 0.0)
@@ -328,6 +349,63 @@ BL_FORCE_INLINE constexpr double nearbyint_ties_even(double x) noexcept
     if (out == 0.0)
         return signbit_constexpr(x) ? -0.0 : 0.0;
     return out;
+}
+
+BL_FORCE_INLINE constexpr std::uint64_t magnitude_u64(std::int64_t value) noexcept;
+
+template<class Value, class Ops>
+BL_FORCE_INLINE constexpr Value powi_by_squaring(Value base, std::int64_t exp, Ops ops)
+{
+    if (exp == 0)
+        return Value{ 1.0 };
+
+    const bool invert = exp < 0;
+    std::uint64_t n = invert ? magnitude_u64(exp) : static_cast<std::uint64_t>(exp);
+    Value result{ 1.0 };
+
+    while (n != 0)
+    {
+        if ((n & 1u) != 0)
+            result = ops.multiply(result, base);
+
+        n >>= 1;
+        if (n != 0)
+            base = ops.multiply(base, base);
+    }
+
+    return invert ? ops.divide(Value{ 1.0 }, result) : result;
+}
+
+template<typename SignedInt, class Value, class Ops>
+BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(const Value& x, Ops ops) noexcept
+{
+    static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
+
+    if (ops.is_nan(x) || ops.is_inf(x))
+        return 0;
+
+    const Value lo = ops.from_int64(static_cast<std::int64_t>(std::numeric_limits<SignedInt>::lowest()));
+    const Value hi = ops.from_int64(static_cast<std::int64_t>(std::numeric_limits<SignedInt>::max()));
+    if (x < lo || x > hi)
+        return 0;
+
+    std::int64_t out = 0;
+    if (!ops.try_get_int64(x, out))
+        return 0;
+
+    return static_cast<SignedInt>(out);
+}
+
+template<class BigUInt>
+BL_FORCE_INLINE constexpr BigUInt append_decimal_digits(BigUInt coeff, const char* digits, int digit_count) noexcept
+{
+    for (int i = 0; i < digit_count; ++i)
+    {
+        coeff.mul_small(10);
+        coeff.add_small(static_cast<std::uint32_t>(digits[i] - '0'));
+    }
+
+    return coeff;
 }
 
 BL_FORCE_INLINE constexpr double atan_series_constexpr(double x) noexcept

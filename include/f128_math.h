@@ -45,26 +45,22 @@ namespace detail::_f128
 
         return detail::_f128::double_integer_is_odd(x.hi);
     }
-    BL_FORCE_INLINE constexpr f128_s powi(f128_s base, int64_t exp)
+    struct powi_ops
     {
-        if (exp == 0)
-            return f128_s{ 1.0 };
-
-        const bool invert = exp < 0;
-        uint64_t n = invert ? detail::_f128::magnitude_u64(exp) : static_cast<uint64_t>(exp);
-        f128_s result{ 1.0 };
-
-        while (n != 0)
+        BL_FORCE_INLINE constexpr f128_s multiply(const f128_s& a, const f128_s& b) const noexcept
         {
-            if ((n & 1u) != 0)
-                result = mul_inline(result, base);
-
-            n >>= 1;
-            if (n != 0)
-                base = mul_inline(base, base);
+            return mul_inline(a, b);
         }
 
-        return invert ? div_inline(f128_s{ 1.0 }, result) : result;
+        BL_FORCE_INLINE constexpr f128_s divide(const f128_s& a, const f128_s& b) const noexcept
+        {
+            return div_inline(a, b);
+        }
+    };
+
+    BL_FORCE_INLINE constexpr f128_s powi(f128_s base, int64_t exp)
+    {
+        return detail::fp::powi_by_squaring(base, exp, powi_ops{});
     }
     BL_FORCE_INLINE constexpr bool f128_try_exact_binary_log2(const f128_s& x, int& out) noexcept
     {
@@ -496,12 +492,10 @@ namespace detail::_f128
         if (!detail::_f128::f128_try_get_int64(integer_part, integer_value) || integer_value < 0)
             return false;
 
-        detail::exact_decimal::biguint coeff{ static_cast<std::uint64_t>(integer_value) };
-        for (int i = 0; i < digit_count; ++i)
-        {
-            coeff.mul_small(10);
-            coeff.add_small(static_cast<std::uint32_t>(digits[i] - '0'));
-        }
+        const detail::exact_decimal::biguint coeff = detail::fp::append_decimal_digits(
+            detail::exact_decimal::biguint{ static_cast<std::uint64_t>(integer_value) },
+            digits,
+            digit_count);
 
         out = detail::_f128::round_decimal_exact_to_f128(coeff, -digit_count, neg);
         return true;
@@ -1510,45 +1504,23 @@ namespace detail::_f128
 
         return floor(add_inline(x, f128_s{ 0.5 }));
     }
-    BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double to) noexcept
+    using detail::fp::nextafter_double_constexpr;
+
+    struct signed_integer_conversion_ops
     {
-        if (detail::fp::isnan(from) || detail::fp::isnan(to))
-            return std::numeric_limits<double>::quiet_NaN();
-
-        if (from == to)
-            return to;
-
-        if (from == 0.0)
-            return detail::fp::signbit_constexpr(to)
-                ? -std::numeric_limits<double>::denorm_min()
-                :  std::numeric_limits<double>::denorm_min();
-
-        std::uint64_t bits = std::bit_cast<std::uint64_t>(from);
-        if ((from > 0.0) == (from < to))
-            ++bits;
-        else
-            --bits;
-
-        return std::bit_cast<double>(bits);
-    }
+        BL_FORCE_INLINE constexpr bool is_nan(const f128_s& x) const noexcept { return bl::isnan(x); }
+        BL_FORCE_INLINE constexpr bool is_inf(const f128_s& x) const noexcept { return bl::isinf(x); }
+        BL_FORCE_INLINE constexpr f128_s from_int64(std::int64_t value) const noexcept { return to_f128(value); }
+        BL_FORCE_INLINE constexpr bool try_get_int64(const f128_s& x, std::int64_t& out) const noexcept
+        {
+            return detail::_f128::f128_try_get_int64(x, out);
+        }
+    };
 
     template<typename SignedInt>
     BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(const f128_s& x) noexcept
     {
-        static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
-        if (isnan(x) || isinf(x))
-            return 0;
-
-        const f128_s lo = to_f128(static_cast<int64_t>(std::numeric_limits<SignedInt>::lowest()));
-        const f128_s hi = to_f128(static_cast<int64_t>(std::numeric_limits<SignedInt>::max()));
-        if (x < lo || x > hi)
-            return 0;
-
-        int64_t out = 0;
-        if (!detail::_f128::f128_try_get_int64(x, out))
-            return 0;
-
-        return static_cast<SignedInt>(out);
+        return detail::fp::to_signed_integer_or_zero<SignedInt>(x, signed_integer_conversion_ops{});
     }
     BL_FORCE_INLINE constexpr f128_s nearest_integer_ties_even(const f128_s& q) noexcept
     {
