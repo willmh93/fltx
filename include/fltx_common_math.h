@@ -1,13 +1,11 @@
-
 /**
- * fltx_common_math.h — constexpr math logic used by all float types
+ * fltx_common_math.h - Shared constexpr math helpers used by FLTX types.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
  */
-
 
 #ifndef FLTX_COMMON_MATH_INCLUDED
 #define FLTX_COMMON_MATH_INCLUDED

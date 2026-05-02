@@ -1,6 +1,5 @@
-
 /**
- * fltx.h — Double-double implementation
+ * f128.h - f128 double-double type and core arithmetic.
  *
  * Copyright (c) 2026 William Hemsworth
  *

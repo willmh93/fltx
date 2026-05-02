@@ -1,13 +1,11 @@
-
 /**
- * fltx_core.h — [f32, f64, f128, f256] includes, aliases and conversions
+ * fltx_core.h - Core type includes, aliases, and conversions.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
  */
-
 
 #ifndef FLTX_CORE_INCLUDED
 #define FLTX_CORE_INCLUDED

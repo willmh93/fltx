@@ -1,13 +1,11 @@
-
 /**
- * f32_math.h — f32 (float) constexpr <cmath> style API
+ * f32_math.h - constexpr <cmath>-style functions for f32.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
  */
-
 
 #ifndef F32_INCLUDED
 #define F32_INCLUDED

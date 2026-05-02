@@ -1,13 +1,11 @@
-
 /**
- * fltx_common_exact.h — biguint logic needed by fltx_common_io.h
+ * fltx_common_exact.h - Exact decimal and big-integer helpers for constexpr I/O.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
  */
-
 
 #ifndef FLTX_COMMON_EXACT_INCLUDED
 #define FLTX_COMMON_EXACT_INCLUDED

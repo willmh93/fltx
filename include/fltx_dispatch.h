@@ -1,13 +1,11 @@
-
 /**
- * fltx_dispatch.h — Includes constexpr_dispatch.h, maps FloatType to [f32, f64, f128, f256]
+ * fltx_dispatch.h - FloatType dispatch helpers for f32, f64, f128, and f256.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
  */
-
 
 #ifndef FLTX_DISPATCH_INCLUDED
 #define FLTX_DISPATCH_INCLUDED

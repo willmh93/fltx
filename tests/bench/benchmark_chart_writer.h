@@ -127,6 +127,97 @@ namespace bl::bench
         return 100;
     }
 
+    [[nodiscard]] inline std::string_view benchmark_base_label(std::string_view label)
+    {
+        const std::size_t suffix_pos = label.find(" [");
+        if (suffix_pos != std::string_view::npos)
+            return label.substr(0, suffix_pos);
+        return label;
+    }
+
+    [[nodiscard]] inline int benchmark_label_rank(std::string_view label)
+    {
+        label = benchmark_base_label(label);
+
+        if (label == "add") return 0;
+        if (label == "subtract") return 1;
+        if (label == "multiply") return 2;
+        if (label == "divide") return 3;
+        if (label == "mixed recurrence") return 4;
+
+        if (label == "floor") return 10;
+        if (label == "ceil") return 11;
+        if (label == "trunc") return 12;
+        if (label == "round") return 13;
+        if (label == "nearbyint") return 14;
+        if (label == "rint") return 15;
+        if (label == "lround") return 16;
+        if (label == "llround") return 17;
+        if (label == "lrint") return 18;
+        if (label == "llrint") return 19;
+
+        if (label == "fmod") return 30;
+        if (label == "remainder") return 31;
+        if (label == "remquo") return 32;
+
+        if (label == "abs") return 40;
+        if (label == "fabs") return 41;
+        if (label == "fma") return 42;
+        if (label == "fmin") return 43;
+        if (label == "fmax") return 44;
+        if (label == "fdim") return 45;
+        if (label == "copysign") return 46;
+        if (label == "ldexp") return 47;
+        if (label == "scalbn") return 48;
+        if (label == "scalbln") return 49;
+        if (label == "frexp") return 50;
+        if (label == "modf") return 51;
+        if (label == "ilogb") return 52;
+        if (label == "logb") return 53;
+        if (label == "nextafter") return 54;
+        if (label == "nexttoward(type)") return 55;
+        if (label == "nexttoward(double)") return 56;
+        if (label == "nexttoward(long double)") return 57;
+        if (label.starts_with("nexttoward")) return 58;
+
+        if (label == "sqrt") return 70;
+        if (label == "cbrt") return 71;
+        if (label == "hypot") return 72;
+        if (label == "pow") return 73;
+
+        if (label == "exp") return 80;
+        if (label == "exp2") return 81;
+        if (label == "expm1") return 82;
+
+        if (label == "log") return 90;
+        if (label == "log2") return 91;
+        if (label == "log10") return 92;
+        if (label == "log1p") return 93;
+
+        if (label == "sin") return 100;
+        if (label == "cos") return 101;
+        if (label == "tan") return 102;
+        if (label == "asin") return 103;
+        if (label == "acos") return 104;
+        if (label == "atan") return 105;
+        if (label == "atan2") return 106;
+
+        if (label == "sinh") return 110;
+        if (label == "cosh") return 111;
+        if (label == "tanh") return 112;
+
+        if (label == "asinh") return 120;
+        if (label == "acosh") return 121;
+        if (label == "atanh") return 122;
+
+        if (label == "erfc") return 130;
+        if (label == "erf") return 131;
+        if (label == "tgamma") return 132;
+        if (label == "lgamma") return 133;
+
+        return 1000;
+    }
+
     class benchmark_chart_writer
     {
     public:
@@ -226,8 +317,10 @@ namespace bl::bench
                 if (lhs_group_rank != rhs_group_rank)
                     return lhs_group_rank < rhs_group_rank;
 
-                if (lhs.ratio != rhs.ratio)
-                    return lhs.ratio > rhs.ratio;
+                const int lhs_label_rank = benchmark_label_rank(lhs.label);
+                const int rhs_label_rank = benchmark_label_rank(rhs.label);
+                if (lhs_label_rank != rhs_label_rank)
+                    return lhs_label_rank < rhs_label_rank;
 
                 return lhs.label < rhs.label;
             });
@@ -313,7 +406,7 @@ namespace bl::bench
             const int left_margin = std::max(250, static_cast<int>(longest_label_size * 11) + 0);
             const int right_margin = has_capped_ratios ? 224 : 160;
             //constexpr int plot_width = 1180;
-            constexpr int plot_width = 500;
+            constexpr int plot_width = 400;
             const int width = left_margin + plot_width + right_margin;
 
             int content_height = 0;

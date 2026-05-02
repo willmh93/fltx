@@ -1,13 +1,11 @@
-
 /**
- * fltx_common_base.h — Provides a single constexpr interface for f32/f64/f128/f256 printing/parsing
+ * fltx_io.h - Unified formatting and parsing interface for FLTX types.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
  */
-
 
 #ifndef FLTX_IO_INCLUDED
 #define FLTX_IO_INCLUDED

@@ -1,13 +1,11 @@
-
 /**
- * fltx_common_io.h — Exact constexpr printing/parsing logic needed by f128_io.h / f256_io.h
+ * fltx_common_io.h - Shared constexpr formatting and parsing support.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
  */
-
 
 #ifndef FLTX_COMMON_IO_INCLUDED
 #define FLTX_COMMON_IO_INCLUDED

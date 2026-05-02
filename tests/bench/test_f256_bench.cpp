@@ -67,7 +67,7 @@ namespace
         "f256 vs MPFR typical benchmark ratios",
         "benchmark_charts/f256_typical_ratios.csv",
         "benchmark_charts/f256_typical_ratios.svg",
-        6.0
+        4.0
     };
 
     template<typename Spec>

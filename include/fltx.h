@@ -1,6 +1,5 @@
-
 /**
- * fltx.h — Main Library Interface
+ * fltx.h - Main public interface for FLTX.
  *
  * Copyright (c) 2026 William Hemsworth
  *

@@ -1,6 +1,5 @@
-
 /**
- * f128_io.h — f128 (double-double) constexpr printing/parsing + literals
+ * f128_io.h - constexpr formatting, parsing, and literals for f128.
  *
  * Copyright (c) 2026 William Hemsworth
  *

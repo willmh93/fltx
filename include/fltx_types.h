@@ -1,13 +1,11 @@
-
 /**
- * fltx_types.h — convenient type aliases / compile-type traits
+ * fltx_types.h - Convenience aliases and compile-time type traits.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
  */
-
 
 #ifndef FLTX_TYPES_INCLUDED
 #define FLTX_TYPES_INCLUDED

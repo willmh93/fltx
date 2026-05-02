@@ -1,21 +1,10 @@
-
 /**
- * fltx.h — generic templated math functions
+ * fltx_math_utils.h - Generic math utilities shared by the math headers.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
- * 
- * ------------------------------------------------
- * 
- *  fltx_math_utils.h included by all math headers so functions like:
- *  clamp(), sq(), etc... are available even when included they're included individually
- * 
- * - f32_math.h
- * - f64_math.h
- * - f128_math.h
- * - f256_math.h
  */
 
 #ifndef FLTX_MATH_UTILS

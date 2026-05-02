@@ -1,6 +1,5 @@
-
 /**
- * fltx_math.h — Includes core types and all constexpr <cmath> style overloads
+ * fltx_math.h - Umbrella header for constexpr <cmath>-style overloads.
  *
  * Copyright (c) 2026 William Hemsworth
  *

@@ -1,6 +1,5 @@
-
 /**
- * f256_io.h — f256 (quad-double) constexpr printing/parsing + literals
+ * f256_io.h - constexpr formatting, parsing, and literals for f256.
  *
  * Copyright (c) 2026 William Hemsworth
  *

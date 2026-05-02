@@ -1,13 +1,11 @@
-
 /**
- * fltx_common_base.h — Macros, floating-point precision control, consteval helpers
+ * fltx_common_base.h - Core macros, precision controls, and constant-evaluation helpers.
  *
  * Copyright (c) 2026 William Hemsworth
  *
  * This software is released under the MIT License.
  * See LICENSE for details.
  */
-
 
 #ifndef FLTX_COMMON_BASE_INCLUDED
 #define FLTX_COMMON_BASE_INCLUDED

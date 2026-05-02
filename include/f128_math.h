@@ -1,6 +1,5 @@
-
 /**
- * f128_math.h — f128 (double-double) constexpr <cmath> style API
+ * f128_math.h - constexpr <cmath>-style functions for f128.
  *
  * Copyright (c) 2026 William Hemsworth
  *

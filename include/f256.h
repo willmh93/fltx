@@ -1,6 +1,5 @@
-
 /**
- * f256.h — Quad-double implementation
+ * f256.h - f256 quad-double type and core arithmetic.
  *
  * Copyright (c) 2026 William Hemsworth
  *

@@ -39,7 +39,7 @@ namespace
         "f128 vs MPFR typical benchmark ratios",
         "benchmark_charts/f128_typical_ratios.csv",
         "benchmark_charts/f128_typical_ratios.svg",
-        10.0
+        8.0
     };
 
     struct bench_result

@@ -1,6 +1,5 @@
-
 /**
- * f256_math.h — f256 (quad-double) constexpr <cmath> style API
+ * f256_math.h - constexpr <cmath>-style functions for f256.
  *
  * Copyright (c) 2026 William Hemsworth
  *

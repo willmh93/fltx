@@ -1,7 +1,5 @@
-
 /**
- * constexpr_dispatch.h — constexpr dispatch tables for invoking templated
- *                        functions with runtime enum and bool arguments
+ * constexpr_dispatch.h - Runtime-to-compile-time dispatch helpers.
  *
  * Copyright (c) 2026 William Hemsworth
  *

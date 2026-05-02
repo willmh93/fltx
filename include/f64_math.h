@@ -1,6 +1,5 @@
-
 /**
- * f64_math.h — f64 (double) constexpr <cmath> style API
+ * f64_math.h - constexpr <cmath>-style functions for f64.
  *
  * Copyright (c) 2026 William Hemsworth
  *
