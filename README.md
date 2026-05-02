@@ -8,10 +8,17 @@ Accuracy and performance are tested against equivalent-precision MPFR, which is 
 
 ## Highlights
 
-- `constexpr`-capable math functions for [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), and [`f256`](include/f256.h), with a [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-like API for writing generic numeric code
-- Fixed-size, pure C++ extended-precision types with no GMP/MPFR runtime dependency, making `fltx` suitable for lightweight native and WebAssembly / Emscripten builds
-- Literal support, operators, conversions, comparisons, parsing, and formatting
-- Standard-library integration: [`std::ostream`](https://en.cppreference.com/w/cpp/io/basic_ostream), [`std::numeric_limits`](https://en.cppreference.com/w/cpp/types/numeric_limits), [`std::numbers`](https://en.cppreference.com/w/cpp/numeric/constants), and stream manipulators such as [`std::setprecision`](https://en.cppreference.com/w/cpp/io/manip/setprecision)
+- Fixed-size, pure C++ extended-precision types with no external dependencies, making `fltx` suitable for lightweight native and WebAssembly / Emscripten builds
+- Full `constexpr` support for:
+  - [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h) arithmetic, operators, conversions, comparisons
+  - [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style API for writing generic numeric code
+  - Accurate printing, parsing, formatting: [`bl::to_string`](include/fltx_io.h) / [`bl::to_f128`](include/f128_io.h),  [`bl::to_f256`](include/f256_io.h)
+  - Literal support: [`_dd`](include/f128_io.h) / [`_qd`](include/f256_io.h) 
+- Standard-library integration:
+  - [`std::ostream`](https://en.cppreference.com/w/cpp/io/basic_ostream)
+  - [`std::numeric_limits`](https://en.cppreference.com/w/cpp/types/numeric_limits)
+  - [`std::numbers`](https://en.cppreference.com/w/cpp/numeric/constants)
+  - stream manipulators: [`std::setprecision`](https://en.cppreference.com/w/cpp/io/manip/setprecision), [`std::fixed`](https://en.cppreference.com/cpp/io/manip/fixed), [`std::scientific`](https://en.cppreference.com/cpp/io/manip/fixed), [`std::showpoint`](https://en.cppreference.com/cpp/io/manip/showpoint), [`std::showpos`](https://en.cppreference.com/cpp/io/manip/showpos), [`std::uppercase`](https://en.cppreference.com/cpp/io/manip/uppercase)
 - Bitwise runtime/`constexpr` parity for [`f128`](include/f128.h) and [`f256`](include/f256.h) by default; [`f32`](include/fltx_types.h) / [`f64`](include/fltx_types.h) match `std::` performance by default, with optional parity mode via [`FLTX_CONSTEXPR_PARITY`](include/fltx_math.h)
 - **Optional:** runtime-to-compile-time dispatch helpers
 - Tested and Benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision
@@ -22,8 +29,8 @@ Accuracy and performance are tested against equivalent-precision MPFR, which is 
 |---|---|---|
 | [`bl::f32`](include/fltx_types.h) | Alias for native [`float`](https://en.cppreference.com/w/cpp/language/types) | Native [`float`](https://en.cppreference.com/w/cpp/language/types) precision |
 | [`bl::f64`](include/fltx_types.h) | Alias for native [`double`](https://en.cppreference.com/w/cpp/language/types) | Native [`double`](https://en.cppreference.com/w/cpp/language/types) precision |
-| [`bl::f128`](include/f128.h) | Double-double precision, stored as two [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | At least 29 decimal digits across arithmetic and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style functions |
-| [`bl::f256`](include/f256.h) | Quad-double precision, stored as four [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | At least 59 decimal digits across arithmetic and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style functions |
+| [`bl::f128`](include/f128.h) | Double-double precision, stored as two [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | Minimum 29 decimal digits across arithmetic and math functions |
+| [`bl::f256`](include/f256.h) | Quad-double precision, stored as four [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | Minimum 59 decimal digits across arithmetic and math functions |
 
 ## constexpr support
 
@@ -52,7 +59,7 @@ Accuracy and performance are tested against equivalent-precision MPFR, which is 
 
 It is a good fit when you want an extended-precision type that can still be passed around like a normal scalar in ordinary C++ code.
 
-## Quick example
+## Example
 
 ```cpp
 #include <iostream>
@@ -83,23 +90,25 @@ b = 0.666666666666666666666666666666666666666666666666666666666666667
 a + b = 1
 ```
 
+For more, see [examples/](examples/)
+
 ## Public headers
 
 | Umbrella Headers | Provides |
 |---|---|
 | **[`fltx.h`](include/fltx.h)** | full library |
 | **[`fltx_core.h`](include/fltx_core.h)** | [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h), storage types ([`f128_s`](include/f128.h), [`f256_s`](include/f256.h))<br>arithmetic, conversions, and standard numeric integration |
-| **[`fltx_math.h`](include/fltx_math.h)** | [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h) constexpr-capable **`<cmath>`** math interface |
-| **[`fltx_io.h`](include/fltx_io.h)** | [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h) parsing, formatting, string conversion, stream output, and literals |
+| **[`fltx_math.h`](include/fltx_math.h)** | `fltx_core.h` and constexpr-capable **`<cmath>`** interface |
+| **[`fltx_io.h`](include/fltx_io.h)** | `fltx_core.h`, `f128_io.h`, `f256_io.h` for parsing, formatting, string conversion, stream output, and literals |
 
 | Individual Headers | Provides |
 |---|---|
-| **[`f128.h`](include/f128.h)**<br>**[`f256.h`](include/f256.h)** | individual extended-precision types and their core operations |
+| **[`f128.h`](include/f128.h)**<br>**[`f256.h`](include/f256.h)** | individual extended-precision types, storage types, and their core operations |
 | **[`f32_math.h`](include/f32_math.h)**<br>**[`f64_math.h`](include/f64_math.h)**<br>**[`f128_math.h`](include/f128_math.h)**<br>**[`f256_math.h`](include/f256_math.h)** | constexpr-capable **`<cmath>`** math interface for individual floating-point types |
 | **[`f128_io.h`](include/f128_io.h)**<br>**[`f256_io.h`](include/f256_io.h)** | IO and literals for one extended-precision type |
 | **[`fltx_types.h`](include/fltx_types.h)** | aliases, concepts, [`FloatType`](include/fltx_types.h), and enum helpers |
 | **[`constexpr_dispatch.h`](include/constexpr_dispatch.h)** | standalone constexpr dispatch utility |
-| **[`fltx_dispatch.h`](include/fltx_dispatch.h)** | includes **[`constexpr_dispatch.h`](include/constexpr_dispatch.h)**<br>and [`bl::enum_type(FloatType)`](include/fltx_dispatch.h) → [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h) type mapping |
+| **[`fltx_dispatch.h`](include/fltx_dispatch.h)** | includes `constexpr_dispatch.h`<br>and [`bl::enum_type(FloatType)`](include/fltx_dispatch.h) → [`f32`](include/fltx_types.h), [`f64`](include/fltx_types.h), [`f128`](include/f128.h), [`f256`](include/f256.h) type mapping |
 
 ## Numeric types
 
@@ -148,7 +157,7 @@ using namespace bl::literals;
 constexpr f128 a = 1.25_dd;
 constexpr f256 b = "3.1415926535897932384626433832795028841971"_qd;
 
-constexpr auto s1 = bl::to_string(b);
+constexpr auto s1 = bl::to_string(b);      // static_string<512>
 std::string s2    = bl::to_std_string(b);
 ```
 
@@ -300,8 +309,10 @@ target_include_directories(main PRIVATE /path/to/fltx/include)
 
 `fltx` is tested and benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision levels.
 
-<img src="res/f128_typical_ratios.svg" alt="f128 benchmark ratio" width="600">
-<img src="res/f256_typical_ratios.svg" alt="f256 benchmark ratio" width="600">
+<table><tr>
+<td><img src="res/f128_typical_ratios.svg" alt="f128 benchmark ratio"></td>
+<td><img src="res/f256_typical_ratios.svg" alt="f256 benchmark ratio"></td>
+</tr></table>
 
 ## License
 
