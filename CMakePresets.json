@@ -15,10 +15,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
-      },
-      "environment": {
-        "VCPKG_MAX_CONCURRENCY": "1"
       }
+
     },
     {
       "name": "ninja-release",
@@ -28,10 +26,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
-      },
-      "environment": {
-        "VCPKG_MAX_CONCURRENCY": "1"
       }
+
     },
     {
       "name": "wasm32-release",

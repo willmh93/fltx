@@ -11,6 +11,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
+    env:
+      VCPKG_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-binary-cache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite
 
     strategy:
       fail-fast: false
@@ -35,6 +38,21 @@ jobs:
           baseline="$(python -c "import json; print(json.load(open('vcpkg-configuration.json'))['default-registry']['baseline'])")"
           git -C vcpkg fetch --depth=1 --no-tags origin "$baseline"
           git -C vcpkg show "$baseline:versions/baseline.json" > /dev/null
+
+      - name: Read vcpkg commit
+        id: vcpkg
+        shell: bash
+        run: echo "commit=$(git -C vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VCPKG_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'CMakePresets.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ steps.vcpkg.outputs.commit }}-
+            vcpkg-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Set up Ninja (Linux)
         if: runner.os != 'Windows'
@@ -62,6 +80,13 @@ jobs:
 
       - name: Configure
         run: cmake --preset ninja-release
+
+      - name: Save vcpkg binary cache
+        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.VCPKG_BINARY_CACHE }}
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
       - name: Build precision tests
         run: cmake --build --preset ninja-release --target precision_tests --parallel
