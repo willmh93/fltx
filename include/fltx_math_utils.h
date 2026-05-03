@@ -10,6 +10,7 @@
 #ifndef FLTX_MATH_UTILS
 #define FLTX_MATH_UTILS
 
+#include "fltx_common_base.h"
 
 #include <concepts>
 #include <type_traits>

@@ -10,8 +10,22 @@
 #ifndef FLTX_COMMON_BASE_INCLUDED
 #define FLTX_COMMON_BASE_INCLUDED
 
+#include <climits>
 #include <limits>
 #include <type_traits>
+
+static_assert(CHAR_BIT == 8,
+    "fltx requires 8-bit bytes.");
+
+static_assert(sizeof(double) * CHAR_BIT == 64,
+    "fltx requires double to be 64 bits.");
+
+static_assert(std::numeric_limits<double>::is_iec559 &&
+              std::numeric_limits<double>::radix == 2 &&
+              std::numeric_limits<double>::digits == 53 &&
+              std::numeric_limits<double>::min_exponent == -1021 &&
+              std::numeric_limits<double>::max_exponent == 1024,
+    "fltx requires double to use the IEEE 754 binary64 format.");
 
 #ifndef BL_FORCE_INLINE
 #if defined(_MSC_VER)

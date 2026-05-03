@@ -1,0 +1,53 @@
+name: Precision Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  precision-tests:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            test_command: ./build/ninja-release/tests/precision_tests
+          - name: Windows
+            os: windows-latest
+            test_command: .\build\ninja-release\tests\precision_tests.exe
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Bootstrap vcpkg (Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Bootstrap vcpkg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\vcpkg\bootstrap-vcpkg.bat
+
+      - name: Configure
+        run: cmake --preset ninja-release
+
+      - name: Build precision tests
+        run: cmake --build --preset ninja-release --target precision_tests --parallel
+
+      - name: Run precision tests
+        run: ${{ matrix.test_command }}
