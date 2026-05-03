@@ -14,10 +14,7 @@
 #include <limits>
 #include <type_traits>
 
-static_assert(CHAR_BIT == 8,
-    "fltx requires 8-bit bytes.");
-
-static_assert(sizeof(double) * CHAR_BIT == 64,
+static_assert(sizeof(double) == sizeof(std::uint64_t),
     "fltx requires double to be 64 bits.");
 
 static_assert(std::numeric_limits<double>::is_iec559 &&

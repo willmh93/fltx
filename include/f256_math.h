@@ -2751,7 +2751,7 @@ namespace detail::_f256
         return detail::_f256::canonicalize_math_result(ax);
 
     const f256_s r = div_inline(ay, ax);
-    return detail::_f256::canonicalize_math_result(mul_inline(ax, sqrt(f256_s{ 1.0 }) + mul_inline(r, r)));
+    return detail::_f256::canonicalize_math_result(mul_inline(ax, sqrt(f256_s{ 1.0 } + mul_inline(r, r))));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s rint(const f256_s& x)
