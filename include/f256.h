@@ -792,7 +792,7 @@ namespace detail::_f256
 {
     return (a.x0 < 0.0) ? -a : a;
 }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s floor(const f256_s& a)
+[[nodiscard]] BL_NO_INLINE constexpr f256_s floor(const f256_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
@@ -812,7 +812,7 @@ namespace detail::_f256
         r -= 1.0;
     return r;
 }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s ceil(const f256_s& a)
+[[nodiscard]] BL_NO_INLINE constexpr f256_s ceil(const f256_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
@@ -832,7 +832,7 @@ namespace detail::_f256
         r += 1.0;
     return r;
 }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s trunc(const f256_s& a)
+[[nodiscard]] BL_NO_INLINE constexpr f256_s trunc(const f256_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
