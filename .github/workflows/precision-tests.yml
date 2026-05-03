@@ -29,6 +29,23 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Fetch vcpkg registry baseline
+        shell: bash
+        run: |
+          baseline="$(python -c "import json; print(json.load(open('vcpkg-configuration.json'))['default-registry']['baseline'])")"
+          git -C vcpkg fetch --depth=1 --no-tags origin "$baseline"
+          git -C vcpkg show "$baseline:versions/baseline.json" > /dev/null
+
+      - name: Set up Ninja (Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Set up Ninja (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install ninja --no-progress -y
+
       - name: Set up MSVC
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
