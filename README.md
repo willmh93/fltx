@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  A header-only C++20 library for fixed-width extended-precision floating-point types.
+  A C++20 library for fixed-width extended-precision floating-point types.
 </p>
 
 `fltx` is for C++ code that needs more precision than `double`, while still keeping fixed-size scalar types, predictable performance, `constexpr` support, and ordinary C++ ergonomics.
@@ -12,7 +12,8 @@ Accuracy and performance are tested against equivalent-precision MPFR. MPFR is u
 
 ## Highlights
 
-- Header-only C++20 library with no required runtime dependencies
+- C++20 library with no required runtime dependencies
+- Precompiled runtime helpers for `bl::f128` and `bl::f256`, with an optional header-only mode
 - Fixed-size extended-precision scalar types [`bl::f128`](include/f128.h), [`bl::f256`](include/f256.h)
 - `constexpr` arithmetic, comparisons, conversions, parsing and formatting
 - `constexpr` math interface modeled after C++ [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)
@@ -316,6 +317,14 @@ target_link_libraries(main PRIVATE fltx::fltx)
 Or include it directly:
 
 ```cmake
+add_subdirectory(/path/to/fltx fltx-build)
+target_link_libraries(main PRIVATE fltx::fltx)
+```
+
+If you need the old include-only style, define `FLTX_HEADER_ONLY` before including the headers. That keeps constexpr and runtime calls in headers, but gives up the precompiled runtime helpers:
+
+```cmake
+target_compile_definitions(main PRIVATE FLTX_HEADER_ONLY)
 target_include_directories(main PRIVATE /path/to/fltx/include)
 ```
 

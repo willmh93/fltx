@@ -228,20 +228,20 @@ namespace detail::_f256
     }
 }
 
-BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, const f256_s& b) noexcept;
-BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexcept;
-BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept;
-BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept;
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator+(const f256_s& a, const f256_s& b) noexcept;
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexcept;
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept;
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept;
 
-BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept;
-BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept;
-BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept;
-BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept;
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept;
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept;
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept;
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept;
 
-BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, float b) noexcept;
-BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, float b) noexcept;
-BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, float b) noexcept;
-BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, float b) noexcept;
+BL_FORCE_INLINE constexpr f256_s operator+(const f256_s& a, float b) noexcept;
+BL_FORCE_INLINE constexpr f256_s operator-(const f256_s& a, float b) noexcept;
+BL_FORCE_INLINE constexpr f256_s operator*(const f256_s& a, float b) noexcept;
+BL_FORCE_INLINE constexpr f256_s operator/(const f256_s& a, float b) noexcept;
 
 struct f256_s
 {
@@ -255,8 +255,8 @@ struct f256_s
         x0 = static_cast<double>(x); x1 = 0.0; x2 = 0.0; x3 = 0.0; return *this;
     }
 
-    BL_NO_INLINE constexpr f256_s& operator=(uint64_t u) noexcept;
-    BL_NO_INLINE constexpr f256_s& operator=(int64_t v) noexcept;
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s& operator=(uint64_t u) noexcept;
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s& operator=(int64_t v) noexcept;
 
     template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_signed_v<T> && (sizeof(T) < 8), int> = 0>
     BL_FORCE_INLINE constexpr f256_s& operator=(T v) noexcept {
@@ -313,7 +313,7 @@ struct f256 : public f256_s
 
     constexpr f256(f128_s f) noexcept;
     constexpr f256(const f256_s& f) noexcept : f256_s{ f.x0, f.x1, f.x2, f.x3 } {}
-    
+
     using f256_s::operator=;
 
     [[nodiscard]] explicit constexpr operator f128_s() const noexcept;
@@ -564,32 +564,40 @@ namespace detail::_f256
     }
 }
 
-[[nodiscard]] BL_NO_INLINE constexpr f256_s to_f256(uint64_t u) noexcept
+namespace detail::_f256_constexpr
 {
-    f256_s r{}; r = u;
-    return r;
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s to_f256(int64_t v) noexcept
-{
-    f256_s r{}; r = v;
-    return r;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s to_f256(uint64_t u) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s to_f256(int64_t v) noexcept;
+    BL_FORCE_INLINE constexpr f256_s& assign(f256_s& out, uint64_t u) noexcept;
+    BL_FORCE_INLINE constexpr f256_s& assign(f256_s& out, int64_t v) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s floor(const f256_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s ceil(const f256_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s trunc(const f256_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s pow10_256(int k);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add(const f256_s& a, const f256_s& b) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sub(const f256_s& a, const f256_s& b) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul(const f256_s& a, const f256_s& b) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s div(const f256_s& a, const f256_s& b) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_double(const f256_s& a, double b) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sub_double(const f256_s& a, double b) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_double(const f256_s& a, double b) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s div_double(const f256_s& a, double b) noexcept;
 }
 
-BL_NO_INLINE constexpr f256_s& f256_s::operator=(uint64_t u) noexcept
-{
-    double s{}, e{};
-    detail::_f256::uint64_to_exact_double_pair(u, s, e);
-    *this = detail::_f256::renorm(s, e, 0.0, 0.0);
-    return *this;
-}
-BL_NO_INLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
-{
-    if (v >= 0) return (*this = static_cast<uint64_t>(v));
+// Public f256 core wrappers are defined together after the constexpr implementations.
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s to_f256(uint64_t u) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s to_f256(int64_t v) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s floor(const f256_s& a);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s ceil(const f256_s& a);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s trunc(const f256_s& a);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s pow10_256(int k);
 
-    uint64_t mag = detail::_f256::magnitude_u64(v);
-    f256_s tmp = to_f256(mag);
-    *this = -tmp;
-    return *this;
+namespace detail::_f256_runtime
+{
+    [[nodiscard]] BL_NO_INLINE f256_s to_f256(uint64_t u) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s to_f256(int64_t v) noexcept;
+    BL_NO_INLINE f256_s& assign(f256_s& out, uint64_t u) noexcept;
+    BL_NO_INLINE f256_s& assign(f256_s& out, int64_t v) noexcept;
 }
 
 /// ======== Comparisons ========
@@ -792,77 +800,13 @@ namespace detail::_f256
 {
     return (a.x0 < 0.0) ? -a : a;
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s floor(const f256_s& a)
+
+namespace detail::_f256_runtime
 {
-    if (isnan(a) || isinf(a) || iszero(a))
-        return a;
-
-    constexpr double integer_x0_threshold = 4503599627370496.0;
-
-    if (detail::_f256::absd(a.x0) >= integer_x0_threshold)
-    {
-        if (a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
-            return f256_s{ a.x0, 0.0, 0.0, 0.0 };
-
-        return f256_s{ a.x0, 0.0, 0.0, 0.0 } + floor(f256_s{ a.x1, a.x2, a.x3, 0.0 });
-    }
-
-    f256_s r{ detail::_f256::floor_constexpr(a.x0), 0.0, 0.0, 0.0 };
-    if (r > a)
-        r -= 1.0;
-    return r;
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s ceil(const f256_s& a)
-{
-    if (isnan(a) || isinf(a) || iszero(a))
-        return a;
-
-    constexpr double integer_x0_threshold = 4503599627370496.0;
-
-    if (detail::_f256::absd(a.x0) >= integer_x0_threshold)
-    {
-        if (a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
-            return f256_s{ a.x0, 0.0, 0.0, 0.0 };
-
-        return f256_s{ a.x0, 0.0, 0.0, 0.0 } + ceil(f256_s{ a.x1, a.x2, a.x3, 0.0 });
-    }
-
-    f256_s r{ detail::_f256::ceil_constexpr(a.x0), 0.0, 0.0, 0.0 };
-    if (r < a)
-        r += 1.0;
-    return r;
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s trunc(const f256_s& a)
-{
-    if (isnan(a) || isinf(a) || iszero(a))
-        return a;
-
-    return (a.x0 < 0.0) ? ceil(a) : floor(a);
-}
-
-[[nodiscard]] BL_NO_INLINE constexpr f256_s pow10_256(int k)
-{
-    if (k == 0) return f256_s{ 1.0 };
-
-    int n = (k >= 0) ? k : -k;
-
-    if (n <= 16) {
-        f256_s r = f256_s{ 1.0 };
-        const f256_s ten = f256_s{ 10.0, 0.0, 0.0, 0.0 };
-        for (int i = 0; i < n; ++i) r = r * ten;
-        return (k >= 0) ? r : (f256_s{ 1.0 } / r);
-    }
-
-    f256_s r = f256_s{ 1.0 };
-    f256_s base = f256_s{ 10.0, 0.0, 0.0, 0.0 };
-
-    while (n) {
-        if (n & 1) r = r * base;
-        n >>= 1;
-        if (n) base = base * base;
-    }
-
-    return (k >= 0) ? r : (f256_s{ 1.0 } / r);
+    [[nodiscard]] BL_NO_INLINE f256_s floor(const f256_s& a);
+    [[nodiscard]] BL_NO_INLINE f256_s ceil(const f256_s& a);
+    [[nodiscard]] BL_NO_INLINE f256_s trunc(const f256_s& a);
+    [[nodiscard]] BL_NO_INLINE f256_s pow10_256(int k);
 }
 
 
@@ -1117,8 +1061,141 @@ namespace detail::_f256
 
 /// ------------------ scalar ------------------
 
-// f256 <=> f256 
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, const f256_s& b) noexcept
+namespace detail::_f256_runtime
+{
+    [[nodiscard]] BL_NO_INLINE f256_s add(const f256_s& a, const f256_s& b) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s sub(const f256_s& a, const f256_s& b) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s mul(const f256_s& a, const f256_s& b) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s div(const f256_s& a, const f256_s& b) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s add_double(const f256_s& a, double b) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s sub_double(const f256_s& a, double b) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s mul_double(const f256_s& a, double b) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s div_double(const f256_s& a, double b) noexcept;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(double a, const f256_s& b) noexcept { return b + a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(double a, const f256_s& b) noexcept { return -(b - a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(double a, const f256_s& b) noexcept { return b * a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(double a, const f256_s& b) noexcept { return f256_s{ a } / b; }
+
+// f256 <=> float
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(const f256_s& a, float b) noexcept { return a + (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(const f256_s& a, float b) noexcept { return a - (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(const f256_s& a, float b) noexcept { return a * (double)b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(const f256_s& a, float b) noexcept { return a / (double)b; }
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(float a, const f256_s& b) noexcept { return (double)a + b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(float a, const f256_s& b) noexcept { return (double)a - b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(float a, const f256_s& b) noexcept { return (double)a * b; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(float a, const f256_s& b) noexcept { return (double)a / b; }
+/// ------------------ f256 constexpr core implementations ------------------
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::to_f256(uint64_t u) noexcept
+    {
+        f256_s r{};
+        double s{}, e{};
+        detail::_f256::uint64_to_exact_double_pair(u, s, e);
+        r = detail::_f256::renorm(s, e, 0.0, 0.0);
+        return r;
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::to_f256(int64_t v) noexcept
+    {
+        if (v >= 0)
+            return to_f256(static_cast<uint64_t>(v));
+
+        const uint64_t mag = detail::_f256::magnitude_u64(v);
+        return -to_f256(mag);
+    }
+
+    BL_FORCE_INLINE constexpr f256_s& detail::_f256_constexpr::assign(f256_s& out, uint64_t u) noexcept
+    {
+        out = to_f256(u);
+        return out;
+    }
+
+    BL_FORCE_INLINE constexpr f256_s& detail::_f256_constexpr::assign(f256_s& out, int64_t v) noexcept
+    {
+        out = to_f256(v);
+        return out;
+    }
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::floor(const f256_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a))
+        return a;
+
+    constexpr double integer_x0_threshold = 4503599627370496.0;
+
+    if (detail::_f256::absd(a.x0) >= integer_x0_threshold)
+    {
+        if (a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
+            return f256_s{ a.x0, 0.0, 0.0, 0.0 };
+
+        return f256_s{ a.x0, 0.0, 0.0, 0.0 } + detail::_f256_constexpr::floor(f256_s{ a.x1, a.x2, a.x3, 0.0 });
+    }
+
+    f256_s r{ detail::_f256::floor_constexpr(a.x0), 0.0, 0.0, 0.0 };
+    if (r > a)
+        r -= 1.0;
+    return r;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::ceil(const f256_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a))
+        return a;
+
+    constexpr double integer_x0_threshold = 4503599627370496.0;
+
+    if (detail::_f256::absd(a.x0) >= integer_x0_threshold)
+    {
+        if (a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
+            return f256_s{ a.x0, 0.0, 0.0, 0.0 };
+
+        return f256_s{ a.x0, 0.0, 0.0, 0.0 } + detail::_f256_constexpr::ceil(f256_s{ a.x1, a.x2, a.x3, 0.0 });
+    }
+
+    f256_s r{ detail::_f256::ceil_constexpr(a.x0), 0.0, 0.0, 0.0 };
+    if (r < a)
+        r += 1.0;
+    return r;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::trunc(const f256_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a))
+        return a;
+
+    return (a.x0 < 0.0) ? detail::_f256_constexpr::ceil(a) : detail::_f256_constexpr::floor(a);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::pow10_256(int k)
+{
+    if (k == 0) return f256_s{ 1.0 };
+
+    int n = (k >= 0) ? k : -k;
+
+    if (n <= 16) {
+        f256_s r = f256_s{ 1.0 };
+        const f256_s ten = f256_s{ 10.0, 0.0, 0.0, 0.0 };
+        for (int i = 0; i < n; ++i) r = r * ten;
+        return (k >= 0) ? r : (f256_s{ 1.0 } / r);
+    }
+
+    f256_s r = f256_s{ 1.0 };
+    f256_s base = f256_s{ 10.0, 0.0, 0.0, 0.0 };
+
+    while (n) {
+        if (n & 1) r = r * base;
+        n >>= 1;
+        if (n) base = base * base;
+    }
+
+    return (k >= 0) ? r : (f256_s{ 1.0 } / r);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::add(const f256_s& a, const f256_s& b) noexcept
 {
     // optimize for double-double precision
     if (a.x2 == 0.0 && a.x3 == 0.0 &&
@@ -1129,7 +1206,8 @@ namespace detail::_f256
 
     return detail::_f256::add_qd_qd(a, b);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexcept
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::sub(const f256_s& a, const f256_s& b) noexcept
 {
     // optimize for double-double precision
     if (a.x2 == 0.0 && a.x3 == 0.0 &&
@@ -1140,7 +1218,8 @@ namespace detail::_f256
 
     return detail::_f256::sub_qd_qd(a, b);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::mul(const f256_s& a, const f256_s& b) noexcept
 {
     double p0{}, p1{}, p2{}, p3{}, p4{}, p5{};
     double q0{}, q1{}, q2{}, q3{}, q4{}, q5{};
@@ -1185,7 +1264,8 @@ namespace detail::_f256
 
     return detail::_f256::renorm5(p0, p1, s0, t0, t1);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::div(const f256_s& a, const f256_s& b) noexcept
 {
     if (b.x1 == 0.0 && b.x2 == 0.0 && b.x3 == 0.0) [[unlikely]]
         return a / b.x0;
@@ -1208,9 +1288,8 @@ namespace detail::_f256
 
     return detail::_f256::renorm5(q0, q1, q2, q3, q4);
 }
-                              
-// f256 <=> double            
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::add_double(const f256_s& a, double b) noexcept
 {
     double c0{}, c1{}, c2{}, c3{};
     double e{};
@@ -1229,7 +1308,8 @@ namespace detail::_f256
 
     return detail::_f256::renorm5(c0, c1, c2, c3, e);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::sub_double(const f256_s& a, double b) noexcept
 {
     double c0{}, c1{}, c2{}, c3{}, e{};
 
@@ -1247,7 +1327,8 @@ namespace detail::_f256
 
     return detail::_f256::renorm5(c0, c1, c2, c3, e);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::mul_double(const f256_s& a, double b) noexcept
 {
     double p0{}, p1{}, p2{}, p3{};
     double q0{}, q1{}, q2{};
@@ -1267,7 +1348,8 @@ namespace detail::_f256
 
     return detail::_f256::renorm5(s0, s1, s2, s3, s4);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::div_double(const f256_s& a, double b) noexcept
 {
     if (bl::use_constexpr_math())
     {
@@ -1315,21 +1397,135 @@ namespace detail::_f256
     return detail::_f256::renorm5(q0, q1, q2, q3, q4);
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(double a, const f256_s& b) noexcept { return b + a; }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(double a, const f256_s& b) noexcept { return -(b - a); }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(double a, const f256_s& b) noexcept { return b * a; }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(double a, const f256_s& b) noexcept { return f256_s{ a } / b; }
+/// ------------------ f256 public core wrappers ------------------
 
-// f256 <=> float
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(const f256_s& a, float b) noexcept { return a + (double)b; }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(const f256_s& a, float b) noexcept { return a - (double)b; }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(const f256_s& a, float b) noexcept { return a * (double)b; }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(const f256_s& a, float b) noexcept { return a / (double)b; }
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s to_f256(uint64_t u) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::to_f256(u);
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(float a, const f256_s& b) noexcept { return (double)a + b; }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(float a, const f256_s& b) noexcept { return (double)a - b; }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(float a, const f256_s& b) noexcept { return (double)a * b; }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(float a, const f256_s& b) noexcept { return (double)a / b; }
+    return detail::_f256_runtime::to_f256(u);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s to_f256(int64_t v) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::to_f256(v);
+
+    return detail::_f256_runtime::to_f256(v);
+}
+
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s& f256_s::operator=(uint64_t u) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::assign(*this, u);
+
+    return detail::_f256_runtime::assign(*this, u);
+}
+
+BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::assign(*this, v);
+
+    return detail::_f256_runtime::assign(*this, v);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s floor(const f256_s& a)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::floor(a);
+
+    return detail::_f256_runtime::floor(a);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s ceil(const f256_s& a)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::ceil(a);
+
+    return detail::_f256_runtime::ceil(a);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s trunc(const f256_s& a)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::trunc(a);
+
+    return detail::_f256_runtime::trunc(a);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s pow10_256(int k)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::pow10_256(k);
+
+    return detail::_f256_runtime::pow10_256(k);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator+(const f256_s& a, const f256_s& b) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::add(a, b);
+
+    return detail::_f256_runtime::add(a, b);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::sub(a, b);
+
+    return detail::_f256_runtime::sub(a, b);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::mul(a, b);
+
+    return detail::_f256_runtime::mul(a, b);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::div(a, b);
+
+    return detail::_f256_runtime::div(a, b);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::add_double(a, b);
+
+    return detail::_f256_runtime::add_double(a, b);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::sub_double(a, b);
+
+    return detail::_f256_runtime::sub_double(a, b);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::mul_double(a, b);
+
+    return detail::_f256_runtime::mul_double(a, b);
+}
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::div_double(a, b);
+
+    return detail::_f256_runtime::div_double(a, b);
+}
 
 } // namespace bl
 

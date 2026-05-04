@@ -1,7 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 
-#define FLTX_CONSTEXPR_PARITY
-#define FLTX_CONSTEXPR_PARITY_TEST_MODE
 #include <f64_math.h>
 
 #include <array>

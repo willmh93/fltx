@@ -15,7 +15,157 @@
 
 namespace bl {
 
+namespace detail::_f256_runtime
+{
+    [[nodiscard]] BL_NO_INLINE f256_s fmod(const f256_s& x, const f256_s& y);
+    [[nodiscard]] BL_NO_INLINE f256_s round(const f256_s& a);
+    [[nodiscard]] BL_NO_INLINE f256_s round_to_decimals(f256_s v, int prec);
+    [[nodiscard]] BL_NO_INLINE f256_s sqrt(const f256_s& a);
+    [[nodiscard]] BL_NO_INLINE f256_s nearbyint(const f256_s& a);
+    [[nodiscard]] BL_NO_INLINE f256_s ldexp(const f256_s& a, int e);
+    [[nodiscard]] BL_NO_INLINE f256_s exp(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s exp2(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s log(const f256_s& a);
+    [[nodiscard]] BL_NO_INLINE f256_s log2(const f256_s& a);
+    [[nodiscard]] BL_NO_INLINE f256_s log10(const f256_s& a);
+    [[nodiscard]] BL_NO_INLINE f256_s pow(const f256_s& x, const f256_s& y);
+    [[nodiscard]] BL_NO_INLINE f256_s pow(const f256_s& x, double y);
+    [[nodiscard]] BL_NO_INLINE bool sincos(const f256_s& x, f256_s& s_out, f256_s& c_out);
+    [[nodiscard]] BL_NO_INLINE f256_s sin(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s cos(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s tan(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s atan(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s atan2(const f256_s& y, const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s asin(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s acos(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s expm1(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s log1p(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s sinh(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s cosh(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s tanh(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s asinh(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s acosh(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s atanh(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s cbrt(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s remquo(const f256_s& x, const f256_s& y, int* quo);
+    [[nodiscard]] BL_NO_INLINE f256_s remainder(const f256_s& x, const f256_s& y);
+    [[nodiscard]] BL_NO_INLINE f256_s frexp(const f256_s& x, int* exp) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s modf(const f256_s& x, f256_s* iptr) noexcept;
+    [[nodiscard]] BL_NO_INLINE int ilogb(const f256_s& x) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s logb(const f256_s& x) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s scalbn(const f256_s& x, int e) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s scalbln(const f256_s& x, long e) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s nextafter(const f256_s& from, const f256_s& to) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s nexttoward(const f256_s& from, long double to) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s nexttoward(const f256_s& from, const f256_s& to) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s erf(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s erfc(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s lgamma(const f256_s& x);
+    [[nodiscard]] BL_NO_INLINE f256_s tgamma(const f256_s& x);
+}
+
+namespace detail::_f256_constexpr
+{
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s fmod(const f256_s& x, const f256_s& y);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s round(const f256_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s round_to_decimals(f256_s v, int prec);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sqrt(const f256_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s nearbyint(const f256_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s ldexp(const f256_s& a, int e);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s exp(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s exp2(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s log(const f256_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s log2(const f256_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s log10(const f256_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s pow(const f256_s& x, const f256_s& y);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s pow(const f256_s& x, double y);
+    [[nodiscard]] BL_FORCE_INLINE constexpr bool sincos(const f256_s& x, f256_s& s_out, f256_s& c_out);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sin(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s cos(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s tan(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s atan(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s atan2(const f256_s& y, const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s asin(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s acos(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s expm1(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s log1p(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sinh(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s cosh(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s tanh(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s asinh(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s acosh(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s atanh(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s cbrt(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s remquo(const f256_s& x, const f256_s& y, int* quo);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s remainder(const f256_s& x, const f256_s& y);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s frexp(const f256_s& x, int* exp) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s modf(const f256_s& x, f256_s* iptr) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr int ilogb(const f256_s& x) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s logb(const f256_s& x) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s scalbn(const f256_s& x, int e) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s scalbln(const f256_s& x, long e) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s nextafter(const f256_s& from, const f256_s& to) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s nexttoward(const f256_s& from, long double to) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s nexttoward(const f256_s& from, const f256_s& to) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s erf(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s erfc(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s lgamma(const f256_s& x);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s tgamma(const f256_s& x);
+}
+
+// Public wrappers are defined together after the constexpr implementations.
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s fmod(const f256_s& x, const f256_s& y);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s round(const f256_s& a);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s round_to_decimals(f256_s v, int prec);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s sqrt(const f256_s& a);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s nearbyint(const f256_s& a);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s ldexp(const f256_s& a, int e);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s exp(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s exp2(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s log(const f256_s& a);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s log2(const f256_s& a);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s log10(const f256_s& a);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s pow(const f256_s& x, const f256_s& y);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s pow(const f256_s& x, double y);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool sincos(const f256_s& x, f256_s& s_out, f256_s& c_out);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s sin(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s cos(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s tan(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s atan(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s atan2(const f256_s& y, const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s asin(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s acos(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s expm1(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s log1p(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s sinh(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s cosh(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s tanh(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s asinh(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s acosh(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s atanh(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s cbrt(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s remquo(const f256_s& x, const f256_s& y, int* quo);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s remainder(const f256_s& x, const f256_s& y);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s frexp(const f256_s& x, int* exp) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s modf(const f256_s& x, f256_s* iptr) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr int ilogb(const f256_s& x) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s logb(const f256_s& x) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s scalbn(const f256_s& x, int e) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s scalbln(const f256_s& x, long e) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s nextafter(const f256_s& from, const f256_s& to) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s nexttoward(const f256_s& from, long double to) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s nexttoward(const f256_s& from, const f256_s& to) noexcept;
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s erf(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s erfc(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s lgamma(const f256_s& x);
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s tgamma(const f256_s& x);
+
 /// ------------------ math ------------------
+
+namespace detail::_f256_runtime
+{
+    [[nodiscard]] BL_NO_INLINE f256_s f256_mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
+}
 
 namespace detail::_f256
 {
@@ -164,7 +314,7 @@ namespace detail::_f256
             value.exp2 += tz;
         }
     }
-    BL_NO_INLINE constexpr exact_dyadic_fmod exact_from_f256_fmod(const f256_s& x)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr exact_dyadic_fmod exact_from_f256_fmod(const f256_s& x)
     {
         int common_exp = std::numeric_limits<int>::max();
         const double limbs[4] = { x.x0, x.x1, x.x2, x.x3 };
@@ -213,7 +363,7 @@ namespace detail::_f256
         normalize_exact_dyadic_fmod(out);
         return out;
     }
-    BL_NO_INLINE constexpr f256_s exact_dyadic_to_f256_fmod(const biguint& coeff, int exp2, bool neg)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s exact_dyadic_to_f256_fmod(const biguint& coeff, int exp2, bool neg)
     {
         if (coeff.is_zero())
             return neg ? f256_s{ -0.0, 0.0, 0.0, 0.0 } : f256_s{ 0.0, 0.0, 0.0, 0.0 };
@@ -265,7 +415,7 @@ namespace detail::_f256
         f256_s out = detail::_f256::renorm5(x0, x1, x2, x3, x4);
         return neg ? -out : out;
     }
-    BL_NO_INLINE constexpr f256_s fmod_exact(const f256_s& x, const f256_s& y)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s fmod_exact(const f256_s& x, const f256_s& y)
     {
         const exact_dyadic_fmod dx = exact_from_f256_fmod(abs(x));
         const exact_dyadic_fmod dy = exact_from_f256_fmod(abs(y));
@@ -356,7 +506,7 @@ namespace detail::_f256
         if (value != 0.0)
             expansion[count++] = value;
     }
-    BL_NO_INLINE constexpr f256_s fmod_sub_mul_scalar_expansion(const f256_s& r, const f256_s& b, double q) noexcept
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s fmod_sub_mul_scalar_expansion(const f256_s& r, const f256_s& b, double q) noexcept
     {
         double r_exp[4]{};
         int r_count = 0;
@@ -381,7 +531,7 @@ namespace detail::_f256
         const int diff_count = detail::_f256::fast_expansion_sum_zeroelim(r_count, r_exp, product_count, product_exp, diff_exp);
         return detail::_f256::from_expansion_fast(diff_exp, diff_count);
     }
-    BL_NO_INLINE constexpr f256_s fmod_runtime(const f256_s& x, const f256_s& y)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s fmod_runtime(const f256_s& x, const f256_s& y)
     {
         const f256_s ay = abs(y);
         f256_s r = abs(x);
@@ -423,7 +573,7 @@ namespace detail::_f256
 
         return ispositive(x) ? r : -r;
     }
-    BL_NO_INLINE constexpr bool fmod_fast_double_divisor_abs(const f256_s& ax, double ay, f256_s& out)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr bool fmod_fast_double_divisor_abs(const f256_s& ax, double ay, f256_s& out)
     {
         if (!(ay > 0.0) || !detail::_f256::isfinite(ay))
             return false;
@@ -502,7 +652,7 @@ namespace detail::_f256
         f256_s out = detail::_f256::renorm(x0, x1, x2, x3);
         return neg ? -out : out;
     }
-    BL_NO_INLINE constexpr f256_s round_decimal_exact_to_f256(const biguint& coeff, int dec_exp, bool neg) noexcept
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s round_decimal_exact_to_f256(const biguint& coeff, int dec_exp, bool neg) noexcept
     {
         if (coeff.is_zero())
             return neg ? f256_s{ -0.0, 0.0, 0.0, 0.0 } : f256_s{ 0.0, 0.0, 0.0, 0.0 };
@@ -877,7 +1027,7 @@ namespace detail::_f256
         return detail::_f256::renorm5(q0, q1, q2, q3, q4);
     }
 
-    BL_NO_INLINE constexpr f256_s f256_mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
+    [[nodiscard]] constexpr f256_s f256_mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
     struct powi_ops
     {
         BL_FORCE_INLINE constexpr f256_s multiply(f256_s a, const f256_s& b) const noexcept
@@ -898,129 +1048,6 @@ namespace detail::_f256
     }
 }
 
-[[nodiscard]] BL_NO_INLINE constexpr f256_s fmod(const f256_s& x, const f256_s& y)
-{
-    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-    if (isinf(y) || iszero(x))
-        return x;
-
-    const f256_s ax = abs(x);
-    const f256_s ay = abs(y);
-
-    if (ax < ay)
-        return x;
-
-    f256_s fast{};
-    if (y.x1 == 0.0 && y.x2 == 0.0 && y.x3 == 0.0 && detail::_f256::fmod_fast_double_divisor_abs(ax, ay.x0, fast))
-    {
-        if (iszero(fast))
-            return f256_s{ detail::_f256::signbit_constexpr(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-        const f256_s out = ispositive(x) ? fast : -fast;
-        return detail::_f256::canonicalize_math_result(out);
-    }
-
-    const f256_s out = bl::use_constexpr_math()
-        ? detail::_f256::fmod_exact(x, y)
-        : detail::_f256::fmod_runtime(x, y);
-
-    return detail::_f256::canonicalize_math_result(out);
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s round(const f256_s& a)
-{
-    f256_s t = floor(a + f256_s{ 0.5 });
-    if ((t - a) == f256_s{ 0.5 } && detail::_f256::is_odd_integer(t))
-        t -= f256_s{ 1.0 };
-    return t;
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s round_to_decimals(f256_s v, int prec)
-{
-    constexpr int local_capacity = std::numeric_limits<f256_s>::max_digits10;
-
-    if (prec <= 0) return v;
-    if (prec > local_capacity) prec = local_capacity;
-
-    constexpr f256_s inv10_qd{
-         0x1.999999999999ap-4,
-        -0x1.999999999999ap-58,
-         0x1.999999999999ap-112,
-        -0x1.999999999999ap-166
-    };
-
-    char digits[local_capacity];
-
-    const bool neg = v < 0.0;
-    if (neg) v = -v;
-
-    f256_s ip = floor(v);
-    f256_s frac = v - ip;
-
-    f256_s w = frac;
-    for (int i = 0; i < prec; ++i)
-    {
-        w = w * 10.0;
-
-        int di = static_cast<int>(floor(w).x0);
-        if (di < 0) di = 0;
-        else if (di > 9) di = 9;
-
-        digits[i] = static_cast<char>('0' + di);
-        w = w - f256_s{ static_cast<double>(di) };
-    }
-
-    f256_s la = w * 10.0;
-
-    const f256_s tie_slop = f256_s::eps() * f256_s{ 65536.0 };
-    int next = static_cast<int>(floor(la).x0);
-    if (next < 0) next = 0;
-
-    f256_s rem = la - f256_s{ static_cast<double>(next) };
-    if (next < 10 && rem >= f256_s{ 1.0 } - tie_slop)
-    {
-        ++next;
-        rem -= f256_s{ 1.0 };
-    }
-
-    const int last = digits[prec - 1] - '0';
-    const bool beyond_half = rem > tie_slop;
-    const bool round_up =
-        (next > 5) ||
-        (next == 5 && (beyond_half || (last & 1)));
-
-    if (round_up)
-    {
-        int i = prec - 1;
-        for (; i >= 0; --i)
-        {
-            if (digits[i] == '9')
-            {
-                digits[i] = '0';
-            }
-            else
-            {
-                ++digits[i];
-                break;
-            }
-        }
-
-        if (i < 0)
-            ip = ip + 1.0;
-    }
-
-    f256_s exact_out{};
-    if (detail::_f256::try_rounded_decimal_to_f256(ip, digits, prec, neg, exact_out))
-        return exact_out;
-
-    f256_s frac_val{ 0.0 };
-    for (int i = prec - 1; i >= 0; --i)
-    {
-        frac_val = frac_val + f256_s{ static_cast<double>(digits[i] - '0') };
-        frac_val = frac_val * inv10_qd;
-    }
-
-    f256_s out = ip + frac_val;
-    return neg ? -out : out;
-}
 
 namespace detail::_f256
 {
@@ -1029,21 +1056,21 @@ namespace detail::_f256
         return f256_s{ y.x0 + y.x0, y.x1 + y.x1, y.x2 + y.x2, y.x3 + y.x3 };
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr void sqrt_step_2y(const f256_s& scaled_a, f256_s& y)
+    BL_FORCE_INLINE constexpr void sqrt_step_2y(const f256_s& scaled_a, f256_s& y)
     {
         using namespace detail::_f256;
         const f256_s residual = sub_inline(scaled_a, sqr_inline(y));
         y = add_inline(y, div_inline(residual, sqrt_double_terms(y)));
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr void sqrt_step_seed_recip(const f256_s& scaled_a, f256_s& y, double half_inv_y0)
+    BL_FORCE_INLINE constexpr void sqrt_step_seed_recip(const f256_s& scaled_a, f256_s& y, double half_inv_y0)
     {
         using namespace detail::_f256;
         const f256_s residual = sub_inline(scaled_a, sqr_inline(y));
         y = add_inline(y, mul_double_inline(residual, half_inv_y0));
     }
 
-    [[nodiscard]] BL_NO_INLINE constexpr f256_s sqrt_constexpr_impl(const f256_s& a)
+    [[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s sqrt_constexpr_impl(const f256_s& a)
     {
         const int exp2 = detail::_f256::frexp_exponent(a.x0);
         const int result_scale = exp2 / 2;
@@ -1090,53 +1117,6 @@ namespace detail::_f256
 
 }
 
-[[nodiscard]] BL_NO_INLINE constexpr f256_s sqrt(const f256_s& a)
-{
-    using namespace detail::_f256;
-
-    if (a.x0 <= 0.0)
-    {
-        if (iszero(a))
-            return a;
-        return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
-    }
-
-    if (isinf(a))
-        return a;
-
-    if (bl::use_constexpr_math())
-        return detail::_f256::sqrt_constexpr_impl(a);
-
-    return detail::_f256::sqrt_runtime_impl(a);
-}
-
-[[nodiscard]] BL_NO_INLINE constexpr f256_s nearbyint(const f256_s& a)
-{
-    if (isnan(a) || isinf(a) || iszero(a))
-        return a;
-
-    f256_s t = floor(a);
-    const f256_s frac = a - t;
-
-    if (frac < f256_s{ 0.5 })
-        return t;
-
-    if (frac > f256_s{ 0.5 })
-    {
-        t += f256_s{ 1.0 };
-        if (iszero(t))
-            return f256_s{ detail::_f256::signbit_constexpr(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-        return t;
-    }
-
-    if (detail::_f256::is_odd_integer(t))
-        t += f256_s{ 1.0 };
-
-    if (iszero(t))
-        return f256_s{ detail::_f256::signbit_constexpr(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-
-    return t;
-}
 
 /// ------------------ transcendentals ------------------
 
@@ -1193,7 +1173,7 @@ namespace detail::_f256
         f256_s{ 2.81145725434552060e-15,  1.65088427308614326e-31, -2.87777179307447918e-50,  4.27110689256293549e-67 }
     };
 
-    BL_NO_INLINE constexpr f256_s f256_expm1_tiny(const f256_s& r)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s f256_expm1_tiny(const f256_s& r)
     {
         f256_s p = exp_inv_fact[(sizeof(exp_inv_fact) / sizeof(exp_inv_fact[0])) - 1];
         for (int i = static_cast<int>(sizeof(exp_inv_fact) / sizeof(exp_inv_fact[0])) - 2; i >= 0; --i)
@@ -1337,7 +1317,7 @@ namespace detail::_f256
         f256_s{ 0x1.2492492492492p-7, 0x1.2492492492492p-61, 0x1.36db6db6db6dbp-115, 0x1.b6dd06f7523c6p-169 }
     };
 
-    BL_NO_INLINE constexpr f256_s lgamma1p_series(const f256_s& y) noexcept
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s lgamma1p_series(const f256_s& y) noexcept
     {
         constexpr int count = static_cast<int>(sizeof(lgamma1p_coeff) / sizeof(lgamma1p_coeff[0]));
 
@@ -1348,7 +1328,7 @@ namespace detail::_f256
         return y * (-detail::_f256::egamma + y * p);
     }
 
-    BL_NO_INLINE constexpr bool try_lgamma_near_one_or_two(const f256_s& x, f256_s& out) noexcept
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr bool try_lgamma_near_one_or_two(const f256_s& x, f256_s& out) noexcept
     {
         const f256_s y1 = x - f256_s{ 1.0 };
         if (abs(y1) <= f256_s{ 0.25 })
@@ -1662,7 +1642,7 @@ namespace detail::_f256
     }
     #endif
 
-    BL_NO_INLINE constexpr f256_s f256_mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s f256_mul_add_horner_step_constexpr(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
         double p0{}, p1{}, p2{}, p3{}, p4{}, p5{};
         double q0{}, q1{}, q2{}, q3{}, q4{}, q5{};
@@ -1723,7 +1703,15 @@ namespace detail::_f256
         return detail::_f256::renorm5(s0, s1, s2, s3, e0);
     }
 
-    BL_NO_INLINE constexpr f256_s f256_sin_kernel_pi4(const f256_s& r)
+    [[nodiscard]] constexpr f256_s f256_mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        if (bl::use_constexpr_math())
+            return f256_mul_add_horner_step_constexpr(a, b, c);
+
+        return detail::_f256_runtime::f256_mul_add_horner_step(a, b, c);
+    }
+
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s f256_sin_kernel_pi4(const f256_s& r)
     {
         const f256_s t = r * r;
 
@@ -1734,7 +1722,7 @@ namespace detail::_f256
         const f256_s rt = r * t;
         return f256_mul_add_horner_step(rt, ps, r);
     }
-    BL_NO_INLINE constexpr f256_s f256_cos_kernel_pi4(const f256_s& r)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s f256_cos_kernel_pi4(const f256_s& r)
     {
         const f256_s t = r * r;
 
@@ -1744,7 +1732,7 @@ namespace detail::_f256
 
         return f256_mul_add_horner_step(t, pc, f256_s{ 1.0 });
     }
-    BL_NO_INLINE constexpr void f256_sincos_kernel_pi4(const f256_s& r, f256_s& s_out, f256_s& c_out)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr void f256_sincos_kernel_pi4(const f256_s& r, f256_s& s_out, f256_s& c_out)
     {
         using namespace detail::_f256;
 
@@ -1822,7 +1810,7 @@ namespace detail::_f256
             }
         }
     }
-    BL_NO_INLINE constexpr f256_s _exp(const f256_s& x)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s _exp(const f256_s& x)
     {
         if (isnan(x))
             return x;
@@ -1857,7 +1845,7 @@ namespace detail::_f256
 
         return _ldexp(detail::_f256::add_scalar_precise(e, 1.0), k);
     }
-    BL_NO_INLINE constexpr f256_s _exp2(const f256_s& x)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s _exp2(const f256_s& x)
     {
         if (isnan(x))
             return x;
@@ -1887,7 +1875,7 @@ namespace detail::_f256
 
         return detail::_f256::_ldexp(detail::_f256::add_scalar_precise(e, 1.0), k);
     }
-    BL_NO_INLINE constexpr f256_s _log(const f256_s& a)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s _log(const f256_s& a)
     {
         if (isnan(a))
             return a;
@@ -1920,112 +1908,9 @@ namespace detail::_f256
     }
 }
 
-// exp
-[[nodiscard]] BL_NO_INLINE constexpr f256_s ldexp(const f256_s& a, int e)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_ldexp(a, e));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s exp(const f256_s& x)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_exp(x));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s exp2(const f256_s& x)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_exp2(x));
-}
-
-// log
-[[nodiscard]] BL_NO_INLINE constexpr f256_s log(const f256_s& a)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_log(a));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s log2(const f256_s& a)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_log(a) * detail::_f256::inv_ln2);
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s log10(const f256_s& a)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_log(a) / detail::_f256::ln10);
-}
-
-// pow
-[[nodiscard]] BL_NO_INLINE constexpr f256_s pow(const f256_s& x, const f256_s& y)
-{
-    if (iszero(y))
-        return f256_s{ 1.0 };
-
-    if (isnan(x) || isnan(y))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-
-    const f256_s yi = trunc(y);
-    const bool y_is_int = (yi == y);
-
-    int64_t yi64{};
-    if (y_is_int && detail::_f256::f256_try_get_int64(yi, yi64))
-        return detail::_f256::powi(x, yi64);
-
-    if (x.x0 < 0.0 || (x.x0 == 0.0 && detail::_f256::signbit_constexpr(x.x0)))
-    {
-        if (!y_is_int)
-            return std::numeric_limits<f256_s>::quiet_NaN();
-
-        const f256_s magnitude = detail::_f256::_exp(detail::_f256::mul_inline(y, detail::_f256::_log(-x)));
-        return detail::_f256::is_odd_integer(yi) ? -magnitude : magnitude;
-    }
-
-    return detail::_f256::canonicalize_math_result(detail::_f256::_exp(detail::_f256::mul_inline(y, detail::_f256::_log(x))));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s pow(const f256_s& x, double y)
-{
-    if (y == 0.0)
-        return f256_s{ 1.0 };
-
-    if (isnan(x) || detail::_f256::isnan(y))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-
-    if (y == 1.0) return x;
-    if (y == 2.0) return detail::_f256::canonicalize_math_result(x * x);
-    if (y == -1.0) return detail::_f256::canonicalize_math_result(f256_s{ 1.0 } / x);
-    if (y == 0.5) return detail::_f256::canonicalize_math_result(sqrt(x));
-
-    double yi{};
-    if (bl::use_constexpr_math())
-    {
-        yi = (y < 0.0)
-            ? detail::_f256::ceil_constexpr(y)
-            : detail::_f256::floor_constexpr(y);
-    }
-    else
-    {
-        yi = std::trunc(y);
-    }
-
-    const bool y_is_int = (yi == y);
-
-    if (y_is_int && detail::_f256::absd(yi) < 0x1p63)
-        return detail::_f256::powi(x, static_cast<int64_t>(yi));
-
-    if (x.x0 < 0.0 || (x.x0 == 0.0 && detail::_f256::signbit_constexpr(x.x0)))
-    {
-        if (!y_is_int)
-            return std::numeric_limits<f256_s>::quiet_NaN();
-
-        const f256_s magnitude = detail::_f256::_exp(detail::_f256::mul_double_inline(detail::_f256::_log(-x), y));
-        const bool y_is_odd =
-            (detail::_f256::absd(yi) < 0x1p53) &&
-            ((static_cast<int64_t>(yi) & 1ll) != 0);
-
-        return detail::_f256::canonicalize_math_result(y_is_odd ? -magnitude : magnitude);
-    }
-
-    return detail::_f256::canonicalize_math_result(detail::_f256::_exp(detail::_f256::mul_double_inline(detail::_f256::_log(x), y)));
-}
-
-
-// trig
 namespace detail::_f256
 {
-    BL_NO_INLINE constexpr bool _sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr bool _sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
     {
         const double ax = detail::_f256::fabs_constexpr(x.x0);
         if (!detail::_f256::isfinite(ax))
@@ -2060,7 +1945,7 @@ namespace detail::_f256
         return true;
     }
 
-    BL_NO_INLINE constexpr f256_s atan_core_unit(const f256_s& z)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s atan_core_unit(const f256_s& z)
     {
         using namespace detail::_f256;
 
@@ -2111,7 +1996,7 @@ namespace detail::_f256
 
         return v;
     }
-    BL_NO_INLINE constexpr f256_s _atan(const f256_s& x)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s _atan(const f256_s& x)
     {
         using namespace detail::_f256;
 
@@ -2170,193 +2055,50 @@ namespace detail::_f256
     }
 }
 
-[[nodiscard]] BL_NO_INLINE constexpr bool sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
-{
-    bool ret = detail::_f256::_sincos(x, s_out, c_out);
-    s_out = detail::_f256::canonicalize_math_result(s_out);
-    c_out = detail::_f256::canonicalize_math_result(c_out);
-    return ret;
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s sin(const f256_s& x)
-{
-    const double ax = detail::_f256::fabs_constexpr(x.x0);
-    if (!detail::_f256::isfinite(ax))
-        return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
-
-    if (ax <= static_cast<double>(detail::_f256::pi_4))
-        return detail::_f256::f256_sin_kernel_pi4(x);
-
-    long long n = 0;
-    f256_s r{};
-    if (!detail::_f256::f256_remainder_pi2(x, n, r))
-    {
-        if (bl::use_constexpr_math())
-        {
-            return f256_s{ detail::fp::sin_constexpr(static_cast<double>(x)) };
-        }
-        else
-        {
-            return f256_s{ std::sin(static_cast<double>(x)) };
-        }
-    }
-    switch ((int)(n & 3LL))
-    {
-    case 0: return detail::_f256::f256_sin_kernel_pi4(r);
-    case 1: return detail::_f256::f256_cos_kernel_pi4(r);
-    case 2: return -detail::_f256::f256_sin_kernel_pi4(r);
-    default: return -detail::_f256::f256_cos_kernel_pi4(r);
-    }
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s cos(const f256_s& x)
-{
-    const double ax = detail::_f256::fabs_constexpr(x.x0);
-    if (!detail::_f256::isfinite(ax))
-        return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
-
-    if (ax <= static_cast<double>(detail::_f256::pi_4))
-        return detail::_f256::f256_cos_kernel_pi4(x);
-
-    long long n = 0;
-    f256_s r{};
-    if (!detail::_f256::f256_remainder_pi2(x, n, r))
-    {
-        if (bl::use_constexpr_math())
-        {
-            return f256_s{ detail::fp::cos_constexpr(static_cast<double>(x)) };
-        }
-        else
-        {
-            return f256_s{ std::cos(static_cast<double>(x)) };
-        }
-    }
-
-    switch ((int)(n & 3LL))
-    {
-    case 0: return detail::_f256::f256_cos_kernel_pi4(r);
-    case 1: return -detail::_f256::f256_sin_kernel_pi4(r);
-    case 2: return -detail::_f256::f256_cos_kernel_pi4(r);
-    default: return detail::_f256::f256_sin_kernel_pi4(r);
-    }
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s tan(const f256_s& x)
-{
-    f256_s s{}, c{};
-    if (detail::_f256::_sincos(x, s, c))
-        return detail::_f256::canonicalize_math_result(s / c);
-
-    if (bl::use_constexpr_math())
-    {
-        return detail::_f256::canonicalize_math_result(f256_s{ detail::fp::tan_constexpr(static_cast<double>(x)) });
-    }
-    else
-    {
-        return detail::_f256::canonicalize_math_result(f256_s{ std::tan(static_cast<double>(x)) });
-    }
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s atan(const f256_s& x)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_atan(x));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s atan2(const f256_s& y, const f256_s& x)
-{
-    if (isnan(x) || isnan(y))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-
-    if (iszero(x))
-    {
-        if (iszero(y))
-            return f256_s{ std::numeric_limits<double>::quiet_NaN() };
-        return ispositive(y) ? detail::_f256::pi_2 : -detail::_f256::pi_2;
-    }
-
-    if (iszero(y))
-    {
-        if (x.x0 < 0.0)
-            return detail::_f256::signbit_constexpr(y.x0) ? -detail::_f256::pi : detail::_f256::pi;
-        return y;
-    }
-
-    const f256_s ax = abs(x);
-    const f256_s ay = abs(y);
-
-    if (ax == ay)
-    {
-        if (x.x0 < 0.0)
-        {
-            return detail::_f256::canonicalize_math_result(
-                (y.x0 < 0.0) ? -detail::_f256::pi_3_4 : detail::_f256::pi_3_4);
-        }
-
-        return detail::_f256::canonicalize_math_result(
-            (y.x0 < 0.0) ? -detail::_f256::pi_4 : detail::_f256::pi_4);
-    }
-
-    if (ax >= ay)
-    {
-        f256_s a = detail::_f256::_atan(y / x);
-
-        if (x.x0 < 0.0)
-            a += (y.x0 < 0.0) ? -detail::_f256::pi : detail::_f256::pi;
-        return detail::_f256::canonicalize_math_result(a);
-    }
-
-    f256_s a = detail::_f256::_atan(x / y);
-    return detail::_f256::canonicalize_math_result((y.x0 < 0.0) ? (-detail::_f256::pi_2 - a) : (detail::_f256::pi_2 - a));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s asin(const f256_s& x)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_asin(x));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s acos(const f256_s& x)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_acos(x));
-}
-
-
-[[nodiscard]] BL_NO_INLINE constexpr f256_s fabs(const f256_s& a) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s fabs(const f256_s& a) noexcept
 {
     return abs(a);
 }
 
-[[nodiscard]] BL_NO_INLINE constexpr bool signbit(const f256_s& x) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool signbit(const f256_s& x) noexcept
 {
     return detail::_f256::signbit_constexpr(x.x0)
         || (x.x0 == 0.0 && (detail::_f256::signbit_constexpr(x.x1)
         || (x.x1 == 0.0 && (detail::_f256::signbit_constexpr(x.x2)
         || (x.x2 == 0.0 && detail::_f256::signbit_constexpr(x.x3))))));
 }
-[[nodiscard]] BL_NO_INLINE constexpr int fpclassify(const f256_s& x) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr int fpclassify(const f256_s& x) noexcept
 {
     if (isnan(x))  return FP_NAN;
     if (isinf(x))  return FP_INFINITE;
     if (iszero(x)) return FP_ZERO;
     return abs(x) < std::numeric_limits<f256_s>::min() ? FP_SUBNORMAL : FP_NORMAL;
 }
-[[nodiscard]] BL_NO_INLINE constexpr bool isnormal(const f256_s& x) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool isnormal(const f256_s& x) noexcept
 {
     return fpclassify(x) == FP_NORMAL;
 }
-[[nodiscard]] BL_NO_INLINE constexpr bool isunordered(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool isunordered(const f256_s& a, const f256_s& b) noexcept
 {
     return isnan(a) || isnan(b);
 }
-[[nodiscard]] BL_NO_INLINE constexpr bool isgreater(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool isgreater(const f256_s& a, const f256_s& b) noexcept
 {
     return !isunordered(a, b) && a > b;
 }
-[[nodiscard]] BL_NO_INLINE constexpr bool isgreaterequal(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool isgreaterequal(const f256_s& a, const f256_s& b) noexcept
 {
     return !isunordered(a, b) && a >= b;
 }
-[[nodiscard]] BL_NO_INLINE constexpr bool isless(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool isless(const f256_s& a, const f256_s& b) noexcept
 {
     return !isunordered(a, b) && a < b;
 }
-[[nodiscard]] BL_NO_INLINE constexpr bool islessequal(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool islessequal(const f256_s& a, const f256_s& b) noexcept
 {
     return !isunordered(a, b) && a <= b;
 }
-[[nodiscard]] BL_NO_INLINE constexpr bool islessgreater(const f256_s& a, const f256_s& b) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool islessgreater(const f256_s& a, const f256_s& b) noexcept
 {
     return !isunordered(a, b) && a != b;
 }
@@ -2418,7 +2160,7 @@ namespace detail::_f256
         return n;
     }
 
-    BL_NO_INLINE constexpr f256_s _expm1(const f256_s& x)
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s _expm1(const f256_s& x)
     {
         if (isnan(x))
             return x;
@@ -2452,7 +2194,7 @@ namespace detail::_f256
         return detail::_f256::sub_inline(detail::_f256::_exp(x), f256_s{ 1.0 });
     }
 
-    [[nodiscard]] BL_NO_INLINE constexpr f256_s atanh_small_series_constexpr(const f256_s& x)
+    [[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s atanh_small_series_constexpr(const f256_s& x)
     {
         const f256_s x2 = x * x;
         f256_s sum = x;
@@ -2470,7 +2212,7 @@ namespace detail::_f256
 
         return sum;
     }
-    [[nodiscard]] BL_NO_INLINE inline f256_s atanh_small_series_runtime(const f256_s& x)
+    [[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE inline f256_s atanh_small_series_runtime(const f256_s& x)
     {
         const f256_s x2 = x * x;
         f256_s sum = x;
@@ -2491,228 +2233,6 @@ namespace detail::_f256
 
 }
 
-[[nodiscard]] BL_NO_INLINE constexpr f256_s expm1(const f256_s& x)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_expm1(x));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s log1p(const f256_s& x)
-{
-    if (isnan(x))
-        return x;
-    if (x == f256_s{ -1.0 })
-        return f256_s{ -std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
-    if (x < f256_s{ -1.0 })
-        return std::numeric_limits<f256_s>::quiet_NaN();
-    if (isinf(x))
-        return x;
-    if (iszero(x))
-        return x;
-
-    const f256_s ax = abs(x);
-    if (ax <= f256_s{ 0.5 })
-        return detail::_f256::canonicalize_math_result(detail::_f256::f256_log1p_series_reduced(x));
-
-    const f256_s u = f256_s{ 1.0 } + x;
-    if ((u - f256_s{ 1.0 }) == x)
-        return detail::_f256::canonicalize_math_result(log(u));
-
-    if (x > f256_s{ 0.0 } && x <= f256_s{ 1.0 })
-    {
-        const f256_s t = x / (f256_s{ 1.0 } + sqrt(f256_s{ 1.0 } + x));
-        return detail::_f256::canonicalize_math_result(detail::_f256::f256_log1p_series_reduced(t) * f256_s{ 2.0 });
-    }
-
-    if (x > f256_s{ 0.0 })
-        return detail::_f256::canonicalize_math_result(log(u));
-
-    const f256_s y = u - f256_s{ 1.0 };
-    if (iszero(y))
-        return x;
-
-    return detail::_f256::canonicalize_math_result(log(u) * (x / y));
-}
-
-[[nodiscard]] BL_NO_INLINE constexpr f256_s sinh(const f256_s& x)
-{
-    if (isnan(x) || isinf(x) || iszero(x))
-        return x;
-
-    const f256_s ax = abs(x);
-    if (ax <= f256_s{ 0.5 })
-    {
-        const f256_s x2 = detail::_f256::mul_inline(x, x);
-        f256_s term = x;
-        f256_s sum = x;
-
-        for (int n = 1; n <= 256; ++n)
-        {
-            term = detail::_f256::div_double_inline(
-                detail::_f256::mul_inline(term, x2),
-                static_cast<double>((2 * n) * (2 * n + 1)));
-            sum = detail::_f256::add_inline(sum, term);
-
-            const f256_s asum = abs(sum);
-            const f256_s scale = (asum > f256_s{ 1.0 }) ? asum : f256_s{ 1.0 };
-            if (abs(term) <= f256_s::eps() * scale)
-                break;
-        }
-
-        return detail::_f256::canonicalize_math_result(sum);
-    }
-
-    const f256_s ex = detail::_f256::_exp(ax);
-    const f256_s inv_ex = recip(ex);
-    f256_s out = detail::_f256::mul_double_inline(detail::_f256::sub_inline(ex, inv_ex), 0.5);
-    if (signbit(x))
-        out = -out;
-    return detail::_f256::canonicalize_math_result(out);
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s cosh(const f256_s& x)
-{
-    if (isnan(x))
-        return x;
-    if (isinf(x))
-        return std::numeric_limits<f256_s>::infinity();
-
-    const f256_s ax = abs(x);
-    const f256_s ex = detail::_f256::_exp(ax);
-    const f256_s inv_ex = recip(ex);
-    return detail::_f256::canonicalize_math_result(
-        detail::_f256::mul_double_inline(detail::_f256::add_inline(ex, inv_ex), 0.5));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s tanh(const f256_s& x)
-{
-    using namespace detail::_f256;
-    if (isnan(x) || iszero(x))
-        return x;
-    if (isinf(x))
-        return signbit(x) ? f256_s{ -1.0 } : f256_s{ 1.0 };
-
-    const f256_s ax = abs(x);
-    if (ax > f256_s{ 20.0 })
-        return signbit(x) ? f256_s{ -1.0 } : f256_s{ 1.0 };
-
-    const f256_s em1 = detail::_f256::_expm1(detail::_f256::mul_double_inline(ax, 2.0));
-
-    //f256_s out = em1 / detail::_f256::add_scalar_precise(em1, 2.0);
-    f256_s out = div_inline(em1, detail::_f256::add_scalar_precise(em1, 2.0));
-
-    if (signbit(x))
-        out = -out;
-    return detail::_f256::canonicalize_math_result(out);
-}
-
-/*[[nodiscard]] BL_NO_INLINE constexpr f256_s asinh(const f256_s& x)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::asinh_newton_impl(x));
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s acosh(const f256_s& x)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::acosh_newton_impl(x));
-}*/
-[[nodiscard]] BL_NO_INLINE constexpr f256_s asinh(const f256_s& x)
-{
-    if (isnan(x) || iszero(x) || isinf(x))
-        return x;
-
-    const f256_s ax = abs(x);
-    f256_s out{};
-    if (ax > f256_s{ 0x1p500 })
-        out = log(ax) + detail::_f256::ln2;
-    else
-        out = log(ax + sqrt(ax * ax + f256_s{ 1.0 }));
-
-    if (signbit(x))
-        out = -out;
-    return detail::_f256::canonicalize_math_result(out);
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s acosh(const f256_s& x)
-{
-    if (isnan(x))
-        return x;
-    if (x < f256_s{ 1.0 })
-        return std::numeric_limits<f256_s>::quiet_NaN();
-    if (x == f256_s{ 1.0 })
-        return f256_s{ 0.0 };
-    if (isinf(x))
-        return x;
-
-    f256_s out{};
-    if (x > f256_s{ 0x1p500 })
-        out = log(x) + detail::_f256::ln2;
-    else
-        out = log(x + sqrt((x - f256_s{ 1.0 }) * (x + f256_s{ 1.0 })));
-
-    return detail::_f256::canonicalize_math_result(out);
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s atanh(const f256_s& x)
-{
-    if (isnan(x) || iszero(x))
-        return x;
-
-    const f256_s ax = abs(x);
-    if (ax > f256_s{ 1.0 })
-        return std::numeric_limits<f256_s>::quiet_NaN();
-
-    if (ax == f256_s{ 1.0 })
-        return signbit(x)
-        ? f256_s{ -std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 }
-        : f256_s{ std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
-
-    if (ax <= f256_s{ 0.125 })
-    {
-        if (bl::use_constexpr_math())
-            return detail::_f256::canonicalize_math_result(detail::_f256::atanh_small_series_constexpr(x));
-
-        return detail::_f256::canonicalize_math_result(detail::_f256::atanh_small_series_runtime(x));
-    }
-
-    const f256_s out = log((f256_s{ 1.0 } + x) / (f256_s{ 1.0 } - x)) * f256_s { 0.5 };
-    return detail::_f256::canonicalize_math_result(out);
-}
-
-[[nodiscard]] BL_NO_INLINE constexpr f256_s cbrt(const f256_s& x)
-{
-    if (isnan(x) || iszero(x) || isinf(x))
-        return x;
-
-    const bool neg = signbit(x);
-    const f256_s ax = neg ? -x : x;
-
-    f256_s y{};
-    if (bl::use_constexpr_math())
-    {
-        y = exp(log(ax) / f256_s{ 3.0 });
-    }
-    else
-    {
-        int exp2 = 0;
-        double mantissa = std::frexp(ax.x0, &exp2);
-        int rem = exp2 % 3;
-        if (rem < 0)
-            rem += 3;
-        if (rem != 0)
-        {
-            mantissa = std::ldexp(mantissa, rem);
-            exp2 -= rem;
-        }
-
-        y = f256_s{ std::cbrt(mantissa), 0.0, 0.0, 0.0 };
-        if (exp2 != 0)
-            y = ldexp(y, exp2 / 3);
-    }
-
-    y = (y + y + ax / (y * y)) / f256_s{ 3.0 };
-    y = (y + y + ax / (y * y)) / f256_s{ 3.0 };
-
-    if (bl::use_constexpr_math())
-        y = (y + y + ax / (y * y)) / f256_s{ 3.0 };
-
-    if (neg)
-        y = -y;
-
-    return detail::_f256::canonicalize_math_result(y);
-}
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s hypot(const f256_s& x, const f256_s& y)
 {
     using namespace detail::_f256;
@@ -2775,43 +2295,6 @@ namespace detail::_f256
     return detail::_f256::to_signed_integer_or_zero<long long>(nearbyint(x));
 }
 
-[[nodiscard]] BL_NO_INLINE constexpr f256_s remquo(const f256_s& x, const f256_s& y, int* quo)
-{
-    if (quo)
-        *quo = 0;
-
-    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-    if (isinf(y))
-        return x;
-
-    const f256_s n = detail::_f256::nearest_integer_ties_even(x / y);
-    f256_s r = x - n * y;
-
-    if (quo)
-        *quo = detail::_f256::low_quotient_bits(n);
-
-    if (iszero(r))
-        return f256_s{ signbit(x) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-
-    return detail::_f256::canonicalize_math_result(r);
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s remainder(const f256_s& x, const f256_s& y)
-{
-    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-    if (isinf(y))
-        return x;
-
-    const f256_s n = detail::_f256::nearest_integer_ties_even(x / y);
-    f256_s r = x - n * y;
-
-    if (iszero(r))
-        return f256_s{ signbit(x) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-
-    return detail::_f256::canonicalize_math_result(r);
-}
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s fma(const f256_s& x, const f256_s& y, const f256_s& z)
 {
     return detail::_f256::canonicalize_math_result(x * y + z);
@@ -2843,117 +2326,6 @@ namespace detail::_f256
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s copysign(const f256_s& x, const f256_s& y)
 {
     return signbit(x) == signbit(y) ? x : -x;
-}
-
-[[nodiscard]] BL_NO_INLINE constexpr f256_s frexp(const f256_s& x, int* exp) noexcept
-{
-    if (exp)
-        *exp = 0;
-
-    if (isnan(x) || isinf(x) || iszero(x))
-        return x;
-
-    const double lead =
-        (x.x0 != 0.0) ? x.x0 :
-        (x.x1 != 0.0) ? x.x1 :
-        (x.x2 != 0.0) ? x.x2 : x.x3;
-    int e = 0;
-
-    if (bl::use_constexpr_math())
-        e = detail::fp::frexp_exponent_constexpr(lead);
-    else
-        (void)std::frexp(lead, &e);
-
-    f256_s m = ldexp(x, -e);
-    const f256_s am = abs(m);
-
-    if (am < f256_s{ 0.5 })
-    {
-        m *= f256_s{ 2.0 };
-        --e;
-    }
-    else if (am >= f256_s{ 1.0 })
-    {
-        m *= f256_s{ 0.5 };
-        ++e;
-    }
-
-    if (exp)
-        *exp = e;
-
-    return m;
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s modf(const f256_s& x, f256_s* iptr) noexcept
-{
-    const f256_s i = trunc(x);
-    if (iptr)
-        *iptr = i;
-
-    f256_s frac = x - i;
-    if (iszero(frac))
-        frac = f256_s{ signbit(x) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-    return frac;
-}
-[[nodiscard]] BL_NO_INLINE constexpr int ilogb(const f256_s& x) noexcept
-{
-    if (isnan(x))  return FP_ILOGBNAN;
-    if (iszero(x)) return FP_ILOGB0;
-    if (isinf(x))  return std::numeric_limits<int>::max();
-
-    int e = 0;
-    (void)frexp(abs(x), &e);
-    return e - 1;
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s logb(const f256_s& x) noexcept
-{
-    if (isnan(x))  return x;
-    if (iszero(x)) return f256_s{ -std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
-    if (isinf(x))  return std::numeric_limits<f256_s>::infinity();
-
-    return f256_s{ static_cast<double>(ilogb(x)), 0.0, 0.0, 0.0 };
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s scalbn(const f256_s& x, int e) noexcept
-{
-    return ldexp(x, e);
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s scalbln(const f256_s& x, long e) noexcept
-{
-    return ldexp(x, static_cast<int>(e));
-}
-
-[[nodiscard]] BL_NO_INLINE constexpr f256_s nextafter(const f256_s& from, const f256_s& to) noexcept
-{
-    if (isnan(from) || isnan(to))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-    if (from == to)
-        return to;
-    if (iszero(from))
-        return signbit(to)
-        ? f256_s{ -std::numeric_limits<double>::denorm_min(), 0.0, 0.0, 0.0 }
-        : f256_s{ std::numeric_limits<double>::denorm_min(), 0.0, 0.0, 0.0 };
-    if (isinf(from))
-        return signbit(from)
-        ? -std::numeric_limits<f256_s>::max()
-        : std::numeric_limits<f256_s>::max();
-
-    const double toward = (from < to)
-        ? std::numeric_limits<double>::infinity()
-        : -std::numeric_limits<double>::infinity();
-
-    return f256_s{
-        from.x0,
-        from.x1,
-        from.x2,
-        detail::_f256::nextafter_double_constexpr(from.x3, toward)
-    };
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s nexttoward(const f256_s& from, long double to) noexcept
-{
-    return nextafter(from, f256_s{ static_cast<double>(to), 0.0, 0.0, 0.0 });
-}
-[[nodiscard]] BL_NO_INLINE constexpr f256_s nexttoward(const f256_s& from, const f256_s& to) noexcept
-{
-    return nextafter(from, to);
 }
 
 // special functions
@@ -3179,7 +2551,7 @@ namespace detail::_f256
         {  -0x1.d527b931bde63p-200,  -0x1.a90490031a12ep-254,  -0x1.3a30d8ce0d4c0p-308,  -0x1.5aa90a6cd2fa6p-362 },
     };
 
-    [[nodiscard]] BL_NO_INLINE constexpr f256_s erf_cheb_eval(const f256_s& x, const f256_s* coeffs, double shift)
+    [[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s erf_cheb_eval(const f256_s& x, const f256_s* coeffs, double shift)
     {
         const f256_s t = detail::_f256::sub_inline(detail::_f256::mul_double_inline(x, 2.0), f256_s{ shift });
         f256_s b1{ 0.0 };
@@ -3204,11 +2576,36 @@ namespace detail::_f256
             return detail::_f256::erf_cheb_eval(x, detail::_f256::f256_erf_cheb_1_2, 3.0);
         return detail::_f256::erf_cheb_eval(x, detail::_f256::f256_erf_cheb_2_3, 5.0);
     }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s erf_positive_series(const f256_s& x)
+    {
+        const f256_s xx = detail::_f256::mul_inline(x, x);
+        f256_s power = x;
+        f256_s sum = x;
+
+        for (int n = 1; n < 512; ++n)
+        {
+            power = detail::_f256::mul_inline(
+                power,
+                detail::_f256::div_inline(-xx, f256_s{ static_cast<double>(n) }));
+
+            const f256_s term = detail::_f256::div_inline(
+                power,
+                f256_s{ static_cast<double>(2 * n + 1) });
+
+            sum = detail::_f256::add_inline(sum, term);
+            if (abs(term) < f256_s::eps())
+                break;
+        }
+
+        return detail::_f256::mul_inline(
+            detail::_f256::mul_inline(f256_s{ 2.0 }, detail::_f256::inv_sqrtpi),
+            sum);
+    }
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s erfc_positive_cheb_3_4(const f256_s& x)
     {
         return detail::_f256::erf_cheb_eval(x, detail::_f256::f256_erfc_cheb_3_4, 7.0);
     }
-    [[nodiscard]] BL_NO_INLINE constexpr f256_s erfc_positive_cf(const f256_s& x)
+    [[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s erfc_positive_cf(const f256_s& x)
     {
         //const f256_s z = detail::_f256::mul_inline(x, x);
         const f256_s z = x * x;
@@ -3249,7 +2646,7 @@ namespace detail::_f256
             detail::_f256::mul_inline(detail::_f256::inv_sqrtpi, h));
     }
 
-    BL_NO_INLINE constexpr f256_s lgamma_stirling_asymptotic(const f256_s& z) noexcept
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s lgamma_stirling_asymptotic(const f256_s& z) noexcept
     {
         const f256_s inv = f256_s{ 1.0 } / z;
         const f256_s inv2 = inv * inv;
@@ -3297,7 +2694,7 @@ namespace detail::_f256
 
         return (z - f256_s{ 0.5 }) * log(z) - z + detail::_f256::half_log_two_pi + series;
     }
-    BL_NO_INLINE constexpr void positive_recurrence_product(const f256_s& x, const f256_s& asymptotic_min, f256_s& z, f256_s& product, int& product_exp2) noexcept
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr void positive_recurrence_product(const f256_s& x, const f256_s& asymptotic_min, f256_s& z, f256_s& product, int& product_exp2) noexcept
     {
         z = x;
         product = f256_s{ 1.0 };
@@ -3321,7 +2718,7 @@ namespace detail::_f256
             z += f256_s{ 1.0 };
         }
     }
-    BL_NO_INLINE constexpr f256_s lgamma_positive_recurrence(const f256_s& x) noexcept
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s lgamma_positive_recurrence(const f256_s& x) noexcept
     {
         f256_s near_value{};
         if (try_lgamma_near_one_or_two(x, near_value))
@@ -3338,7 +2735,7 @@ namespace detail::_f256
             - log(product)
             - f256_s{ static_cast<double>(product_exp2) } * detail::_f256::ln2;
     }
-    BL_NO_INLINE constexpr f256_s gamma_positive_recurrence(const f256_s& x) noexcept
+    BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s gamma_positive_recurrence(const f256_s& x) noexcept
     {
         f256_s near_lgamma{};
         if (try_lgamma_near_one_or_two(x, near_lgamma))
@@ -3358,8 +2755,770 @@ namespace detail::_f256
         return result;
     }
 }
+/// ------------------ f256 constexpr implementations ------------------
 
-[[nodiscard]] BL_NO_INLINE constexpr f256_s erf(const f256_s& x)
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::fmod(const f256_s& x, const f256_s& y)
+{
+    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (isinf(y) || iszero(x))
+        return x;
+
+    const f256_s ax = abs(x);
+    const f256_s ay = abs(y);
+
+    if (ax < ay)
+        return x;
+
+    f256_s fast{};
+    if (y.x1 == 0.0 && y.x2 == 0.0 && y.x3 == 0.0 && detail::_f256::fmod_fast_double_divisor_abs(ax, ay.x0, fast))
+    {
+        if (iszero(fast))
+            return f256_s{ detail::_f256::signbit_constexpr(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+        const f256_s out = ispositive(x) ? fast : -fast;
+        return detail::_f256::canonicalize_math_result(out);
+    }
+
+    const f256_s out = bl::use_constexpr_math()
+        ? detail::_f256::fmod_exact(x, y)
+        : detail::_f256::fmod_runtime(x, y);
+
+    return detail::_f256::canonicalize_math_result(out);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::round(const f256_s& a)
+{
+    f256_s t = detail::_f256_constexpr::floor(a + f256_s{ 0.5 });
+    if ((t - a) == f256_s{ 0.5 } && detail::_f256::is_odd_integer(t))
+        t -= f256_s{ 1.0 };
+    return t;
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::round_to_decimals(f256_s v, int prec)
+{
+    constexpr int local_capacity = std::numeric_limits<f256_s>::max_digits10;
+
+    if (prec <= 0) return v;
+    if (prec > local_capacity) prec = local_capacity;
+
+    constexpr f256_s inv10_qd{
+         0x1.999999999999ap-4,
+        -0x1.999999999999ap-58,
+         0x1.999999999999ap-112,
+        -0x1.999999999999ap-166
+    };
+
+    char digits[local_capacity];
+
+    const bool neg = v < 0.0;
+    if (neg) v = -v;
+
+    f256_s ip = detail::_f256_constexpr::floor(v);
+    f256_s frac = v - ip;
+
+    f256_s w = frac;
+    for (int i = 0; i < prec; ++i)
+    {
+        w = w * 10.0;
+
+        int di = static_cast<int>(detail::_f256_constexpr::floor(w).x0);
+        if (di < 0) di = 0;
+        else if (di > 9) di = 9;
+
+        digits[i] = static_cast<char>('0' + di);
+        w = w - f256_s{ static_cast<double>(di) };
+    }
+
+    f256_s la = w * 10.0;
+
+    const f256_s tie_slop = f256_s::eps() * f256_s{ 65536.0 };
+    int next = static_cast<int>(detail::_f256_constexpr::floor(la).x0);
+    if (next < 0) next = 0;
+
+    f256_s rem = la - f256_s{ static_cast<double>(next) };
+    if (next < 10 && rem >= f256_s{ 1.0 } - tie_slop)
+    {
+        ++next;
+        rem -= f256_s{ 1.0 };
+    }
+
+    const int last = digits[prec - 1] - '0';
+    const bool beyond_half = rem > tie_slop;
+    const bool round_up =
+        (next > 5) ||
+        (next == 5 && (beyond_half || (last & 1)));
+
+    if (round_up)
+    {
+        int i = prec - 1;
+        for (; i >= 0; --i)
+        {
+            if (digits[i] == '9')
+            {
+                digits[i] = '0';
+            }
+            else
+            {
+                ++digits[i];
+                break;
+            }
+        }
+
+        if (i < 0)
+            ip = ip + 1.0;
+    }
+
+    f256_s exact_out{};
+    if (detail::_f256::try_rounded_decimal_to_f256(ip, digits, prec, neg, exact_out))
+        return exact_out;
+
+    f256_s frac_val{ 0.0 };
+    for (int i = prec - 1; i >= 0; --i)
+    {
+        frac_val = frac_val + f256_s{ static_cast<double>(digits[i] - '0') };
+        frac_val = frac_val * inv10_qd;
+    }
+
+    f256_s out = ip + frac_val;
+    return neg ? -out : out;
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::sqrt(const f256_s& a)
+{
+    using namespace detail::_f256;
+
+    if (a.x0 <= 0.0)
+    {
+        if (iszero(a))
+            return a;
+        return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
+    }
+
+    if (isinf(a))
+        return a;
+
+    if (bl::use_constexpr_math())
+        return detail::_f256::sqrt_constexpr_impl(a);
+
+    return detail::_f256::sqrt_runtime_impl(a);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::nearbyint(const f256_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a))
+        return a;
+
+    f256_s t = detail::_f256_constexpr::floor(a);
+    const f256_s frac = a - t;
+
+    if (frac < f256_s{ 0.5 })
+        return t;
+
+    if (frac > f256_s{ 0.5 })
+    {
+        t += f256_s{ 1.0 };
+        if (iszero(t))
+            return f256_s{ detail::_f256::signbit_constexpr(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+        return t;
+    }
+
+    if (detail::_f256::is_odd_integer(t))
+        t += f256_s{ 1.0 };
+
+    if (iszero(t))
+        return f256_s{ detail::_f256::signbit_constexpr(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+
+    return t;
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::ldexp(const f256_s& a, int e)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_ldexp(a, e));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::exp(const f256_s& x)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_exp(x));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::exp2(const f256_s& x)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_exp2(x));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::log(const f256_s& a)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_log(a));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::log2(const f256_s& a)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_log(a) * detail::_f256::inv_ln2);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::log10(const f256_s& a)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_log(a) / detail::_f256::ln10);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::pow(const f256_s& x, const f256_s& y)
+{
+    if (iszero(y))
+        return f256_s{ 1.0 };
+
+    if (isnan(x) || isnan(y))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+
+    const f256_s yi = detail::_f256_constexpr::trunc(y);
+    const bool y_is_int = (yi == y);
+
+    int64_t yi64{};
+    if (y_is_int && detail::_f256::f256_try_get_int64(yi, yi64))
+        return detail::_f256::powi(x, yi64);
+
+    if (x.x0 < 0.0 || (x.x0 == 0.0 && detail::_f256::signbit_constexpr(x.x0)))
+    {
+        if (!y_is_int)
+            return std::numeric_limits<f256_s>::quiet_NaN();
+
+        const f256_s magnitude = detail::_f256::_exp(detail::_f256::mul_inline(y, detail::_f256::_log(-x)));
+        return detail::_f256::is_odd_integer(yi) ? -magnitude : magnitude;
+    }
+
+    return detail::_f256::canonicalize_math_result(detail::_f256::_exp(detail::_f256::mul_inline(y, detail::_f256::_log(x))));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::pow(const f256_s& x, double y)
+{
+    if (y == 0.0)
+        return f256_s{ 1.0 };
+
+    if (isnan(x) || detail::_f256::isnan(y))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+
+    if (y == 1.0) return x;
+    if (y == 2.0) return detail::_f256::canonicalize_math_result(x * x);
+    if (y == -1.0) return detail::_f256::canonicalize_math_result(f256_s{ 1.0 } / x);
+    if (y == 0.5) return detail::_f256::canonicalize_math_result(detail::_f256_constexpr::sqrt(x));
+
+    double yi{};
+    if (bl::use_constexpr_math())
+    {
+        yi = (y < 0.0)
+            ? detail::_f256::ceil_constexpr(y)
+            : detail::_f256::floor_constexpr(y);
+    }
+    else
+    {
+        yi = std::trunc(y);
+    }
+
+    const bool y_is_int = (yi == y);
+
+    if (y_is_int && detail::_f256::absd(yi) < 0x1p63)
+        return detail::_f256::powi(x, static_cast<int64_t>(yi));
+
+    if (x.x0 < 0.0 || (x.x0 == 0.0 && detail::_f256::signbit_constexpr(x.x0)))
+    {
+        if (!y_is_int)
+            return std::numeric_limits<f256_s>::quiet_NaN();
+
+        const f256_s magnitude = detail::_f256::_exp(detail::_f256::mul_double_inline(detail::_f256::_log(-x), y));
+        const bool y_is_odd =
+            (detail::_f256::absd(yi) < 0x1p53) &&
+            ((static_cast<int64_t>(yi) & 1ll) != 0);
+
+        return detail::_f256::canonicalize_math_result(y_is_odd ? -magnitude : magnitude);
+    }
+
+    return detail::_f256::canonicalize_math_result(detail::_f256::_exp(detail::_f256::mul_double_inline(detail::_f256::_log(x), y)));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr bool   detail::_f256_constexpr::sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
+{
+    bool ret = detail::_f256::_sincos(x, s_out, c_out);
+    s_out = detail::_f256::canonicalize_math_result(s_out);
+    c_out = detail::_f256::canonicalize_math_result(c_out);
+    return ret;
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::sin(const f256_s& x)
+{
+    const double ax = detail::_f256::fabs_constexpr(x.x0);
+    if (!detail::_f256::isfinite(ax))
+        return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
+
+    if (ax <= static_cast<double>(detail::_f256::pi_4))
+        return detail::_f256::f256_sin_kernel_pi4(x);
+
+    long long n = 0;
+    f256_s r{};
+    if (!detail::_f256::f256_remainder_pi2(x, n, r))
+    {
+        if (bl::use_constexpr_math())
+        {
+            return f256_s{ detail::fp::sin_constexpr(static_cast<double>(x)) };
+        }
+        else
+        {
+            return f256_s{ std::sin(static_cast<double>(x)) };
+        }
+    }
+    switch ((int)(n & 3LL))
+    {
+    case 0: return detail::_f256::f256_sin_kernel_pi4(r);
+    case 1: return detail::_f256::f256_cos_kernel_pi4(r);
+    case 2: return -detail::_f256::f256_sin_kernel_pi4(r);
+    default: return -detail::_f256::f256_cos_kernel_pi4(r);
+    }
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::cos(const f256_s& x)
+{
+    const double ax = detail::_f256::fabs_constexpr(x.x0);
+    if (!detail::_f256::isfinite(ax))
+        return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
+
+    if (ax <= static_cast<double>(detail::_f256::pi_4))
+        return detail::_f256::f256_cos_kernel_pi4(x);
+
+    long long n = 0;
+    f256_s r{};
+    if (!detail::_f256::f256_remainder_pi2(x, n, r))
+    {
+        if (bl::use_constexpr_math())
+        {
+            return f256_s{ detail::fp::cos_constexpr(static_cast<double>(x)) };
+        }
+        else
+        {
+            return f256_s{ std::cos(static_cast<double>(x)) };
+        }
+    }
+
+    switch ((int)(n & 3LL))
+    {
+    case 0: return detail::_f256::f256_cos_kernel_pi4(r);
+    case 1: return -detail::_f256::f256_sin_kernel_pi4(r);
+    case 2: return -detail::_f256::f256_cos_kernel_pi4(r);
+    default: return detail::_f256::f256_sin_kernel_pi4(r);
+    }
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::tan(const f256_s& x)
+{
+    f256_s s{}, c{};
+    if (detail::_f256::_sincos(x, s, c))
+        return detail::_f256::canonicalize_math_result(s / c);
+
+    if (bl::use_constexpr_math())
+    {
+        return detail::_f256::canonicalize_math_result(f256_s{ detail::fp::tan_constexpr(static_cast<double>(x)) });
+    }
+    else
+    {
+        return detail::_f256::canonicalize_math_result(f256_s{ std::tan(static_cast<double>(x)) });
+    }
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::atan(const f256_s& x)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_atan(x));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::atan2(const f256_s& y, const f256_s& x)
+{
+    if (isnan(x) || isnan(y))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+
+    if (iszero(x))
+    {
+        if (iszero(y))
+            return f256_s{ std::numeric_limits<double>::quiet_NaN() };
+        return ispositive(y) ? detail::_f256::pi_2 : -detail::_f256::pi_2;
+    }
+
+    if (iszero(y))
+    {
+        if (x.x0 < 0.0)
+            return detail::_f256::signbit_constexpr(y.x0) ? -detail::_f256::pi : detail::_f256::pi;
+        return y;
+    }
+
+    const f256_s ax = abs(x);
+    const f256_s ay = abs(y);
+
+    if (ax == ay)
+    {
+        if (x.x0 < 0.0)
+        {
+            return detail::_f256::canonicalize_math_result(
+                (y.x0 < 0.0) ? -detail::_f256::pi_3_4 : detail::_f256::pi_3_4);
+        }
+
+        return detail::_f256::canonicalize_math_result(
+            (y.x0 < 0.0) ? -detail::_f256::pi_4 : detail::_f256::pi_4);
+    }
+
+    if (ax >= ay)
+    {
+        f256_s a = detail::_f256::_atan(y / x);
+
+        if (x.x0 < 0.0)
+            a += (y.x0 < 0.0) ? -detail::_f256::pi : detail::_f256::pi;
+        return detail::_f256::canonicalize_math_result(a);
+    }
+
+    f256_s a = detail::_f256::_atan(x / y);
+    return detail::_f256::canonicalize_math_result((y.x0 < 0.0) ? (-detail::_f256::pi_2 - a) : (detail::_f256::pi_2 - a));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::asin(const f256_s& x)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_asin(x));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::acos(const f256_s& x)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_acos(x));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::expm1(const f256_s& x)
+{
+    return detail::_f256::canonicalize_math_result(detail::_f256::_expm1(x));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::log1p(const f256_s& x)
+{
+    if (isnan(x))
+        return x;
+    if (x == f256_s{ -1.0 })
+        return f256_s{ -std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
+    if (x < f256_s{ -1.0 })
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (isinf(x))
+        return x;
+    if (iszero(x))
+        return x;
+
+    const f256_s ax = abs(x);
+    if (ax <= f256_s{ 0.5 })
+        return detail::_f256::canonicalize_math_result(detail::_f256::f256_log1p_series_reduced(x));
+
+    const f256_s u = f256_s{ 1.0 } + x;
+    if ((u - f256_s{ 1.0 }) == x)
+        return detail::_f256::canonicalize_math_result(detail::_f256_constexpr::log(u));
+
+    if (x > f256_s{ 0.0 } && x <= f256_s{ 1.0 })
+    {
+        const f256_s t = x / (f256_s{ 1.0 } + detail::_f256_constexpr::sqrt(f256_s{ 1.0 } + x));
+        return detail::_f256::canonicalize_math_result(detail::_f256::f256_log1p_series_reduced(t) * f256_s{ 2.0 });
+    }
+
+    if (x > f256_s{ 0.0 })
+        return detail::_f256::canonicalize_math_result(detail::_f256_constexpr::log(u));
+
+    const f256_s y = u - f256_s{ 1.0 };
+    if (iszero(y))
+        return x;
+
+    return detail::_f256::canonicalize_math_result(detail::_f256_constexpr::log(u) * (x / y));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::sinh(const f256_s& x)
+{
+    if (isnan(x) || isinf(x) || iszero(x))
+        return x;
+
+    const f256_s ax = abs(x);
+    if (ax <= f256_s{ 0.5 })
+    {
+        const f256_s x2 = detail::_f256::mul_inline(x, x);
+        f256_s term = x;
+        f256_s sum = x;
+
+        for (int n = 1; n <= 256; ++n)
+        {
+            term = detail::_f256::div_double_inline(
+                detail::_f256::mul_inline(term, x2),
+                static_cast<double>((2 * n) * (2 * n + 1)));
+            sum = detail::_f256::add_inline(sum, term);
+
+            const f256_s asum = abs(sum);
+            const f256_s scale = (asum > f256_s{ 1.0 }) ? asum : f256_s{ 1.0 };
+            if (abs(term) <= f256_s::eps() * scale)
+                break;
+        }
+
+        return detail::_f256::canonicalize_math_result(sum);
+    }
+
+    const f256_s ex = detail::_f256::_exp(ax);
+    const f256_s inv_ex = recip(ex);
+    f256_s out = detail::_f256::mul_double_inline(detail::_f256::sub_inline(ex, inv_ex), 0.5);
+    if (signbit(x))
+        out = -out;
+    return detail::_f256::canonicalize_math_result(out);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::cosh(const f256_s& x)
+{
+    if (isnan(x))
+        return x;
+    if (isinf(x))
+        return std::numeric_limits<f256_s>::infinity();
+
+    const f256_s ax = abs(x);
+    const f256_s ex = detail::_f256::_exp(ax);
+    const f256_s inv_ex = recip(ex);
+    return detail::_f256::canonicalize_math_result(
+        detail::_f256::mul_double_inline(detail::_f256::add_inline(ex, inv_ex), 0.5));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::tanh(const f256_s& x)
+{
+    using namespace detail::_f256;
+    if (isnan(x) || iszero(x))
+        return x;
+    if (isinf(x))
+        return signbit(x) ? f256_s{ -1.0 } : f256_s{ 1.0 };
+
+    const f256_s ax = abs(x);
+    if (ax > f256_s{ 20.0 })
+        return signbit(x) ? f256_s{ -1.0 } : f256_s{ 1.0 };
+
+    const f256_s em1 = detail::_f256::_expm1(detail::_f256::mul_double_inline(ax, 2.0));
+
+    //f256_s out = em1 / detail::_f256::add_scalar_precise(em1, 2.0);
+    f256_s out = div_inline(em1, detail::_f256::add_scalar_precise(em1, 2.0));
+
+    if (signbit(x))
+        out = -out;
+    return detail::_f256::canonicalize_math_result(out);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::asinh(const f256_s& x)
+{
+    if (isnan(x) || iszero(x) || isinf(x))
+        return x;
+
+    const f256_s ax = abs(x);
+    f256_s out{};
+    if (ax > f256_s{ 0x1p500 })
+        out = detail::_f256_constexpr::log(ax) + detail::_f256::ln2;
+    else
+        out = detail::_f256_constexpr::log(ax + detail::_f256_constexpr::sqrt(ax * ax + f256_s{ 1.0 }));
+
+    if (signbit(x))
+        out = -out;
+    return detail::_f256::canonicalize_math_result(out);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::acosh(const f256_s& x)
+{
+    if (isnan(x))
+        return x;
+    if (x < f256_s{ 1.0 })
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (x == f256_s{ 1.0 })
+        return f256_s{ 0.0 };
+    if (isinf(x))
+        return x;
+
+    f256_s out{};
+    if (x > f256_s{ 0x1p500 })
+        out = detail::_f256_constexpr::log(x) + detail::_f256::ln2;
+    else
+        out = detail::_f256_constexpr::log(x + detail::_f256_constexpr::sqrt((x - f256_s{ 1.0 }) * (x + f256_s{ 1.0 })));
+
+    return detail::_f256::canonicalize_math_result(out);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::atanh(const f256_s& x)
+{
+    if (isnan(x) || iszero(x))
+        return x;
+
+    const f256_s ax = abs(x);
+    if (ax > f256_s{ 1.0 })
+        return std::numeric_limits<f256_s>::quiet_NaN();
+
+    if (ax == f256_s{ 1.0 })
+        return signbit(x)
+        ? f256_s{ -std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 }
+        : f256_s{ std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
+
+    if (ax <= f256_s{ 0.125 })
+    {
+        if (bl::use_constexpr_math())
+            return detail::_f256::canonicalize_math_result(detail::_f256::atanh_small_series_constexpr(x));
+
+        return detail::_f256::canonicalize_math_result(detail::_f256::atanh_small_series_runtime(x));
+    }
+
+    const f256_s out = detail::_f256_constexpr::log((f256_s{ 1.0 } + x) / (f256_s{ 1.0 } - x)) * f256_s { 0.5 };
+    return detail::_f256::canonicalize_math_result(out);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::cbrt(const f256_s& x)
+{
+    if (isnan(x) || iszero(x) || isinf(x))
+        return x;
+
+    const bool neg = signbit(x);
+    const f256_s ax = neg ? -x : x;
+
+    f256_s y{};
+    if (bl::use_constexpr_math())
+    {
+        y = detail::_f256_constexpr::exp(detail::_f256_constexpr::log(ax) / f256_s{ 3.0 });
+    }
+    else
+    {
+        int exp2 = 0;
+        double mantissa = std::frexp(ax.x0, &exp2);
+        int rem = exp2 % 3;
+        if (rem < 0)
+            rem += 3;
+        if (rem != 0)
+        {
+            mantissa = std::ldexp(mantissa, rem);
+            exp2 -= rem;
+        }
+
+        y = f256_s{ std::cbrt(mantissa), 0.0, 0.0, 0.0 };
+        if (exp2 != 0)
+            y = detail::_f256_constexpr::ldexp(y, exp2 / 3);
+    }
+
+    y = (y + y + ax / (y * y)) / f256_s{ 3.0 };
+    y = (y + y + ax / (y * y)) / f256_s{ 3.0 };
+
+    if (bl::use_constexpr_math())
+        y = (y + y + ax / (y * y)) / f256_s{ 3.0 };
+
+    if (neg)
+        y = -y;
+
+    return detail::_f256::canonicalize_math_result(y);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::remquo(const f256_s& x, const f256_s& y, int* quo)
+{
+    if (quo)
+        *quo = 0;
+
+    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (isinf(y))
+        return x;
+
+    const f256_s n = detail::_f256::nearest_integer_ties_even(x / y);
+    f256_s r = x - n * y;
+
+    if (quo)
+        *quo = detail::_f256::low_quotient_bits(n);
+
+    if (iszero(r))
+        return f256_s{ signbit(x) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+
+    return detail::_f256::canonicalize_math_result(r);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::remainder(const f256_s& x, const f256_s& y)
+{
+    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (isinf(y))
+        return x;
+
+    const f256_s n = detail::_f256::nearest_integer_ties_even(x / y);
+    f256_s r = x - n * y;
+
+    if (iszero(r))
+        return f256_s{ signbit(x) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+
+    return detail::_f256::canonicalize_math_result(r);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::frexp(const f256_s& x, int* exp) noexcept
+{
+    if (exp)
+        *exp = 0;
+
+    if (isnan(x) || isinf(x) || iszero(x))
+        return x;
+
+    const double lead =
+        (x.x0 != 0.0) ? x.x0 :
+        (x.x1 != 0.0) ? x.x1 :
+        (x.x2 != 0.0) ? x.x2 : x.x3;
+    int e = 0;
+
+    if (bl::use_constexpr_math())
+        e = detail::fp::frexp_exponent_constexpr(lead);
+    else
+        (void)std::frexp(lead, &e);
+
+    f256_s m = detail::_f256_constexpr::ldexp(x, -e);
+    const f256_s am = abs(m);
+
+    if (am < f256_s{ 0.5 })
+    {
+        m *= f256_s{ 2.0 };
+        --e;
+    }
+    else if (am >= f256_s{ 1.0 })
+    {
+        m *= f256_s{ 0.5 };
+        ++e;
+    }
+
+    if (exp)
+        *exp = e;
+
+    return m;
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::modf(const f256_s& x, f256_s* iptr) noexcept
+{
+    const f256_s i = detail::_f256_constexpr::trunc(x);
+    if (iptr)
+        *iptr = i;
+
+    f256_s frac = x - i;
+    if (iszero(frac))
+        frac = f256_s{ signbit(x) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+    return frac;
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr int    detail::_f256_constexpr::ilogb(const f256_s& x) noexcept
+{
+    if (isnan(x))  return FP_ILOGBNAN;
+    if (iszero(x)) return FP_ILOGB0;
+    if (isinf(x))  return std::numeric_limits<int>::max();
+
+    int e = 0;
+    (void)detail::_f256_constexpr::frexp(abs(x), &e);
+    return e - 1;
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::logb(const f256_s& x) noexcept
+{
+    if (isnan(x))  return x;
+    if (iszero(x)) return f256_s{ -std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
+    if (isinf(x))  return std::numeric_limits<f256_s>::infinity();
+
+    return f256_s{ static_cast<double>(detail::_f256_constexpr::ilogb(x)), 0.0, 0.0, 0.0 };
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::scalbn(const f256_s& x, int e) noexcept
+{
+    return detail::_f256_constexpr::ldexp(x, e);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::scalbln(const f256_s& x, long e) noexcept
+{
+    return detail::_f256_constexpr::ldexp(x, static_cast<int>(e));
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::nextafter(const f256_s& from, const f256_s& to) noexcept
+{
+    if (isnan(from) || isnan(to))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (from == to)
+        return to;
+    if (iszero(from))
+        return signbit(to)
+        ? f256_s{ -std::numeric_limits<double>::denorm_min(), 0.0, 0.0, 0.0 }
+        : f256_s{ std::numeric_limits<double>::denorm_min(), 0.0, 0.0, 0.0 };
+    if (isinf(from))
+        return signbit(from)
+        ? -std::numeric_limits<f256_s>::max()
+        : std::numeric_limits<f256_s>::max();
+
+    const double toward = (from < to)
+        ? std::numeric_limits<double>::infinity()
+        : -std::numeric_limits<double>::infinity();
+
+    return f256_s{
+        from.x0,
+        from.x1,
+        from.x2,
+        detail::_f256::nextafter_double_constexpr(from.x3, toward)
+    };
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::nexttoward(const f256_s& from, long double to) noexcept
+{
+    return detail::_f256_constexpr::nextafter(from, f256_s{ static_cast<double>(to), 0.0, 0.0, 0.0 });
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::nexttoward(const f256_s& from, const f256_s& to) noexcept
+{
+    return detail::_f256_constexpr::nextafter(from, to);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::erf(const f256_s& x)
 {
     if (isnan(x))
         return x;
@@ -3373,7 +3532,11 @@ namespace detail::_f256
 
     f256_s out{ 0.0 };
 
-    if (ax < f256_s{ 3.0 })
+    if (ax < f256_s{ 1.0 })
+    {
+        out = detail::_f256::erf_positive_series(ax);
+    }
+    else if (ax < f256_s{ 3.0 })
     {
         out = detail::_f256::erf_positive_cheb(ax);
     }
@@ -3391,7 +3554,7 @@ namespace detail::_f256
 
     return detail::_f256::canonicalize_math_result(out);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s erfc(const f256_s& x)
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::erfc(const f256_s& x)
 {
     if (isnan(x))
         return x;
@@ -3401,7 +3564,10 @@ namespace detail::_f256
         return signbit(x) ? f256_s{ 2.0 } : f256_s{ 0.0 };
 
     if (signbit(x))
-        return detail::_f256::canonicalize_math_result(f256_s{ 1.0 } + erf(-x));
+        return detail::_f256::canonicalize_math_result(f256_s{ 1.0 } + detail::_f256_constexpr::erf(-x));
+
+    if (x < f256_s{ 1.0 })
+        return detail::_f256::canonicalize_math_result(f256_s{ 1.0 } - detail::_f256::erf_positive_series(x));
 
     if (x < f256_s{ 3.0 })
         return detail::_f256::canonicalize_math_result(f256_s{ 1.0 } - detail::_f256::erf_positive_cheb(x));
@@ -3414,8 +3580,7 @@ namespace detail::_f256
 
     return detail::_f256::canonicalize_math_result(detail::_f256::erfc_positive_cf(x));
 }
-
-[[nodiscard]] BL_NO_INLINE constexpr f256_s lgamma(const f256_s& x)
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::lgamma(const f256_s& x)
 {
     if (isnan(x))
         return x;
@@ -3427,22 +3592,22 @@ namespace detail::_f256
     if (x > f256_s{ 0.0 })
         return detail::_f256::canonicalize_math_result(detail::_f256::lgamma_positive_recurrence(x));
 
-    const f256_s xi = trunc(x);
+    const f256_s xi = detail::_f256_constexpr::trunc(x);
     if (xi == x)
         return std::numeric_limits<f256_s>::infinity();
 
-    const f256_s sinpix = sin(detail::_f256::pi * x);
+    const f256_s sinpix = detail::_f256_constexpr::sin(detail::_f256::pi * x);
     if (iszero(sinpix))
         return std::numeric_limits<f256_s>::infinity();
 
     const f256_s out =
-        log(detail::_f256::pi)
-        - log(abs(sinpix))
+        detail::_f256_constexpr::log(detail::_f256::pi)
+        - detail::_f256_constexpr::log(abs(sinpix))
         - detail::_f256::lgamma_positive_recurrence(f256_s{ 1.0 } - x);
 
     return detail::_f256::canonicalize_math_result(out);
 }
-[[nodiscard]] BL_NO_INLINE constexpr f256_s tgamma(const f256_s& x)
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::tgamma(const f256_s& x)
 {
     if (isnan(x))
         return x;
@@ -3454,16 +3619,334 @@ namespace detail::_f256
     if (x > f256_s{ 0.0 })
         return detail::_f256::canonicalize_math_result(detail::_f256::gamma_positive_recurrence(x));
 
-    const f256_s xi = trunc(x);
+    const f256_s xi = detail::_f256_constexpr::trunc(x);
     if (xi == x)
         return std::numeric_limits<f256_s>::quiet_NaN();
 
-    const f256_s sinpix = sin(detail::_f256::pi * x);
+    const f256_s sinpix = detail::_f256_constexpr::sin(detail::_f256::pi * x);
     if (iszero(sinpix))
         return std::numeric_limits<f256_s>::quiet_NaN();
 
     const f256_s out = detail::_f256::pi / (sinpix * detail::_f256::gamma_positive_recurrence(f256_s{ 1.0 } - x));
     return detail::_f256::canonicalize_math_result(out);
+}
+
+/// ------------------ f256 public wrappers ------------------
+
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s fmod(const f256_s& x, const f256_s& y)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::fmod(x, y);
+
+    return detail::_f256_runtime::fmod(x, y);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s round(const f256_s& a)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::round(a);
+
+    return detail::_f256_runtime::round(a);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s round_to_decimals(f256_s v, int prec)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::round_to_decimals(v, prec);
+
+    return detail::_f256_runtime::round_to_decimals(v, prec);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s sqrt(const f256_s& a)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::sqrt(a);
+
+    return detail::_f256_runtime::sqrt(a);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s nearbyint(const f256_s& a)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::nearbyint(a);
+
+    return detail::_f256_runtime::nearbyint(a);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s ldexp(const f256_s& a, int e)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::ldexp(a, e);
+
+    return detail::_f256_runtime::ldexp(a, e);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s exp(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::exp(x);
+
+    return detail::_f256_runtime::exp(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s exp2(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::exp2(x);
+
+    return detail::_f256_runtime::exp2(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s log(const f256_s& a)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::log(a);
+
+    return detail::_f256_runtime::log(a);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s log2(const f256_s& a)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::log2(a);
+
+    return detail::_f256_runtime::log2(a);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s log10(const f256_s& a)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::log10(a);
+
+    return detail::_f256_runtime::log10(a);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s pow(const f256_s& x, const f256_s& y)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::pow(x, y);
+
+    return detail::_f256_runtime::pow(x, y);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s pow(const f256_s& x, double y)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::pow(x, y);
+
+    return detail::_f256_runtime::pow(x, y);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool   sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::sincos(x, s_out, c_out);
+
+    return detail::_f256_runtime::sincos(x, s_out, c_out);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s sin(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::sin(x);
+
+    return detail::_f256_runtime::sin(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s cos(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::cos(x);
+
+    return detail::_f256_runtime::cos(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s tan(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::tan(x);
+
+    return detail::_f256_runtime::tan(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s atan(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::atan(x);
+
+    return detail::_f256_runtime::atan(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s atan2(const f256_s& y, const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::atan2(y, x);
+
+    return detail::_f256_runtime::atan2(y, x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s asin(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::asin(x);
+
+    return detail::_f256_runtime::asin(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s acos(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::acos(x);
+
+    return detail::_f256_runtime::acos(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s expm1(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::expm1(x);
+
+    return detail::_f256_runtime::expm1(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s log1p(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::log1p(x);
+
+    return detail::_f256_runtime::log1p(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s sinh(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::sinh(x);
+
+    return detail::_f256_runtime::sinh(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s cosh(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::cosh(x);
+
+    return detail::_f256_runtime::cosh(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s tanh(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::tanh(x);
+
+    return detail::_f256_runtime::tanh(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s asinh(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::asinh(x);
+
+    return detail::_f256_runtime::asinh(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s acosh(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::acosh(x);
+
+    return detail::_f256_runtime::acosh(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s atanh(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::atanh(x);
+
+    return detail::_f256_runtime::atanh(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s cbrt(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::cbrt(x);
+
+    return detail::_f256_runtime::cbrt(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s remquo(const f256_s& x, const f256_s& y, int* quo)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::remquo(x, y, quo);
+
+    return detail::_f256_runtime::remquo(x, y, quo);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s remainder(const f256_s& x, const f256_s& y)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::remainder(x, y);
+
+    return detail::_f256_runtime::remainder(x, y);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s frexp(const f256_s& x, int* exp) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::frexp(x, exp);
+
+    return detail::_f256_runtime::frexp(x, exp);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s modf(const f256_s& x, f256_s* iptr) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::modf(x, iptr);
+
+    return detail::_f256_runtime::modf(x, iptr);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr int    ilogb(const f256_s& x) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::ilogb(x);
+
+    return detail::_f256_runtime::ilogb(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s logb(const f256_s& x) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::logb(x);
+
+    return detail::_f256_runtime::logb(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s scalbn(const f256_s& x, int e) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::scalbn(x, e);
+
+    return detail::_f256_runtime::scalbn(x, e);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s scalbln(const f256_s& x, long e) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::scalbln(x, e);
+
+    return detail::_f256_runtime::scalbln(x, e);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s nextafter(const f256_s& from, const f256_s& to) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::nextafter(from, to);
+
+    return detail::_f256_runtime::nextafter(from, to);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s nexttoward(const f256_s& from, long double to) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::nexttoward(from, to);
+
+    return detail::_f256_runtime::nexttoward(from, to);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s nexttoward(const f256_s& from, const f256_s& to) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::nexttoward(from, to);
+
+    return detail::_f256_runtime::nexttoward(from, to);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s erf(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::erf(x);
+
+    return detail::_f256_runtime::erf(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s erfc(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::erfc(x);
+
+    return detail::_f256_runtime::erfc(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s lgamma(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::lgamma(x);
+
+    return detail::_f256_runtime::lgamma(x);
+}
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f256_s tgamma(const f256_s& x)
+{
+    if (bl::use_constexpr_math())
+        return detail::_f256_constexpr::tgamma(x);
+
+    return detail::_f256_runtime::tgamma(x);
 }
 
 }

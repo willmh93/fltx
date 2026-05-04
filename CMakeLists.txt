@@ -8,30 +8,37 @@ option(FLTX_BUILD_TESTS    "Build fltx tests"          ${PROJECT_IS_TOP_LEVEL})
 option(FLTX_BUILD_EXAMPLES "Build fltx examples"       ${PROJECT_IS_TOP_LEVEL})
 option(FLTX_BUILD_ISOLATED "Build fltx isolated units" ${PROJECT_IS_TOP_LEVEL})
 
-add_library(fltx INTERFACE)
+set(FLTX_PUBLIC_SCOPE PUBLIC)
+add_library(fltx
+    src/f128.cpp
+    src/f128_math.cpp
+    src/f256.cpp
+    src/f256_math.cpp
+)
+
 add_library(fltx::fltx ALIAS fltx)
 
 target_include_directories(fltx
-    INTERFACE
+    ${FLTX_PUBLIC_SCOPE}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 # source-tree / VS-project style use
 target_sources(fltx
-    INTERFACE
+    ${FLTX_PUBLIC_SCOPE}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/fltx.natvis>
 )
 
 if(MSVC)
     target_link_options(fltx
-        INTERFACE
+        ${FLTX_PUBLIC_SCOPE}
             $<BUILD_INTERFACE:/NATVIS:${CMAKE_CURRENT_SOURCE_DIR}/include/fltx.natvis>
             $<INSTALL_INTERFACE:/NATVIS:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/fltx.natvis>
     )
 endif()
 
-target_compile_features(fltx INTERFACE cxx_std_20)
+target_compile_features(fltx ${FLTX_PUBLIC_SCOPE} cxx_std_20)
 
 install(TARGETS fltx
     EXPORT fltxTargets

@@ -600,7 +600,7 @@ namespace detail::_f256
 
 /// ------------------ printing / parsing (public) ------------------
 
-[[nodiscard]] BL_NO_INLINE constexpr bool parse_flt256(const char* s, f256_s& out, const char** endptr = nullptr) noexcept
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bool parse_flt256(const char* s, f256_s& out, const char** endptr = nullptr) noexcept
 {
     return detail::parse_flt<detail::_f256::f256_io_traits>(s, out, endptr);
 }
@@ -616,7 +616,7 @@ namespace detail::_f256
     return to_f256(s.c_str());
 }
 template<std::size_t capacity = detail::default_io_string::static_capacity>
-[[nodiscard]] BL_NO_INLINE constexpr detail::static_string<capacity> to_static_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr detail::static_string<capacity> to_static_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     detail::static_string<capacity> out;
     detail::_f256::to_string_into(out, x, precision, fixed, scientific, strip_trailing_zeros);
@@ -636,7 +636,7 @@ template<std::size_t capacity = detail::default_io_string::static_capacity>
 
 /// ------------------ stream output ------------------
 
-inline BL_NO_INLINE std::ostream& operator<<(std::ostream& os, const f256_s& x)
+BL_FLTX_CONSTEXPR_NOINLINE inline std::ostream& operator<<(std::ostream& os, const f256_s& x)
 {
     return detail::write_to_stream<detail::_f256::f256_io_traits>(os, x);
 }

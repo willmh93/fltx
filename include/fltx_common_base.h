@@ -11,6 +11,7 @@
 #define FLTX_COMMON_BASE_INCLUDED
 
 #include <climits>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -44,6 +45,12 @@ static_assert(std::numeric_limits<double>::is_iec559 &&
 #endif
 #endif
 
+#if defined(_MSC_VER)
+#define BL_FLTX_CONSTEXPR_NOINLINE BL_NO_INLINE
+#else
+#define BL_FLTX_CONSTEXPR_NOINLINE
+#endif
+
 #ifndef FLTX_INLINE_LEVEL
 #define FLTX_INLINE_LEVEL 2
 #endif
@@ -53,7 +60,7 @@ static_assert(std::numeric_limits<double>::is_iec559 &&
 #elif FLTX_INLINE_LEVEL == 1
 #define FLTX_CORE_INLINE inline
 #else
-#define FLTX_CORE_INLINE BL_NO_INLINE
+#define FLTX_CORE_INLINE BL_FLTX_CONSTEXPR_NOINLINE
 #endif
 
 #ifndef BL_FAST_MATH
@@ -128,35 +135,52 @@ static_assert(std::numeric_limits<double>::is_iec559 &&
 
 namespace bl
 {
-#if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE) || defined(FLTX_CONSTEXPR_PARITY)
+    #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE)
     namespace _fltx_debug {
         inline bool always_constexpr_path = false;
-  #ifdef FLTX_CONSTEXPR_PARITY
-        inline bool constexpr_parity_path = true;
-  #endif
+
         BL_FORCE_INLINE void set_forced_constexpr_path() noexcept { always_constexpr_path = true; }
         BL_FORCE_INLINE void set_forced_runtime_path() noexcept { always_constexpr_path = false; }
     }
-#endif
+    #endif
 
     [[nodiscard]] BL_FORCE_INLINE constexpr bool is_constant_evaluated() noexcept
     {
-    #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE) //&& defined(FLTX_CONSTEXPR_PARITY)
+        // In parity test mode, the runtime toggle lets tests run code as if it
+        // were constant-evaluated. FLTX_CONSTEXPR_PARITY itself is intentionally
+        // not part of this decision; it requests bitwise-compatible results, not
+        // forced constexpr-path execution.
+        #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE)
         return std::is_constant_evaluated() ? true : _fltx_debug::always_constexpr_path;
-    #else
+        #else
         return std::is_constant_evaluated();
-    #endif
+        #endif
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_parity() noexcept
+    {
+        // Result-parity policy only. Callers may use this to decide whether an
+        // otherwise optional canonicalization step is worth paying for.
+        #if defined(FLTX_CONSTEXPR_PARITY)
+        return true;
+        #else
+        return false;
+        #endif
     }
 
     [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_math() noexcept
     {
-    #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE)// && defined(FLTX_CONSTEXPR_PARITY)
-        return is_constant_evaluated();
-    #elif defined(FLTX_CONSTEXPR_PARITY)
-        return std::is_constant_evaluated() ? true : _fltx_debug::constexpr_parity_path;
-    #else
-        return std::is_constant_evaluated();
-    #endif
+        // Select constexpr-safe algorithms. In normal builds this tracks actual
+        // constant evaluation. In parity test mode, tests can force this at
+        // runtime to compare predicted consteval results with runtime results.
+        // FLTX_CONSTEXPR_PARITY does not change is_constant_evaluated(), but it
+        // may choose constexpr-safe runtime algorithms when that is the cleanest
+        // way to guarantee bitwise-identical results.
+        #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE)
+        return is_constant_evaluated() || use_constexpr_parity();
+        #else
+        return std::is_constant_evaluated() || use_constexpr_parity();
+        #endif
     }
 }
 

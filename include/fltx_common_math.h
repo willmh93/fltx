@@ -451,7 +451,7 @@ BL_FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
 
     return neg ? -out : out;
 }
-BL_NO_INLINE    constexpr double atan2_constexpr(double y, double x) noexcept
+BL_FLTX_CONSTEXPR_NOINLINE constexpr double atan2_constexpr(double y, double x) noexcept
 {
     constexpr double pi = 3.1415926535897932384626433832795028841972;
     constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
@@ -527,7 +527,7 @@ BL_FORCE_INLINE constexpr double cos_poly_reduced_constexpr(double r) noexcept
 
     return 1.0 + t * p;
 }
-BL_NO_INLINE    constexpr void   sincos_constexpr(double x, double& s, double& c) noexcept
+BL_FLTX_CONSTEXPR_NOINLINE constexpr void   sincos_constexpr(double x, double& s, double& c) noexcept
 {
     if (isnan(x) || isinf(x))
     {
@@ -648,8 +648,8 @@ BL_POP_PRECISE
 
 BL_FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, double& err) noexcept
 {
-    #ifdef FMA_AVAILABLE
-    if (bl::is_constant_evaluated())
+#ifdef FMA_AVAILABLE
+    if (bl::is_constant_evaluated() || bl::use_constexpr_parity())
     {
         two_prod_precise_dekker(a, b, p, err);
     }
