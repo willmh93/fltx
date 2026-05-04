@@ -1,8 +1,5 @@
 <p align="center">
-  <img src="res/logo.webp" alt="fltx logo" width="80">
-</p>
-
-<p align="center">
+  <img src="res/logo.webp" alt="fltx logo" width="80"><br>
   Extended-precision floating point and constexpr math for C++20<br>
   Fast · Precise · Lightweight
 </p>
@@ -12,8 +9,6 @@
 [![IO Tests](https://github.com/willmh93/fltx/actions/workflows/io-tests.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests.yml)
 
 `fltx` is for code that needs more precision than `double`, without giving up fixed-size scalar types, predictable performance, `constexpr` support, or familiar C++ ergonomics.
-
-## Highlights
 
 ## Highlights
 
@@ -47,12 +42,10 @@ sizeof(bl::f256) == 32
 ## Quick Start
 
 ```cpp
-#include <iomanip>
 #include <iostream>
-#include <limits>
+#include <iomanip>
 
 #include <fltx.h>
-
 using namespace bl;
 using namespace bl::literals;
 
@@ -61,11 +54,14 @@ int main()
     constexpr f256 a = 1_qd / 3_qd;
     constexpr f256 b = 2_qd / 3_qd;
     constexpr f256 c = a + b;
+    constexpr f256 d = bl::sin(a + b);
 
-    std::cout << std::setprecision(std::numeric_limits<f256>::digits10)
-              << "a = " << a << '\n'
-              << "b = " << b << '\n'
-              << "a + b = " << c << '\n';
+    std::cout
+        << std::setprecision(std::numeric_limits<f256>::digits10)
+        << "a = " << a << "\n"
+        << "b = " << b << "\n"
+        << "c = " << c << "\n"
+        << "d = " << d << "\n\n";
 }
 ```
 
@@ -74,7 +70,8 @@ Output:
 ```text
 a = 0.333333333333333333333333333333333333333333333333333333333333333
 b = 0.666666666666666666666666666666666666666666666666666666666666667
-a + b = 1
+c = 1
+d = 0.84147098480789650665250232163029899962256306079837106567275171
 ```
 
 More examples are available in [examples/](examples/).
