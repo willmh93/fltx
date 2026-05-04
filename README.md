@@ -3,26 +3,28 @@
 </p>
 
 <p align="center">
-  A C++20 library for fixed-width extended-precision floating-point types.
+  Extended-precision floating point and constexpr math for C++20<br>
+  Fast · Precise · Lightweight
 </p>
 
-`fltx` is for C++ code that needs more precision than `double`, while still keeping fixed-size scalar types, predictable performance, `constexpr` support, and ordinary C++ ergonomics.
+[![Precision Tests](https://github.com/willmh93/fltx/actions/workflows/precision-tests.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests.yml)
+[![Parity Tests](https://github.com/willmh93/fltx/actions/workflows/parity-tests.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests.yml)
+[![IO Tests](https://github.com/willmh93/fltx/actions/workflows/io-tests.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests.yml)
 
-Accuracy and performance are tested against equivalent-precision MPFR. MPFR is used as the reference oracle for validation and benchmarking, not as the dependency model `fltx` is trying to wrap or replace.
+`fltx` is for code that needs more precision than `double`, without giving up fixed-size scalar types, predictable performance, `constexpr` support, or familiar C++ ergonomics.
 
 ## Highlights
 
-- C++20 library with no required runtime dependencies
-- Precompiled runtime helpers for `bl::f128` and `bl::f256`, with an optional header-only mode
-- Fixed-size extended-precision scalar types [`bl::f128`](include/f128.h), [`bl::f256`](include/f256.h)
-- `constexpr` arithmetic, comparisons, conversions, parsing and formatting
-- `constexpr` math interface modeled after C++ [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)
+## Highlights
+
+- Fixed-size extended-precision scalar types: [`bl::f128`](include/f128.h) and [`bl::f256`](include/f256.h)
+- `constexpr` arithmetic, comparisons, conversions, parsing, formatting, and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style math
+- Accuracy and performance validated against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at equivalent precision
+- No required runtime dependencies
 - Standard-library integration for streams, `std::numeric_limits`, `std::numbers`, and common stream manipulators
-- Bitwise runtime/`constexpr` parity for [`bl::f128`](include/f128.h) and [`bl::f256`](include/f256.h) by default
-- Native `std::` runtime performance for [`bl::f32`](include/fltx_types.h) and [`bl::f64`](include/fltx_types.h) by default, with optional parity mode via `FLTX_CONSTEXPR_PARITY`
-- Suitable for lightweight native builds and WebAssembly / Emscripten targets
-- Optional runtime-to-compile-time dispatch helpers
-- Tested and Benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision
+- Runtime code favors native performance by default; define `FLTX_CONSTEXPR_PARITY` when you need bitwise-identical runtime and `constexpr` results
+- Suitable for lightweight native builds, WebAssembly / Emscripten
+- Optional runtime-to-compile-time dispatch helper for template-specialized kernels
 
 ## Core Types
 
