@@ -1,4 +1,4 @@
-name: Precision Tests
+name: Parity Tests
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  precision-tests:
+  parity-tests:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     permissions:
@@ -22,10 +22,10 @@ jobs:
         include:
           - name: Linux
             os: ubuntu-latest
-            test_command: ./build/ninja-release/tests/precision_tests
+            test_command: ./build/ninja-release/tests/parity_tests
           - name: Windows
             os: windows-latest
-            test_command: .\build\ninja-release\tests\precision_tests.exe
+            test_command: .\build\ninja-release\tests\parity_tests.exe
 
     steps:
       - name: Check out repository
@@ -105,8 +105,8 @@ jobs:
           path: ${{ env.VCPKG_BINARY_CACHE }}
           key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
-      - name: Build precision tests
-        run: cmake --build --preset ninja-release --target precision_tests --parallel
+      - name: Build parity tests
+        run: cmake --build --preset ninja-release --target parity_tests --parallel
 
-      - name: Run precision tests
+      - name: Run parity tests
         run: ${{ matrix.test_command }}

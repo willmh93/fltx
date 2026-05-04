@@ -84,8 +84,8 @@ namespace detail::_f128_constexpr
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s frexp(const f128_s& x, int* exp) noexcept;
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s modf(const f128_s& x, f128_s* iptr) noexcept;
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s nextafter(const f128_s& from, const f128_s& to) noexcept;
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s erf(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s erfc(const f128_s& x);
+    [[nodiscard]] inline constexpr f128_s erf(const f128_s& x);
+    [[nodiscard]] inline constexpr f128_s erfc(const f128_s& x);
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s lgamma(const f128_s& x);
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s tgamma(const f128_s& x);
 }
@@ -2337,7 +2337,7 @@ namespace detail::_f128_runtime
         detail::_f128::nextafter_double_constexpr(from.lo, toward)
     );
 }
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::erf(const f128_s& x)
+[[nodiscard]] inline constexpr f128_s detail::_f128_constexpr::erf(const f128_s& x)
 {
     using namespace detail::_f128;
 
@@ -2380,7 +2380,7 @@ namespace detail::_f128_runtime
 
     return detail::_f128::canonicalize_math_result(out);
 }
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::erfc(const f128_s& x)
+[[nodiscard]] inline constexpr f128_s detail::_f128_constexpr::erfc(const f128_s& x)
 {
     using namespace detail::_f128;
 

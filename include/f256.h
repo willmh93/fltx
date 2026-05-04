@@ -570,8 +570,8 @@ namespace detail::_f256_constexpr
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s to_f256(int64_t v) noexcept;
     BL_FORCE_INLINE constexpr f256_s& assign(f256_s& out, uint64_t u) noexcept;
     BL_FORCE_INLINE constexpr f256_s& assign(f256_s& out, int64_t v) noexcept;
-    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s floor(const f256_s& a);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s ceil(const f256_s& a);
+    [[nodiscard]] inline constexpr f256_s floor(const f256_s& a);
+    [[nodiscard]] inline constexpr f256_s ceil(const f256_s& a);
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s trunc(const f256_s& a);
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s pow10_256(int k);
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add(const f256_s& a, const f256_s& b) noexcept;
@@ -1120,7 +1120,7 @@ namespace detail::_f256_runtime
         return out;
     }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::floor(const f256_s& a)
+[[nodiscard]] inline constexpr f256_s detail::_f256_constexpr::floor(const f256_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
@@ -1141,7 +1141,7 @@ namespace detail::_f256_runtime
     return r;
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::ceil(const f256_s& a)
+[[nodiscard]] inline constexpr f256_s detail::_f256_constexpr::ceil(const f256_s& a)
 {
     if (isnan(a) || isinf(a) || iszero(a))
         return a;
