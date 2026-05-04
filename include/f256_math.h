@@ -1773,7 +1773,6 @@ namespace detail::_f256
         c_out = f256_mul_add_horner_step(t, pc, f256_s{ 1.0 });
     }
 
-
     BL_FORCE_INLINE constexpr f256_s _ldexp(const f256_s& a, int e)
     {
         double s;
@@ -1906,10 +1905,7 @@ namespace detail::_f256
         y += m * _exp(-y + f256_s{ (double)exp2 } * detail::_f256::ln2) - 1.0;
         return y;
     }
-}
 
-namespace detail::_f256
-{
     BL_FLTX_CONSTEXPR_NOINLINE constexpr bool _sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
     {
         const double ax = detail::_f256::fabs_constexpr(x.x0);
