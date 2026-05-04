@@ -948,6 +948,9 @@ namespace detail::_f64
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double fmin(double a, double b) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::fmin(a, b);
+
     if (isnan(a)) return b;
     if (isnan(b)) return a;
     if (a < b) return a;
@@ -958,6 +961,9 @@ namespace detail::_f64
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double fmax(double a, double b) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::fmax(a, b);
+
     if (isnan(a)) return b;
     if (isnan(b)) return a;
     if (a > b) return a;

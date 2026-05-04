@@ -260,6 +260,9 @@ namespace detail::_f32
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float fmin(float a, float b) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::fmin(a, b);
+
     if (isnan(a)) return b;
     if (isnan(b)) return a;
     if (a < b) return a;
@@ -270,6 +273,9 @@ namespace detail::_f32
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float fmax(float a, float b) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::fmax(a, b);
+
     if (isnan(a)) return b;
     if (isnan(b)) return a;
     if (a > b) return a;
