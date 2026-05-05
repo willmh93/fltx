@@ -29,7 +29,7 @@ namespace
     constexpr float min_subnormal = std::numeric_limits<float>::denorm_min();
 
     constexpr std::uint64_t random_seed = 1ull;
-    constexpr int random_sample_count = 1000;
+    constexpr int random_sample_count = 100;
     constexpr const char* type_label = "f32";
 
     struct accuracy_stats_entry

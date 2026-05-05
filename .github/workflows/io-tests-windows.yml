@@ -1,0 +1,14 @@
+name: IO Tests Windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  io-tests-windows:
+    uses: ./.github/workflows/io_test_base.yml
+    with:
+      platform_name: Windows
+      runner: windows-latest
+      test_command: .\build\ninja-release\tests\io_tests.exe

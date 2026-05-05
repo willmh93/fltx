@@ -7,8 +7,12 @@
 [![Precision Linux](https://github.com/willmh93/fltx/actions/workflows/precision-tests-linux.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-linux.yml)
 [![Precision Windows](https://github.com/willmh93/fltx/actions/workflows/precision-tests-windows.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-windows.yml)
 [![Precision macOS](https://github.com/willmh93/fltx/actions/workflows/precision-tests-mac.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-mac.yml)
-[![Parity Tests](https://github.com/willmh93/fltx/actions/workflows/parity-tests.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests.yml)
-[![IO Tests](https://github.com/willmh93/fltx/actions/workflows/io-tests.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests.yml)
+[![Parity Linux](https://github.com/willmh93/fltx/actions/workflows/parity-tests-linux.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests-linux.yml)
+[![Parity Windows](https://github.com/willmh93/fltx/actions/workflows/parity-tests-windows.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests-windows.yml)
+[![Parity macOS](https://github.com/willmh93/fltx/actions/workflows/parity-tests-mac.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests-mac.yml)
+[![IO Linux](https://github.com/willmh93/fltx/actions/workflows/io-tests-linux.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests-linux.yml)
+[![IO Windows](https://github.com/willmh93/fltx/actions/workflows/io-tests-windows.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests-windows.yml)
+[![IO macOS](https://github.com/willmh93/fltx/actions/workflows/io-tests-mac.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests-mac.yml)
 
 `fltx` is for code that needs more precision than `double`, without giving up fixed-size scalar types, predictable performance, `constexpr` support, or familiar C++ ergonomics.
 

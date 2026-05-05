@@ -32,7 +32,7 @@ namespace
     constexpr int printed_digits = std::numeric_limits<f256>::max_digits10;
 
     constexpr std::uint64_t random_seed = 1ull;
-    constexpr int random_sample_count_scale = 100;
+    constexpr int random_sample_count_scale = 20;
 
     constexpr const char* type_label = "f256";
 

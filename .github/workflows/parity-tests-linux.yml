@@ -1,0 +1,14 @@
+name: Parity Tests Linux
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  parity-tests-linux:
+    uses: ./.github/workflows/parity_test_base.yml
+    with:
+      platform_name: Linux
+      runner: ubuntu-latest
+      test_command: ./build/ninja-release/tests/parity_tests

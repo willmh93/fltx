@@ -1,0 +1,14 @@
+name: IO Tests macOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  io-tests-mac:
+    uses: ./.github/workflows/io_test_base.yml
+    with:
+      platform_name: macOS
+      runner: macos-latest
+      test_command: ./build/ninja-release/tests/io_tests

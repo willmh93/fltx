@@ -1,31 +1,28 @@
-name: Parity Tests
+name: IO Test Base
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
+    inputs:
+      platform_name:
+        required: true
+        type: string
+      runner:
+        required: true
+        type: string
+      test_command:
+        required: true
+        type: string
 
 jobs:
-  parity-tests:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
+  io-tests:
+    name: ${{ inputs.platform_name }}
+    runs-on: ${{ inputs.runner }}
     permissions:
       contents: read
     env:
       VCPKG_CACHE_EPOCH: v1
       VCPKG_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-binary-cache
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux
-            os: ubuntu-latest
-            test_command: ./build/ninja-release/tests/parity_tests
-          - name: Windows
-            os: windows-latest
-            test_command: .\build\ninja-release\tests\parity_tests.exe
 
     steps:
       - name: Check out repository
@@ -46,9 +43,19 @@ jobs:
         run: echo "commit=$(git -C vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up Ninja (Linux)
-        if: runner.os != 'Windows'
+        if: runner.os == 'Linux'
         shell: bash
         run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Set up build tools (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install autoconf automake libtool ninja
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix ninja)/bin" >> "$GITHUB_PATH"
+          command -v autoconf
+          command -v ninja
 
       - name: Set up Ninja (Windows)
         if: runner.os == 'Windows'
@@ -85,7 +92,7 @@ jobs:
             vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ steps.vcpkg.outputs.commit }}-
             vcpkg-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Bootstrap vcpkg (Linux)
+      - name: Bootstrap vcpkg (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: ./vcpkg/bootstrap-vcpkg.sh
@@ -105,8 +112,8 @@ jobs:
           path: ${{ env.VCPKG_BINARY_CACHE }}
           key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
-      - name: Build parity tests
-        run: cmake --build --preset ninja-release --target parity_tests --parallel
+      - name: Build IO tests
+        run: cmake --build --preset ninja-release --target io_tests --parallel
 
-      - name: Run parity tests
-        run: ${{ matrix.test_command }}
+      - name: Run IO tests
+        run: ${{ inputs.test_command }}

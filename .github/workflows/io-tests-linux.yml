@@ -1,0 +1,14 @@
+name: IO Tests Linux
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  io-tests-linux:
+    uses: ./.github/workflows/io_test_base.yml
+    with:
+      platform_name: Linux
+      runner: ubuntu-latest
+      test_command: ./build/ninja-release/tests/io_tests

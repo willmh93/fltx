@@ -1,0 +1,14 @@
+name: Parity Tests macOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  parity-tests-mac:
+    uses: ./.github/workflows/parity_test_base.yml
+    with:
+      platform_name: macOS
+      runner: macos-latest
+      test_command: ./build/ninja-release/tests/parity_tests
