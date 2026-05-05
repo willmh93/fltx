@@ -105,13 +105,15 @@ static_assert(std::numeric_limits<double>::is_iec559 &&
                          _Pragma("clang fp contract(fast)")
 #endif
 #elif defined(__clang__)
+// Clang's fp pragmas here do not restore a previous stack state. Keep strict
+// FP semantics after protected blocks; expansion arithmetic relies on it.
 #ifndef BL_PUSH_PRECISE
 #define BL_PUSH_PRECISE  _Pragma("clang fp reassociate(off)") \
                          _Pragma("clang fp contract(off)")
 #endif
 #ifndef BL_POP_PRECISE
-#define BL_POP_PRECISE   _Pragma("clang fp reassociate(on)")  \
-                         _Pragma("clang fp contract(fast)")
+#define BL_POP_PRECISE   _Pragma("clang fp reassociate(off)") \
+                         _Pragma("clang fp contract(off)")
 #endif
 #elif defined(__GNUC__)
 #ifndef BL_PUSH_PRECISE
