@@ -108,7 +108,7 @@ Individual headers are also available when you want a smaller include surface:
 | [`f32_math.h`](include/f32_math.h), [`f64_math.h`](include/f64_math.h), [`f128_math.h`](include/f128_math.h), [`f256_math.h`](include/f256_math.h) | Math APIs for individual floating-point types |
 | [`f128_io.h`](include/f128_io.h), [`f256_io.h`](include/f256_io.h) | IO and literals for individual extended-precision types |
 | [`fltx_types.h`](include/fltx_types.h) | Type aliases, concepts, `FloatType`, and enum helpers |
-| [`constexpr_dispatch.h`](include/constexpr_dispatch.h) | Standalone runtime-to-compile-time dispatch utility |
+| [`template_dispatch.h`](include/template_dispatch.h) | Standalone runtime-to-compile-time dispatch-table utility |
 | [`fltx_dispatch.h`](include/fltx_dispatch.h) | Dispatch helpers for mapping `FloatType` values to `f32`, `f64`, `f128`, or `f256` |
 
 ## Numeric Types
@@ -202,9 +202,9 @@ std::string s2    = bl::to_std_string(b);
 
 Stream output supports `std::setprecision`, `std::fixed`, `std::scientific`, `std::showpoint`, `std::showpos`, and `std::uppercase`.
 
-## Constexpr Dispatch
+## Template Dispatch
 
-[`fltx_dispatch.h`](include/fltx_dispatch.h) includes a small runtime-to-compile-time dispatch layer.
+[`fltx_dispatch.h`](include/fltx_dispatch.h) includes a small runtime-to-template dispatch layer.
 
 This lets runtime values such as [`FloatType::F128`](include/fltx_types.h) or [`FloatType::F256`](include/fltx_types.h) select a compile-time type, so the called function still compiles as a normal template specialization.
 
@@ -238,10 +238,10 @@ int main()
 <details>
 <summary>Mapping a custom enum to a compile-time type</summary>
 
-[`constexpr_dispatch.h`](include/constexpr_dispatch.h) is the lower-level dispatch utility used by [`fltx_dispatch.h`](include/fltx_dispatch.h). It can also be used directly when you want your own runtime enum to select one of several compile-time types:
+[`template_dispatch.h`](include/template_dispatch.h) is the lower-level dispatch utility used by [`fltx_dispatch.h`](include/fltx_dispatch.h). It can also be used directly when you want your own runtime enum to select one of several compile-time types:
 
 ```cpp
-#include <constexpr_dispatch.h>
+#include <template_dispatch.h>
 
 enum struct Backend { Cpu, Gpu, COUNT };
 

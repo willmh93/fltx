@@ -192,6 +192,22 @@ TEST_CASE("f256 parses decimal and scientific strings accurately", "[fltx][f256]
         check_parse_case(text);
 }
 
+TEST_CASE("f256 fixed zero formatting respects precision", "[fltx][f256][io][format]")
+{
+    std::ostringstream out;
+    out << std::fixed << std::setprecision(std::numeric_limits<f256>::digits10) << f256{ 0.0, 0.0, 0.0, 0.0 };
+
+    std::string expected = "0.";
+    expected.append(static_cast<std::size_t>(std::numeric_limits<f256>::digits10), '0');
+    REQUIRE(out.str() == expected);
+    REQUIRE(bl::to_std_string(f256{ 0.0, 0.0, 0.0, 0.0 }, 5, true, false, false) == "0.00000");
+    REQUIRE(bl::to_std_string(f256{ 0.0, 0.0, 0.0, 0.0 }, 5, true, false, true) == "0");
+
+    std::ostringstream neg_out;
+    neg_out << std::fixed << std::setprecision(3) << f256{ -0.0, 0.0, 0.0, 0.0 };
+    REQUIRE(neg_out.str() == "-0.000");
+}
+
 TEST_CASE("f256 print and parse round-trip preserves explicit limb values", "[fltx][f256][io][roundtrip]")
 {
     const std::array<std::pair<const char*, f256>, 8> cases = {{

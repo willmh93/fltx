@@ -20,256 +20,258 @@
 #include <string_view>
 #include <utility>
 
+namespace bl
+{
+    template<std::size_t capacity>
+    struct static_string
+    {
+        using size_type = std::size_t;
+
+        static constexpr size_type npos = static_cast<size_type>(-1);
+        static constexpr size_type static_capacity = capacity;
+
+        std::array<char, capacity + 1> chars{};
+        size_type length = 0;
+
+        constexpr static_string() noexcept = default;
+
+        constexpr static_string(const char* text)
+        {
+            assign(text);
+        }
+
+        constexpr static_string(std::string_view text)
+        {
+            assign(text);
+        }
+
+        template<std::size_t size>
+        constexpr static_string(const char(&text)[size])
+        {
+            assign(std::string_view(text, size - 1));
+        }
+
+        constexpr static_string& operator=(const char* text)
+        {
+            assign(text);
+            return *this;
+        }
+
+        constexpr static_string& operator=(std::string_view text)
+        {
+            assign(text);
+            return *this;
+        }
+
+        constexpr operator std::string_view() const noexcept
+        {
+            return view();
+        }
+
+        constexpr operator std::string() const
+        {
+            return std::string(chars.data(), length);
+        }
+
+        constexpr std::string_view view() const noexcept
+        {
+            return std::string_view(chars.data(), length);
+        }
+
+        constexpr char* data() noexcept
+        {
+            return chars.data();
+        }
+
+        constexpr const char* data() const noexcept
+        {
+            return chars.data();
+        }
+
+        constexpr const char* c_str() const noexcept
+        {
+            return chars.data();
+        }
+
+        constexpr size_type size() const noexcept
+        {
+            return length;
+        }
+
+        constexpr bool empty() const noexcept
+        {
+            return length == 0;
+        }
+
+        constexpr char* begin() noexcept
+        {
+            return chars.data();
+        }
+
+        constexpr char* end() noexcept
+        {
+            return chars.data() + length;
+        }
+
+        constexpr const char* begin() const noexcept
+        {
+            return chars.data();
+        }
+
+        constexpr const char* end() const noexcept
+        {
+            return chars.data() + length;
+        }
+
+        constexpr char& operator[](size_type index) noexcept
+        {
+            return chars[index];
+        }
+
+        constexpr const char& operator[](size_type index) const noexcept
+        {
+            return chars[index];
+        }
+
+        constexpr char& front() noexcept
+        {
+            return chars[0];
+        }
+
+        constexpr const char& front() const noexcept
+        {
+            return chars[0];
+        }
+
+        constexpr void clear() noexcept
+        {
+            length = 0;
+            chars[0] = '\0';
+        }
+
+        constexpr void resize(size_type new_length)
+        {
+            require_capacity(new_length);
+            if (new_length > length)
+            {
+                for (size_type index = length; index < new_length; ++index)
+                    chars[index] = '\0';
+            }
+            length = new_length;
+            chars[length] = '\0';
+        }
+
+        constexpr void push_back(char value)
+        {
+            require_capacity(length + 1);
+            chars[length++] = value;
+            chars[length] = '\0';
+        }
+
+        constexpr static_string& append(size_type count, char value)
+        {
+            require_capacity(length + count);
+            for (size_type index = 0; index < count; ++index)
+                chars[length + index] = value;
+            length += count;
+            chars[length] = '\0';
+            return *this;
+        }
+
+        constexpr static_string& append(const char* text)
+        {
+            return append(std::string_view(text, const_string_length(text)));
+        }
+
+        constexpr static_string& append(std::string_view text)
+        {
+            require_capacity(length + text.size());
+            for (size_type index = 0; index < text.size(); ++index)
+                chars[length + index] = text[index];
+            length += text.size();
+            chars[length] = '\0';
+            return *this;
+        }
+
+        constexpr static_string& insert(size_type position, const char* text)
+        {
+            return insert(position, std::string_view(text, const_string_length(text)));
+        }
+
+        constexpr static_string& insert(size_type position, std::string_view text)
+        {
+            require_insert_position(position);
+            require_capacity(length + text.size());
+            for (size_type index = length; index > position; --index)
+                chars[index + text.size() - 1] = chars[index - 1];
+            for (size_type index = 0; index < text.size(); ++index)
+                chars[position + index] = text[index];
+            length += text.size();
+            chars[length] = '\0';
+            return *this;
+        }
+
+        constexpr static_string& insert(size_type position, size_type count, char value)
+        {
+            require_insert_position(position);
+            require_capacity(length + count);
+            for (size_type index = length; index > position; --index)
+                chars[index + count - 1] = chars[index - 1];
+            for (size_type index = 0; index < count; ++index)
+                chars[position + index] = value;
+            length += count;
+            chars[length] = '\0';
+            return *this;
+        }
+
+        constexpr void assign(const char* text)
+        {
+            assign(std::string_view(text, const_string_length(text)));
+        }
+
+        constexpr void assign(std::string_view text)
+        {
+            require_capacity(text.size());
+            for (size_type index = 0; index < text.size(); ++index)
+                chars[index] = text[index];
+            length = text.size();
+            chars[length] = '\0';
+        }
+
+    private:
+        static constexpr size_type const_string_length(const char* text) noexcept
+        {
+            size_type result = 0;
+            while (text[result] != '\0')
+                ++result;
+            return result;
+        }
+
+        constexpr void require_capacity(size_type requested_capacity) const
+        {
+            if (requested_capacity > capacity)
+                throw "static_string capacity exceeded";
+        }
+
+        constexpr void require_insert_position(size_type position) const
+        {
+            if (position > length)
+                throw "static_string insert position out of range";
+        }
+    };
+
+    template<std::size_t capacity>
+    inline std::ostream& operator<<(std::ostream& os, const static_string<capacity>& text)
+    {
+        return os.write(text.data(), static_cast<std::streamsize>(text.size()));
+    }
+
+    using default_io_string = static_string<512>;
+};
+
 namespace bl::detail {
 
 enum class format_kind : unsigned char { general, fixed_frac, scientific_frac, scientific_sig };
-
-template<std::size_t capacity>
-struct static_string
-{
-    using size_type = std::size_t;
-
-    static constexpr size_type npos = static_cast<size_type>(-1);
-    static constexpr size_type static_capacity = capacity;
-
-    std::array<char, capacity + 1> chars{};
-    size_type length = 0;
-
-    constexpr static_string() noexcept = default;
-
-    constexpr static_string(const char* text)
-    {
-        assign(text);
-    }
-
-    constexpr static_string(std::string_view text)
-    {
-        assign(text);
-    }
-
-    template<std::size_t size>
-    constexpr static_string(const char (&text)[size])
-    {
-        assign(std::string_view(text, size - 1));
-    }
-
-    constexpr static_string& operator=(const char* text)
-    {
-        assign(text);
-        return *this;
-    }
-
-    constexpr static_string& operator=(std::string_view text)
-    {
-        assign(text);
-        return *this;
-    }
-
-    constexpr operator std::string_view() const noexcept
-    {
-        return view();
-    }
-
-    constexpr operator std::string() const
-    {
-        return std::string(chars.data(), length);
-    }
-
-    constexpr std::string_view view() const noexcept
-    {
-        return std::string_view(chars.data(), length);
-    }
-
-    constexpr char* data() noexcept
-    {
-        return chars.data();
-    }
-
-    constexpr const char* data() const noexcept
-    {
-        return chars.data();
-    }
-
-    constexpr const char* c_str() const noexcept
-    {
-        return chars.data();
-    }
-
-    constexpr size_type size() const noexcept
-    {
-        return length;
-    }
-
-    constexpr bool empty() const noexcept
-    {
-        return length == 0;
-    }
-
-    constexpr char* begin() noexcept
-    {
-        return chars.data();
-    }
-
-    constexpr char* end() noexcept
-    {
-        return chars.data() + length;
-    }
-
-    constexpr const char* begin() const noexcept
-    {
-        return chars.data();
-    }
-
-    constexpr const char* end() const noexcept
-    {
-        return chars.data() + length;
-    }
-
-    constexpr char& operator[](size_type index) noexcept
-    {
-        return chars[index];
-    }
-
-    constexpr const char& operator[](size_type index) const noexcept
-    {
-        return chars[index];
-    }
-
-    constexpr char& front() noexcept
-    {
-        return chars[0];
-    }
-
-    constexpr const char& front() const noexcept
-    {
-        return chars[0];
-    }
-
-    constexpr void clear() noexcept
-    {
-        length = 0;
-        chars[0] = '\0';
-    }
-
-    constexpr void resize(size_type new_length)
-    {
-        require_capacity(new_length);
-        if (new_length > length)
-        {
-            for (size_type index = length; index < new_length; ++index)
-                chars[index] = '\0';
-        }
-        length = new_length;
-        chars[length] = '\0';
-    }
-
-    constexpr void push_back(char value)
-    {
-        require_capacity(length + 1);
-        chars[length++] = value;
-        chars[length] = '\0';
-    }
-
-    constexpr static_string& append(size_type count, char value)
-    {
-        require_capacity(length + count);
-        for (size_type index = 0; index < count; ++index)
-            chars[length + index] = value;
-        length += count;
-        chars[length] = '\0';
-        return *this;
-    }
-
-    constexpr static_string& append(const char* text)
-    {
-        return append(std::string_view(text, const_string_length(text)));
-    }
-
-    constexpr static_string& append(std::string_view text)
-    {
-        require_capacity(length + text.size());
-        for (size_type index = 0; index < text.size(); ++index)
-            chars[length + index] = text[index];
-        length += text.size();
-        chars[length] = '\0';
-        return *this;
-    }
-
-    constexpr static_string& insert(size_type position, const char* text)
-    {
-        return insert(position, std::string_view(text, const_string_length(text)));
-    }
-
-    constexpr static_string& insert(size_type position, std::string_view text)
-    {
-        require_insert_position(position);
-        require_capacity(length + text.size());
-        for (size_type index = length; index > position; --index)
-            chars[index + text.size() - 1] = chars[index - 1];
-        for (size_type index = 0; index < text.size(); ++index)
-            chars[position + index] = text[index];
-        length += text.size();
-        chars[length] = '\0';
-        return *this;
-    }
-
-    constexpr static_string& insert(size_type position, size_type count, char value)
-    {
-        require_insert_position(position);
-        require_capacity(length + count);
-        for (size_type index = length; index > position; --index)
-            chars[index + count - 1] = chars[index - 1];
-        for (size_type index = 0; index < count; ++index)
-            chars[position + index] = value;
-        length += count;
-        chars[length] = '\0';
-        return *this;
-    }
-
-    constexpr void assign(const char* text)
-    {
-        assign(std::string_view(text, const_string_length(text)));
-    }
-
-    constexpr void assign(std::string_view text)
-    {
-        require_capacity(text.size());
-        for (size_type index = 0; index < text.size(); ++index)
-            chars[index] = text[index];
-        length = text.size();
-        chars[length] = '\0';
-    }
-
-private:
-    static constexpr size_type const_string_length(const char* text) noexcept
-    {
-        size_type result = 0;
-        while (text[result] != '\0')
-            ++result;
-        return result;
-    }
-
-    constexpr void require_capacity(size_type requested_capacity) const
-    {
-        if (requested_capacity > capacity)
-            throw "static_string capacity exceeded";
-    }
-
-    constexpr void require_insert_position(size_type position) const
-    {
-        if (position > length)
-            throw "static_string insert position out of range";
-    }
-};
-
-template<std::size_t capacity>
-inline std::ostream& operator<<(std::ostream& os, const static_string<capacity>& text)
-{
-    return os.write(text.data(), static_cast<std::streamsize>(text.size()));
-}
-
-using default_io_string = static_string<512>;
-
 
 template<typename BigUInt>
 struct parse_token
@@ -294,7 +296,6 @@ struct small_parse_token
     bool seen_nonzero = false;
     bool coeff_overflow = false;
 };
-
 
 template<typename CharsResult, typename String, typename Writer>
 BL_FLTX_CONSTEXPR_NOINLINE constexpr void write_chars_to_string(String& out, std::size_t cap, Writer&& writer)
@@ -337,6 +338,32 @@ BL_FORCE_INLINE constexpr void copy_chars(char* dst, const char* src, std::size_
 {
     for (std::size_t i = 0; i < count; ++i)
         dst[i] = src[i];
+}
+
+template<typename CharsResult>
+BL_FORCE_INLINE constexpr CharsResult emit_fixed_zero_to_chars(char* first, char* last, bool neg, int precision, bool strip_trailing_zeros) noexcept
+{
+    if (precision < 0)
+        precision = 0;
+
+    const int frac_len = strip_trailing_zeros ? 0 : precision;
+    const std::size_t needed = static_cast<std::size_t>(neg ? 1 : 0) + 1u + (frac_len > 0 ? static_cast<std::size_t>(1 + frac_len) : 0u);
+    if (static_cast<std::size_t>(last - first) < needed)
+        return { first, false };
+
+    char* p = first;
+    if (neg)
+        *p++ = '-';
+
+    *p++ = '0';
+    if (frac_len > 0)
+    {
+        *p++ = '.';
+        for (int i = 0; i < frac_len; ++i)
+            *p++ = '0';
+    }
+
+    return { p, true };
 }
 
 template<typename UInt>

@@ -12,7 +12,7 @@
 
 #include "fltx_core.h"
 #include "fltx_types.h"
-#include "constexpr_dispatch.h"
+#include "template_dispatch.h"
 
 bl_map_enum_to_type(bl::FloatType::F32,  bl::f32);
 bl_map_enum_to_type(bl::FloatType::F64,  bl::f64);

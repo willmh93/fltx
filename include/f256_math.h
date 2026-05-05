@@ -1078,10 +1078,11 @@ namespace detail::_f256
         const f256_s scaled_a = input_scale == 0 ? a : detail::_f256::ldexp_terms(a, input_scale);
 
         const double y0 = detail::_f256::sqrt_seed_constexpr(scaled_a.x0);
+        const double half_inv_y0 = 0.5 / y0;
         f256_s y{ y0, 0.0, 0.0, 0.0 };
-        sqrt_step_2y(scaled_a, y);
-        sqrt_step_2y(scaled_a, y);
-        sqrt_step_2y(scaled_a, y);
+        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
+        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
+        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
 
         if (result_scale != 0)
             y = detail::_f256::ldexp_terms(y, result_scale);

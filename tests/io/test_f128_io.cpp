@@ -175,6 +175,22 @@ TEST_CASE("f128 parses decimal and scientific strings accurately", "[fltx][f128]
         check_parse_case(text);
 }
 
+TEST_CASE("f128 fixed zero formatting respects precision", "[fltx][f128][io][format]")
+{
+    std::ostringstream out;
+    out << std::fixed << std::setprecision(std::numeric_limits<f128>::digits10) << f128{ 0.0, 0.0 };
+
+    std::string expected = "0.";
+    expected.append(static_cast<std::size_t>(std::numeric_limits<f128>::digits10), '0');
+    REQUIRE(out.str() == expected);
+    REQUIRE(bl::to_std_string(f128{ 0.0, 0.0 }, 5, true, false, false) == "0.00000");
+    REQUIRE(bl::to_std_string(f128{ 0.0, 0.0 }, 5, true, false, true) == "0");
+
+    std::ostringstream neg_out;
+    neg_out << std::fixed << std::setprecision(3) << f128{ -0.0, 0.0 };
+    REQUIRE(neg_out.str() == "-0.000");
+}
+
 TEST_CASE("f128 print and parse round-trip preserves explicit limb values", "[fltx][f128][io][roundtrip]")
 {
     const std::array<std::pair<const char*, f128>, 8> cases = {{

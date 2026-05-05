@@ -235,13 +235,10 @@ namespace detail::_f256
 
     inline constexpr f256_chars_result emit_fixed_dec_to_chars(char* first, char* last, f256_s x, int prec, bool strip_trailing_zeros) noexcept
     {
-        if (iszero(x)) {
-            if (first >= last) return { first, false };
-            *first = '0';
-            return { first + 1, true };
-        }
-
         if (prec < 0) prec = 0;
+
+        if (iszero(x))
+            return detail::emit_fixed_zero_to_chars<f256_chars_result>(first, last, detail::_f256::signbit_constexpr(x.x0), prec, strip_trailing_zeros);
 
         const bool neg = (x.x0 < 0.0);
         if (neg) x = -x;
@@ -366,7 +363,7 @@ namespace detail::_f256
         const f256_s v = neg ? -x : x;
         const int sig = static_cast<int>(sig_digits);
 
-        detail::default_io_string digits;
+        bl::default_io_string digits;
         int e = 0;
         if (!detail::_f256::exact_scientific_digits(v, sig, digits, e)) {
             if (first >= last) return { first, false };
@@ -455,7 +452,7 @@ namespace detail::_f256
         }
 
         const f256_s ax = (x.x0 < 0.0) ? -x : x;
-        detail::default_io_string digits;
+        bl::default_io_string digits;
         int e10 = 0;
         if (!detail::_f256::exact_scientific_digits(ax, 1, digits, e10)) {
             if (first >= last) return { first, false };
@@ -615,15 +612,15 @@ namespace detail::_f256
 {
     return to_f256(s.c_str());
 }
-template<std::size_t capacity = detail::default_io_string::static_capacity>
-[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr detail::static_string<capacity> to_static_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+template<std::size_t capacity = bl::default_io_string::static_capacity>
+[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bl::static_string<capacity> to_static_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
-    detail::static_string<capacity> out;
+    bl::static_string<capacity> out;
     detail::_f256::to_string_into(out, x, precision, fixed, scientific, strip_trailing_zeros);
     return out;
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr detail::default_io_string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE constexpr bl::default_io_string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     return to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
 }
