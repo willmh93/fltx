@@ -26,6 +26,7 @@ namespace
 {
     constexpr int checked_digits = std::numeric_limits<float>::digits10;
     constexpr int printed_digits = std::numeric_limits<float>::max_digits10;
+    constexpr float min_subnormal = std::numeric_limits<float>::denorm_min();
 
     constexpr std::uint64_t random_seed = 1ull;
     constexpr int random_sample_count = 1000;
@@ -598,11 +599,11 @@ TEST_CASE("f32 matches std for + - * /", "[fltx][f32][precision][arithmetic]")
         { 1.0f, 2.0f },
         { -1.0f, 2.0f },
         { 1.25f, -2.5f },
-        { 1e-300f, 1e-200f },
-        { -1e-100f, 1e-150f },
+        { min_subnormal, min_subnormal },
+        { -min_subnormal, min_subnormal },
         { (f32)std::numbers::pi, (f32)std::numbers::e },
         { (f32)-std::numbers::pi, (f32)std::numbers::sqrt2 },
-        { 1e30f, -1e-100f },
+        { 1e30f, -min_subnormal },
         { -1e30f, 3.0f }
     }};
 
@@ -1024,7 +1025,7 @@ TEST_CASE("f32 root and power functions match std", "[fltx][f32][precision][math
         { 0.0f, 0.0f },
         { 3.0f, 4.0f },
         { -3.0f, 4.0f },
-        { 1e-200f, 1e-200f },
+        { min_subnormal, min_subnormal },
         { 1e30f, 1e30f },
         { 1e30f, 1.0f },
         { (f32)std::numbers::pi, (f32)std::numbers::e },
@@ -1098,7 +1099,7 @@ TEST_CASE("f32 fmod and remainder match std", "[fltx][f32][precision][math][fmod
         { 5.25f, -2.0f },
         { -5.25f, -2.0f },
         { 1e30f, 3.0f },
-        { 1e-100f, 3.0f },
+        { min_subnormal, 3.0f },
         { (f32)std::numbers::pi, 0.5f },
         { (f32)-std::numbers::pi, 0.5f },
         { 17.0f, 0.25f },
@@ -1368,7 +1369,7 @@ TEST_CASE("f32 decomposition and stepping functions match std", "[fltx][f32][pre
         { -0.5f, 1 },
         { 1.0f, -10 },
         { (f32)std::numbers::pi, 7 },
-        { 1e-200f, 64 },
+        { min_subnormal, 64 },
         { 1e30f, -64 }
     }};
 
@@ -1401,8 +1402,8 @@ TEST_CASE("f32 utility helpers match std", "[fltx][f32][precision][math][utility
         { 3.0f, -2.0f },
         { (f32)std::numbers::pi, (f32)std::numbers::e },
         { (f32)-std::numbers::pi, (f32)std::numbers::e },
-        { 1e30f, 1e-200f },
-        { 1e-200f, 1e30f }
+        { 1e30f, min_subnormal },
+        { min_subnormal, 1e30f }
     }};
 
     for (const auto& [lhs, rhs] : pairs)

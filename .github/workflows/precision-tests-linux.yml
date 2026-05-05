@@ -1,0 +1,14 @@
+name: Precision Tests Linux
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  precision-tests-linux:
+    uses: ./.github/workflows/precision_test_base.yml
+    with:
+      platform_name: Linux
+      runner: ubuntu-latest
+      test_command: ./build/ninja-release/tests/precision_tests

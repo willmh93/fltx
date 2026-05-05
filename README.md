@@ -4,7 +4,9 @@
   Fast · Precise · Lightweight
 </p>
 
-[![Precision Tests](https://github.com/willmh93/fltx/actions/workflows/precision-tests.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests.yml)
+[![Precision Linux](https://github.com/willmh93/fltx/actions/workflows/precision-tests-linux.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-linux.yml)
+[![Precision Windows](https://github.com/willmh93/fltx/actions/workflows/precision-tests-windows.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-windows.yml)
+[![Precision macOS](https://github.com/willmh93/fltx/actions/workflows/precision-tests-mac.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-mac.yml)
 [![Parity Tests](https://github.com/willmh93/fltx/actions/workflows/parity-tests.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests.yml)
 [![IO Tests](https://github.com/willmh93/fltx/actions/workflows/io-tests.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests.yml)
 

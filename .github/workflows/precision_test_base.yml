@@ -1,31 +1,28 @@
-name: Precision Tests
+name: Precision Test Base
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
+    inputs:
+      platform_name:
+        required: true
+        type: string
+      runner:
+        required: true
+        type: string
+      test_command:
+        required: true
+        type: string
 
 jobs:
   precision-tests:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
+    name: ${{ inputs.platform_name }}
+    runs-on: ${{ inputs.runner }}
     permissions:
       contents: read
     env:
       VCPKG_CACHE_EPOCH: v1
       VCPKG_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-binary-cache
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux
-            os: ubuntu-latest
-            test_command: ./build/ninja-release/tests/precision_tests
-          - name: Windows
-            os: windows-latest
-            test_command: .\build\ninja-release\tests\precision_tests.exe
 
     steps:
       - name: Check out repository
@@ -46,9 +43,14 @@ jobs:
         run: echo "commit=$(git -C vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up Ninja (Linux)
-        if: runner.os != 'Windows'
+        if: runner.os == 'Linux'
         shell: bash
         run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Set up Ninja (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: brew install ninja
 
       - name: Set up Ninja (Windows)
         if: runner.os == 'Windows'
@@ -85,7 +87,7 @@ jobs:
             vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ steps.vcpkg.outputs.commit }}-
             vcpkg-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Bootstrap vcpkg (Linux)
+      - name: Bootstrap vcpkg (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: ./vcpkg/bootstrap-vcpkg.sh
@@ -109,4 +111,4 @@ jobs:
         run: cmake --build --preset ninja-release --target precision_tests --parallel
 
       - name: Run precision tests
-        run: ${{ matrix.test_command }}
+        run: ${{ inputs.test_command }}

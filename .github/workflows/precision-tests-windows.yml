@@ -1,0 +1,14 @@
+name: Precision Tests Windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  precision-tests-windows:
+    uses: ./.github/workflows/precision_test_base.yml
+    with:
+      platform_name: Windows
+      runner: windows-latest
+      test_command: .\build\ninja-release\tests\precision_tests.exe
