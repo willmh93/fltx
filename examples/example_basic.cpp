@@ -1,49 +1,28 @@
 #include <iostream>
 #include <iomanip>
-#include <array>
 
 #include <fltx.h>
 using namespace bl;
 using namespace bl::literals;
 
-template<typename T>
-struct Vec2
-{
-    T x;
-    T y;
-};
-
-template<typename T, std::size_t C>
-consteval std::array<Vec2<T>, C> ellipse(T rx, T ry)
-{
-    std::array<Vec2<T>, C> points{};
-    constexpr T tau = std::numbers::pi_v<T> * T{ 2.0 };
-
-    for (int i = 0; i < C; i++)
-    {
-        T ratio = T(i) / T(C);
-        T angle = ratio * tau;
-
-        points[i] = {
-            bl::cos(angle) * rx,
-            bl::sin(angle) * ry
-        };
-    }
-
-    return points;
-}
-
 int main()
 {
-    using T = f256;
+    constexpr f256 a = 1_qd / 3_qd;
+    constexpr f256 b = 2_qd / 3_qd;
 
-    std::cout << std::fixed << std::setprecision(std::numeric_limits<T>::digits10);
+    constexpr f256 c = a + b;
+    constexpr f256 d = bl::atan2(a, b);
 
-    constexpr auto points = ellipse<T, 12>(1.0, 1.0);
-
-    for (auto [x, y] : points)
-    {
-        std::cout << x << ", " << y << "\n";
-    }
+    std::cout 
+        << std::fixed 
+        << std::setprecision(std::numeric_limits<f256>::digits10)
+        << "a           = " << a << "\n"
+        << "b           = " << b << "\n"
+        << "a + b       = " << c << "\n"
+        << "atan2(a, b) = " << d << "\n";
 }
 
+// output:  a           = 0.333333333333333333333333333333333333333333333333333333333333333
+//          b           = 0.666666666666666666666666666666666666666666666666666666666666667
+//          a + b       = 1.000000000000000000000000000000000000000000000000000000000000000
+//          atan2(a, b) = 0.463647609000806116214256231461214402028537054286120263810933090

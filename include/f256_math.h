@@ -1083,6 +1083,7 @@ namespace detail::_f256
         sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
         sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
         sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
+        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
 
         if (result_scale != 0)
             y = detail::_f256::ldexp_terms(y, result_scale);

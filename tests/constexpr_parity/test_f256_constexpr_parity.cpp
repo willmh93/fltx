@@ -25,7 +25,7 @@ using value_type = bl::f256_s;
 #ifdef FLTX_PARITY_SAMPLES_PER_BUCKET
 constexpr int kSamplesPerBucket = FLTX_PARITY_SAMPLES_PER_BUCKET;
 #else
-constexpr int kSamplesPerBucket = 10000;
+constexpr int kSamplesPerBucket = 1000;
 #endif
 
 constexpr int kBucketCount = 4;
