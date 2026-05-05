@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.21)
 project(fltx LANGUAGES CXX)
 
-option(FLTX_EXAMPLE_VIEWER "Build examples with an SDL2 image viewer" ON)
+set(FLTX_EXAMPLE_VIEWER_DEFAULT ON)
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    set(FLTX_EXAMPLE_VIEWER_DEFAULT OFF)
+endif()
+
+option(FLTX_EXAMPLE_VIEWER "Build examples with an SDL2 image viewer" ${FLTX_EXAMPLE_VIEWER_DEFAULT})
 
 if(FLTX_EXAMPLE_VIEWER)
     find_package(SDL2 CONFIG REQUIRED)
