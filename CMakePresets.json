@@ -72,6 +72,17 @@
         "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
       }
+    },
+    {
+      "name": "macos-release",
+      "displayName": "macOS Release",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/macos-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "arm64-osx"
+      }
     }
   ],
 
@@ -80,6 +91,7 @@
     { "name": "ninja-release",     "configurePreset": "ninja-release" },
     { "name": "04. mingw-debug",   "configurePreset": "mingw-debug" },
     { "name": "05. mingw-release", "configurePreset": "mingw-release" },
-    { "name": "wasm32-release",    "configurePreset": "wasm32-release" }
+    { "name": "wasm32-release",    "configurePreset": "wasm32-release" },
+    { "name": "macos-release",     "configurePreset": "macos-release" }
   ]
 }

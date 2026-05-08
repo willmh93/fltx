@@ -2615,8 +2615,10 @@ namespace detail::_f256
         return signbit(x) ? f256_s{ -1.0 } : f256_s{ 1.0 };
 
     const f256_s em1 = _expm1(mul_double_inline(ax, 2.0));
+    const f256_s denom = add_scalar_precise(em1, 2.0);
 
-    f256_s out = div_inline(em1, add_scalar_precise(em1, 2.0));
+    f256_s out = div_inline(em1, denom);
+    out = add_inline(out, div_inline(sub_inline(em1, mul_inline(out, denom)), denom));
 
     if (signbit(x))
         out = -out;
