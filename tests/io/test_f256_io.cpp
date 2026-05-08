@@ -192,6 +192,101 @@ TEST_CASE("f256 parses decimal and scientific strings accurately", "[fltx][f256]
         check_parse_case(text);
 }
 
+TEST_CASE("f256 parser handles special values, partial tokens, and invalid inputs", "[fltx][f256][io][parse][edge]")
+{
+    {
+        const char* text = " \t+infinity;";
+        const char* end = nullptr;
+        f256 parsed{};
+        REQUIRE(parse_flt256(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == ';');
+        REQUIRE(bl::isinf(parsed));
+        REQUIRE(!std::signbit(parsed.x0));
+    }
+    {
+        const char* text = "-inf tail";
+        const char* end = nullptr;
+        f256 parsed{};
+        REQUIRE(parse_flt256(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == ' ');
+        REQUIRE(bl::isinf(parsed));
+        REQUIRE(std::signbit(parsed.x0));
+    }
+    {
+        const char* text = "NaN(payload)";
+        const char* end = nullptr;
+        f256 parsed{};
+        REQUIRE(parse_flt256(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == '(');
+        REQUIRE(bl::isnan(parsed));
+    }
+    {
+        const char* text = "1.25tail";
+        const char* end = nullptr;
+        f256 parsed{};
+        REQUIRE(parse_flt256(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == 't');
+        require_close(parsed, to_ref("1.25"));
+    }
+    {
+        const char* text = "1e+oops";
+        const char* end = nullptr;
+        f256 parsed{};
+        REQUIRE(parse_flt256(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == 'e');
+        require_close(parsed, to_ref("1"));
+    }
+    {
+        const char* text = "1e100000000";
+        const char* end = nullptr;
+        f256 parsed{};
+        REQUIRE(parse_flt256(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == '\0');
+        REQUIRE(bl::isinf(parsed));
+        REQUIRE(!std::signbit(parsed.x0));
+    }
+    {
+        const char* text = "-1e-100000000";
+        const char* end = nullptr;
+        f256 parsed{ 1.0, 0.0, 0.0, 0.0 };
+        REQUIRE(parse_flt256(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == '\0');
+        REQUIRE(bl::iszero(parsed));
+        REQUIRE(std::signbit(parsed.x0));
+    }
+
+    constexpr std::array<const char*, 6> invalid_cases = {{
+        "",
+        " ",
+        ".",
+        "+.",
+        "e10",
+        "--1"
+    }};
+
+    for (const char* text : invalid_cases)
+    {
+        const char* end = nullptr;
+        f256 parsed{ 42.0, 0.0, 0.0, 0.0 };
+        CAPTURE(text);
+        REQUIRE_FALSE(parse_flt256(text, parsed, &end));
+        REQUIRE(end == text);
+        REQUIRE(parsed.x0 == 42.0);
+        REQUIRE(parsed.x1 == 0.0);
+        REQUIRE(parsed.x2 == 0.0);
+        REQUIRE(parsed.x3 == 0.0);
+    }
+
+    REQUIRE(bl::iszero(to_f256("oops")));
+}
+
 TEST_CASE("f256 fixed zero formatting respects precision", "[fltx][f256][io][format]")
 {
     std::ostringstream out;
@@ -206,6 +301,30 @@ TEST_CASE("f256 fixed zero formatting respects precision", "[fltx][f256][io][for
     std::ostringstream neg_out;
     neg_out << std::fixed << std::setprecision(3) << f256{ -0.0, 0.0, 0.0, 0.0 };
     REQUIRE(neg_out.str() == "-0.000");
+}
+
+TEST_CASE("f256 formats special values and stream flags consistently", "[fltx][f256][io][format][edge]")
+{
+    const f256 inf = std::numeric_limits<f256>::infinity();
+    const f256 neg_inf = -inf;
+    const f256 nan = std::numeric_limits<f256>::quiet_NaN();
+
+    REQUIRE(bl::to_std_string(inf) == "inf");
+    REQUIRE(bl::to_std_string(neg_inf) == "-inf");
+    REQUIRE(bl::to_std_string(nan) == "nan");
+    REQUIRE(std::string(bl::to_static_string(to_f256("1.2500"), 4, true, false, true)) == "1.25");
+
+    std::ostringstream pos_upper;
+    pos_upper << std::showpos << std::uppercase << inf;
+    REQUIRE(pos_upper.str() == "+INF");
+
+    std::ostringstream neg_upper;
+    neg_upper << std::uppercase << neg_inf;
+    REQUIRE(neg_upper.str() == "-INF");
+
+    std::ostringstream nan_upper;
+    nan_upper << std::uppercase << nan;
+    REQUIRE(nan_upper.str() == "NAN");
 }
 
 TEST_CASE("f256 print and parse round-trip preserves explicit limb values", "[fltx][f256][io][roundtrip]")

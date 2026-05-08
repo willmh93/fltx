@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.21)
 project(fltx VERSION 0.1.0 LANGUAGES CXX)
 
+# Project-owned default for fltx's compiled runtime sources: AUTO, ON, or OFF.
+set(FLTX_FAST_MATH_MODE ON)
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+include(cmake/fltxFastMath.cmake)
 
 option(FLTX_BUILD_TESTS    "Build fltx tests"          ${PROJECT_IS_TOP_LEVEL})
 option(FLTX_BUILD_EXAMPLES "Build fltx examples"       ${PROJECT_IS_TOP_LEVEL})
@@ -39,6 +43,7 @@ if(MSVC)
 endif()
 
 target_compile_features(fltx ${FLTX_PUBLIC_SCOPE} cxx_std_20)
+fltx_apply_fast_math_options(fltx)
 
 install(TARGETS fltx
     EXPORT fltxTargets

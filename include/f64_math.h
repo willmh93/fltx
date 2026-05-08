@@ -29,8 +29,12 @@ namespace detail::_f64
     using detail::fp::floor_constexpr;
     using detail::fp::ceil_constexpr;
     using detail::fp::trunc_constexpr;
-    using detail::fp::fmod_constexpr;
     using detail::fp::nearbyint_ties_even;
+    using detail::fp::nearbyint_constexpr;
+    using detail::fp::round_half_away_zero;
+    using detail::fp::nextafter_double_constexpr;
+    using detail::fp::copysign_constexpr;
+    using detail::fp::to_signed_integer_or_zero;
     using detail::fp::frexp_exponent_constexpr;
     using detail::fp::ldexp_constexpr2;
     using detail::fp::log_constexpr;
@@ -62,78 +66,6 @@ namespace detail::_f64
     BL_FORCE_INLINE constexpr int ilogb_finite_constexpr(double x) noexcept
     {
         return frexp_exponent_constexpr(x) - 1;
-    }
-
-    BL_FORCE_INLINE constexpr double nearbyint_constexpr(double x) noexcept
-    {
-        const double y = nearbyint_ties_even(x);
-        if (iszero(y))
-            return signbit_constexpr(x) ? -0.0 : 0.0;
-        return y;
-    }
-
-    BL_FORCE_INLINE constexpr double round_half_away_zero(double x) noexcept
-    {
-        if (isnan(x) || isinf(x) || iszero(x))
-            return x;
-
-        constexpr double integer_threshold = 4503599627370496.0;
-        const double ax = signbit_constexpr(x) ? -x : x;
-        if (ax >= integer_threshold)
-            return x;
-
-        if (signbit_constexpr(x))
-        {
-            const double y = -floor_constexpr((-x) + 0.5);
-            return iszero(y) ? -0.0 : y;
-        }
-
-        return floor_constexpr(x + 0.5);
-    }
-
-    BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double to) noexcept
-    {
-        if (isnan(from) || isnan(to))
-            return std::numeric_limits<double>::quiet_NaN();
-
-        if (from == to)
-            return to;
-
-        if (from == 0.0)
-            return signbit_constexpr(to)
-                ? -std::numeric_limits<double>::denorm_min()
-                :  std::numeric_limits<double>::denorm_min();
-
-        std::uint64_t bits = std::bit_cast<std::uint64_t>(from);
-        if ((from > 0.0) == (from < to))
-            ++bits;
-        else
-            --bits;
-
-        return std::bit_cast<double>(bits);
-    }
-
-    BL_FORCE_INLINE constexpr double copysign_constexpr(double magnitude, double sign_source) noexcept
-    {
-        const std::uint64_t magnitude_bits = std::bit_cast<std::uint64_t>(magnitude) & 0x7fffffffffffffffULL;
-        const std::uint64_t sign_bits = std::bit_cast<std::uint64_t>(sign_source) & 0x8000000000000000ULL;
-        return std::bit_cast<double>(magnitude_bits | sign_bits);
-    }
-
-    template<typename SignedInt>
-    BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(double x) noexcept
-    {
-        static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
-
-        if (isnan(x) || isinf(x))
-            return 0;
-
-        constexpr double lo = static_cast<double>(std::numeric_limits<SignedInt>::lowest());
-        constexpr double hi = static_cast<double>(std::numeric_limits<SignedInt>::max());
-        if (x < lo || x > hi)
-            return 0;
-
-        return static_cast<SignedInt>(x);
     }
 
     BL_FORCE_INLINE constexpr double powi_nonneg(double base, std::uint64_t exp) noexcept
@@ -284,78 +216,262 @@ namespace detail::_f64
         return 0.5 * (y + x / y);
     }
 
-    BL_FORCE_INLINE constexpr double fmod_constexpr_precise(double x, double y) noexcept
+    struct dyadic_u64
+    {
+        std::uint64_t coeff = 0;
+        int exp2 = 0;
+    };
+
+    struct exact_divmod_result
+    {
+        std::uint64_t remainder = 0;
+        int remainder_exp2 = 0;
+        std::uint64_t denominator = 0;
+        int denominator_exp2 = 0;
+        unsigned quotient_low_bits = 0;
+        bool quotient_nonzero = false;
+    };
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr int bit_length_u64(std::uint64_t value) noexcept
+    {
+        int bits = 0;
+        while (value != 0)
+        {
+            ++bits;
+            value >>= 1;
+        }
+        return bits;
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr dyadic_u64 decompose_normalized_abs(double value) noexcept
+    {
+        const std::uint64_t bits = std::bit_cast<std::uint64_t>(value) & 0x7fffffffffffffffull;
+        const std::uint64_t frac = bits & ((std::uint64_t{ 1 } << 52) - 1u);
+        const std::uint32_t exp_bits = static_cast<std::uint32_t>((bits >> 52) & 0x7ffu);
+
+        dyadic_u64 out;
+        if (exp_bits == 0)
+        {
+            out.coeff = frac;
+            out.exp2 = -1074;
+        }
+        else
+        {
+            out.coeff = (std::uint64_t{ 1 } << 52) | frac;
+            out.exp2 = static_cast<int>(exp_bits) - 1023 - 52;
+        }
+
+        const int bits_used = bit_length_u64(out.coeff);
+        const int shift = 53 - bits_used;
+        out.coeff <<= shift;
+        out.exp2 -= shift;
+        return out;
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr int compare_scaled_u64(
+        std::uint64_t a,
+        int a_exp2,
+        std::uint64_t b,
+        int b_exp2) noexcept
+    {
+        if (a == 0 || b == 0)
+            return (a != 0) - (b != 0);
+
+        const int a_bits = bit_length_u64(a);
+        const int b_bits = bit_length_u64(b);
+        const int a_top = a_exp2 + a_bits - 1;
+        const int b_top = b_exp2 + b_bits - 1;
+        if (a_top < b_top) return -1;
+        if (a_top > b_top) return 1;
+
+        if (a_exp2 >= b_exp2)
+            a <<= (a_exp2 - b_exp2);
+        else
+            b <<= (b_exp2 - a_exp2);
+
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr std::uint64_t rounded_shr_u64(std::uint64_t value, int bits) noexcept
+    {
+        if (bits <= 0)
+            return value;
+
+        const bool round_bit = bits <= 64 && ((value >> (bits - 1)) & 1u) != 0;
+        const bool sticky = bits > 1
+            ? (bits < 64 ? (value & ((std::uint64_t{ 1 } << (bits - 1)) - 1u)) != 0 : (value << 1) != 0)
+            : false;
+        const std::uint64_t shifted = bits >= 64 ? 0 : (value >> bits);
+        return shifted + (round_bit && (sticky || (shifted & 1u) != 0) ? 1u : 0u);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr double exact_dyadic_to_double(
+        std::uint64_t coeff,
+        int exp2,
+        bool neg) noexcept
+    {
+        const std::uint64_t sign = neg ? (std::uint64_t{ 1 } << 63) : 0;
+        if (coeff == 0)
+            return std::bit_cast<double>(sign);
+
+        const int top_bit = bit_length_u64(coeff) - 1;
+        int unbiased_exp = exp2 + top_bit;
+        if (unbiased_exp > 1023)
+            return neg ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+
+        if (unbiased_exp < -1022)
+        {
+            const int scale = exp2 + 1074;
+            const std::uint64_t subnormal = scale >= 0
+                ? (scale >= 64 ? 0 : (coeff << scale))
+                : rounded_shr_u64(coeff, -scale);
+
+            if (subnormal == 0)
+                return std::bit_cast<double>(sign);
+            if (subnormal >= (std::uint64_t{ 1 } << 52))
+                return std::bit_cast<double>(sign | (std::uint64_t{ 1 } << 52));
+            return std::bit_cast<double>(sign | subnormal);
+        }
+
+        const int shift = top_bit - 52;
+        std::uint64_t significand = shift > 0
+            ? rounded_shr_u64(coeff, shift)
+            : (coeff << -shift);
+
+        if (bit_length_u64(significand) > 53)
+        {
+            significand >>= 1;
+            ++unbiased_exp;
+            if (unbiased_exp > 1023)
+                return neg ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+        }
+
+        const std::uint64_t exp_bits = static_cast<std::uint64_t>(unbiased_exp + 1023);
+        const std::uint64_t frac_bits = significand & ((std::uint64_t{ 1 } << 52) - 1u);
+        return std::bit_cast<double>(sign | (exp_bits << 52) | frac_bits);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr dyadic_u64 subtract_scaled_u64(
+        std::uint64_t a,
+        int a_exp2,
+        std::uint64_t b,
+        int b_exp2) noexcept
+    {
+        const int common_exp2 = a_exp2 < b_exp2 ? a_exp2 : b_exp2;
+        const int a_shift = a_exp2 - common_exp2;
+        const int b_shift = b_exp2 - common_exp2;
+        return dyadic_u64{ (a << a_shift) - (b << b_shift), common_exp2 };
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr exact_divmod_result exact_abs_divmod(double ax, double ay) noexcept
+    {
+        const dyadic_u64 x = decompose_normalized_abs(ax);
+        const dyadic_u64 y = decompose_normalized_abs(ay);
+
+        exact_divmod_result out;
+        out.denominator = y.coeff;
+        out.denominator_exp2 = y.exp2;
+
+        if (compare_scaled_u64(x.coeff, x.exp2, y.coeff, y.exp2) < 0)
+        {
+            out.remainder = x.coeff;
+            out.remainder_exp2 = x.exp2;
+            return out;
+        }
+
+        std::uint64_t rem = x.coeff;
+        const int shift = x.exp2 - y.exp2;
+
+        for (int i = shift; i >= 0; --i)
+        {
+            if (rem >= y.coeff)
+            {
+                rem -= y.coeff;
+                out.quotient_nonzero = true;
+                if (i < 3)
+                    out.quotient_low_bits |= (1u << i);
+            }
+
+            if (i != 0)
+                rem <<= 1;
+        }
+
+        out.remainder = rem;
+        out.remainder_exp2 = y.exp2;
+        return out;
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr int normalized_remquo_bits(
+        unsigned quotient_low_bits,
+        bool quotient_nonzero,
+        bool quotient_negative) noexcept
+    {
+        int bits = static_cast<int>(quotient_low_bits & 0x7u);
+        if (bits == 0 && quotient_nonzero)
+            bits = 8;
+        return quotient_negative ? -bits : bits;
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr double fmod_constexpr_exact(double x, double y) noexcept
     {
         if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
             return std::numeric_limits<double>::quiet_NaN();
         if (isinf(y) || x == 0.0)
             return x;
 
-        const bool neg = signbit_constexpr(x);
-        double ax = abs(x);
-        const double ay = abs(y);
-
-        if (ax < ay)
-            return x;
-
-        if (ax == ay)
-            return neg ? -0.0 : 0.0;
-
-        const int ey = ilogb_finite_constexpr(ay);
-
-        while (ax >= ay)
-        {
-            int shift = ilogb_finite_constexpr(ax) - ey;
-            double scaled = ldexp_constexpr2(ay, shift);
-
-            if (scaled > ax)
-                scaled = ldexp_constexpr2(ay, shift - 1);
-
-            const double next = ax - scaled;
-            if (next == ax)
-                break;
-
-            ax = next;
-        }
-
-        while (ax >= ay)
-            ax -= ay;
-
-        if (ax == 0.0)
-            return neg ? -0.0 : 0.0;
-
-        return neg ? -ax : ax;
+        const exact_divmod_result divmod = exact_abs_divmod(abs(x), abs(y));
+        double out = exact_dyadic_to_double(divmod.remainder, divmod.remainder_exp2, signbit_constexpr(x));
+        if (out == 0.0)
+            out = signbit_constexpr(x) ? -0.0 : 0.0;
+        return out;
     }
-    BL_FORCE_INLINE constexpr double remainder_constexpr(double x, double y) noexcept
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr double remainder_constexpr_exact(double x, double y, int* quo = nullptr) noexcept
     {
+        if (quo)
+            *quo = 0;
+
         if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
             return std::numeric_limits<double>::quiet_NaN();
         if (isinf(y))
             return x;
 
-        double r = fmod_constexpr_precise(x, y);
-        if (isnan(r))
-            return r;
+        const bool quotient_negative = signbit_constexpr(x) != signbit_constexpr(y);
+        exact_divmod_result divmod = exact_abs_divmod(abs(x), abs(y));
 
-        const double ay = abs(y);
-        const double ar = abs(r);
-        const double half = ay * 0.5;
+        bool result_negative = signbit_constexpr(x);
+        std::uint64_t result_coeff = divmod.remainder;
+        int result_exp2 = divmod.remainder_exp2;
 
-        if (ar > half)
+        const int half_cmp = compare_scaled_u64(
+            divmod.remainder,
+            divmod.remainder_exp2 + 1,
+            divmod.denominator,
+            divmod.denominator_exp2);
+        if (half_cmp > 0 || (half_cmp == 0 && (divmod.quotient_low_bits & 1u) != 0))
         {
-            r -= signbit_constexpr(r) ? -ay : ay;
-        }
-        else if (ar == half)
-        {
-            const double n = nearbyint_constexpr(x / y);
-            const double parity = fmod_constexpr(abs(n), 2.0);
-            if (parity != 0.0)
-                r -= signbit_constexpr(r) ? -ay : ay;
+            const dyadic_u64 adjusted = subtract_scaled_u64(
+                divmod.denominator,
+                divmod.denominator_exp2,
+                divmod.remainder,
+                divmod.remainder_exp2);
+
+            result_coeff = adjusted.coeff;
+            result_exp2 = adjusted.exp2;
+            divmod.quotient_low_bits = (divmod.quotient_low_bits + 1u) & 0x7u;
+            divmod.quotient_nonzero = true;
+            result_negative = !result_negative;
         }
 
-        if (r == 0.0)
-            r = signbit_constexpr(x) ? -0.0 : 0.0;
-        return r;
+        if (quo)
+            *quo = normalized_remquo_bits(divmod.quotient_low_bits, divmod.quotient_nonzero, quotient_negative);
+
+        double out = exact_dyadic_to_double(result_coeff, result_exp2, result_negative);
+        if (out == 0.0)
+            out = signbit_constexpr(x) ? -0.0 : 0.0;
+        return out;
     }
 
     BL_FORCE_INLINE constexpr double log2_constexpr(double x) noexcept
@@ -372,6 +488,25 @@ namespace detail::_f64
             return x;
 
         const double ax = abs(x);
+        if (ax < 0.25)
+        {
+            const double x2 = x * x;
+            double p = 1.6059043836821613e-10;  // 1/13!
+            p = p * x2 + 2.5052108385441720e-8; // 1/11!
+            p = p * x2 + 2.7557319223985893e-6; // 1/9!
+            p = p * x2 + 1.9841269841269841e-4; // 1/7!
+            p = p * x2 + 8.3333333333333332e-3; // 1/5!
+            p = p * x2 + 1.6666666666666666e-1; // 1/3!
+            return x + x * x2 * p;
+        }
+
+        if (ax < 0.5)
+        {
+            const double em1 = expm1_constexpr(ax);
+            const double out = (em1 * (em1 + 2.0)) / ((em1 + 1.0) * 2.0);
+            return signbit_constexpr(x) ? -out : out;
+        }
+
         const double ex = exp_constexpr(ax);
         double out = (ex - 1.0 / ex) * 0.5;
         return signbit_constexpr(x) ? -out : out;
@@ -677,6 +812,13 @@ namespace detail::_f64
 
     BL_FORCE_INLINE constexpr double lgamma_positive_constexpr(double x) noexcept
     {
+        if (x == 1.0 || x == 2.0)
+            return 0.0;
+        if (x == 0.5)
+            return 0.57236494292470009;
+        if (x == 1.5)
+            return -0.12078223763524522;
+
         constexpr double coeffs[] =
         {
             0.99999999999980993,
@@ -730,6 +872,18 @@ namespace detail::_f64
             return signbit_constexpr(x)
                 ? std::numeric_limits<double>::quiet_NaN()
                 : std::numeric_limits<double>::infinity();
+
+        if (x > 0.0)
+        {
+            const double xi = trunc_constexpr(x);
+            if (xi == x && x <= 171.0)
+            {
+                double result = 1.0;
+                for (int i = 2; i < static_cast<int>(x); ++i)
+                    result *= static_cast<double>(i);
+                return result;
+            }
+        }
 
         if (x > 0.0)
             return exp_constexpr(lgamma_positive_constexpr(x));
@@ -852,92 +1006,20 @@ namespace detail::_f64
 {
     if (!bl::use_constexpr_math())
         return std::fmod(x, y);
-    return detail::_f64::fmod_constexpr_precise(x, y);
+    return detail::_f64::fmod_constexpr_exact(x, y);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double remainder(double x, double y) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::remainder(x, y);
-    return detail::_f64::remainder_constexpr(x, y);
+    return detail::_f64::remainder_constexpr_exact(x, y);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double remquo(double x, double y, int* quo) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::remquo(x, y, quo);
 
-    if (quo)
-        *quo = 0;
-
-    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
-        return std::numeric_limits<double>::quiet_NaN();
-    if (isinf(y))
-        return x;
-
-    const bool quotient_negative = signbit(x) != signbit(y);
-    const double ay = abs(y);
-    double ax = abs(x);
-
-    int quotient_low_bits = 0;
-    bool quotient_nonzero = false;
-
-    if (ax >= ay)
-    {
-        const int ey = detail::_f64::ilogb_finite_constexpr(ay);
-
-        while (ax >= ay)
-        {
-            int shift = detail::_f64::ilogb_finite_constexpr(ax) - ey;
-            double scaled = detail::_f64::ldexp_constexpr2(ay, shift);
-
-            if (scaled > ax)
-            {
-                --shift;
-                scaled = detail::_f64::ldexp_constexpr2(ay, shift);
-            }
-
-            const double next = ax - scaled;
-            if (next == ax)
-                break;
-
-            ax = next;
-            quotient_nonzero = true;
-
-            if (shift < 3)
-                quotient_low_bits = (quotient_low_bits + (1 << shift)) & 0x7;
-        }
-
-        while (ax >= ay)
-        {
-            ax -= ay;
-            quotient_nonzero = true;
-            quotient_low_bits = (quotient_low_bits + 1) & 0x7;
-        }
-    }
-
-    double r = signbit(x) ? -ax : ax;
-    const double half = ay * 0.5;
-
-    if (ax > half || (ax == half && (quotient_low_bits & 1) != 0))
-    {
-        r -= signbit(r) ? -ay : ay;
-        quotient_nonzero = true;
-        quotient_low_bits = (quotient_low_bits + 1) & 0x7;
-    }
-
-    if (quo)
-    {
-        int bits = quotient_low_bits;
-        if (bits == 0 && quotient_nonzero)
-            bits = 8;
-        if (quotient_negative)
-            bits = -bits;
-        *quo = bits;
-    }
-
-    if (iszero(r))
-        r = signbit(x) ? -0.0 : 0.0;
-
-    return r;
+    return detail::_f64::remainder_constexpr_exact(x, y, quo);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double fma(double x, double y, double z) noexcept
@@ -1033,6 +1115,9 @@ namespace detail::_f64
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double modf(double x, double* iptr) noexcept
 {
+    if (!bl::use_constexpr_math())
+        return std::modf(x, iptr);
+
     const double i = trunc(x);
     if (iptr)
         *iptr = i;
@@ -1184,13 +1269,13 @@ namespace detail::_f64
 {
     if (!bl::use_constexpr_math())
         return std::asin(x);
-    return atan2(x, sqrt(1.0 - x * x));
+    return atan2(x, sqrt((1.0 - x) * (1.0 + x)));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr double acos(double x) noexcept
 {
     if (!bl::use_constexpr_math())
         return std::acos(x);
-    return atan2(sqrt(1.0 - x * x), x);
+    return 2.0 * atan2(sqrt(1.0 - x), sqrt(1.0 + x));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double sinh(double x) noexcept

@@ -343,12 +343,12 @@ namespace
     }
 }
 
-TEST_CASE("MPFR benchmark precision is comparable to f128", "[fltx][mpfr][precision]")
+TEST_CASE("MPFR benchmark precision is comparable to f128", "[fltx][mpfr][compare_precision]")
 {
     check_representative_precision_sweep<bl::f128>("bl::f128");
 }
 
-TEST_CASE("MPFR benchmark precision is comparable to f256", "[fltx][mpfr][precision]")
+TEST_CASE("MPFR benchmark precision is comparable to f256", "[fltx][mpfr][compare_precision]")
 {
     check_representative_precision_sweep<bl::f256>("bl::f256");
 }

@@ -16,7 +16,6 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
       }
-
     },
     {
       "name": "ninja-release",
@@ -27,7 +26,29 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
       }
-
+    },
+    {
+      "name": "mingw-debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/mingw-debug",
+      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
+      }
+    },
+    {
+      "name": "mingw-release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/mingw-release",
+      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
+        "VCPKG_HOST_TRIPLET": "x64-mingw-static",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
+      }
     },
     {
       "name": "wasm32-release",
@@ -55,8 +76,10 @@
   ],
 
   "buildPresets": [
-    { "name": "ninja-debug",    "configurePreset": "ninja-debug" },
-    { "name": "ninja-release",  "configurePreset": "ninja-release" },
-    { "name": "wasm32-release", "configurePreset": "wasm32-release" }
+    { "name": "ninja-debug",       "configurePreset": "ninja-debug" },
+    { "name": "ninja-release",     "configurePreset": "ninja-release" },
+    { "name": "04. mingw-debug",   "configurePreset": "mingw-debug" },
+    { "name": "05. mingw-release", "configurePreset": "mingw-release" },
+    { "name": "wasm32-release",    "configurePreset": "wasm32-release" }
   ]
 }

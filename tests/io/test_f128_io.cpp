@@ -175,6 +175,99 @@ TEST_CASE("f128 parses decimal and scientific strings accurately", "[fltx][f128]
         check_parse_case(text);
 }
 
+TEST_CASE("f128 parser handles special values, partial tokens, and invalid inputs", "[fltx][f128][io][parse][edge]")
+{
+    {
+        const char* text = " \t+infinity;";
+        const char* end = nullptr;
+        f128 parsed{};
+        REQUIRE(parse_flt128(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == ';');
+        REQUIRE(bl::isinf(parsed));
+        REQUIRE(!bl::signbit(parsed));
+    }
+    {
+        const char* text = "-inf tail";
+        const char* end = nullptr;
+        f128 parsed{};
+        REQUIRE(parse_flt128(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == ' ');
+        REQUIRE(bl::isinf(parsed));
+        REQUIRE(bl::signbit(parsed));
+    }
+    {
+        const char* text = "NaN(payload)";
+        const char* end = nullptr;
+        f128 parsed{};
+        REQUIRE(parse_flt128(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == '(');
+        REQUIRE(bl::isnan(parsed));
+    }
+    {
+        const char* text = "1.25tail";
+        const char* end = nullptr;
+        f128 parsed{};
+        REQUIRE(parse_flt128(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == 't');
+        require_close(parsed, to_ref("1.25"));
+    }
+    {
+        const char* text = "1e+oops";
+        const char* end = nullptr;
+        f128 parsed{};
+        REQUIRE(parse_flt128(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == 'e');
+        require_close(parsed, to_ref("1"));
+    }
+    {
+        const char* text = "1e100000000";
+        const char* end = nullptr;
+        f128 parsed{};
+        REQUIRE(parse_flt128(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == '\0');
+        REQUIRE(bl::isinf(parsed));
+        REQUIRE(!bl::signbit(parsed));
+    }
+    {
+        const char* text = "-1e-100000000";
+        const char* end = nullptr;
+        f128 parsed{ 1.0, 0.0 };
+        REQUIRE(parse_flt128(text, parsed, &end));
+        REQUIRE(end != nullptr);
+        REQUIRE(*end == '\0');
+        REQUIRE(bl::iszero(parsed));
+        REQUIRE(bl::signbit(parsed));
+    }
+
+    constexpr std::array<const char*, 6> invalid_cases = {{
+        "",
+        " ",
+        ".",
+        "+.",
+        "e10",
+        "--1"
+    }};
+
+    for (const char* text : invalid_cases)
+    {
+        const char* end = nullptr;
+        f128 parsed{ 42.0, 0.0 };
+        CAPTURE(text);
+        REQUIRE_FALSE(parse_flt128(text, parsed, &end));
+        REQUIRE(end == text);
+        REQUIRE(parsed.hi == 42.0);
+        REQUIRE(parsed.lo == 0.0);
+    }
+
+    REQUIRE(bl::iszero(to_f128("oops")));
+}
+
 TEST_CASE("f128 fixed zero formatting respects precision", "[fltx][f128][io][format]")
 {
     std::ostringstream out;
@@ -189,6 +282,30 @@ TEST_CASE("f128 fixed zero formatting respects precision", "[fltx][f128][io][for
     std::ostringstream neg_out;
     neg_out << std::fixed << std::setprecision(3) << f128{ -0.0, 0.0 };
     REQUIRE(neg_out.str() == "-0.000");
+}
+
+TEST_CASE("f128 formats special values and stream flags consistently", "[fltx][f128][io][format][edge]")
+{
+    const f128 inf = std::numeric_limits<f128>::infinity();
+    const f128 neg_inf = -inf;
+    const f128 nan = std::numeric_limits<f128>::quiet_NaN();
+
+    REQUIRE(bl::to_std_string(inf) == "inf");
+    REQUIRE(bl::to_std_string(neg_inf) == "-inf");
+    REQUIRE(bl::to_std_string(nan) == "nan");
+    REQUIRE(std::string(bl::to_static_string(to_f128("1.2500"), 4, true, false, true)) == "1.25");
+
+    std::ostringstream pos_upper;
+    pos_upper << std::showpos << std::uppercase << inf;
+    REQUIRE(pos_upper.str() == "+INF");
+
+    std::ostringstream neg_upper;
+    neg_upper << std::uppercase << neg_inf;
+    REQUIRE(neg_upper.str() == "-INF");
+
+    std::ostringstream nan_upper;
+    nan_upper << std::uppercase << nan;
+    REQUIRE(nan_upper.str() == "NAN");
 }
 
 TEST_CASE("f128 print and parse round-trip preserves explicit limb values", "[fltx][f128][io][roundtrip]")

@@ -298,7 +298,7 @@ struct small_parse_token
 };
 
 template<typename CharsResult, typename String, typename Writer>
-BL_FLTX_CONSTEXPR_NOINLINE constexpr void write_chars_to_string(String& out, std::size_t cap, Writer&& writer)
+BL_MSVC_NOINLINE constexpr void write_chars_to_string(String& out, std::size_t cap, Writer&& writer)
 {
     out.resize(cap);
     char* first = out.data();
@@ -398,7 +398,7 @@ constexpr inline std::size_t find_exponent_marker(std::string_view text) noexcep
 }
 
 template<typename String>
-inline BL_FLTX_CONSTEXPR_NOINLINE constexpr void ensure_decimal_point(String& s)
+inline BL_MSVC_NOINLINE constexpr void ensure_decimal_point(String& s)
 {
     const std::string_view view(s.data(), s.size());
     const std::size_t e = find_exponent_marker(view);
@@ -412,7 +412,7 @@ inline BL_FLTX_CONSTEXPR_NOINLINE constexpr void ensure_decimal_point(String& s)
 }
 
 template<typename String>
-inline BL_FLTX_CONSTEXPR_NOINLINE constexpr void apply_stream_decorations(String& s, bool showpos, bool uppercase)
+inline BL_MSVC_NOINLINE constexpr void apply_stream_decorations(String& s, bool showpos, bool uppercase)
 {
     if (showpos && (s.empty() || s[0] != '-'))
         s.insert(0, 1, '+');
@@ -522,7 +522,7 @@ BL_FORCE_INLINE constexpr void emit_scientific_sig(String& out, const typename T
 }
 
 template<typename Token>
-BL_FLTX_CONSTEXPR_NOINLINE constexpr void scan_decimal_digits(const char*& p, Token& token, bool fractional) noexcept
+BL_MSVC_NOINLINE constexpr void scan_decimal_digits(const char*& p, Token& token, bool fractional) noexcept
 {
     while (*p >= '0' && *p <= '9')
     {
@@ -542,7 +542,7 @@ BL_FLTX_CONSTEXPR_NOINLINE constexpr void scan_decimal_digits(const char*& p, To
 }
 
 template<typename Token>
-BL_FLTX_CONSTEXPR_NOINLINE constexpr void scan_optional_exp10(const char*& p, Token& token) noexcept
+BL_MSVC_NOINLINE constexpr void scan_optional_exp10(const char*& p, Token& token) noexcept
 {
     if (*p != 'e' && *p != 'E')
         return;
@@ -571,7 +571,7 @@ BL_FLTX_CONSTEXPR_NOINLINE constexpr void scan_optional_exp10(const char*& p, To
 }
 
 template<typename Token>
-BL_FLTX_CONSTEXPR_NOINLINE constexpr bool scan_decimal_token(const char*& p, Token& token) noexcept
+BL_MSVC_NOINLINE constexpr bool scan_decimal_token(const char*& p, Token& token) noexcept
 {
     scan_decimal_digits(p, token, false);
     if (*p == '.')
@@ -601,7 +601,7 @@ BL_FORCE_INLINE constexpr void append_small_decimal_digit(small_parse_token& tok
     token.coeff = token.coeff * 10 + udigit;
 }
 
-BL_FLTX_CONSTEXPR_NOINLINE constexpr void scan_small_decimal_digits(const char*& p, small_parse_token& token, bool fractional) noexcept
+BL_MSVC_NOINLINE constexpr void scan_small_decimal_digits(const char*& p, small_parse_token& token, bool fractional) noexcept
 {
     while (*p >= '0' && *p <= '9')
     {
@@ -619,7 +619,7 @@ BL_FLTX_CONSTEXPR_NOINLINE constexpr void scan_small_decimal_digits(const char*&
     }
 }
 
-BL_FLTX_CONSTEXPR_NOINLINE constexpr bool scan_small_decimal_token(const char*& p, small_parse_token& token) noexcept
+BL_MSVC_NOINLINE constexpr bool scan_small_decimal_token(const char*& p, small_parse_token& token) noexcept
 {
     scan_small_decimal_digits(p, token, false);
     if (*p == '.')
@@ -690,7 +690,7 @@ BL_FORCE_INLINE constexpr bool try_parse_compact_decimal(const small_parse_token
 }
 
 template<class Traits>
-BL_FLTX_CONSTEXPR_NOINLINE constexpr bool parse_special(const char*& p, bool neg, typename Traits::value_type& out) noexcept
+BL_MSVC_NOINLINE constexpr bool parse_special(const char*& p, bool neg, typename Traits::value_type& out) noexcept
 {
     if (ascii_lower(p[0]) == 'n' && ascii_lower(p[1]) == 'a' && ascii_lower(p[2]) == 'n')
     {
@@ -711,7 +711,7 @@ BL_FLTX_CONSTEXPR_NOINLINE constexpr bool parse_special(const char*& p, bool neg
 }
 
 template<class Traits>
-BL_FLTX_CONSTEXPR_NOINLINE constexpr bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
+BL_MSVC_NOINLINE constexpr bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
 {
     using token_type = typename Traits::parse_token;
     using coeff_type = typename token_type::coeff_type;

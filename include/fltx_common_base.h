@@ -45,22 +45,24 @@ static_assert(std::numeric_limits<double>::is_iec559 &&
 #endif
 #endif
 
+// Use when pairing BL_NO_INLINE with constexpr
 #if defined(_MSC_VER)
-#define BL_FLTX_CONSTEXPR_NOINLINE BL_NO_INLINE
+#define BL_MSVC_NOINLINE BL_NO_INLINE
 #else
-#define BL_FLTX_CONSTEXPR_NOINLINE
+#define BL_MSVC_NOINLINE
 #endif
 
 #ifndef FLTX_INLINE_LEVEL
 #define FLTX_INLINE_LEVEL 2
 #endif
 
+// Base inline aggressiveness (adjustable)
 #if FLTX_INLINE_LEVEL >= 2
 #define FLTX_CORE_INLINE BL_FORCE_INLINE
 #elif FLTX_INLINE_LEVEL == 1
-#define FLTX_CORE_INLINE inline
+#define FLTX_CORE_INLINE
 #else
-#define FLTX_CORE_INLINE BL_FLTX_CONSTEXPR_NOINLINE
+#define FLTX_CORE_INLINE BL_MSVC_NOINLINE
 #endif
 
 #ifndef BL_FAST_MATH

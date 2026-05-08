@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/mpfr.hpp>
 
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <iomanip>
@@ -31,7 +33,7 @@ namespace
     constexpr int printed_digits = std::numeric_limits<f128>::max_digits10;
 
     constexpr std::uint64_t random_seed = 1ull;
-    constexpr int random_sample_count_scale = 40;
+    constexpr int random_sample_count_scale = 100;
     constexpr const char* type_label = "f128";
 
     void print_random_run(const char* description, int count)
@@ -91,6 +93,91 @@ namespace
         return out.str();
     }
 
+    using ulp_count = boost::multiprecision::cpp_int;
+
+    struct ulp_distance_result
+    {
+        ulp_count value = 0;
+        bool exact = true;
+    };
+
+    [[nodiscard]] bool same_double_bits(double lhs, double rhs) noexcept
+    {
+        return std::bit_cast<std::uint64_t>(lhs) == std::bit_cast<std::uint64_t>(rhs);
+    }
+
+    [[nodiscard]] bool same_value_bits(const f128& lhs, const f128& rhs) noexcept
+    {
+        return same_double_bits(lhs.hi, rhs.hi) &&
+               same_double_bits(lhs.lo, rhs.lo);
+    }
+
+    [[nodiscard]] mpfr_ref scale_by_power_of_two(mpfr_ref value, int exponent)
+    {
+        if (exponent > 0)
+        {
+            for (int i = 0; i < exponent; ++i)
+                value *= 2;
+        }
+        else if (exponent < 0)
+        {
+            for (int i = 0; i < -exponent; ++i)
+                value /= 2;
+        }
+
+        return value;
+    }
+
+    [[nodiscard]] f128 round_ref_to_f128(const mpfr_ref& value)
+    {
+        const std::string text = to_text(value);
+        return to_f128(text.c_str());
+    }
+
+    [[nodiscard]] mpfr_ref nominal_ulp_size(const f128& reference, const f128& fallback)
+    {
+        double lead = std::fabs(reference.hi);
+        if (lead == 0.0)
+            lead = std::fabs(fallback.hi);
+        if (lead == 0.0)
+            return mpfr_ref{ std::numeric_limits<double>::denorm_min() };
+
+        int exponent = 0;
+        (void)std::frexp(lead, &exponent);
+        return scale_by_power_of_two(mpfr_ref{ 1 }, exponent - std::numeric_limits<f128>::digits);
+    }
+
+    [[nodiscard]] ulp_count ceil_to_ulp_count(const mpfr_ref& value)
+    {
+        if (value <= 0)
+            return 0;
+
+        return boost::multiprecision::ceil(value).template convert_to<ulp_count>();
+    }
+
+    [[nodiscard]] ulp_distance_result ulp_distance(const f128& lhs, const f128& rhs)
+    {
+        if (bl::isnan(lhs) || bl::isnan(rhs))
+            return { 0, false };
+
+        if (!bl::isfinite(lhs) || !bl::isfinite(rhs))
+            return { same_value_bits(lhs, rhs) ? ulp_count{ 0 } : ulp_count{ 1 }, same_value_bits(lhs, rhs) };
+
+        const mpfr_ref lhs_ref = to_ref_exact(lhs);
+        const mpfr_ref rhs_ref = to_ref_exact(rhs);
+        if (lhs_ref == rhs_ref)
+            return { 0, true };
+
+        const mpfr_ref diff = abs_ref(lhs_ref - rhs_ref);
+        const mpfr_ref ulp = nominal_ulp_size(rhs, lhs);
+        return { ceil_to_ulp_count(diff / ulp), true };
+    }
+
+    [[nodiscard]] ulp_distance_result true_ulp_distance_from_reference(const f128& got, const mpfr_ref& expected)
+    {
+        return ulp_distance(got, round_ref_to_f128(expected));
+    }
+
     [[nodiscard]] big random_finite_for_f128(std::mt19937_64& rng)
     {
         std::uniform_int_distribution<int> sign_dist(0, 1);
@@ -129,6 +216,9 @@ namespace
         int samples = 0;
         int passed = 0;
         std::vector<double> achieved_digits;
+        ulp_count worst_ulp = 0;
+        bool worst_ulp_exact = true;
+        int inexact_ulp_samples = 0;
     };
 
     class accuracy_report_scope;
@@ -180,8 +270,8 @@ namespace
     class accuracy_report_scope
     {
     public:
-        explicit accuracy_report_scope(const char* test_name)
-            : test_name(test_name), previous(current_accuracy_report_scope)
+        explicit accuracy_report_scope(const char* test_name, bool report_ulp = true)
+            : test_name(test_name), report_ulp(report_ulp), previous(current_accuracy_report_scope)
         {
             current_accuracy_report_scope = this;
         }
@@ -209,32 +299,74 @@ namespace
                           << ", median " << median << "/" << checked_digits
                           << " digits (" << normalized_accuracy_percent(median) << "%)"
                           << ", worst " << worst << "/" << checked_digits
-                          << " digits (" << normalized_accuracy_percent(worst) << "%)\n";
+                          << " digits (" << normalized_accuracy_percent(worst) << "%)";
+
+                if (report_ulp)
+                {
+                    std::cout << ", worst ulp ";
+                    if (!entry.worst_ulp_exact)
+                        std::cout << ">=";
+                    std::cout << entry.worst_ulp;
+                    if (entry.inexact_ulp_samples != 0)
+                        std::cout << " (" << entry.inexact_ulp_samples << " capped)";
+                }
+                else
+                {
+                    std::cout << ", local ulp omitted";
+                }
+                std::cout << "\n";
             }
 
             std::cout.flags(old_flags);
             std::cout.precision(old_precision);
         }
 
-        void record(const char* op_name, const mpfr_ref& diff, const mpfr_ref& scale, bool passed)
+        void record(
+            const char* op_name,
+            const mpfr_ref& diff,
+            const mpfr_ref& scale,
+            const f128& got,
+            const mpfr_ref& expected,
+            bool passed)
         {
             auto& entry = stats[op_name];
             ++entry.samples;
             if (passed)
                 ++entry.passed;
             entry.achieved_digits.push_back(achieved_digits_from_error(diff, scale));
+
+            const ulp_distance_result ulps = true_ulp_distance_from_reference(got, expected);
+            if (!ulps.exact)
+                ++entry.inexact_ulp_samples;
+
+            if (ulps.value > entry.worst_ulp)
+            {
+                entry.worst_ulp = ulps.value;
+                entry.worst_ulp_exact = ulps.exact;
+            }
+            else if (ulps.value == entry.worst_ulp && !ulps.exact)
+            {
+                entry.worst_ulp_exact = false;
+            }
         }
 
     private:
         std::string test_name;
+        bool report_ulp = true;
         accuracy_report_scope* previous = nullptr;
         std::map<std::string, accuracy_stats_entry> stats;
     };
 
-    void record_accuracy_sample(const char* op_name, const mpfr_ref& diff, const mpfr_ref& scale, bool passed)
+    void record_accuracy_sample(
+        const char* op_name,
+        const f128& got,
+        const mpfr_ref& expected,
+        const mpfr_ref& diff,
+        const mpfr_ref& scale,
+        bool passed)
     {
         if (current_accuracy_report_scope != nullptr)
-            current_accuracy_report_scope->record(op_name, diff, scale, passed);
+            current_accuracy_report_scope->record(op_name, diff, scale, got, expected, passed);
     }
 
     template<typename F128Op, typename RefOp>
@@ -267,7 +399,7 @@ namespace
         CAPTURE(to_text_double_hex(got.hi));
         CAPTURE(to_text_double_hex(got.lo));
 
-        record_accuracy_sample(op_name, diff, scale, diff <= tolerance);
+        record_accuracy_sample(op_name, got, expected, diff, scale, diff <= tolerance);
         REQUIRE(diff <= tolerance);
     }
 
@@ -306,7 +438,7 @@ namespace
         //CAPTURE(to_text_double_hex(got.hi));
         //CAPTURE(to_text_double_hex(got.lo));
 
-        record_accuracy_sample(op_name, diff, scale, diff <= tolerance);
+        record_accuracy_sample(op_name, got, expected, diff, scale, diff <= tolerance);
         REQUIRE(diff <= tolerance);
     }
 
@@ -358,7 +490,7 @@ namespace
         //CAPTURE(to_text_double_hex(got.hi));
         //CAPTURE(to_text_double_hex(got.lo));
 
-        record_accuracy_sample(op_name, diff, accuracy_scale, diff <= tolerance);
+        record_accuracy_sample(op_name, got, expected, diff, accuracy_scale, diff <= tolerance);
         REQUIRE(diff <= tolerance);
     }
 
@@ -406,7 +538,7 @@ namespace
         CAPTURE(to_text_double_hex(got.hi));
         CAPTURE(to_text_double_hex(got.lo));
 
-        record_accuracy_sample(op_name, diff, accuracy_scale, diff <= tolerance);
+        record_accuracy_sample(op_name, got, expected, diff, accuracy_scale, diff <= tolerance);
         CHECK(diff <= tolerance);
     }
 
@@ -436,6 +568,12 @@ namespace
         if ((rounded - value) == mpfr_ref{ "0.5" } && ref_fmod(rounded, mpfr_ref{ 2 }) != mpfr_ref{ 0 })
             rounded -= 1;
         return rounded;
+    }
+    [[nodiscard]] mpfr_ref ref_round_half_away_zero(const mpfr_ref& value)
+    {
+        return value < 0
+            ? ref_ceil(value - mpfr_ref{ "0.5" })
+            : ref_floor(value + mpfr_ref{ "0.5" });
     }
 
     [[nodiscard]] const mpfr_ref& ln2_ref()
@@ -687,7 +825,7 @@ namespace
         CAPTURE(to_text_double_hex(got.hi));
         CAPTURE(to_text_double_hex(got.lo));
 
-        record_accuracy_sample("ldexp", diff, scale, diff <= tolerance);
+        record_accuracy_sample("ldexp", got, expected, diff, scale, diff <= tolerance);
         REQUIRE(diff <= tolerance);
     }
 
@@ -788,6 +926,30 @@ namespace
         REQUIRE(got.lo == expected.lo);
     }
 
+    [[nodiscard]] bool same_bits(double lhs, double rhs) noexcept
+    {
+        return std::bit_cast<std::uint64_t>(lhs) == std::bit_cast<std::uint64_t>(rhs);
+    }
+
+    void require_canonical_value(const char* label, const f128& got)
+    {
+        CAPTURE(label);
+        CAPTURE(to_text(got));
+        CAPTURE(to_text_double_hex(got.hi));
+        CAPTURE(to_text_double_hex(got.lo));
+
+        if (!bl::isfinite(got) || bl::iszero(got))
+            return;
+
+        const f128 expected = detail::_f128::renorm(got.hi, got.lo);
+        CAPTURE(to_text(expected));
+        CAPTURE(to_text_double_hex(expected.hi));
+        CAPTURE(to_text_double_hex(expected.lo));
+
+        REQUIRE(same_bits(got.hi, expected.hi));
+        REQUIRE(same_bits(got.lo, expected.lo));
+    }
+
     void check_sincos_case(
         const char* label,
         const mpfr_ref& input,
@@ -825,7 +987,7 @@ namespace
             CAPTURE(to_text(expected_s));
             CAPTURE(to_text(diff));
             CAPTURE(to_text(tolerance));
-            record_accuracy_sample("sincos.sin", diff, accuracy_scale, diff <= tolerance);
+            record_accuracy_sample("sincos.sin", got_s, expected_s, diff, accuracy_scale, diff <= tolerance);
             REQUIRE(diff <= tolerance);
         }
 
@@ -846,7 +1008,7 @@ namespace
             CAPTURE(to_text(expected_c));
             CAPTURE(to_text(diff));
             CAPTURE(to_text(tolerance));
-            record_accuracy_sample("sincos.cos", diff, accuracy_scale, diff <= tolerance);
+            record_accuracy_sample("sincos.cos", got_c, expected_c, diff, accuracy_scale, diff <= tolerance);
             REQUIRE(diff <= tolerance);
         }
     }
@@ -896,7 +1058,7 @@ namespace
         CAPTURE(to_text(diff));
         CAPTURE(to_text(tolerance));
 
-        record_accuracy_sample("remquo", diff, accuracy_scale, diff <= tolerance);
+        record_accuracy_sample("remquo", got, expected, diff, accuracy_scale, diff <= tolerance);
         REQUIRE(diff <= tolerance);
         REQUIRE(got_quo == expected_quo);
     }
@@ -987,7 +1149,6 @@ TEST_CASE("f128 sin matches MPFR for fixed values", "[fltx][f128][precision][tra
     const mpfr_ref quarter_pi = pi / 4;
     const mpfr_ref third_pi = pi / 3;
     const mpfr_ref sixth_pi = pi / 6;
-    const mpfr_ref two_pi = pi * 2;
     const mpfr_ref tiny{ "1e-20" };
 
     const mpfr_ref reduced_abs_tolerance{ "1e-31" };
@@ -1003,6 +1164,18 @@ TEST_CASE("f128 sin matches MPFR for fixed values", "[fltx][f128][precision][tra
     check_sin_case("pi_over_4", quarter_pi, reduced_abs_tolerance, reduced_rel_tolerance);
     check_sin_case("pi_over_3", third_pi, reduction_abs_tolerance, reduction_rel_tolerance);
     check_sin_case("pi_over_2", half_pi, reduction_abs_tolerance, reduction_rel_tolerance);
+}
+
+TEST_CASE("f128 sin matches MPFR for fixed argument-reduction stress values", "[fltx][f128][precision][transcendental][trig][sin][reduction]")
+{
+    accuracy_report_scope report_scope{ "f128 sin matches MPFR for fixed argument-reduction stress values", false };
+    const mpfr_ref pi = pi_ref();
+    const mpfr_ref two_pi = pi * 2;
+    const mpfr_ref tiny{ "1e-20" };
+
+    const mpfr_ref reduction_abs_tolerance{ "2e-26" };
+    const mpfr_ref reduction_rel_tolerance{ "2e-25" };
+
     check_sin_case("pi_minus_tiny", pi - tiny, reduction_abs_tolerance, reduction_rel_tolerance);
     check_sin_case("pi_plus_tiny", pi + tiny, reduction_abs_tolerance, reduction_rel_tolerance);
     check_sin_case("two_pi_minus_tiny", two_pi - tiny, reduction_abs_tolerance, reduction_rel_tolerance);
@@ -1041,22 +1214,28 @@ TEST_CASE("f128 sin matches MPFR on random reduced-range inputs", "[fltx][f128][
     }
 }
 
-TEST_CASE("f128 sin matches MPFR on random range-reduced inputs", "[fltx][f128][precision][transcendental][trig][sin]")
+TEST_CASE("f128 sin matches MPFR on random range-reduced inputs away from zero-crossings", "[fltx][f128][precision][transcendental][trig][sin][reduction]")
 {
-    accuracy_report_scope report_scope{ "f128 sin matches MPFR on random range-reduced inputs" };
+    accuracy_report_scope report_scope{ "f128 sin matches MPFR on random range-reduced inputs away from zero-crossings" };
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "2e-26" };
     const mpfr_ref rel_tolerance{ "2e-25" };
-    print_random_run("random range-reduced sin cases", count);
+    const mpfr_ref zero_crossing_threshold{ "0.125" };
+    print_random_run("random range-reduced sin cases away from zero-crossings", count);
 
-    for (int i = 0; i < count; ++i)
+    for (int i = 0, attempts = 0; i < count; ++attempts)
     {
         const mpfr_ref input = random_sine_reduction_argument_for_f128(rng);
+        const mpfr_ref expected = boost::multiprecision::sin(input);
+        if (abs_ref(expected) < zero_crossing_threshold)
+            continue;
+
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
+        INFO("attempt: " << attempts);
         INFO("input_text: " << input_text);
 
         check_unary_op_with_tolerance(
@@ -1066,6 +1245,44 @@ TEST_CASE("f128 sin matches MPFR on random range-reduced inputs", "[fltx][f128][
             rel_tolerance,
             [](const f128& value) { return bl::sin(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::sin(value); });
+
+        ++i;
+    }
+}
+
+TEST_CASE("f128 sin matches MPFR on random range-reduced zero-crossing stress inputs", "[fltx][f128][precision][transcendental][trig][sin][reduction][zero-crossing]")
+{
+    accuracy_report_scope report_scope{ "f128 sin matches MPFR on random range-reduced zero-crossing stress inputs", false };
+    std::mt19937_64 rng{ random_seed };
+
+    constexpr int count = 64 * random_sample_count_scale;
+    const mpfr_ref abs_tolerance{ "2e-26" };
+    const mpfr_ref rel_tolerance{ "2e-25" };
+    const mpfr_ref zero_crossing_threshold{ "0.125" };
+    print_random_run("random range-reduced sin zero-crossing stress cases", count);
+
+    for (int i = 0, attempts = 0; i < count; ++attempts)
+    {
+        const mpfr_ref input = random_sine_reduction_argument_for_f128(rng);
+        const mpfr_ref expected = boost::multiprecision::sin(input);
+        if (abs_ref(expected) >= zero_crossing_threshold)
+            continue;
+
+        const std::string input_text = to_scientific_text(input, printed_digits + 4);
+
+        INFO("iteration: " << i);
+        INFO("attempt: " << attempts);
+        INFO("input_text: " << input_text);
+
+        check_unary_op_with_tolerance(
+            "sin",
+            input_text.c_str(),
+            abs_tolerance,
+            rel_tolerance,
+            [](const f128& value) { return bl::sin(value); },
+            [](const mpfr_ref& value) { return boost::multiprecision::sin(value); });
+
+        ++i;
     }
 }
 
@@ -1073,11 +1290,9 @@ TEST_CASE("f128 cos matches MPFR for fixed values", "[fltx][f128][precision][tra
 {
     accuracy_report_scope report_scope{ "f128 cos matches MPFR for fixed values" };
     const mpfr_ref pi = pi_ref();
-    const mpfr_ref half_pi = pi / 2;
     const mpfr_ref quarter_pi = pi / 4;
     const mpfr_ref third_pi = pi / 3;
     const mpfr_ref sixth_pi = pi / 6;
-    const mpfr_ref two_pi = pi * 2;
     const mpfr_ref tiny{ "1e-20" };
 
     const mpfr_ref reduced_abs_tolerance{ "1e-31" };
@@ -1092,6 +1307,19 @@ TEST_CASE("f128 cos matches MPFR for fixed values", "[fltx][f128][precision][tra
     check_cos_case("pi_over_6", sixth_pi, reduced_abs_tolerance, reduced_rel_tolerance);
     check_cos_case("pi_over_4", quarter_pi, reduced_abs_tolerance, reduced_rel_tolerance);
     check_cos_case("pi_over_3", third_pi, reduction_abs_tolerance, reduction_rel_tolerance);
+}
+
+TEST_CASE("f128 cos matches MPFR for fixed argument-reduction stress values", "[fltx][f128][precision][transcendental][trig][cos][reduction]")
+{
+    accuracy_report_scope report_scope{ "f128 cos matches MPFR for fixed argument-reduction stress values", false };
+    const mpfr_ref pi = pi_ref();
+    const mpfr_ref half_pi = pi / 2;
+    const mpfr_ref two_pi = pi * 2;
+    const mpfr_ref tiny{ "1e-20" };
+
+    const mpfr_ref reduction_abs_tolerance{ "2e-26" };
+    const mpfr_ref reduction_rel_tolerance{ "2e-25" };
+
     check_cos_case("pi_over_2", half_pi, reduction_abs_tolerance, reduction_rel_tolerance);
     check_cos_case("pi_minus_tiny", pi - tiny, reduction_abs_tolerance, reduction_rel_tolerance);
     check_cos_case("pi_plus_tiny", pi + tiny, reduction_abs_tolerance, reduction_rel_tolerance);
@@ -1131,22 +1359,28 @@ TEST_CASE("f128 cos matches MPFR on random reduced-range inputs", "[fltx][f128][
     }
 }
 
-TEST_CASE("f128 cos matches MPFR on random range-reduced inputs", "[fltx][f128][precision][transcendental][trig][cos]")
+TEST_CASE("f128 cos matches MPFR on random range-reduced inputs away from zero-crossings", "[fltx][f128][precision][transcendental][trig][cos][reduction]")
 {
-    accuracy_report_scope report_scope{ "f128 cos matches MPFR on random range-reduced inputs" };
+    accuracy_report_scope report_scope{ "f128 cos matches MPFR on random range-reduced inputs away from zero-crossings" };
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "2e-26" };
     const mpfr_ref rel_tolerance{ "2e-25" };
-    print_random_run("random range-reduced cos cases", count);
+    const mpfr_ref zero_crossing_threshold{ "0.125" };
+    print_random_run("random range-reduced cos cases away from zero-crossings", count);
 
-    for (int i = 0; i < count; ++i)
+    for (int i = 0, attempts = 0; i < count; ++attempts)
     {
         const mpfr_ref input = random_sine_reduction_argument_for_f128(rng);
+        const mpfr_ref expected = boost::multiprecision::cos(input);
+        if (abs_ref(expected) < zero_crossing_threshold)
+            continue;
+
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
+        INFO("attempt: " << attempts);
         INFO("input_text: " << input_text);
 
         check_unary_op_with_tolerance(
@@ -1156,6 +1390,44 @@ TEST_CASE("f128 cos matches MPFR on random range-reduced inputs", "[fltx][f128][
             rel_tolerance,
             [](const f128& value) { return bl::cos(value); },
             [](const mpfr_ref& value) { return boost::multiprecision::cos(value); });
+
+        ++i;
+    }
+}
+
+TEST_CASE("f128 cos matches MPFR on random range-reduced zero-crossing stress inputs", "[fltx][f128][precision][transcendental][trig][cos][reduction][zero-crossing]")
+{
+    accuracy_report_scope report_scope{ "f128 cos matches MPFR on random range-reduced zero-crossing stress inputs", false };
+    std::mt19937_64 rng{ random_seed };
+
+    constexpr int count = 64 * random_sample_count_scale;
+    const mpfr_ref abs_tolerance{ "2e-26" };
+    const mpfr_ref rel_tolerance{ "2e-25" };
+    const mpfr_ref zero_crossing_threshold{ "0.125" };
+    print_random_run("random range-reduced cos zero-crossing stress cases", count);
+
+    for (int i = 0, attempts = 0; i < count; ++attempts)
+    {
+        const mpfr_ref input = random_sine_reduction_argument_for_f128(rng);
+        const mpfr_ref expected = boost::multiprecision::cos(input);
+        if (abs_ref(expected) >= zero_crossing_threshold)
+            continue;
+
+        const std::string input_text = to_scientific_text(input, printed_digits + 4);
+
+        INFO("iteration: " << i);
+        INFO("attempt: " << attempts);
+        INFO("input_text: " << input_text);
+
+        check_unary_op_with_tolerance(
+            "cos",
+            input_text.c_str(),
+            abs_tolerance,
+            rel_tolerance,
+            [](const f128& value) { return bl::cos(value); },
+            [](const mpfr_ref& value) { return boost::multiprecision::cos(value); });
+
+        ++i;
     }
 }
 
@@ -1197,7 +1469,7 @@ TEST_CASE("f128 floor ceil trunc and round match MPFR for fixed values", "[fltx]
 
         check_unary_op("round", input,
             [](const f128& value) { return bl::round(value); },
-            [](const mpfr_ref& value) { return ref_round_to_even(value); });
+            [](const mpfr_ref& value) { return ref_round_half_away_zero(value); });
     }
 }
 
@@ -1247,7 +1519,7 @@ TEST_CASE("f128 floor ceil trunc and round match MPFR on random finite inputs", 
 
         check_unary_op("round", input_text.c_str(),
             [](const f128& value) { return bl::round(value); },
-            [](const mpfr_ref& value) { return ref_round_to_even(value); });
+            [](const mpfr_ref& value) { return ref_round_half_away_zero(value); });
     }
 }
 
@@ -1773,7 +2045,7 @@ TEST_CASE("f128 utility math helpers behave correctly for fixed values", "[fltx]
         if (scale < 1)
             scale = 1;
         const mpfr_ref tolerance = decimal_epsilon(checked_digits) * scale;
-        record_accuracy_sample("fma", diff, scale, diff <= tolerance);
+        record_accuracy_sample("fma", got, expected, diff, scale, diff <= tolerance);
         REQUIRE(diff <= tolerance);
     }
     {
@@ -1829,7 +2101,7 @@ TEST_CASE("f128 utility math helpers behave correctly for fixed values", "[fltx]
             CAPTURE(exponent);
             CAPTURE(to_text(got));
             CAPTURE(to_text(expected));
-            record_accuracy_sample("pow10_128", diff, scale, diff <= tolerance);
+            record_accuracy_sample("pow10_128", got, expected, diff, scale, diff <= tolerance);
             REQUIRE(diff <= tolerance);
         }
     }
@@ -1846,6 +2118,98 @@ TEST_CASE("f128 utility math helpers behave correctly for fixed values", "[fltx]
         REQUIRE(bl::llrint(to_f128("-2.5")) == -2LL);
         REQUIRE(bl::llrint(to_f128("-3.5")) == -4LL);
     }
+}
+
+TEST_CASE("f128 public math results remain canonical on edge-shaped inputs", "[fltx][f128][math][canonical]")
+{
+    accuracy_report_scope report_scope{ "f128 public math results remain canonical on edge-shaped inputs" };
+
+    const f128 a = detail::_f128::renorm(1.0, std::ldexp(1.0, -60));
+    const f128 b = detail::_f128::renorm(-0.375, -std::ldexp(1.0, -64));
+    const f128 domain = detail::_f128::renorm(0.625, std::ldexp(1.0, -62));
+    const f128 positive = detail::_f128::renorm(1.125, std::ldexp(1.0, -60));
+    const f128 gamma_arg = detail::_f128::renorm(1.75, std::ldexp(1.0, -62));
+    const f128 target = to_f128("2.0");
+
+    require_canonical_value("operator+", a + b);
+    require_canonical_value("operator-", a - b);
+    require_canonical_value("operator*", a * domain);
+    require_canonical_value("operator/", a / positive);
+    require_canonical_value("unary-", -a);
+
+    require_canonical_value("abs", bl::abs(b));
+    require_canonical_value("fabs", bl::fabs(b));
+    require_canonical_value("clamp", bl::clamp(a, domain, positive));
+    require_canonical_value("floor", bl::floor(b));
+    require_canonical_value("ceil", bl::ceil(b));
+    require_canonical_value("trunc", bl::trunc(b));
+    require_canonical_value("round", bl::round(b));
+    require_canonical_value("nearbyint", bl::nearbyint(b));
+    require_canonical_value("rint", bl::rint(b));
+
+    require_canonical_value("fma", bl::fma(a, positive, b));
+    require_canonical_value("fmin", bl::fmin(a, b));
+    require_canonical_value("fmax", bl::fmax(a, b));
+    require_canonical_value("fdim", bl::fdim(a, domain));
+    require_canonical_value("copysign", bl::copysign(a, b));
+
+    require_canonical_value("fmod", bl::fmod(a, domain));
+    require_canonical_value("remainder", bl::remainder(a, domain));
+    int quo = 0;
+    require_canonical_value("remquo", bl::remquo(a, domain, &quo));
+
+    require_canonical_value("sqrt", bl::sqrt(positive));
+    require_canonical_value("cbrt", bl::cbrt(b));
+    require_canonical_value("hypot", bl::hypot(a, b));
+    require_canonical_value("pow", bl::pow(positive, domain));
+    require_canonical_value("pow10_128", bl::pow10_128(-3));
+
+    require_canonical_value("exp", bl::exp(domain));
+    require_canonical_value("exp2", bl::exp2(domain));
+    require_canonical_value("expm1", bl::expm1(domain));
+    require_canonical_value("log", bl::log(positive));
+    require_canonical_value("log2", bl::log2(positive));
+    require_canonical_value("log10", bl::log10(positive));
+    require_canonical_value("log1p", bl::log1p(domain));
+
+    f128 sin_value{};
+    f128 cos_value{};
+    REQUIRE(bl::sincos(domain, sin_value, cos_value));
+    require_canonical_value("sincos.sin", sin_value);
+    require_canonical_value("sincos.cos", cos_value);
+    require_canonical_value("sin", bl::sin(domain));
+    require_canonical_value("cos", bl::cos(domain));
+    require_canonical_value("tan", bl::tan(domain));
+    require_canonical_value("atan", bl::atan(domain));
+    require_canonical_value("atan2", bl::atan2(b, a));
+    require_canonical_value("asin", bl::asin(domain));
+    require_canonical_value("acos", bl::acos(domain));
+
+    require_canonical_value("sinh", bl::sinh(domain));
+    require_canonical_value("cosh", bl::cosh(domain));
+    require_canonical_value("tanh", bl::tanh(domain));
+    require_canonical_value("asinh", bl::asinh(b));
+    require_canonical_value("acosh", bl::acosh(positive));
+    require_canonical_value("atanh", bl::atanh(domain));
+
+    int exponent = 0;
+    require_canonical_value("frexp", bl::frexp(a, &exponent));
+    f128 integer_part{};
+    require_canonical_value("modf.frac", bl::modf(a, &integer_part));
+    require_canonical_value("modf.int", integer_part);
+    require_canonical_value("ldexp", bl::ldexp(a, 7));
+    require_canonical_value("scalbn", bl::scalbn(a, -7));
+    require_canonical_value("scalbln", bl::scalbln(a, 7));
+    require_canonical_value("logb", bl::logb(a));
+    require_canonical_value("nextafter", bl::nextafter(a, target));
+    require_canonical_value("nexttoward.f128", bl::nexttoward(a, target));
+    require_canonical_value("nexttoward.longdouble", bl::nexttoward(a, static_cast<long double>(2.0)));
+    require_canonical_value("round_to_decimals", bl::round_to_decimals(to_f128("1.23456789"), 5));
+
+    require_canonical_value("erf", bl::erf(domain));
+    require_canonical_value("erfc", bl::erfc(domain));
+    require_canonical_value("lgamma", bl::lgamma(gamma_arg));
+    require_canonical_value("tgamma", bl::tgamma(gamma_arg));
 }
 
 TEST_CASE("f128 sincos matches MPFR for fixed values", "[fltx][f128][precision][transcendental][trig][sincos]")
@@ -2656,7 +3020,7 @@ TEST_CASE("f128 decomposition and stepping functions behave correctly", "[fltx][
         CAPTURE(to_text(rebuilt));
         REQUIRE(abs_ref(to_ref_exact(mantissa)) >= mpfr_ref{ 0.5 });
         REQUIRE(abs_ref(to_ref_exact(mantissa)) < mpfr_ref{ 1.0 });
-        record_accuracy_sample("frexp", diff, scale, diff <= tolerance);
+        record_accuracy_sample("frexp", rebuilt, to_ref_exact(input), diff, scale, diff <= tolerance);
         REQUIRE(diff <= tolerance);
     }
     {

@@ -21,7 +21,7 @@
 
 namespace bl
 {
-    BL_FORCE_INLINE constexpr bl::default_io_string to_string(f32 value,
+    BL_FORCE_INLINE constexpr bl::default_io_string to_static_string(f32 value,
         int precision = std::numeric_limits<f32>::digits10,
         bool fixed = false,
         bool scientific = false,
@@ -30,7 +30,7 @@ namespace bl
         return to_static_string((f128)value, precision, fixed, scientific, strip_trailing_zeros);
     }
 
-    BL_FORCE_INLINE constexpr bl::default_io_string to_string(f64 value,
+    BL_FORCE_INLINE constexpr bl::default_io_string to_static_string(f64 value,
         int precision = std::numeric_limits<f64>::digits10,
         bool fixed = false,
         bool scientific = false,
@@ -39,7 +39,7 @@ namespace bl
         return to_static_string((f128)value, precision, fixed, scientific, strip_trailing_zeros);
     }
 
-    BL_FORCE_INLINE std::string to_std_string(f32 a,
+    BL_FORCE_INLINE std::string to_string(f32 a,
         int precision = std::numeric_limits<f32>::digits10,
         bool fixed = false,
         bool scientific = false,
@@ -57,7 +57,7 @@ namespace bl
         return out;
     }
 
-    BL_FORCE_INLINE std::string to_std_string(f64 a,
+    BL_FORCE_INLINE std::string to_string(f64 a,
         int precision = std::numeric_limits<f64>::digits10,
         bool fixed = false,
         bool scientific = false,

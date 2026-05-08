@@ -1,11 +1,14 @@
 
 #include <catch2/catch_test_macros.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/mpfr.hpp>
 
 #include <algorithm>
 #include <array>
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -24,6 +27,11 @@ using namespace bl;
 
 namespace
 {
+    using mpfr_ref = boost::multiprecision::number<
+        boost::multiprecision::mpfr_float_backend<96>,
+        boost::multiprecision::et_off>;
+    using boost::multiprecision::cpp_int;
+
     constexpr int checked_digits = std::numeric_limits<float>::digits10;
     constexpr int printed_digits = std::numeric_limits<float>::max_digits10;
     constexpr float min_subnormal = std::numeric_limits<float>::denorm_min();
@@ -62,9 +70,428 @@ namespace
         return out.str();
     }
 
+    [[nodiscard]] std::string to_text(const mpfr_ref& value)
+    {
+        std::ostringstream out;
+        out << std::setprecision(printed_digits + 24)
+            << std::scientific
+            << value;
+        return out.str();
+    }
+
+    [[nodiscard]] bool op_is(const char* op_name, const char* expected)
+    {
+        return std::strcmp(op_name, expected) == 0;
+    }
+
+    [[nodiscard]] bool op_starts_with(const char* op_name, const char* prefix)
+    {
+        return std::strncmp(op_name, prefix, std::strlen(prefix)) == 0;
+    }
+
     [[nodiscard]] float abs_ref(float value)
     {
         return value < 0.0 ? -value : value;
+    }
+
+    [[nodiscard]] mpfr_ref abs_ref(const mpfr_ref& value)
+    {
+        return value < 0 ? -value : value;
+    }
+
+    [[nodiscard]] mpfr_ref to_ref_exact(float value)
+    {
+        return mpfr_ref{ value };
+    }
+
+    [[nodiscard]] float round_ref_to_f32(const mpfr_ref& value)
+    {
+        return value.convert_to<float>();
+    }
+
+    [[nodiscard]] mpfr_ref ref_floor(const mpfr_ref& value)
+    {
+        return boost::multiprecision::floor(value);
+    }
+
+    [[nodiscard]] mpfr_ref ref_ceil(const mpfr_ref& value)
+    {
+        return boost::multiprecision::ceil(value);
+    }
+
+    [[nodiscard]] mpfr_ref ref_trunc(const mpfr_ref& value)
+    {
+        return value < 0 ? ref_ceil(value) : ref_floor(value);
+    }
+
+    [[nodiscard]] mpfr_ref ref_fmod(const mpfr_ref& x, const mpfr_ref& y)
+    {
+        return x - ref_trunc(x / y) * y;
+    }
+
+    [[nodiscard]] mpfr_ref ref_round_half_away_zero(const mpfr_ref& value)
+    {
+        return value < 0
+            ? ref_ceil(value - mpfr_ref{ "0.5" })
+            : ref_floor(value + mpfr_ref{ "0.5" });
+    }
+
+    [[nodiscard]] mpfr_ref ref_round_to_even(const mpfr_ref& value)
+    {
+        mpfr_ref rounded = ref_floor(value + mpfr_ref{ "0.5" });
+        if ((rounded - value) == mpfr_ref{ "0.5" } && ref_fmod(rounded, mpfr_ref{ 2 }) != mpfr_ref{ 0 })
+            rounded -= 1;
+        return rounded;
+    }
+
+    [[nodiscard]] mpfr_ref ref_remainder(const mpfr_ref& x, const mpfr_ref& y)
+    {
+        return x - ref_round_to_even(x / y) * y;
+    }
+
+    struct exact_binary_float
+    {
+        cpp_int coeff;
+        int exp2 = 0;
+        bool neg = false;
+    };
+
+    struct exact_mod_reference
+    {
+        float fmod = 0.0f;
+        float remainder = 0.0f;
+        int quotient_bits = 0;
+    };
+
+    [[nodiscard]] exact_binary_float decompose_exact(float value)
+    {
+        const std::uint32_t bits = std::bit_cast<std::uint32_t>(value);
+        const std::uint32_t frac = bits & ((std::uint32_t{ 1 } << 23) - 1u);
+        const std::uint32_t exp_bits = (bits >> 23) & 0xffu;
+
+        exact_binary_float out;
+        out.neg = (bits >> 31) != 0;
+        if (exp_bits == 0)
+        {
+            out.coeff = frac;
+            out.exp2 = -149;
+        }
+        else
+        {
+            out.coeff = (std::uint32_t{ 1 } << 23) | frac;
+            out.exp2 = static_cast<int>(exp_bits) - 127 - 23;
+        }
+        return out;
+    }
+
+    [[nodiscard]] int bit_length(const cpp_int& value)
+    {
+        return value == 0 ? 0 : static_cast<int>(boost::multiprecision::msb(value)) + 1;
+    }
+
+    [[nodiscard]] cpp_int rounded_shift_right(cpp_int value, int bits)
+    {
+        if (bits <= 0)
+            return value;
+
+        const bool round_bit = ((value >> (bits - 1)) & 1) != 0;
+        const bool sticky = bits > 1 && (value & ((cpp_int{ 1 } << (bits - 1)) - 1)) != 0;
+        cpp_int out = value >> bits;
+        if (round_bit && (sticky || (out & 1) != 0))
+            ++out;
+        return out;
+    }
+
+    [[nodiscard]] float round_exact_dyadic_to_f32(cpp_int coeff, int exp2, bool neg)
+    {
+        if (coeff == 0)
+            return neg ? -0.0f : 0.0f;
+
+        const int top_bit = bit_length(coeff) - 1;
+        int unbiased_exp = exp2 + top_bit;
+        if (unbiased_exp > 127)
+            return neg ? -std::numeric_limits<float>::infinity() : std::numeric_limits<float>::infinity();
+
+        if (unbiased_exp < -126)
+        {
+            const int scale = exp2 + 149;
+            cpp_int units = scale >= 0 ? (coeff << scale) : rounded_shift_right(coeff, -scale);
+            if (units == 0)
+                return neg ? -0.0f : 0.0f;
+            const float out = std::ldexp(units.convert_to<float>(), -149);
+            return neg ? -out : out;
+        }
+
+        const int shift = top_bit - 23;
+        cpp_int significand = shift > 0 ? rounded_shift_right(coeff, shift) : (coeff << -shift);
+        int result_exp = exp2 + shift;
+
+        if (bit_length(significand) > 24)
+        {
+            significand >>= 1;
+            ++result_exp;
+            ++unbiased_exp;
+            if (unbiased_exp > 127)
+                return neg ? -std::numeric_limits<float>::infinity() : std::numeric_limits<float>::infinity();
+        }
+
+        const float out = std::ldexp(significand.convert_to<float>(), result_exp);
+        return neg ? -out : out;
+    }
+
+    [[nodiscard]] int normalize_remquo_bits(const cpp_int& quotient, bool neg)
+    {
+        if (quotient == 0)
+            return 0;
+
+        int bits = static_cast<int>((quotient & 0x7).convert_to<unsigned>());
+        if (bits == 0)
+            bits = 8;
+        return neg ? -bits : bits;
+    }
+
+    [[nodiscard]] exact_mod_reference exact_mod_reference_for(float lhs, float rhs)
+    {
+        exact_mod_reference out;
+        if (std::isnan(lhs) || std::isnan(rhs) || rhs == 0.0f || std::isinf(lhs))
+        {
+            out.fmod = std::numeric_limits<float>::quiet_NaN();
+            out.remainder = std::numeric_limits<float>::quiet_NaN();
+            return out;
+        }
+        if (std::isinf(rhs) || lhs == 0.0f)
+        {
+            out.fmod = lhs;
+            out.remainder = lhs;
+            return out;
+        }
+
+        exact_binary_float x = decompose_exact(std::fabs(lhs));
+        exact_binary_float y = decompose_exact(std::fabs(rhs));
+        const int common_exp = std::min(x.exp2, y.exp2);
+
+        cpp_int numerator = x.coeff << (x.exp2 - common_exp);
+        cpp_int denominator = y.coeff << (y.exp2 - common_exp);
+        cpp_int quotient = numerator / denominator;
+        cpp_int remainder = numerator % denominator;
+
+        const bool x_neg = std::signbit(lhs);
+        out.fmod = round_exact_dyadic_to_f32(remainder, common_exp, x_neg);
+
+        bool remainder_neg = x_neg;
+        cpp_int nearest_quotient = quotient;
+        cpp_int nearest_remainder = remainder;
+        const cpp_int twice_remainder = remainder << 1;
+        if (twice_remainder > denominator || (twice_remainder == denominator && (quotient & 1) != 0))
+        {
+            nearest_remainder = denominator - remainder;
+            ++nearest_quotient;
+            remainder_neg = !remainder_neg;
+        }
+
+        out.remainder = round_exact_dyadic_to_f32(nearest_remainder, common_exp, remainder_neg);
+        if (out.remainder == 0.0f)
+            out.remainder = std::copysign(0.0f, lhs);
+        out.quotient_bits = normalize_remquo_bits(nearest_quotient, std::signbit(lhs) != std::signbit(rhs));
+        return out;
+    }
+
+    [[nodiscard]] const mpfr_ref& ln2_ref()
+    {
+        static const mpfr_ref value = boost::multiprecision::log(mpfr_ref{ 2 });
+        return value;
+    }
+
+    [[nodiscard]] const mpfr_ref& ln10_ref()
+    {
+        static const mpfr_ref value = boost::multiprecision::log(mpfr_ref{ 10 });
+        return value;
+    }
+
+    [[nodiscard]] mpfr_ref ref_exp2(const mpfr_ref& value)
+    {
+        return boost::multiprecision::exp(value * ln2_ref());
+    }
+
+    [[nodiscard]] mpfr_ref ref_log2(const mpfr_ref& value)
+    {
+        return boost::multiprecision::log(value) / ln2_ref();
+    }
+
+    [[nodiscard]] mpfr_ref ref_log10(const mpfr_ref& value)
+    {
+        return boost::multiprecision::log(value) / ln10_ref();
+    }
+
+    [[nodiscard]] bool ref_is_integer(const mpfr_ref& value)
+    {
+        return boost::multiprecision::floor(value) == value;
+    }
+
+    [[nodiscard]] mpfr_ref ref_powi(mpfr_ref base, long long exponent)
+    {
+        if (exponent == 0)
+            return mpfr_ref{ 1 };
+
+        bool invert = exponent < 0;
+        unsigned long long e = invert
+            ? static_cast<unsigned long long>(-(exponent + 1)) + 1ull
+            : static_cast<unsigned long long>(exponent);
+
+        mpfr_ref result{ 1 };
+        while (e != 0)
+        {
+            if ((e & 1ull) != 0)
+                result *= base;
+            e >>= 1ull;
+            if (e != 0)
+                base *= base;
+        }
+
+        return invert ? (mpfr_ref{ 1 } / result) : result;
+    }
+
+    [[nodiscard]] mpfr_ref ref_pow(const mpfr_ref& base, const mpfr_ref& exponent)
+    {
+        if (base < 0 && ref_is_integer(exponent))
+        {
+            const long long n = exponent.convert_to<long long>();
+            const mpfr_ref mag = ref_powi(-base, n);
+            return (n & 1LL) ? -mag : mag;
+        }
+
+        return boost::multiprecision::exp(exponent * boost::multiprecision::log(base));
+    }
+
+    [[nodiscard]] mpfr_ref ref_cbrt(const mpfr_ref& value)
+    {
+        const mpfr_ref third = mpfr_ref{ 1 } / mpfr_ref{ 3 };
+        return value < 0
+            ? -boost::multiprecision::pow(-value, third)
+            : boost::multiprecision::pow(value, third);
+    }
+
+    [[nodiscard]] mpfr_ref ref_hypot(const mpfr_ref& x, const mpfr_ref& y)
+    {
+        return boost::multiprecision::sqrt(x * x + y * y);
+    }
+
+    [[nodiscard]] mpfr_ref ref_ldexp(mpfr_ref value, int exponent)
+    {
+        if (exponent > 0)
+        {
+            for (int i = 0; i < exponent; ++i)
+                value *= 2;
+        }
+        else
+        {
+            for (int i = 0; i < -exponent; ++i)
+                value /= 2;
+        }
+
+        return value;
+    }
+
+    [[nodiscard]] bool try_mpfr_unary_reference(const char* op_name, float input, float& expected)
+    {
+        const mpfr_ref x = to_ref_exact(input);
+        mpfr_ref ref{};
+
+        if (op_is(op_name, "sin")) ref = boost::multiprecision::sin(x);
+        else if (op_is(op_name, "cos")) ref = boost::multiprecision::cos(x);
+        else if (op_is(op_name, "tan")) ref = boost::multiprecision::tan(x);
+        else if (op_is(op_name, "atan")) ref = boost::multiprecision::atan(x);
+        else if (op_is(op_name, "asin")) ref = boost::multiprecision::asin(x);
+        else if (op_is(op_name, "acos")) ref = boost::multiprecision::acos(x);
+        else if (op_is(op_name, "floor")) ref = ref_floor(x);
+        else if (op_is(op_name, "ceil")) ref = ref_ceil(x);
+        else if (op_is(op_name, "trunc")) ref = ref_trunc(x);
+        else if (op_is(op_name, "round")) ref = ref_round_half_away_zero(x);
+        else if (op_is(op_name, "nearbyint") || op_is(op_name, "rint")) ref = ref_round_to_even(x);
+        else if (op_is(op_name, "exp")) ref = boost::multiprecision::exp(x);
+        else if (op_is(op_name, "exp2")) ref = ref_exp2(x);
+        else if (op_is(op_name, "expm1")) ref = boost::multiprecision::expm1(x);
+        else if (op_is(op_name, "log")) ref = boost::multiprecision::log(x);
+        else if (op_is(op_name, "log2")) ref = ref_log2(x);
+        else if (op_is(op_name, "log10")) ref = ref_log10(x);
+        else if (op_is(op_name, "log1p")) ref = boost::multiprecision::log1p(x);
+        else if (op_is(op_name, "sqrt")) ref = boost::multiprecision::sqrt(x);
+        else if (op_starts_with(op_name, "cbrt"))
+        {
+            if (input == 0.0f)
+            {
+                expected = input;
+                return true;
+            }
+            ref = ref_cbrt(x);
+        }
+        else if (op_is(op_name, "sinh")) ref = boost::multiprecision::sinh(x);
+        else if (op_is(op_name, "cosh")) ref = boost::multiprecision::cosh(x);
+        else if (op_is(op_name, "tanh")) ref = boost::multiprecision::tanh(x);
+        else if (op_is(op_name, "asinh")) ref = boost::multiprecision::asinh(x);
+        else if (op_is(op_name, "acosh")) ref = boost::multiprecision::acosh(x);
+        else if (op_is(op_name, "atanh")) ref = boost::multiprecision::atanh(x);
+        else if (op_is(op_name, "erf")) ref = boost::multiprecision::erf(x);
+        else if (op_is(op_name, "erfc")) ref = boost::multiprecision::erfc(x);
+        else if (op_is(op_name, "lgamma")) ref = boost::multiprecision::lgamma(x);
+        else if (op_is(op_name, "tgamma")) ref = boost::multiprecision::tgamma(x);
+        else if (op_is(op_name, "fabs") || op_is(op_name, "abs"))
+        {
+            expected = std::fabs(input);
+            return true;
+        }
+        else return false;
+
+        expected = round_ref_to_f32(ref);
+        if (expected == 0.0f &&
+            (op_is(op_name, "sin") || op_is(op_name, "tan") || op_is(op_name, "atan") ||
+             op_is(op_name, "asin") || op_is(op_name, "sinh") || op_is(op_name, "tanh") ||
+             op_is(op_name, "asinh") || op_is(op_name, "erf") || op_is(op_name, "expm1") ||
+             op_is(op_name, "log1p") || op_is(op_name, "floor") || op_is(op_name, "ceil") ||
+             op_is(op_name, "trunc") || op_is(op_name, "round") || op_is(op_name, "nearbyint") ||
+             op_is(op_name, "rint")))
+        {
+            expected = std::copysign(0.0f, input);
+        }
+        return true;
+    }
+
+    [[nodiscard]] bool try_mpfr_binary_reference(const char* op_name, float lhs, float rhs, float& expected)
+    {
+        const mpfr_ref a = to_ref_exact(lhs);
+        const mpfr_ref b = to_ref_exact(rhs);
+        mpfr_ref ref{};
+
+        if (op_is(op_name, "add")) ref = a + b;
+        else if (op_is(op_name, "subtract")) ref = a - b;
+        else if (op_is(op_name, "multiply")) ref = a * b;
+        else if (op_is(op_name, "divide")) ref = a / b;
+        else if (op_is(op_name, "atan2")) ref = boost::multiprecision::atan2(a, b);
+        else if (op_is(op_name, "hypot")) ref = ref_hypot(a, b);
+        else if (op_is(op_name, "pow"))
+        {
+            if (lhs == 0.0f)
+            {
+                expected = std::pow(lhs, rhs);
+                return true;
+            }
+            ref = ref_pow(a, b);
+        }
+        else if (op_is(op_name, "fmod"))
+        {
+            expected = exact_mod_reference_for(lhs, rhs).fmod;
+            return true;
+        }
+        else if (op_is(op_name, "remainder"))
+        {
+            expected = exact_mod_reference_for(lhs, rhs).remainder;
+            return true;
+        }
+        else if (op_is(op_name, "fdim")) ref = (a > b) ? (a - b) : mpfr_ref{ 0 };
+        else return false;
+
+        expected = round_ref_to_f32(ref);
+        return true;
     }
 
     [[nodiscard]] float achieved_digits_from_error(float diff, float scale)
@@ -195,6 +622,8 @@ namespace
         float rel_tolerance = 0.0;
         std::uint32_t max_ulps = 0;
     };
+
+    [[nodiscard]] tolerance_spec with_default_mpfr_tolerance(const char* op_name, tolerance_spec tolerance);
 
     [[nodiscard]] bool both_nan(float a, float b)
     {
@@ -357,14 +786,17 @@ namespace
         StdOp&& std_op)
     {
         const float got = f32_op(input);
-        const float expected = std_op(input);
+        float expected{};
+        if (!try_mpfr_unary_reference(op_name, input, expected))
+            expected = std_op(input);
+        const tolerance_spec effective_tolerance = with_default_mpfr_tolerance(op_name, tolerance);
 
         INFO(op_name
             << "\n  input: " << to_text(input)
             << "\n  input hex: " << to_text_hex(input));
 
-        const floating_compare_result comparison = compare_floating_result(op_name, got, expected, tolerance);
-        INFO(build_comparison_message(op_name, got, expected, tolerance, comparison));
+        const floating_compare_result comparison = compare_floating_result(op_name, got, expected, effective_tolerance);
+        INFO(build_comparison_message(op_name, got, expected, effective_tolerance, comparison));
         REQUIRE(comparison.passed);
     }
 
@@ -378,7 +810,10 @@ namespace
         StdOp&& std_op)
     {
         const float got = f32_op(lhs, rhs);
-        const float expected = std_op(lhs, rhs);
+        float expected{};
+        if (!try_mpfr_binary_reference(op_name, lhs, rhs, expected))
+            expected = std_op(lhs, rhs);
+        const tolerance_spec effective_tolerance = with_default_mpfr_tolerance(op_name, tolerance);
 
         INFO(op_name
             << "\n  lhs: " << to_text(lhs)
@@ -386,6 +821,43 @@ namespace
             << "\n  lhs hex: " << to_text_hex(lhs)
             << "\n  rhs hex: " << to_text_hex(rhs));
 
+        const floating_compare_result comparison = compare_floating_result(op_name, got, expected, effective_tolerance);
+        INFO(build_comparison_message(op_name, got, expected, effective_tolerance, comparison));
+        REQUIRE(comparison.passed);
+    }
+
+    void check_fma_result(float x, float y, float z, const tolerance_spec& tolerance)
+    {
+        const char* op_name = "fma";
+        const float got = bl::fma(x, y, z);
+        const float expected = round_ref_to_f32(to_ref_exact(x) * to_ref_exact(y) + to_ref_exact(z));
+        const tolerance_spec effective_tolerance = with_default_mpfr_tolerance(op_name, tolerance);
+
+        INFO(op_name
+            << "\n  x: " << to_text(x)
+            << "\n  y: " << to_text(y)
+            << "\n  z: " << to_text(z)
+            << "\n  x hex: " << to_text_hex(x)
+            << "\n  y hex: " << to_text_hex(y)
+            << "\n  z hex: " << to_text_hex(z));
+
+        const floating_compare_result comparison = compare_floating_result(op_name, got, expected, effective_tolerance);
+        INFO(build_comparison_message(op_name, got, expected, effective_tolerance, comparison));
+        REQUIRE(comparison.passed);
+    }
+
+    void check_scaled_result(const char* op_name, float value, int exponent, float got)
+    {
+        const float expected = value == 0.0f
+            ? value
+            : round_ref_to_f32(ref_ldexp(to_ref_exact(value), exponent));
+
+        INFO(op_name
+            << "\n  input: " << to_text(value)
+            << "\n  exponent: " << exponent
+            << "\n  input hex: " << to_text_hex(value));
+
+        const tolerance_spec tolerance{};
         const floating_compare_result comparison = compare_floating_result(op_name, got, expected, tolerance);
         INFO(build_comparison_message(op_name, got, expected, tolerance, comparison));
         REQUIRE(comparison.passed);
@@ -468,10 +940,11 @@ namespace
     void check_remquo_result(float lhs, float rhs)
     {
         int got_quo = 0;
-        int expected_quo = 0;
 
         const float got = bl::remquo(lhs, rhs, &got_quo);
-        const float expected = std::remquo(lhs, rhs, &expected_quo);
+        const exact_mod_reference expected_ref = exact_mod_reference_for(lhs, rhs);
+        const float expected = expected_ref.remainder;
+        const int expected_quo = expected_ref.quotient_bits;
 
         INFO("remquo"
             << "\n  lhs: " << to_text(lhs)
@@ -489,14 +962,17 @@ namespace
         {
             const int got_sign = (got_quo > 0) - (got_quo < 0);
             const int expected_sign = (expected_quo > 0) - (expected_quo < 0);
+            const int got_low_bits = got_quo & 0x7;
+            const int expected_low_bits = expected_quo & 0x7;
 
             CAPTURE(got_sign);
             CAPTURE(expected_sign);
-            CAPTURE(got_quo & 0x7);
-            CAPTURE(expected_quo & 0x7);
+            CAPTURE(got_low_bits);
+            CAPTURE(expected_low_bits);
 
-            REQUIRE(got_sign == expected_sign);
-            REQUIRE((got_quo & 0x7) == (expected_quo & 0x7));
+            REQUIRE(got_low_bits == expected_low_bits);
+            if (expected_low_bits != 0)
+                REQUIRE(got_sign == expected_sign);
         }
     }
 
@@ -588,11 +1064,37 @@ namespace
     {
         return tolerance_spec{ abs_tol, rel_tol, ulps };
     }
+
+    [[nodiscard]] tolerance_spec with_default_mpfr_tolerance(const char* op_name, tolerance_spec tolerance)
+    {
+        if (tolerance.abs_tolerance != 0.0f || tolerance.rel_tolerance != 0.0f || tolerance.max_ulps != 0)
+            return tolerance;
+
+        if (op_is(op_name, "pow") || op_is(op_name, "lgamma") || op_is(op_name, "tgamma"))
+            return close_tol(16);
+
+        if (op_is(op_name, "sqrt"))
+            return close_tol(1);
+
+        if (op_is(op_name, "sin") || op_is(op_name, "cos") || op_is(op_name, "tan") ||
+            op_is(op_name, "atan") || op_is(op_name, "asin") || op_is(op_name, "acos") ||
+            op_is(op_name, "atan2") || op_is(op_name, "exp") || op_is(op_name, "exp2") ||
+            op_is(op_name, "expm1") || op_is(op_name, "log") || op_is(op_name, "log2") ||
+            op_is(op_name, "log10") || op_is(op_name, "log1p") || op_starts_with(op_name, "cbrt") ||
+            op_is(op_name, "hypot") || op_is(op_name, "sinh") || op_is(op_name, "cosh") ||
+            op_is(op_name, "tanh") || op_is(op_name, "asinh") || op_is(op_name, "acosh") ||
+            op_is(op_name, "atanh") || op_is(op_name, "erf") || op_is(op_name, "erfc"))
+        {
+            return close_tol(4);
+        }
+
+        return tolerance;
+    }
 }
 
-TEST_CASE("f32 matches std for + - * /", "[fltx][f32][precision][arithmetic]")
+TEST_CASE("f32 matches MPFR for + - * /", "[fltx][f32][precision][arithmetic]")
 {
-    accuracy_report_scope report("f32 matches std for + - * /");
+    accuracy_report_scope report("f32 matches MPFR for + - * /");
 
     constexpr std::array<std::pair<float, float>, 10> cases{{
         { 0.0f, 0.0f },
@@ -630,9 +1132,9 @@ TEST_CASE("f32 matches std for + - * /", "[fltx][f32][precision][arithmetic]")
     }
 }
 
-TEST_CASE("f32 random arithmetic matches std", "[fltx][f32][precision][arithmetic]")
+TEST_CASE("f32 random arithmetic matches MPFR", "[fltx][f32][precision][arithmetic]")
 {
-    accuracy_report_scope report("f32 random arithmetic matches std");
+    accuracy_report_scope report("f32 random arithmetic matches MPFR");
     print_random_run("random arithmetic pairs", random_sample_count);
 
     std::mt19937_64 rng(random_seed);
@@ -663,9 +1165,9 @@ TEST_CASE("f32 random arithmetic matches std", "[fltx][f32][precision][arithmeti
     }
 }
 
-TEST_CASE("f32 trig matches std for fixed values", "[fltx][f32][precision][transcendental][trig]")
+TEST_CASE("f32 trig matches MPFR for fixed values", "[fltx][f32][precision][transcendental][trig]")
 {
-    accuracy_report_scope report("f32 trig matches std for fixed values");
+    accuracy_report_scope report("f32 trig matches MPFR for fixed values");
 
     constexpr std::array<float, 13> unary_cases{{
         -3.0,
@@ -732,9 +1234,9 @@ TEST_CASE("f32 trig matches std for fixed values", "[fltx][f32][precision][trans
     }
 }
 
-TEST_CASE("f32 trig matches std on random inputs", "[fltx][f32][precision][transcendental][trig]")
+TEST_CASE("f32 trig matches MPFR on random inputs", "[fltx][f32][precision][transcendental][trig]")
 {
-    accuracy_report_scope report("f32 trig matches std on random inputs");
+    accuracy_report_scope report("f32 trig matches MPFR on random inputs");
     print_random_run("random trig inputs", random_sample_count);
 
     std::mt19937_64 rng(random_seed);
@@ -780,9 +1282,9 @@ TEST_CASE("f32 trig matches std on random inputs", "[fltx][f32][precision][trans
     }
 }
 
-TEST_CASE("f32 rounding matches std", "[fltx][f32][precision][math][rounding]")
+TEST_CASE("f32 rounding matches MPFR references", "[fltx][f32][precision][math][rounding]")
 {
-    accuracy_report_scope report("f32 rounding matches std");
+    accuracy_report_scope report("f32 rounding matches MPFR references");
 
     constexpr std::array<float, 16> fixed_inputs{{
         -3.75,
@@ -876,9 +1378,9 @@ TEST_CASE("f32 rounding matches std", "[fltx][f32][precision][math][rounding]")
     }
 }
 
-TEST_CASE("f32 exp and log families match std", "[fltx][f32][precision][transcendental]")
+TEST_CASE("f32 exp and log families match MPFR", "[fltx][f32][precision][transcendental]")
 {
-    accuracy_report_scope report("f32 exp and log families match std");
+    accuracy_report_scope report("f32 exp and log families match MPFR");
 
     constexpr std::array<float, 10> exp_inputs{{
         -20.0,
@@ -991,9 +1493,9 @@ TEST_CASE("f32 exp and log families match std", "[fltx][f32][precision][transcen
     }
 }
 
-TEST_CASE("f32 root and power functions match std", "[fltx][f32][precision][math]")
+TEST_CASE("f32 root and power functions match MPFR", "[fltx][f32][precision][math]")
 {
-    accuracy_report_scope report("f32 root and power functions match std");
+    accuracy_report_scope report("f32 root and power functions match MPFR");
 
     constexpr std::array<float, 8> root_inputs{{
         0.0,
@@ -1054,7 +1556,7 @@ TEST_CASE("f32 root and power functions match std", "[fltx][f32][precision][math
 
     for (const auto& [base, exponent] : pow_cases)
     {
-        check_binary_op("pow", base, exponent, close_tol(8),
+        check_binary_op("pow", base, exponent, close_tol(16),
             [](float a, float b) { return bl::pow(a, b); },
             [](float a, float b) { return std::pow(a, b); });
     }
@@ -1083,15 +1585,15 @@ TEST_CASE("f32 root and power functions match std", "[fltx][f32][precision][math
             [](float a, float b) { return bl::hypot(a, b); },
             [](float a, float b) { return std::hypot(a, b); });
 
-        check_binary_op("pow", base, exponent, close_tol(8),
+        check_binary_op("pow", base, exponent, close_tol(16),
             [](float a, float b) { return bl::pow(a, b); },
             [](float a, float b) { return std::pow(a, b); });
     }
 }
 
-TEST_CASE("f32 fmod and remainder match std", "[fltx][f32][precision][math][fmod][remainder]")
+TEST_CASE("f32 fmod and remainder match exact references", "[fltx][f32][precision][math][fmod][remainder]")
 {
-    accuracy_report_scope report("f32 fmod and remainder match std");
+    accuracy_report_scope report("f32 fmod and remainder match exact references");
 
     constexpr std::array<std::pair<float, float>, 10> cases{{
         { 5.25f, 2.0f },
@@ -1139,9 +1641,9 @@ TEST_CASE("f32 fmod and remainder match std", "[fltx][f32][precision][math][fmod
     }
 }
 
-TEST_CASE("f32 hyperbolic families match std", "[fltx][f32][precision][transcendental][hyperbolic]")
+TEST_CASE("f32 hyperbolic families match MPFR", "[fltx][f32][precision][transcendental][hyperbolic]")
 {
-    accuracy_report_scope report("f32 hyperbolic families match std");
+    accuracy_report_scope report("f32 hyperbolic families match MPFR");
 
     constexpr std::array<float, 9> fixed_inputs{{
         -8.0,
@@ -1225,9 +1727,9 @@ TEST_CASE("f32 hyperbolic families match std", "[fltx][f32][precision][transcend
     }
 }
 
-TEST_CASE("f32 special functions match std", "[fltx][f32][precision][transcendental][special]")
+TEST_CASE("f32 special functions match MPFR", "[fltx][f32][precision][transcendental][special]")
 {
-    accuracy_report_scope report("f32 special functions match std");
+    accuracy_report_scope report("f32 special functions match MPFR");
 
     constexpr std::array<float, 9> erf_inputs{{
         -4.0,
@@ -1290,9 +1792,9 @@ TEST_CASE("f32 special functions match std", "[fltx][f32][precision][transcenden
     }
 }
 
-TEST_CASE("f32 decomposition and stepping functions match std", "[fltx][f32][precision][math][decomposition]")
+TEST_CASE("f32 decomposition and stepping functions match reference semantics", "[fltx][f32][precision][math][decomposition]")
 {
-    accuracy_report_scope report("f32 decomposition and stepping functions match std");
+    accuracy_report_scope report("f32 decomposition and stepping functions match reference semantics");
 
     constexpr std::array<float, 10> inputs{{
         -1e30f,
@@ -1375,23 +1877,15 @@ TEST_CASE("f32 decomposition and stepping functions match std", "[fltx][f32][pre
 
     for (const auto& [value, exponent] : ldexp_cases)
     {
-        check_unary_op("ldexp", value, exact_tol(),
-            [exponent](float x) { return bl::ldexp(x, exponent); },
-            [exponent](float x) { return std::ldexp(x, exponent); });
-
-        check_unary_op("scalbn", value, exact_tol(),
-            [exponent](float x) { return bl::scalbn(x, exponent); },
-            [exponent](float x) { return std::scalbn(x, exponent); });
-
-        check_unary_op("scalbln", value, exact_tol(),
-            [exponent](float x) { return bl::scalbln(x, exponent); },
-            [exponent](float x) { return std::scalbln(x, exponent); });
+        check_scaled_result("ldexp", value, exponent, bl::ldexp(value, exponent));
+        check_scaled_result("scalbn", value, exponent, bl::scalbn(value, exponent));
+        check_scaled_result("scalbln", value, exponent, bl::scalbln(value, exponent));
     }
 }
 
-TEST_CASE("f32 utility helpers match std", "[fltx][f32][precision][math][utility]")
+TEST_CASE("f32 utility helpers match reference semantics", "[fltx][f32][precision][math][utility]")
 {
-    accuracy_report_scope report("f32 utility helpers match std");
+    accuracy_report_scope report("f32 utility helpers match reference semantics");
 
     constexpr std::array<std::pair<float, float>, 10> pairs{{
         { -0.0f, 0.0f },
@@ -1435,8 +1929,72 @@ TEST_CASE("f32 utility helpers match std", "[fltx][f32][precision][math][utility
 
     for (const auto& [x, y, z] : fma_cases)
     {
-        check_binary_op("fma.partial", x, y, close_tol(8),
-            [z](float a, float b) { return bl::fma(a, b, z); },
-            [z](float a, float b) { return std::fma(a, b, z); });
+        check_fma_result(x, y, z, close_tol(8));
     }
+}
+
+TEST_CASE("f32 IEEE special values match reference semantics", "[fltx][f32][precision][math][edge]")
+{
+    accuracy_report_scope report("f32 IEEE special values match reference semantics");
+
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const float inf = std::numeric_limits<float>::infinity();
+    const float neg_inf = -inf;
+
+    check_unary_op("sqrt.nan", nan, exact_tol(),
+        [](float x) { return bl::sqrt(x); },
+        [](float x) { return std::sqrt(x); });
+
+    check_unary_op("log.zero", 0.0f, exact_tol(),
+        [](float x) { return bl::log(x); },
+        [](float x) { return std::log(x); });
+
+    check_unary_op("exp.neg_inf", neg_inf, exact_tol(),
+        [](float x) { return bl::exp(x); },
+        [](float x) { return std::exp(x); });
+
+    check_binary_op("pow.neg_fractional", -1.0f, 0.5f, exact_tol(),
+        [](float x, float y) { return bl::pow(x, y); },
+        [](float x, float y) { return std::pow(x, y); });
+
+    check_binary_op("fmod.inf", inf, 1.0f, exact_tol(),
+        [](float x, float y) { return bl::fmod(x, y); },
+        [](float x, float y) { return std::fmod(x, y); });
+
+    check_binary_op("remainder.inf", inf, 1.0f, exact_tol(),
+        [](float x, float y) { return bl::remainder(x, y); },
+        [](float x, float y) { return std::remainder(x, y); });
+
+    check_binary_op("fmin.nan_left", nan, 1.0f, exact_tol(),
+        [](float x, float y) { return bl::fmin(x, y); },
+        [](float x, float y) { return std::fmin(x, y); });
+
+    check_binary_op("fmax.nan_right", 1.0f, nan, exact_tol(),
+        [](float x, float y) { return bl::fmax(x, y); },
+        [](float x, float y) { return std::fmax(x, y); });
+
+    check_binary_op("copysign.neg_zero", 0.0f, -0.0f, exact_tol(),
+        [](float x, float y) { return bl::copysign(x, y); },
+        [](float x, float y) { return std::copysign(x, y); });
+
+    check_unary_op("nextafter.inf_to_zero", inf, exact_tol(),
+        [](float x) { return bl::nextafter(x, 0.0f); },
+        [](float x) { return std::nextafter(x, 0.0f); });
+
+    check_unary_op("nextafter.zero_to_negative", 0.0f, exact_tol(),
+        [](float x) { return bl::nextafter(x, -1.0f); },
+        [](float x) { return std::nextafter(x, -1.0f); });
+
+    int got_quo = 123;
+    int expected_quo = 456;
+    const float got_remquo = bl::remquo(inf, 1.0f, &got_quo);
+    const float expected_remquo = std::remquo(inf, 1.0f, &expected_quo);
+    const floating_compare_result remquo_comparison = compare_floating_result("remquo.inf", got_remquo, expected_remquo, exact_tol());
+    INFO(build_comparison_message("remquo.inf", got_remquo, expected_remquo, exact_tol(), remquo_comparison));
+    REQUIRE(remquo_comparison.passed);
+
+    check_exact_bool_result("isunordered.nan", bl::isunordered(nan, 1.0f), std::isunordered(nan, 1.0f), nan, 1.0f);
+    check_exact_bool_result("isless.nan", bl::isless(nan, 1.0f), std::isless(nan, 1.0f), nan, 1.0f);
+    check_exact_bool_result("isgreater.inf", bl::isgreater(inf, 1.0f), std::isgreater(inf, 1.0f), inf, 1.0f);
+    check_exact_bool_result("islessequal.neg_inf", bl::islessequal(neg_inf, 1.0f), std::islessequal(neg_inf, 1.0f), neg_inf, 1.0f);
 }

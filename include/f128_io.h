@@ -566,11 +566,11 @@ namespace detail::_f128
 
 }
 
-BL_FLTX_CONSTEXPR_NOINLINE constexpr bool parse_flt128(const char* s, f128_s& out, const char** endptr = nullptr) noexcept
+BL_MSVC_NOINLINE constexpr bool parse_flt128(const char* s, f128_s& out, const char** endptr = nullptr) noexcept
 {
     return detail::parse_flt<detail::_f128::f128_io_traits>(s, out, endptr);
 }
-[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr f128_s to_f128(const char* s) noexcept
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s to_f128(const char* s) noexcept
 {
     f128_s ret;
     if (parse_flt128(s, ret))
@@ -582,7 +582,7 @@ BL_FLTX_CONSTEXPR_NOINLINE constexpr bool parse_flt128(const char* s, f128_s& ou
     return to_f128(s.c_str());
 }
 template<std::size_t capacity = bl::default_io_string::static_capacity>
-[[nodiscard]] BL_FLTX_CONSTEXPR_NOINLINE constexpr bl::static_string<capacity> to_static_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_MSVC_NOINLINE constexpr bl::static_string<capacity> to_static_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     bl::static_string<capacity> out;
     detail::_f128::to_string_into(out, x, precision, fixed, scientific, strip_trailing_zeros);

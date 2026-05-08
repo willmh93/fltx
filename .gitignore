@@ -43,3 +43,4 @@
 # project
 .vs
 build/
+CMakeUserPresets.json

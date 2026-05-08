@@ -15,22 +15,5 @@
       "name": "catch2",
       "platform": "!emscripten"
     }
-  ],
-  "default-features": [
-    {
-      "name": "example-viewer",
-      "platform": "!emscripten"
-    }
-  ],
-  "features": {
-    "example-viewer": {
-      "description": "Build visual examples with a small SDL2 image viewer.",
-      "dependencies": [
-        {
-          "name": "sdl2",
-          "platform": "!emscripten"
-        }
-      ]
-    }
-  }
+  ]
 }

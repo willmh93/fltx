@@ -19,102 +19,23 @@ using f32 = float;
 
 namespace detail::_f32
 {
-    using detail::fp::nearbyint_ties_even;
     using detail::fp::floor_constexpr;
     using detail::fp::ceil_constexpr;
     using detail::fp::trunc_constexpr;
+    using detail::fp::copysign_constexpr;
+    using detail::fp::fabs_constexpr;
+    using detail::fp::isfinite;
+    using detail::fp::isinf;
+    using detail::fp::isnan;
+    using detail::fp::nearbyint_constexpr;
+    using detail::fp::nextafter_float_constexpr;
+    using detail::fp::round_half_away_zero;
+    using detail::fp::signbit_constexpr;
+    using detail::fp::to_signed_integer_or_zero;
 
     BL_FORCE_INLINE constexpr bool iszero(float x) noexcept
     {
         return x == 0.0f;
-    }
-    BL_FORCE_INLINE constexpr bool signbit_constexpr(float x) noexcept
-    {
-        return (std::bit_cast<std::uint32_t>(x) & 0x80000000u) != 0u;
-    }
-    BL_FORCE_INLINE constexpr bool isnan(float x) noexcept
-    {
-        const std::uint32_t bits = std::bit_cast<std::uint32_t>(x);
-        return (bits & 0x7fffffffu) > 0x7f800000u;
-    }
-    BL_FORCE_INLINE constexpr bool isinf(float x) noexcept
-    {
-        const std::uint32_t bits = std::bit_cast<std::uint32_t>(x);
-        return (bits & 0x7fffffffu) == 0x7f800000u;
-    }
-    BL_FORCE_INLINE constexpr bool isfinite(float x) noexcept
-    {
-        const std::uint32_t bits = std::bit_cast<std::uint32_t>(x);
-        return (bits & 0x7f800000u) != 0x7f800000u;
-    }
-
-    BL_FORCE_INLINE constexpr float fabs_constexpr(float x) noexcept
-    {
-        return std::bit_cast<float>(std::bit_cast<std::uint32_t>(x) & 0x7fffffffu);
-    }
-    BL_FORCE_INLINE constexpr float nearbyint_constexpr(float x) noexcept
-    {
-        const double y = nearbyint_ties_even(static_cast<double>(x));
-        const float out = static_cast<float>(y);
-        if (out == 0.0f)
-            return signbit_constexpr(x) ? -0.0f : 0.0f;
-        return out;
-    }
-    BL_FORCE_INLINE constexpr float round_half_away_zero(float x) noexcept
-    {
-        if (isnan(x) || isinf(x) || iszero(x))
-            return x;
-
-        constexpr float integer_threshold = 8388608.0f;
-        const float ax = fabs_constexpr(x);
-        if (ax >= integer_threshold)
-            return x;
-
-        if (signbit_constexpr(x))
-        {
-            const float y = static_cast<float>(-floor_constexpr(static_cast<double>(-x) + 0.5));
-            return iszero(y) ? -0.0f : y;
-        }
-
-        return static_cast<float>(floor_constexpr(static_cast<double>(x) + 0.5));
-    }
-    BL_FORCE_INLINE constexpr float nextafter_float_constexpr(float from, float to) noexcept
-    {
-        if (isnan(from) || isnan(to))
-            return std::numeric_limits<float>::quiet_NaN();
-
-        if (from == to)
-            return to;
-
-        if (from == 0.0f)
-            return signbit_constexpr(to)
-                ? -std::numeric_limits<float>::denorm_min()
-                : std::numeric_limits<float>::denorm_min();
-
-        std::uint32_t bits = std::bit_cast<std::uint32_t>(from);
-        if ((from > 0.0f) == (from < to))
-            ++bits;
-        else
-            --bits;
-
-        return std::bit_cast<float>(bits);
-    }
-
-    template<typename SignedInt>
-    BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(float x) noexcept
-    {
-        static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
-
-        if (isnan(x) || isinf(x))
-            return 0;
-
-        const double dx = static_cast<double>(x);
-        constexpr double lo = static_cast<double>(std::numeric_limits<SignedInt>::lowest());
-        constexpr double hi = static_cast<double>(std::numeric_limits<SignedInt>::max());
-        if (dx < lo || dx > hi)
-            return 0;
-
-        return static_cast<SignedInt>(x);
     }
     BL_FORCE_INLINE constexpr int normalize_remquo_bits(int q) noexcept
     {
@@ -294,10 +215,7 @@ namespace detail::_f32
 {
     if (!bl::use_constexpr_math())
         return std::copysign(x, y);
-
-    const std::uint32_t xb = std::bit_cast<std::uint32_t>(x) & 0x7fffffffu;
-    const std::uint32_t yb = std::bit_cast<std::uint32_t>(y) & 0x80000000u;
-    return std::bit_cast<float>(xb | yb);
+    return detail::_f32::copysign_constexpr(x, y);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr float ldexp(float x, int e) noexcept
@@ -531,7 +449,13 @@ namespace detail::_f32
 [[nodiscard]] BL_FORCE_INLINE constexpr float erfc(float x) noexcept
 {
     if (!bl::use_constexpr_math())
+    {
+#if defined(__MINGW32__)
+        return static_cast<float>(std::erfc(static_cast<double>(x)));
+#else
         return std::erfc(x);
+#endif
+    }
     return static_cast<float>(bl::erfc(static_cast<double>(x)));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr float lgamma(float x) noexcept
