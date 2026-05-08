@@ -36,7 +36,7 @@ namespace
     constexpr int printed_digits = std::numeric_limits<double>::max_digits10;
 
     constexpr std::uint64_t random_seed = 1ull;
-    constexpr int random_sample_count = 100;
+    constexpr int random_sample_count = 1000;
     constexpr const char* type_label = "f64";
 
     struct accuracy_stats_entry
