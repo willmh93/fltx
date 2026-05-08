@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="813" height="2446" viewBox="0 0 813 2446">
+  <rect x="0" y="0" width="813" height="2446" fill="#f2f2f2"/>
+  <text x="406" y="38" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="600" fill="#222222">f64 vs std typical benchmark ratios</text>
+  <line x1="253" y1="82" x2="253" y2="2428" stroke="#dddddd" stroke-width="1"/>
+  <line x1="303" y1="82" x2="303" y2="2428" stroke="#dddddd" stroke-width="1"/>
+  <line x1="353" y1="82" x2="353" y2="2428" stroke="#dddddd" stroke-width="1"/>
+  <line x1="403" y1="82" x2="403" y2="2428" stroke="#dddddd" stroke-width="1"/>
+  <line x1="453" y1="82" x2="453" y2="2428" stroke="#dddddd" stroke-width="1"/>
+  <line x1="503" y1="82" x2="503" y2="2428" stroke="#dddddd" stroke-width="1"/>
+  <line x1="553" y1="82" x2="553" y2="2428" stroke="#dddddd" stroke-width="1"/>
+  <line x1="603" y1="82" x2="603" y2="2428" stroke="#dddddd" stroke-width="1"/>
+  <line x1="653" y1="82" x2="653" y2="2428" stroke="#dddddd" stroke-width="1"/>
+  <line x1="303" y1="82" x2="303" y2="2428" stroke="#6da7d9" stroke-width="2" stroke-dasharray="6,6"/>
+  <text x="245" y="104" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Rounding</text>
+  <text x="241" y="137" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">floor</text>
+  <rect x="253" y="119" width="49.71" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.71" y="136.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.99x [1ns]</text>
+  <text x="241" y="171" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">ceil</text>
+  <rect x="253" y="153" width="49.4823" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.482" y="170.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.99x [1ns]</text>
+  <text x="241" y="205" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">trunc</text>
+  <rect x="253" y="187" width="49.3577" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.358" y="204.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.99x [1ns]</text>
+  <text x="241" y="239" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">round</text>
+  <rect x="253" y="221" width="50.5961" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.596" y="238.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.01x [3ns]</text>
+  <text x="241" y="273" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">nearbyint</text>
+  <rect x="253" y="255" width="49.9723" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.972" y="272.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [42ns]</text>
+  <text x="241" y="307" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">rint</text>
+  <rect x="253" y="289" width="49.4746" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.475" y="306.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.99x [1ns]</text>
+  <text x="241" y="341" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">lround</text>
+  <rect x="253" y="323" width="45.2647" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="308.265" y="340.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.91x [5ns]</text>
+  <text x="241" y="375" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">llround</text>
+  <rect x="253" y="357" width="49.7951" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.795" y="374.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [5ns]</text>
+  <text x="241" y="409" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">lrint</text>
+  <rect x="253" y="391" width="50.0762" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.076" y="408.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [1ns]</text>
+  <text x="241" y="443" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">llrint</text>
+  <rect x="253" y="425" width="49.4919" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.492" y="442.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.99x [1ns]</text>
+  <line x1="245" y1="454" x2="653" y2="454" stroke="#cfcfcf" stroke-width="1"/>
+  <text x="245" y="484" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Remainders</text>
+  <text x="241" y="517" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">fmod</text>
+  <rect x="253" y="499" width="49.9793" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.979" y="516.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [5ns]</text>
+  <text x="241" y="551" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">remainder</text>
+  <rect x="253" y="533" width="50.0427" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.043" y="550.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [5ns]</text>
+  <text x="241" y="585" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">remquo</text>
+  <rect x="253" y="567" width="50.1115" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.112" y="584.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [6ns]</text>
+  <line x1="245" y1="596" x2="653" y2="596" stroke="#cfcfcf" stroke-width="1"/>
+  <text x="245" y="626" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Floating-point utilities</text>
+  <text x="241" y="659" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">abs</text>
+  <rect x="253" y="641" width="49.6028" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.603" y="658.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.99x [1ns]</text>
+  <text x="241" y="693" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">fma</text>
+  <rect x="253" y="675" width="49.988" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.988" y="692.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [23ns]</text>
+  <text x="241" y="727" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">fmin</text>
+  <rect x="253" y="709" width="50.3755" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.375" y="726.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.01x [2ns]</text>
+  <text x="241" y="761" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">fmax</text>
+  <rect x="253" y="743" width="50.3528" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.353" y="760.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.01x [1ns]</text>
+  <text x="241" y="795" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">fdim</text>
+  <rect x="253" y="777" width="50.8502" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.85" y="794.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.02x [4ns]</text>
+  <text x="241" y="829" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">copysign</text>
+  <rect x="253" y="811" width="49.9331" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.933" y="828.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [1ns]</text>
+  <text x="241" y="863" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">ldexp</text>
+  <rect x="253" y="845" width="49.9137" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.914" y="862.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [4ns]</text>
+  <text x="241" y="897" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">scalbn</text>
+  <rect x="253" y="879" width="15.7574" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="278.757" y="896.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.32x [5ns]</text>
+  <text x="241" y="931" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">scalbln</text>
+  <rect x="253" y="913" width="14.7186" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="277.719" y="930.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.29x [4ns]</text>
+  <text x="241" y="965" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">frexp</text>
+  <rect x="253" y="947" width="50.0622" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.062" y="964.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [6ns]</text>
+  <text x="241" y="999" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">modf</text>
+  <rect x="253" y="981" width="49.8059" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.806" y="998.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [3ns]</text>
+  <text x="241" y="1033" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">ilogb</text>
+  <rect x="253" y="1015" width="50.3346" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.335" y="1032.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.01x [1ns]</text>
+  <text x="241" y="1067" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">logb</text>
+  <rect x="253" y="1049" width="58.9335" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="321.934" y="1066.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.18x [1ns]</text>
+  <text x="241" y="1101" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">nextafter</text>
+  <rect x="253" y="1083" width="45.9203" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="308.92" y="1100.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.92x [2ns]</text>
+  <text x="241" y="1135" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">nexttoward(double)</text>
+  <rect x="253" y="1117" width="329.195" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="592.195" y="1134.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">6.58x [2ns]</text>
+  <text x="241" y="1169" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">nexttoward(long double)</text>
+  <rect x="253" y="1151" width="50.0868" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.087" y="1168.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [14ns]</text>
+  <line x1="245" y1="1180" x2="653" y2="1180" stroke="#cfcfcf" stroke-width="1"/>
+  <text x="245" y="1210" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Roots &amp; powers</text>
+  <text x="241" y="1243" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">sqrt</text>
+  <rect x="253" y="1225" width="50.0552" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.055" y="1242.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [1ns]</text>
+  <text x="241" y="1277" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">cbrt</text>
+  <rect x="253" y="1259" width="50.1233" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.123" y="1276.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [44ns]</text>
+  <text x="241" y="1311" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">hypot</text>
+  <rect x="253" y="1293" width="49.3939" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.394" y="1310.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.99x [6ns]</text>
+  <text x="241" y="1345" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">pow</text>
+  <rect x="253" y="1327" width="67.1091" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="330.109" y="1344.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.34x [61ns]</text>
+  <line x1="245" y1="1356" x2="653" y2="1356" stroke="#cfcfcf" stroke-width="1"/>
+  <text x="245" y="1386" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Exponentials</text>
+  <text x="241" y="1419" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">exp</text>
+  <rect x="253" y="1401" width="49.8787" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.879" y="1418.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [19ns]</text>
+  <text x="241" y="1453" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">exp2</text>
+  <rect x="253" y="1435" width="49.5426" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.543" y="1452.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.99x [7ns]</text>
+  <text x="241" y="1487" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">expm1</text>
+  <rect x="253" y="1469" width="51.7589" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="314.759" y="1486.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.04x [26ns]</text>
+  <line x1="245" y1="1498" x2="653" y2="1498" stroke="#cfcfcf" stroke-width="1"/>
+  <text x="245" y="1528" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Logarithms</text>
+  <text x="241" y="1561" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">log</text>
+  <rect x="253" y="1543" width="50.3304" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.33" y="1560.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.01x [19ns]</text>
+  <text x="241" y="1595" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">log2</text>
+  <rect x="253" y="1577" width="49.0809" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.081" y="1594.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.98x [14ns]</text>
+  <text x="241" y="1629" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">log10</text>
+  <rect x="253" y="1611" width="50.2326" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.233" y="1628.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [4ns]</text>
+  <text x="241" y="1663" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">log1p</text>
+  <rect x="253" y="1645" width="50.0408" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.041" y="1662.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [17ns]</text>
+  <line x1="245" y1="1674" x2="653" y2="1674" stroke="#cfcfcf" stroke-width="1"/>
+  <text x="245" y="1704" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Trigonometric</text>
+  <text x="241" y="1737" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">sin</text>
+  <rect x="253" y="1719" width="50.1886" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.189" y="1736.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [24ns]</text>
+  <text x="241" y="1771" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">cos</text>
+  <rect x="253" y="1753" width="49.8557" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.856" y="1770.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [28ns]</text>
+  <text x="241" y="1805" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">tan</text>
+  <rect x="253" y="1787" width="50.1016" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.102" y="1804.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [10ns]</text>
+  <text x="241" y="1839" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">asin</text>
+  <rect x="253" y="1821" width="50.7724" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.772" y="1838.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.02x [4ns]</text>
+  <text x="241" y="1873" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">acos</text>
+  <rect x="253" y="1855" width="49.9428" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.943" y="1872.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [3ns]</text>
+  <text x="241" y="1907" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">atan</text>
+  <rect x="253" y="1889" width="47.2618" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="310.262" y="1906.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.95x [3ns]</text>
+  <text x="241" y="1941" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">atan2</text>
+  <rect x="253" y="1923" width="49.9299" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.93" y="1940.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [34ns]</text>
+  <line x1="245" y1="1952" x2="653" y2="1952" stroke="#cfcfcf" stroke-width="1"/>
+  <text x="245" y="1982" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Hyperbolic</text>
+  <text x="241" y="2015" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">sinh</text>
+  <rect x="253" y="1997" width="48.4561" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="311.456" y="2014.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.97x [6ns]</text>
+  <text x="241" y="2049" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">cosh</text>
+  <rect x="253" y="2031" width="50.378" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.378" y="2048.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.01x [5ns]</text>
+  <text x="241" y="2083" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">tanh</text>
+  <rect x="253" y="2065" width="50.0415" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.042" y="2082.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.00x [5ns]</text>
+  <line x1="245" y1="2094" x2="653" y2="2094" stroke="#cfcfcf" stroke-width="1"/>
+  <text x="245" y="2124" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Inverse hyperbolic</text>
+  <text x="241" y="2157" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">asinh</text>
+  <rect x="253" y="2139" width="49.3782" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="312.378" y="2156.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.99x [43ns]</text>
+  <text x="241" y="2191" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">acosh</text>
+  <rect x="253" y="2173" width="50.575" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.575" y="2190.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.01x [32ns]</text>
+  <text x="241" y="2225" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">atanh</text>
+  <rect x="253" y="2207" width="48.9858" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="311.986" y="2224.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.98x [28ns]</text>
+  <line x1="245" y1="2236" x2="653" y2="2236" stroke="#cfcfcf" stroke-width="1"/>
+  <text x="245" y="2266" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#1f1f1f">Special functions</text>
+  <text x="241" y="2299" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">erfc</text>
+  <rect x="253" y="2281" width="48.3724" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="311.372" y="2298.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.97x [12ns]</text>
+  <text x="241" y="2333" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">erf</text>
+  <rect x="253" y="2315" width="48.4052" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="311.405" y="2332.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.97x [3ns]</text>
+  <text x="241" y="2367" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">tgamma</text>
+  <rect x="253" y="2349" width="50.4875" height="24" rx="2" ry="2" fill="#89d88a"/>
+  <text x="313.488" y="2366.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">1.01x [35ns]</text>
+  <text x="241" y="2401" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#222222">lgamma</text>
+  <rect x="253" y="2383" width="46.9798" height="24" rx="2" ry="2" fill="#2c7fb8"/>
+  <text x="309.98" y="2400.5" text-anchor="start" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#444444">0.94x [62ns]</text>
+</svg>

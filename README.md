@@ -333,6 +333,97 @@ target_compile_definitions(main PRIVATE FLTX_HEADER_ONLY)
 target_include_directories(main PRIVATE /path/to/fltx/include)
 ```
 
+## Building fltx
+
+These steps are for contributors who want to build the `fltx` repository itself, including tests and benchmarks. They install the repo-local vcpkg dependencies used by the test suite, such as Catch2, Boost.Multiprecision, GMP, and MPFR.
+
+If you only want to use `fltx` from your own project, you do not need this full setup. Use the vcpkg or CMake installation instructions above instead.
+
+<details>
+<summary>Windows</summary>
+
+Install Visual Studio with the C++ desktop workload, then use a Developer PowerShell or Developer Command Prompt:
+
+```powershell
+git clone --recurse-submodules https://github.com/willmh93/fltx.git
+cd fltx
+
+.\vcpkg\bootstrap-vcpkg.bat
+
+cmake --preset vs2026
+cmake --build build\vs2026 --config Release
+```
+
+The `vs2026` preset uses Visual Studio/MSBuild with the MSVC compiler. If your Visual Studio version differs, create or select the matching CMake preset before configuring.
+
+</details>
+
+<details>
+<summary>macOS</summary>
+
+This is the fresh Apple Silicon macOS setup used for contributor builds on macOS Sequoia:
+
+```bash
+# 1. Install Homebrew, if missing
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 2. Add Homebrew to zsh PATH
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# 3. Install tools needed by CMake and vcpkg ports
+brew install cmake pkg-config autoconf autoconf-archive automake libtool m4
+
+# 4. Clone fltx with submodules
+cd ~/Documents
+git clone --recurse-submodules https://github.com/willmh93/fltx.git
+cd fltx
+
+# 5. Bootstrap repo-local vcpkg
+./vcpkg/bootstrap-vcpkg.sh
+
+# 6. Configure; this installs vcpkg dependencies like Catch2, GMP, and MPFR
+cmake --preset macos-release
+
+# 7. Build
+cmake --build --preset macos-release --config Release
+```
+
+For an already-cloned repo:
+
+```bash
+cd ~/Documents/fltx
+git pull
+git submodule update --init --recursive
+./vcpkg/bootstrap-vcpkg.sh
+cmake --preset macos-release
+cmake --build --preset macos-release --config Release
+```
+
+</details>
+
+<details>
+<summary>Linux</summary>
+
+Linux setup has not been manually validated yet. The expected Ubuntu/Debian flow is:
+
+```bash
+sudo apt update
+sudo apt install -y git build-essential cmake ninja-build pkg-config autoconf autoconf-archive automake libtool m4
+
+git clone --recurse-submodules https://github.com/willmh93/fltx.git
+cd fltx
+
+./vcpkg/bootstrap-vcpkg.sh
+
+cmake --preset ninja-release
+cmake --build --preset ninja-release
+```
+
+Other distributions should use equivalent packages for a C++20 compiler, CMake, Ninja, pkg-config, and the autotools used by the GMP/MPFR vcpkg ports.
+
+</details>
+
 ## Benchmarks
 
 `fltx` is tested and benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision levels.
