@@ -37,8 +37,8 @@ namespace
         "f128",
         "mpfr",
         "f128 vs MPFR typical benchmark ratios",
-        "benchmark_charts/f128_typical_ratios.csv",
-        "benchmark_charts/f128_typical_ratios.svg",
+        bl::bench::benchmark_output_path("f128", "typical_ratios", "csv"),
+        bl::bench::benchmark_output_path("f128", "typical_ratios", "svg"),
         8.0
     };
 

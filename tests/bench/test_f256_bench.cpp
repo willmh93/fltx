@@ -65,8 +65,8 @@ namespace
         "f256",
         "mpfr",
         "f256 vs MPFR typical benchmark ratios",
-        "benchmark_charts/f256_typical_ratios.csv",
-        "benchmark_charts/f256_typical_ratios.svg",
+        bl::bench::benchmark_output_path("f256", "typical_ratios", "csv"),
+        bl::bench::benchmark_output_path("f256", "typical_ratios", "svg"),
         4.0
     };
 

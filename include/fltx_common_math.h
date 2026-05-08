@@ -792,7 +792,11 @@ BL_FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, d
     else
     {
         p = a * b;
+        #if defined(__clang__) || defined(__GNUC__)
+        err = __builtin_fma(a, b, -p);
+        #else
         err = std::fma(a, b, -p);
+        #endif
     }
     #else
     two_prod_precise_dekker(a, b, p, err);

@@ -154,6 +154,28 @@ namespace detail::_f256
         return vmulq_f64(a, b);
         #endif
     }
+    BL_FORCE_INLINE void f256_simd_two_prod_precise(f256_simd2d a, f256_simd2d b, f256_simd2d& p, f256_simd2d& e) noexcept
+    {
+        p = f256_simd_mul(a, b);
+
+        #if BL_F256_HAS_NEON
+        e = vfmaq_f64(f256_simd_sub(f256_simd_splat(0.0), p), a, b);
+        #else
+        const f256_simd2d split = f256_simd_splat(134217729.0);
+        const f256_simd2d a_scaled = f256_simd_mul(a, split);
+        const f256_simd2d b_scaled = f256_simd_mul(b, split);
+
+        const f256_simd2d a_hi = f256_simd_sub(a_scaled, f256_simd_sub(a_scaled, a));
+        const f256_simd2d b_hi = f256_simd_sub(b_scaled, f256_simd_sub(b_scaled, b));
+        const f256_simd2d a_lo = f256_simd_sub(a, a_hi);
+        const f256_simd2d b_lo = f256_simd_sub(b, b_hi);
+
+        e = f256_simd_add(
+            f256_simd_add(f256_simd_sub(f256_simd_mul(a_hi, b_hi), p), f256_simd_mul(a_hi, b_lo)),
+            f256_simd_add(f256_simd_mul(a_lo, b_hi), f256_simd_mul(a_lo, b_lo))
+        );
+        #endif
+    }
     BL_FORCE_INLINE void f256_simd_store_array(f256_simd2d value, double* lanes) noexcept
     {
         #if BL_F256_HAS_SSE2
@@ -1047,10 +1069,32 @@ namespace detail::_f256
 
     BL_FORCE_INLINE constexpr f256_s sub_mul_scalar_fast(const f256_s& r, const f256_s& b, double q) noexcept
     {
-        double p0{}, e0{}; two_prod_precise(b.x0, q, p0, e0);
-        double p1{}, e1{}; two_prod_precise(b.x1, q, p1, e1);
-        double p2{}, e2{}; two_prod_precise(b.x2, q, p2, e2);
-        double p3{}, e3{}; two_prod_precise(b.x3, q, p3, e3);
+        double p0{}, e0{};
+        double p1{}, e1{};
+        double p2{}, e2{};
+        double p3{}, e3{};
+
+        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        if (f256_runtime_simd_enabled())
+        {
+            f256_simd2d p01{}, e01{};
+            f256_simd2d p23{}, e23{};
+            const f256_simd2d qv = f256_simd_splat(q);
+            f256_simd_two_prod_precise(f256_simd_set(b.x0, b.x1), qv, p01, e01);
+            f256_simd_two_prod_precise(f256_simd_set(b.x2, b.x3), qv, p23, e23);
+            f256_simd_store(p01, p0, p1);
+            f256_simd_store(e01, e0, e1);
+            f256_simd_store(p23, p2, p3);
+            f256_simd_store(e23, e2, e3);
+        }
+        else
+        #endif
+        {
+            two_prod_precise(b.x0, q, p0, e0);
+            two_prod_precise(b.x1, q, p1, e1);
+            two_prod_precise(b.x2, q, p2, e2);
+            two_prod_precise(b.x3, q, p3, e3);
+        }
 
         double s0 = r.x0-p0; double v0 = s0-r.x0; double u0 = s0-v0; double w0 = r.x0-u0;  u0 = -p0 - v0;
         double s1 = r.x1-p1; double v1 = s1-r.x1; double u1 = s1-v1; double w1 = r.x1-u1;  u1 = -p1 - v1;
@@ -1076,10 +1120,28 @@ namespace detail::_f256
         double q0{}, q1{}, q2{};
         double s0{}, s1{}, s2{}, s3{}, s4{};
 
-        two_prod_precise(b.x0, q, p0, q0);
-        two_prod_precise(b.x1, q, p1, q1);
-        two_prod_precise(b.x2, q, p2, q2);
-        p3 = b.x3 * q;
+        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        if (f256_runtime_simd_enabled())
+        {
+            f256_simd2d p01{}, q01{};
+            f256_simd2d p23{}, q23{};
+            const f256_simd2d qv = f256_simd_splat(q);
+            f256_simd_two_prod_precise(f256_simd_set(b.x0, b.x1), qv, p01, q01);
+            f256_simd_two_prod_precise(f256_simd_set(b.x2, b.x3), qv, p23, q23);
+            double ignored{};
+            f256_simd_store(p01, p0, p1);
+            f256_simd_store(q01, q0, q1);
+            f256_simd_store(p23, p2, p3);
+            f256_simd_store(q23, q2, ignored);
+        }
+        else
+        #endif
+        {
+            two_prod_precise(b.x0, q, p0, q0);
+            two_prod_precise(b.x1, q, p1, q1);
+            two_prod_precise(b.x2, q, p2, q2);
+            p3 = b.x3 * q;
+        }
 
         s0 = p0;
         two_sum_precise(q0, p1, s1, s2);
@@ -1154,12 +1216,46 @@ namespace detail::_f256
         double t0{}, t1{};
         double s0{}, s1{}, s2{};
 
-        two_prod_precise(a.x0, b.x0, p0, q0);
-        two_prod_precise(a.x0, b.x1, p1, q1);
-        two_prod_precise(a.x1, b.x0, p2, q2);
-        two_prod_precise(a.x0, b.x2, p3, q3);
-        two_prod_precise(a.x1, b.x1, p4, q4);
-        two_prod_precise(a.x2, b.x0, p5, q5);
+        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        if (f256_runtime_simd_enabled())
+        {
+            f256_simd2d p01{}, q01{};
+            f256_simd2d p23{}, q23{};
+            f256_simd2d p45{}, q45{};
+            f256_simd2d p67{}, q67{};
+            f256_simd2d p89{}, q89{};
+
+            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x0), f256_simd_set(b.x0, b.x1), p01, q01);
+            f256_simd_two_prod_precise(f256_simd_set(a.x1, a.x0), f256_simd_set(b.x0, b.x2), p23, q23);
+            f256_simd_two_prod_precise(f256_simd_set(a.x1, a.x2), f256_simd_set(b.x1, b.x0), p45, q45);
+            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x1), f256_simd_set(b.x3, b.x2), p67, q67);
+            f256_simd_two_prod_precise(f256_simd_set(a.x2, a.x3), f256_simd_set(b.x1, b.x0), p89, q89);
+
+            f256_simd_store(p01, p0, p1);
+            f256_simd_store(q01, q0, q1);
+            f256_simd_store(p23, p2, p3);
+            f256_simd_store(q23, q2, q3);
+            f256_simd_store(p45, p4, p5);
+            f256_simd_store(q45, q4, q5);
+            f256_simd_store(p67, p6, p7);
+            f256_simd_store(q67, q6, q7);
+            f256_simd_store(p89, p8, p9);
+            f256_simd_store(q89, q8, q9);
+        }
+        else
+        #endif
+        {
+            two_prod_precise(a.x0, b.x0, p0, q0);
+            two_prod_precise(a.x0, b.x1, p1, q1);
+            two_prod_precise(a.x1, b.x0, p2, q2);
+            two_prod_precise(a.x0, b.x2, p3, q3);
+            two_prod_precise(a.x1, b.x1, p4, q4);
+            two_prod_precise(a.x2, b.x0, p5, q5);
+            two_prod_precise(a.x0, b.x3, p6, q6);
+            two_prod_precise(a.x1, b.x2, p7, q7);
+            two_prod_precise(a.x2, b.x1, p8, q8);
+            two_prod_precise(a.x3, b.x0, p9, q9);
+        }
 
         three_sum(p1, p2, q0);
         three_sum(p2, q1, q2);
@@ -1170,11 +1266,6 @@ namespace detail::_f256
         s2 = q2 + p5;
         two_sum_precise(s1, t0, s1, t0);
         s2 += (t0 + t1);
-
-        two_prod_precise(a.x0, b.x3, p6, q6);
-        two_prod_precise(a.x1, b.x2, p7, q7);
-        two_prod_precise(a.x2, b.x1, p8, q8);
-        two_prod_precise(a.x3, b.x0, p9, q9);
 
         two_sum_precise(q0, q3, q0, q3);
         two_sum_precise(q4, q5, q4, q5);
@@ -1228,12 +1319,36 @@ namespace detail::_f256
         double t0{}, t1{};
         double s0{}, s1{}, s2{};
 
-        two_prod_precise(a.x0, a.x0, p0, q0);
-        two_prod_precise(a.x0, a.x1, p1, q1);
+        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        if (f256_runtime_simd_enabled())
+        {
+            f256_simd2d p01{}, q01{};
+            f256_simd2d p34{}, q34{};
+            f256_simd2d p67{}, q67{};
+
+            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x0), f256_simd_set(a.x0, a.x1), p01, q01);
+            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x1), f256_simd_set(a.x2, a.x1), p34, q34);
+            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x1), f256_simd_set(a.x3, a.x2), p67, q67);
+
+            f256_simd_store(p01, p0, p1);
+            f256_simd_store(q01, q0, q1);
+            f256_simd_store(p34, p3, p4);
+            f256_simd_store(q34, q3, q4);
+            f256_simd_store(p67, p6, p7);
+            f256_simd_store(q67, q6, q7);
+        }
+        else
+        #endif
+        {
+            two_prod_precise(a.x0, a.x0, p0, q0);
+            two_prod_precise(a.x0, a.x1, p1, q1);
+            two_prod_precise(a.x0, a.x2, p3, q3);
+            two_prod_precise(a.x1, a.x1, p4, q4);
+            two_prod_precise(a.x0, a.x3, p6, q6);
+            two_prod_precise(a.x1, a.x2, p7, q7);
+        }
         p2 = p1;
         q2 = q1;
-        two_prod_precise(a.x0, a.x2, p3, q3);
-        two_prod_precise(a.x1, a.x1, p4, q4);
         p5 = p3;
         q5 = q3;
 
@@ -1247,8 +1362,6 @@ namespace detail::_f256
         two_sum_precise(s1, t0, s1, t0);
         s2 += (t0 + t1);
 
-        two_prod_precise(a.x0, a.x3, p6, q6);
-        two_prod_precise(a.x1, a.x2, p7, q7);
         p8 = p7;
         q8 = q7;
         p9 = p6;
@@ -1310,10 +1423,28 @@ namespace detail::_f256
         double q0{}, q1{}, q2{};
         double s0{}, s1{}, s2{}, s3{}, s4{};
 
-        two_prod_precise(a.x0, b, p0, q0);
-        two_prod_precise(a.x1, b, p1, q1);
-        two_prod_precise(a.x2, b, p2, q2);
-        p3 = a.x3 * b;
+        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        if (f256_runtime_simd_enabled())
+        {
+            f256_simd2d p01{}, q01{};
+            f256_simd2d p23{}, q23{};
+            const f256_simd2d bv = f256_simd_splat(b);
+            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x1), bv, p01, q01);
+            f256_simd_two_prod_precise(f256_simd_set(a.x2, a.x3), bv, p23, q23);
+            double ignored{};
+            f256_simd_store(p01, p0, p1);
+            f256_simd_store(q01, q0, q1);
+            f256_simd_store(p23, p2, p3);
+            f256_simd_store(q23, q2, ignored);
+        }
+        else
+        #endif
+        {
+            two_prod_precise(a.x0, b, p0, q0);
+            two_prod_precise(a.x1, b, p1, q1);
+            two_prod_precise(a.x2, b, p2, q2);
+            p3 = a.x3 * b;
+        }
 
         s0 = p0;
         two_sum_precise(q0, p1, s1, s2);

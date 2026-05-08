@@ -28,8 +28,8 @@ namespace
         "f64",
         "std",
         "f64 vs std typical benchmark ratios",
-        "benchmark_charts/f64_typical_ratios.csv",
-        "benchmark_charts/f64_typical_ratios.svg"
+        bl::bench::benchmark_output_path("f64", "typical_ratios", "csv"),
+        bl::bench::benchmark_output_path("f64", "typical_ratios", "svg")
     };
 
     struct bench_result

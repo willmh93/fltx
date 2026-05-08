@@ -13,6 +13,58 @@
 
 namespace bl::bench
 {
+    [[nodiscard]] inline std::string_view benchmark_compiler_name()
+    {
+        #if defined(__MINGW32__) || defined(__MINGW64__)
+        return "MinGW";
+        #elif defined(__clang__) && defined(__apple_build_version__)
+        return "AppleClang";
+        #elif defined(__clang__)
+        return "Clang";
+        #elif defined(_MSC_VER)
+        return "MSVC";
+        #elif defined(__GNUC__)
+        return "GCC";
+        #else
+        return "unknown";
+        #endif
+    }
+
+    [[nodiscard]] inline std::string_view benchmark_os_name()
+    {
+        #if defined(_WIN32)
+        return "windows";
+        #elif defined(__APPLE__) && defined(__MACH__)
+        return "macOS";
+        #elif defined(__linux__)
+        return "linux";
+        #elif defined(__unix__)
+        return "unix";
+        #else
+        return "unknown";
+        #endif
+    }
+
+    [[nodiscard]] inline std::string benchmark_output_path(
+        std::string_view type_name,
+        std::string_view suffix,
+        std::string_view extension)
+    {
+        std::filesystem::path output_path = std::filesystem::path("res") / "bench" / std::string(benchmark_os_name());
+
+        std::string filename = std::string(benchmark_compiler_name()) + "_" + std::string(type_name);
+        if (!suffix.empty())
+        {
+            filename += "_";
+            filename += suffix;
+        }
+        filename += ".";
+        filename += extension;
+
+        output_path /= filename;
+        return output_path.string();
+    }
+
     struct benchmark_chart_entry
     {
         std::string group{};

@@ -803,12 +803,34 @@ namespace detail::_f256
         double p11{}, q11{};
         double p12{}, q12{};
 
-        two_prod_precise(y.x0, y.x0, p00, q00);
-        two_prod_precise(y.x0, y.x1, p01, q01);
-        two_prod_precise(y.x0, y.x2, p02, q02);
-        two_prod_precise(y.x0, y.x3, p03, q03);
-        two_prod_precise(y.x1, y.x1, p11, q11);
-        two_prod_precise(y.x1, y.x2, p12, q12);
+        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        if (f256_runtime_simd_enabled())
+        {
+            f256_simd2d p00p12{}, q00q12{};
+            f256_simd2d p01p02{}, q01q02{};
+            f256_simd2d p03p11{}, q03q11{};
+
+            f256_simd_two_prod_precise(f256_simd_set(y.x0, y.x1), f256_simd_set(y.x0, y.x2), p00p12, q00q12);
+            f256_simd_two_prod_precise(f256_simd_set(y.x0, y.x0), f256_simd_set(y.x1, y.x2), p01p02, q01q02);
+            f256_simd_two_prod_precise(f256_simd_set(y.x0, y.x1), f256_simd_set(y.x3, y.x1), p03p11, q03q11);
+
+            f256_simd_store(p00p12, p00, p12);
+            f256_simd_store(q00q12, q00, q12);
+            f256_simd_store(p01p02, p01, p02);
+            f256_simd_store(q01q02, q01, q02);
+            f256_simd_store(p03p11, p03, p11);
+            f256_simd_store(q03q11, q03, q11);
+        }
+        else
+        #endif
+        {
+            two_prod_precise(y.x0, y.x0, p00, q00);
+            two_prod_precise(y.x0, y.x1, p01, q01);
+            two_prod_precise(y.x0, y.x2, p02, q02);
+            two_prod_precise(y.x0, y.x3, p03, q03);
+            two_prod_precise(y.x1, y.x1, p11, q11);
+            two_prod_precise(y.x1, y.x2, p12, q12);
+        }
 
         p01 *= 2.0; q01 *= 2.0;
         p02 *= 2.0; q02 *= 2.0;
@@ -873,7 +895,7 @@ namespace detail::_f256
         const double half_inv_y0 = 0.5 / y0;
         f256_s y{ y0, 0.0, 0.0, 0.0 };
         sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
-        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
+        y = sqrt_step_tail_head(scaled_a, y, half_inv_y0);
         y = sqrt_step_tail_head(scaled_a, y, half_inv_y0);
 
         if (result_scale != 0)
@@ -891,6 +913,20 @@ namespace detail::_f256
 
         const double lo = (a.x1 + a.x2) + a.x3;
         return detail::fp::log_constexpr(hi) + detail::fp::log1p_constexpr(lo / hi);
+    }
+    BL_FORCE_INLINE constexpr f256_s log1p_double_seed_residual(const f256_s& r) noexcept
+    {
+        const f256_s r2 = mul_inline(r, r);
+        const f256_s r3 = mul_inline(r2, r);
+        const f256_s r4 = mul_inline(r2, r2);
+        const f256_s r5 = mul_inline(r4, r);
+
+        f256_s correction = r;
+        correction = sub_inline(correction, mul_double_inline(r2, 0.5));
+        correction = add_inline(correction, div_double_inline(r3, 3.0));
+        correction = sub_inline(correction, mul_double_inline(r4, 0.25));
+        correction = add_inline(correction, mul_double_inline(r5, 0.2));
+        return correction;
     }
     BL_MSVC_NOINLINE constexpr f256_s f256_expm1_tiny(const f256_s& r)
     {
@@ -1024,24 +1060,6 @@ namespace detail::_f256
     }
 
     #if BL_F256_ENABLE_SIMD
-    BL_FORCE_INLINE void f256_trig_simd_two_prod(f256_simd2d a, f256_simd2d b, f256_simd2d& p, f256_simd2d& e) noexcept
-    {
-        p = f256_simd_mul(a, b);
-
-        const f256_simd2d split = f256_simd_splat(134217729.0);
-        const f256_simd2d a_scaled = f256_simd_mul(a, split);
-        const f256_simd2d b_scaled = f256_simd_mul(b, split);
-
-        const f256_simd2d a_hi = f256_simd_sub(a_scaled, f256_simd_sub(a_scaled, a));
-        const f256_simd2d b_hi = f256_simd_sub(b_scaled, f256_simd_sub(b_scaled, b));
-        const f256_simd2d a_lo = f256_simd_sub(a, a_hi);
-        const f256_simd2d b_lo = f256_simd_sub(b, b_hi);
-
-        e = f256_simd_add(
-            f256_simd_add(f256_simd_sub(f256_simd_mul(a_hi, b_hi), p), f256_simd_mul(a_hi, b_lo)),
-            f256_simd_add(f256_simd_mul(a_lo, b_hi), f256_simd_mul(a_lo, b_lo))
-        );
-    }
     BL_FORCE_INLINE constexpr f256_s f256_mul_from_two_prod_terms(
         double p0, double p1, double p2, double p3, double p4, double p5,
         double p6, double p7, double p8, double p9,
@@ -1123,10 +1141,10 @@ namespace detail::_f256
         f256_simd2d p6{}, p7{}, p8{}, p9{};
         f256_simd2d q6{}, q7{}, q8{}, q9{};
 
-        f256_trig_simd_two_prod(ax0, bx3, p6, q6);
-        f256_trig_simd_two_prod(ax1, bx2, p7, q7);
-        f256_trig_simd_two_prod(ax2, bx1, p8, q8);
-        f256_trig_simd_two_prod(ax3, bx0, p9, q9);
+        f256_simd_two_prod_precise(ax0, bx3, p6, q6);
+        f256_simd_two_prod_precise(ax1, bx2, p7, q7);
+        f256_simd_two_prod_precise(ax2, bx1, p8, q8);
+        f256_simd_two_prod_precise(ax3, bx0, p9, q9);
 
         alignas(16) double p6v[2], p7v[2], p8v[2], p9v[2];
         alignas(16) double q6v[2], q7v[2], q8v[2], q9v[2];
@@ -1167,12 +1185,46 @@ namespace detail::_f256
         double t0{}, t1{};
         double m0{}, m1{}, m2{};
 
-        two_prod_precise(a.x0, b.x0, p0, q0);
-        two_prod_precise(a.x0, b.x1, p1, q1);
-        two_prod_precise(a.x1, b.x0, p2, q2);
-        two_prod_precise(a.x0, b.x2, p3, q3);
-        two_prod_precise(a.x1, b.x1, p4, q4);
-        two_prod_precise(a.x2, b.x0, p5, q5);
+        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        if (f256_runtime_simd_enabled())
+        {
+            f256_simd2d p01{}, q01{};
+            f256_simd2d p23{}, q23{};
+            f256_simd2d p45{}, q45{};
+            f256_simd2d p67{}, q67{};
+            f256_simd2d p89{}, q89{};
+
+            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x0), f256_simd_set(b.x0, b.x1), p01, q01);
+            f256_simd_two_prod_precise(f256_simd_set(a.x1, a.x0), f256_simd_set(b.x0, b.x2), p23, q23);
+            f256_simd_two_prod_precise(f256_simd_set(a.x1, a.x2), f256_simd_set(b.x1, b.x0), p45, q45);
+            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x1), f256_simd_set(b.x3, b.x2), p67, q67);
+            f256_simd_two_prod_precise(f256_simd_set(a.x2, a.x3), f256_simd_set(b.x1, b.x0), p89, q89);
+
+            f256_simd_store(p01, p0, p1);
+            f256_simd_store(q01, q0, q1);
+            f256_simd_store(p23, p2, p3);
+            f256_simd_store(q23, q2, q3);
+            f256_simd_store(p45, p4, p5);
+            f256_simd_store(q45, q4, q5);
+            f256_simd_store(p67, p6, p7);
+            f256_simd_store(q67, q6, q7);
+            f256_simd_store(p89, p8, p9);
+            f256_simd_store(q89, q8, q9);
+        }
+        else
+        #endif
+        {
+            two_prod_precise(a.x0, b.x0, p0, q0);
+            two_prod_precise(a.x0, b.x1, p1, q1);
+            two_prod_precise(a.x1, b.x0, p2, q2);
+            two_prod_precise(a.x0, b.x2, p3, q3);
+            two_prod_precise(a.x1, b.x1, p4, q4);
+            two_prod_precise(a.x2, b.x0, p5, q5);
+            two_prod_precise(a.x0, b.x3, p6, q6);
+            two_prod_precise(a.x1, b.x2, p7, q7);
+            two_prod_precise(a.x2, b.x1, p8, q8);
+            two_prod_precise(a.x3, b.x0, p9, q9);
+        }
 
         three_sum(p1, p2, q0);
         three_sum(p2, q1, q2);
@@ -1181,11 +1233,6 @@ namespace detail::_f256
         two_sum_precise(p2, p3, m0, t0);
         two_sum_precise(q1, p4, m1, t1); m2 = q2 + p5;
         two_sum_precise(m1, t0, m1, t0); m2 += (t0 + t1);
-
-        two_prod_precise(a.x0, b.x3, p6, q6);
-        two_prod_precise(a.x1, b.x2, p7, q7);
-        two_prod_precise(a.x2, b.x1, p8, q8);
-        two_prod_precise(a.x3, b.x0, p9, q9);
 
         two_sum_precise(q0, q3, q0, q3);
         two_sum_precise(q4, q5, q4, q5);
@@ -1414,9 +1461,10 @@ namespace detail::_f256
             --exp2;
         }
 
-        f256_s y = f256_s{ (double)exp2 } * ln2 + f256_s{ log_as_double_impl(m), 0.0, 0.0, 0.0 };
-        y += m * _exp(-y + f256_s{ (double)exp2 } * ln2) - 1.0;
-        y += m * _exp(-y + f256_s{ (double)exp2 } * ln2) - 1.0;
+        const f256_s exp2_ln2 = mul_double_inline(ln2, static_cast<double>(exp2));
+        f256_s y = exp2_ln2 + f256_s{ log_as_double_impl(m), 0.0, 0.0, 0.0 };
+        const f256_s residual = m * _exp(exp2_ln2 - y) - 1.0;
+        y += log1p_double_seed_residual(residual);
         return y;
     }
     BL_MSVC_NOINLINE constexpr f256_s _expm1(const f256_s& x)
@@ -1770,6 +1818,9 @@ namespace detail::_f256
 
         if ((ex - ey) > 110)
             return canonicalize_math_result(ax);
+
+        if (!bl::use_constexpr_math() && ex > -450 && ex < 450)
+            return canonicalize_math_result(sqrt(add_inline(sqr_inline(ax), sqr_inline(ay))));
 
         const f256_s r = div_inline(ay, ax);
         return canonicalize_math_result(mul_inline(ax, sqrt(f256_s{ 1.0 } + mul_inline(r, r))));
@@ -2556,6 +2607,17 @@ namespace detail::_f256
         return x;
 
     const f256_s ax = abs(x);
+    if (!bl::use_constexpr_math())
+    {
+        const f256_s em1 = _expm1(ax);
+        f256_s out = div_inline(
+            mul_inline(em1, add_scalar_precise(em1, 2.0)),
+            mul_double_inline(add_scalar_precise(em1, 1.0), 2.0));
+        if (signbit(x))
+            out = -out;
+        return canonicalize_math_result(out);
+    }
+
     if (ax <= f256_s{ 0.5 })
     {
         const f256_s x2 = mul_inline(x, x);
@@ -2711,11 +2773,32 @@ namespace detail::_f256
             y = detail::_f256_constexpr::ldexp(y, exp2 / 3);
     }
 
-    y = (y + y + ax / (y * y)) / f256_s{ 3.0 };
-    y = (y + y + ax / (y * y)) / f256_s{ 3.0 };
+    const auto cbrt_newton_step = [&](const f256_s& current) constexpr -> f256_s
+    {
+        const f256_s current_squared = mul_inline(current, current);
+        const f256_s quotient = div_inline(ax, current_squared);
+        return div_double_inline(add_inline(add_inline(current, current), quotient), 3.0);
+    };
+    const auto cbrt_tail_step = [&](const f256_s& current) constexpr -> f256_s
+    {
+        const double inv_derivative = 1.0 / (3.0 * current.x0 * current.x0);
+        const f256_s current_squared = mul_inline(current, current);
+        const f256_s residual = sub_inline(ax, mul_inline(current_squared, current));
+        return add_inline(current, mul_double_inline(residual, inv_derivative));
+    };
 
     if (bl::use_constexpr_math())
-        y = (y + y + ax / (y * y)) / f256_s{ 3.0 };
+    {
+        y = cbrt_newton_step(y);
+        y = cbrt_newton_step(y);
+        y = cbrt_newton_step(y);
+    }
+    else
+    {
+        y = cbrt_tail_step(y);
+        y = cbrt_tail_step(y);
+        y = cbrt_tail_step(y);
+    }
 
     if (neg)
         y = -y;
