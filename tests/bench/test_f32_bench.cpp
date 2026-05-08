@@ -21,7 +21,7 @@ namespace
 {
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 500;
+    constexpr int benchmark_scale = 100;
     constexpr std::size_t value_count = 64;
 
     bl::bench::benchmark_chart_writer chart_writer{
