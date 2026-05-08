@@ -1463,8 +1463,16 @@ namespace detail::_f256
 
         const f256_s exp2_ln2 = mul_double_inline(ln2, static_cast<double>(exp2));
         f256_s y = exp2_ln2 + f256_s{ log_as_double_impl(m), 0.0, 0.0, 0.0 };
-        const f256_s residual = m * _exp(exp2_ln2 - y) - 1.0;
-        y += log1p_double_seed_residual(residual);
+        if (bl::use_constexpr_math())
+        {
+            y += m * _exp(exp2_ln2 - y) - 1.0;
+            y += m * _exp(exp2_ln2 - y) - 1.0;
+        }
+        else
+        {
+            const f256_s residual = m * _exp(exp2_ln2 - y) - 1.0;
+            y += log1p_double_seed_residual(residual);
+        }
         return y;
     }
     BL_MSVC_NOINLINE constexpr f256_s _expm1(const f256_s& x)
