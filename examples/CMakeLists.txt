@@ -8,6 +8,8 @@ function(fltx_add_example example_name)
     target_compile_options(${example_name} PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/constexpr:steps10000000>
         $<$<CXX_COMPILER_ID:MSVC>:/constexpr:backtrace100>
+        $<$<CXX_COMPILER_ID:Clang,AppleClang>:-fconstexpr-steps=10000000>
+        $<$<CXX_COMPILER_ID:Clang,AppleClang>:-fconstexpr-backtrace-limit=100>
     )
 
     target_compile_features(${example_name} PRIVATE cxx_std_20)
