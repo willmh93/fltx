@@ -23,6 +23,8 @@ namespace
 
     constexpr int benchmark_scale = 100;
     constexpr std::size_t value_count = 64;
+    constexpr std::size_t atan_typical_value_count = 4096;
+    constexpr double benchmark_pi = 3.141592653589793238462643383279502884;
 
     bl::bench::benchmark_chart_writer chart_writer{
         "f64",
@@ -358,13 +360,47 @@ namespace
     {
         std::array<double, value_count> values{};
         std::mt19937_64 rng(0x641006ull);
-        constexpr double pi = 3.141592653589793238462643383279502884;
         for (std::size_t i = 0; i < values.size(); ++i)
         {
             const double scale = std::ldexp(random_real(rng, 0.5, 1.5), random_int(rng, 0, 20));
             const double offset = std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 6, 40));
-            values[i] = random_sign(rng) * (scale * pi + offset * static_cast<double>((i % 5) + 1));
+            values[i] = random_sign(rng) * (scale * benchmark_pi + offset * static_cast<double>((i % 5) + 1));
         }
+        return values;
+    }
+
+    [[nodiscard]] std::array<double, atan_typical_value_count> make_atan_values()
+    {
+        std::array<double, atan_typical_value_count> values{};
+        std::mt19937_64 rng(0xf27a6c1e0d9112b5ull);
+        std::uniform_real_distribution<double> near_unit{-1.0, 1.0};
+        std::uniform_real_distribution<double> wide{-16.0, 16.0};
+        std::bernoulli_distribution use_near_unit{0.70};
+
+        for (double& value : values)
+            value = use_near_unit(rng) ? near_unit(rng) : wide(rng);
+
+        return values;
+    }
+
+    [[nodiscard]] std::array<binary_value, atan_typical_value_count> make_atan2_values()
+    {
+        std::array<binary_value, atan_typical_value_count> values{};
+        std::mt19937_64 rng(0x4bd2f85a99d7260full);
+        std::uniform_real_distribution<double> angle_distribution{-benchmark_pi, benchmark_pi};
+        std::uniform_real_distribution<double> log_radius_distribution{-12.0, 12.0};
+
+        for (binary_value& value : values)
+        {
+            const double angle = angle_distribution(rng);
+            const double radius = std::pow(10.0, log_radius_distribution(rng));
+            const double x = radius * std::cos(angle);
+            const double y = radius * std::sin(angle);
+
+            value.lhs = y;
+            value.rhs = x;
+        }
+
         return values;
     }
 
@@ -619,6 +655,18 @@ namespace
     [[nodiscard]] const auto& trig_values()
     {
         static const auto values = make_trig_values();
+        return values;
+    }
+
+    [[nodiscard]] const auto& atan_values()
+    {
+        static const auto values = make_atan_values();
+        return values;
+    }
+
+    [[nodiscard]] const auto& atan2_values()
+    {
+        static const auto values = make_atan2_values();
         return values;
     }
 
@@ -886,8 +934,17 @@ BL_F64_BINARY_DOUBLE_TEST("hypot", "[bench][fltx][f64][hypot]", hypot_values, tr
 BL_F64_UNARY_DOUBLE_TEST("sin", "[bench][fltx][f64][trig][sin]", trig_values, transcendental_iterations, bl::sin(x), std::sin(x))
 BL_F64_UNARY_DOUBLE_TEST("cos", "[bench][fltx][f64][trig][cos]", trig_values, transcendental_iterations, bl::cos(x), std::cos(x))
 BL_F64_UNARY_DOUBLE_TEST("tan", "[bench][fltx][f64][trig][tan]", trig_values, transcendental_iterations, bl::tan(x), std::tan(x))
-BL_F64_UNARY_DOUBLE_TEST("atan", "[bench][fltx][f64][trig][atan]", generic_unary_values, transcendental_iterations, bl::atan(x), std::atan(x))
-BL_F64_BINARY_DOUBLE_TEST("atan2", "[bench][fltx][f64][trig][atan2]", generic_binary_values, transcendental_iterations, bl::atan2(x, y), std::atan2(x, y))
+BL_F64_UNARY_DOUBLE_TEST("atan", "[bench][fltx][f64][trig][atan]", atan_values, transcendental_iterations, bl::atan(x), std::atan(x))
+
+TEST_CASE("f64 vs std atan2 performance", "[bench][fltx][f64][trig][atan2]")
+{
+    const auto& values = atan2_values();
+    const auto results = benchmark_comparison<double>(
+        [&]() { return benchmark_indexed<double>(values.size(), transcendental_iterations, [&](std::size_t index) { const double y = values[index].lhs; const double x = values[index].rhs; return bl::atan2(y, x); }); },
+        [&]() { return benchmark_indexed<double>(values.size(), transcendental_iterations, [&](std::size_t index) { const double y = values[index].lhs; const double x = values[index].rhs; return std::atan2(y, x); }); });
+    print_result("atan2", results);
+}
+
 BL_F64_UNARY_DOUBLE_TEST("asin", "[bench][fltx][f64][trig][asin]", unit_interval_values, transcendental_iterations, bl::asin(x), std::asin(x))
 BL_F64_UNARY_DOUBLE_TEST("acos", "[bench][fltx][f64][trig][acos]", unit_interval_values, transcendental_iterations, bl::acos(x), std::acos(x))
 

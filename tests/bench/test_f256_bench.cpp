@@ -32,12 +32,14 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 20;
+    constexpr int benchmark_scale = 50;
     constexpr bool only_bench_typical = true;
     constexpr std::size_t bucket_value_count = 8;
     constexpr std::size_t bucket_count = 3;
     constexpr std::size_t typical_value_count = 64;
+    constexpr std::size_t atan_typical_value_count = 4096;
     constexpr std::size_t typical_precision_digits = mpfr_digits10 + 8;
+    constexpr double benchmark_pi = 3.141592653589793238462643383279502884;
 
     struct bench_result
     {
@@ -420,6 +422,34 @@ namespace
         return make_scientific_random_value(rng, domain);
     }
 
+    [[nodiscard]] std::string make_precise_generated_value(double value, std::mt19937_64& rng)
+    {
+        if (value == 0.0)
+            return "0.0";
+
+        std::ostringstream stream;
+        stream << std::scientific << std::setprecision(17) << value;
+        std::string text = stream.str();
+
+        const std::size_t exponent_pos = text.find_first_of("eE");
+        const std::size_t digit_end = exponent_pos == std::string::npos ? text.size() : exponent_pos;
+        const std::size_t dot = text.find('.');
+
+        if (dot != std::string::npos && dot < digit_end)
+        {
+            const std::size_t current_digits = digit_end - dot - 1;
+            if (current_digits < typical_precision_digits)
+            {
+                std::string tail;
+                tail.reserve(typical_precision_digits - current_digits);
+                append_random_digits(tail, rng, typical_precision_digits - current_digits);
+                text.insert(digit_end, tail);
+            }
+        }
+
+        return text;
+    }
+
     [[nodiscard]] random_value_domain make_text_domain(const std::array<const char*, bucket_value_count>& texts)
     {
         random_value_domain domain{};
@@ -460,6 +490,44 @@ namespace
         {
             spec.lhs = make_random_benchmark_value(rng, lhs_domain);
             spec.rhs = make_random_benchmark_value(rng, rhs_domain);
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] std::array<std::string, atan_typical_value_count> make_typical_atan_specs()
+    {
+        std::array<std::string, atan_typical_value_count> out{};
+        std::mt19937_64 rng{0xf27a6c1e0d9112b5ull};
+        std::uniform_real_distribution<double> near_unit{-1.0, 1.0};
+        std::uniform_real_distribution<double> wide{-16.0, 16.0};
+        std::bernoulli_distribution use_near_unit{0.70};
+
+        for (auto& text : out)
+        {
+            const double value = use_near_unit(rng) ? near_unit(rng) : wide(rng);
+            text = make_precise_generated_value(value, rng);
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] std::array<generated_binary_value_spec, atan_typical_value_count> make_typical_atan2_specs()
+    {
+        std::array<generated_binary_value_spec, atan_typical_value_count> out{};
+        std::mt19937_64 rng{0x4bd2f85a99d7260full};
+        std::uniform_real_distribution<double> angle_distribution{-benchmark_pi, benchmark_pi};
+        std::uniform_real_distribution<double> log_radius_distribution{-12.0, 12.0};
+
+        for (auto& spec : out)
+        {
+            const double angle = angle_distribution(rng);
+            const double radius = std::pow(10.0, log_radius_distribution(rng));
+            const double x = radius * std::cos(angle);
+            const double y = radius * std::sin(angle);
+
+            spec.lhs = make_precise_generated_value(y, rng);
+            spec.rhs = make_precise_generated_value(x, rng);
         }
 
         return out;
@@ -2678,14 +2746,20 @@ TEST_CASE("f256 vs mpfr tan performance", "[bench][fltx][f256][transcendental][t
 TEST_CASE("f256 vs mpfr atan performance", "[bench][fltx][f256][transcendental][trig][atan]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark(trig_value_buckets(), total_iterations, [](const auto& values, std::size_t i) { return apply_atan(values[i]); });
+    const auto typical_specs = make_typical_atan_specs();
+    bucketed_comparison_result results{};
+    results.typical.f256 = benchmark_value_bucket<f256>(typical_specs, total_iterations, [](const auto& values, std::size_t i) { return apply_atan(values[i]); }, false);
+    results.typical.mpfr = benchmark_value_bucket<mpfr_ref>(typical_specs, total_iterations, [](const auto& values, std::size_t i) { return apply_atan(values[i]); }, false);
     print_bucketed_results("Trigonometric", "atan", results);
 }
 
 TEST_CASE("f256 vs mpfr atan2 performance", "[bench][fltx][f256][transcendental][trig][atan2]")
 {
-    const std::int64_t total_iterations = 2000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark(atan2_value_buckets(), total_iterations, [](const auto& y, const auto& x) { return apply_atan2(y, x); });
+    const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
+    const auto typical_specs = make_typical_atan2_specs();
+    bucketed_comparison_result results{};
+    results.typical.f256 = benchmark_binary_bucket<f256>(typical_specs, total_iterations, [](const auto& y, const auto& x) { return apply_atan2(y, x); }, false);
+    results.typical.mpfr = benchmark_binary_bucket<mpfr_ref>(typical_specs, total_iterations, [](const auto& y, const auto& x) { return apply_atan2(y, x); }, false);
     print_bucketed_results("Trigonometric", "atan2", results);
 }
 

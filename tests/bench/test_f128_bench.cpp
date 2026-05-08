@@ -28,10 +28,12 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 20;
+    constexpr int benchmark_scale = 50;
     constexpr bool only_bench_typical = true;
     constexpr std::size_t bucket_value_count = 64;
     constexpr std::size_t bucket_count = 3;
+    constexpr std::size_t atan_typical_value_count = 4096;
+    constexpr double benchmark_pi = 3.141592653589793238462643383279502884;
 
     bl::bench::benchmark_chart_writer chart_writer{
         "f128",
@@ -532,6 +534,50 @@ namespace
         {
             spec.lhs = make_random_typical_value_spec(rng, lhs_domain);
             spec.rhs = make_random_typical_value_spec(rng, rhs_domain);
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] value_spec make_typical_atan_value_spec(double value, std::mt19937_64& rng)
+    {
+        const double lo = random_sign(rng) * random_real(rng, 0.05, 0.95) * ulp_of(value == 0.0 ? 1.0 : value);
+        return renorm_spec(value, lo);
+    }
+
+    [[nodiscard]] std::array<value_spec, atan_typical_value_count> make_typical_atan_specs()
+    {
+        std::array<value_spec, atan_typical_value_count> out{};
+        std::mt19937_64 rng{0xf27a6c1e0d9112b5ull};
+        std::uniform_real_distribution<double> near_unit{-1.0, 1.0};
+        std::uniform_real_distribution<double> wide{-16.0, 16.0};
+        std::bernoulli_distribution use_near_unit{0.70};
+
+        for (value_spec& spec : out)
+        {
+            const double value = use_near_unit(rng) ? near_unit(rng) : wide(rng);
+            spec = make_typical_atan_value_spec(value, rng);
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] std::array<binary_value_spec, atan_typical_value_count> make_typical_atan2_specs()
+    {
+        std::array<binary_value_spec, atan_typical_value_count> out{};
+        std::mt19937_64 rng{0x4bd2f85a99d7260full};
+        std::uniform_real_distribution<double> angle_distribution{-benchmark_pi, benchmark_pi};
+        std::uniform_real_distribution<double> log_radius_distribution{-12.0, 12.0};
+
+        for (binary_value_spec& spec : out)
+        {
+            const double angle = angle_distribution(rng);
+            const double radius = std::pow(10.0, log_radius_distribution(rng));
+            const double x = radius * std::cos(angle);
+            const double y = radius * std::sin(angle);
+
+            spec.lhs = make_typical_atan_value_spec(y, rng);
+            spec.rhs = make_typical_atan_value_spec(x, rng);
         }
 
         return out;
@@ -1702,21 +1748,21 @@ namespace
         return tgamma(x);
     }
 
-    template<typename T, typename Op>
+    template<typename T, std::size_t ValueCount, typename Op>
     [[nodiscard]] bench_result benchmark_unary_bucket(
-        const std::array<value_spec, bucket_value_count>& specs,
+        const std::array<value_spec, ValueCount>& specs,
         std::int64_t total_iterations,
         Op&& op,
         bool scale_to_bucket = true)
     {
-        std::array<T, bucket_value_count> values{};
-        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        std::array<T, ValueCount> values{};
+        for (std::size_t i = 0; i < ValueCount; ++i)
             values[i] = make_value<T>(specs[i]);
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
-        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -1724,7 +1770,7 @@ namespace
 
             for (std::int64_t outer = 0; outer < outer_loops; ++outer)
             {
-                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                for (std::size_t i = 0; i < ValueCount; ++i)
                     acc = blend_result(op(values[i]), acc);
             }
 
@@ -1732,21 +1778,21 @@ namespace
         });
     }
 
-    template<typename T, typename Op>
+    template<typename T, std::size_t ValueCount, typename Op>
     [[nodiscard]] bench_result benchmark_binary_bucket(
-        const std::array<binary_value_spec, bucket_value_count>& specs,
+        const std::array<binary_value_spec, ValueCount>& specs,
         std::int64_t total_iterations,
         Op&& op,
         bool scale_to_bucket = true)
     {
-        std::array<std::pair<T, T>, bucket_value_count> values{};
-        for (std::size_t i = 0; i < bucket_value_count; ++i)
+        std::array<std::pair<T, T>, ValueCount> values{};
+        for (std::size_t i = 0; i < ValueCount; ++i)
             values[i] = { make_value<T>(specs[i].lhs), make_value<T>(specs[i].rhs) };
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
-        const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -1754,7 +1800,7 @@ namespace
 
             for (std::int64_t outer = 0; outer < outer_loops; ++outer)
             {
-                for (std::size_t i = 0; i < bucket_value_count; ++i)
+                for (std::size_t i = 0; i < ValueCount; ++i)
                 {
                     const T value = static_cast<T>(op(values[i].first, values[i].second));
                     acc = blend_result(value, acc);
@@ -2711,14 +2757,20 @@ TEST_CASE("f128 vs mpfr tan performance", "[bench][fltx][f128][transcendental][t
 TEST_CASE("f128 vs mpfr atan performance", "[bench][fltx][f128][transcendental][trig][atan]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(trig_specs(), total_iterations, [](const auto& x) { return apply_atan(x); });
+    const auto typical_specs = make_typical_atan_specs();
+    bucketed_comparison_result results{};
+    results.typical.f128 = benchmark_unary_bucket<f128>(typical_specs, total_iterations, [](const auto& x) { return apply_atan(x); }, false);
+    results.typical.mpfr = benchmark_unary_bucket<mpfr_ref>(typical_specs, total_iterations, [](const auto& x) { return apply_atan(x); }, false);
     print_bucketed_results("atan", results);
 }
 
 TEST_CASE("f128 vs mpfr atan2 performance", "[bench][fltx][f128][transcendental][trig][atan2]")
 {
-    const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark(atan2_specs(), total_iterations, [](const auto& y, const auto& x) { return apply_atan2(y, x); });
+    const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
+    const auto typical_specs = make_typical_atan2_specs();
+    bucketed_comparison_result results{};
+    results.typical.f128 = benchmark_binary_bucket<f128>(typical_specs, total_iterations, [](const auto& y, const auto& x) { return apply_atan2(y, x); }, false);
+    results.typical.mpfr = benchmark_binary_bucket<mpfr_ref>(typical_specs, total_iterations, [](const auto& y, const auto& x) { return apply_atan2(y, x); }, false);
     print_bucketed_results("atan2", results);
 }
 
