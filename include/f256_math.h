@@ -900,6 +900,31 @@ namespace detail::_f256
         p = f256_mul_add_horner_step(p, r, f256_s{ 0.5 });
         return f256_mul_add_horner_step(mul_inline(r, r), p, r);
     }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s _ldexp(const f256_s& a, int e);
+    BL_MSVC_NOINLINE constexpr f256_s f256_expm1_reduced(const f256_s& x)
+    {
+        const f256_s t = x * inv_ln2;
+
+        double kd = nearbyint_ties_even(t.x0);
+        const f256_s delta = t - f256_s{ kd };
+        if (delta.x0 > 0.5 || (delta.x0 == 0.5 && (delta.x1 > 0.0 || (delta.x1 == 0.0 && (delta.x2 > 0.0 || (delta.x2 == 0.0 && delta.x3 > 0.0))))))
+            kd += 1.0;
+        else if (delta.x0 < -0.5 || (delta.x0 == -0.5 && (delta.x1 < 0.0 || (delta.x1 == 0.0 && (delta.x2 < 0.0 || (delta.x2 == 0.0 && delta.x3 < 0.0))))))
+            kd -= 1.0;
+
+        const int k = static_cast<int>(kd);
+        const f256_s kd_ln2 = mul_double_inline(ln2, kd);
+        const f256_s r = mul_double_inline(sub_inline(x, kd_ln2), 0.0009765625);
+
+        f256_s e = f256_expm1_tiny(r);
+        for (int i = 0; i < 10; ++i)
+            e = f256_mul_add_horner_step(e, e, mul_double_inline(e, 2.0));
+
+        if (k == 0)
+            return e;
+
+        return add_scalar_precise(_ldexp(add_scalar_precise(e, 1.0), k), -1.0);
+    }
     BL_MSVC_NOINLINE constexpr f256_s f256_log1p_series_reduced(const f256_s& x)
     {
         const f256_s z = x / (f256_s{ 2.0 } + x);
@@ -1409,27 +1434,13 @@ namespace detail::_f256
                 ? f256_s{ -1.0, 0.0, 0.0, 0.0 }
                 : std::numeric_limits<f256_s>::infinity();
 
-        const f256_s ax = abs(x);
-        if (ax <= f256_s{ 0.5 })
-        {
-            f256_s term = x;
-            f256_s sum = x;
+        if (x.x0 > 709.782712893384)
+            return std::numeric_limits<f256_s>::infinity();
 
-            for (int n = 2; n <= 256; ++n)
-            {
-                term = div_double_inline(mul_inline(term, x), static_cast<double>(n));
-                sum = add_inline(sum, term);
+        if (x.x0 < -745.133219101941)
+            return f256_s{ -1.0, 0.0, 0.0, 0.0 };
 
-                const f256_s asum = abs(sum);
-                const f256_s scale = (asum > f256_s{ 1.0 }) ? asum : f256_s{ 1.0 };
-                if (abs(term) <= f256_s::eps() * scale)
-                    break;
-            }
-
-            return sum;
-        }
-
-        return sub_inline(_exp(x), f256_s{ 1.0 });
+        return f256_expm1_reduced(x);
     }
 
     // trig functions
