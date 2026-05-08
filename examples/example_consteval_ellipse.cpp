@@ -1,5 +1,6 @@
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -28,7 +29,7 @@ consteval std::array<Vec2<T>, C> ellipse(T rx, T ry)
 
     for (std::size_t i = 0; i < C; ++i)
     {
-        T ratio = T(i) / T(C);
+        T ratio = T(static_cast<std::uint64_t>(i)) / T(static_cast<std::uint64_t>(C));
         T angle = ratio * tau;
 
         points[i] = {

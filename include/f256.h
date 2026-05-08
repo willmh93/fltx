@@ -1052,7 +1052,7 @@ namespace detail::_f256_runtime
 
 namespace detail::_f256
 {
-    BL_FORCE_INLINE constexpr f256_s add_inline(const f256_s& a, const f256_s& b) noexcept
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_inline(const f256_s& a, const f256_s& b) noexcept
     {
         using namespace detail::_f256;
 
@@ -1061,7 +1061,7 @@ namespace detail::_f256
 
         return add_qd_qd(a, b);
     }
-    BL_FORCE_INLINE constexpr f256_s sub_inline(const f256_s& a, const f256_s& b) noexcept
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sub_inline(const f256_s& a, const f256_s& b) noexcept
     {
         using namespace detail::_f256;
 
