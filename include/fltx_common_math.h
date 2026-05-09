@@ -15,7 +15,76 @@
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <type_traits>
 #include <utility>
+
+#ifndef BL_HAS_IF_CONSTEVAL
+#if defined(__cpp_if_consteval) && (__cpp_if_consteval >= 202106L)
+#define BL_HAS_IF_CONSTEVAL 1
+#elif defined(_MSC_VER) && !defined(__clang__) && defined(__cpp_consteval) && (_MSC_VER >= 1936)
+#define BL_HAS_IF_CONSTEVAL 1
+#define BL_IF_CONSTEVAL_MSVC_CXX20_EXTENSION 1
+#else
+#define BL_HAS_IF_CONSTEVAL 0
+#endif
+#endif
+
+#ifndef BL_CONSTEXPR_RUNTIME_DISPATCH
+#if !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE) && BL_HAS_IF_CONSTEVAL
+#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 1
+#if defined(BL_IF_CONSTEVAL_MSVC_CXX20_EXTENSION)
+#define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
+    do                                                              \
+    {                                                               \
+        __pragma(warning(push))                                     \
+        __pragma(warning(disable: 5282))                            \
+        if consteval                                                \
+        {                                                           \
+            return (CONSTEVAL_EXPR);                                \
+        }                                                           \
+        else                                                        \
+        {                                                           \
+            return (RUNTIME_EXPR);                                  \
+        }                                                           \
+        __pragma(warning(pop))                                      \
+    } while (false)
+#else
+#define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
+    do                                                              \
+    {                                                               \
+        if consteval                                                \
+        {                                                           \
+            return (CONSTEVAL_EXPR);                                \
+        }                                                           \
+        else                                                        \
+        {                                                           \
+            return (RUNTIME_EXPR);                                  \
+        }                                                           \
+    } while (false)
+#endif
+#elif !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE)
+#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
+#define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
+    do                                                              \
+    {                                                               \
+        if (std::is_constant_evaluated())                           \
+            return (CONSTEVAL_EXPR);                                \
+        return (RUNTIME_EXPR);                                      \
+    } while (false)
+#else
+#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
+#define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
+    do                                                              \
+    {                                                               \
+        if (bl::use_constexpr_math())                               \
+            return (CONSTEVAL_EXPR);                                \
+        return (RUNTIME_EXPR);                                      \
+    } while (false)
+#endif
+#endif
+#ifndef BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL
+#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
+#endif
 
 namespace bl::detail::fp
 {

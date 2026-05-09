@@ -12,6 +12,7 @@ namespace bl::detail::_f256_runtime
     BL_NO_INLINE f256_s round_to_decimals(f256_s v, int prec) { return detail::_f256_constexpr::round_to_decimals(v, prec); }
     BL_NO_INLINE f256_s sqrt(const f256_s& a) { return detail::_f256_constexpr::sqrt(a); }
     BL_NO_INLINE f256_s nearbyint(const f256_s& a) { return detail::_f256_constexpr::nearbyint(a); }
+    BL_NO_INLINE f256_s rint(const f256_s& x) { return detail::_f256_constexpr::nearbyint(x); }
     BL_NO_INLINE long   lround(const f256_s& x) { return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256::round_half_away_zero(x)); }
     BL_NO_INLINE long long llround(const f256_s& x) { return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256::round_half_away_zero(x)); }
     BL_NO_INLINE long   lrint(const f256_s& x) { return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256_constexpr::nearbyint(x)); }
@@ -45,6 +46,7 @@ namespace bl::detail::_f256_runtime
     BL_NO_INLINE f256_s atanh(const f256_s& x) { return detail::_f256_constexpr::atanh(x); }
 
     BL_NO_INLINE f256_s cbrt(const f256_s& x) { return detail::_f256_constexpr::cbrt(x); }
+    BL_NO_INLINE f256_s hypot(const f256_s& x, const f256_s& y) { return detail::_f256::hypot_impl(x, y); }
     BL_NO_INLINE f256_s remquo(const f256_s& x, const f256_s& y, int* quo) { return detail::_f256_constexpr::remquo(x, y, quo); }
     BL_NO_INLINE f256_s remainder(const f256_s& x, const f256_s& y) { return detail::_f256_constexpr::remainder(x, y); }
     BL_NO_INLINE f256_s frexp(const f256_s& x, int* exp) noexcept { return detail::_f256_constexpr::frexp(x, exp); }
