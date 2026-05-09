@@ -11,22 +11,30 @@ if (NOT EMSCRIPTEN)
     include(CTest)
 endif()
 
-# These are project-local toggles, not persistent configure options. Clear
-# legacy cache entries left by older option() based versions of this file.
-unset(FLTX_PRECISION_TESTS_CONSTEXPR_PARITY CACHE)
-unset(FLTX_BENCH_TESTS_CONSTEXPR_PARITY CACHE)
-unset(FLTX_BENCH_FAST_MATH_MODE CACHE)
+# These are project-local toggles. If passed with -D, import the cache value
+# for this configure pass and then clear it so it does not silently persist.
+function(fltx_import_test_toggle _NAME _DEFAULT)
+    if(DEFINED CACHE{${_NAME}})
+        set(_VALUE "${${_NAME}}")
+        unset(${_NAME} CACHE)
+        set(${_NAME} "${_VALUE}" PARENT_SCOPE)
+    elseif(NOT DEFINED ${_NAME})
+        set(${_NAME} "${_DEFAULT}" PARENT_SCOPE)
+    endif()
+endfunction()
 
-if(NOT DEFINED FLTX_PRECISION_TESTS_CONSTEXPR_PARITY)
-    set(FLTX_PRECISION_TESTS_CONSTEXPR_PARITY OFF)
+fltx_import_test_toggle(FLTX_PRECISION_TESTS_CONSTEXPR_PARITY OFF)
+fltx_import_test_toggle(FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL OFF)
+fltx_import_test_toggle(FLTX_BENCH_TESTS_CONSTEXPR_PARITY OFF)
+fltx_import_test_toggle(FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL OFF)
+fltx_import_test_toggle(FLTX_BENCH_FAST_MATH_MODE DEFAULT)
+
+if(FLTX_PRECISION_TESTS_CONSTEXPR_PARITY AND FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL)
+    message(FATAL_ERROR "FLTX_PRECISION_TESTS_CONSTEXPR_PARITY and FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL are separate modes; enable only one.")
 endif()
 
-if(NOT DEFINED FLTX_BENCH_TESTS_CONSTEXPR_PARITY)
-    set(FLTX_BENCH_TESTS_CONSTEXPR_PARITY OFF)
-endif()
-
-if(NOT DEFINED FLTX_BENCH_FAST_MATH_MODE)
-    set(FLTX_BENCH_FAST_MATH_MODE DEFAULT)
+if(FLTX_BENCH_TESTS_CONSTEXPR_PARITY AND FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL)
+    message(FATAL_ERROR "FLTX_BENCH_TESTS_CONSTEXPR_PARITY and FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL are separate modes; enable only one.")
 endif()
 
 string(TOUPPER "${FLTX_BENCH_FAST_MATH_MODE}" FLTX_BENCH_FAST_MATH_MODE)
@@ -92,13 +100,17 @@ endfunction()
 
 set(FLTX_PARITY_TEST_DEFINITIONS
     FLTX_CONSTEXPR_PARITY
-    FLTX_CONSTEXPR_PARITY_TEST_MODE
+    FLTX_SIMULATE_CONSTEVAL_MODE
 )
 
 addFltxTestLibrary(fltx_parity_test_lib ${FLTX_PARITY_TEST_DEFINITIONS})
 
 if (FLTX_PRECISION_TESTS_CONSTEXPR_PARITY OR FLTX_BENCH_TESTS_CONSTEXPR_PARITY)
     addFltxTestLibrary(fltx_constexpr_parity_lib FLTX_CONSTEXPR_PARITY)
+endif()
+
+if (FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL OR FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL)
+    addFltxTestLibrary(fltx_simulate_consteval_lib FLTX_SIMULATE_CONSTEVAL_MODE)
 endif()
 
 add_executable(precision_tests 
@@ -169,6 +181,8 @@ endfunction()
 set(FLTX_PRECISION_TEST_LIBRARY fltx::fltx)
 if (FLTX_PRECISION_TESTS_CONSTEXPR_PARITY)
     set(FLTX_PRECISION_TEST_LIBRARY fltx_constexpr_parity_lib)
+elseif(FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL)
+    set(FLTX_PRECISION_TEST_LIBRARY fltx_simulate_consteval_lib)
 endif()
 
 set(FLTX_BENCH_TEST_LIBRARY fltx::fltx)
@@ -179,6 +193,16 @@ if (FLTX_BENCH_TESTS_CONSTEXPR_PARITY)
         addFltxTestLibrary(fltx_bench_test_lib
             FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
             DEFINITIONS FLTX_CONSTEXPR_PARITY
+        )
+        set(FLTX_BENCH_TEST_LIBRARY fltx_bench_test_lib)
+    endif()
+elseif(FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL)
+    if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
+        set(FLTX_BENCH_TEST_LIBRARY fltx_simulate_consteval_lib)
+    else()
+        addFltxTestLibrary(fltx_bench_test_lib
+            FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
+            DEFINITIONS FLTX_SIMULATE_CONSTEVAL_MODE
         )
         set(FLTX_BENCH_TEST_LIBRARY fltx_bench_test_lib)
     endif()
@@ -196,6 +220,8 @@ prepareTarget(parity_tests    fltx_parity_test_lib)
 
 if (FLTX_PRECISION_TESTS_CONSTEXPR_PARITY)
     addFltxTestMacroStatus(precision_tests DEFINITIONS FLTX_CONSTEXPR_PARITY)
+elseif(FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL)
+    addFltxTestMacroStatus(precision_tests DEFINITIONS FLTX_SIMULATE_CONSTEVAL_MODE FLTX_TEST_FORCE_SIMULATED_CONSTEVAL)
 else()
     addFltxTestMacroStatus(precision_tests)
 endif()
@@ -209,6 +235,15 @@ if (FLTX_BENCH_TESTS_CONSTEXPR_PARITY)
         addFltxTestMacroStatus(bench_tests
             FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
             DEFINITIONS FLTX_CONSTEXPR_PARITY
+        )
+    endif()
+elseif(FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL)
+    if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
+        addFltxTestMacroStatus(bench_tests DEFINITIONS FLTX_SIMULATE_CONSTEVAL_MODE FLTX_TEST_FORCE_SIMULATED_CONSTEVAL)
+    else()
+        addFltxTestMacroStatus(bench_tests
+            FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
+            DEFINITIONS FLTX_SIMULATE_CONSTEVAL_MODE FLTX_TEST_FORCE_SIMULATED_CONSTEVAL
         )
     endif()
 elseif(FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")

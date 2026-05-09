@@ -9,6 +9,7 @@
 #include <vector>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -34,7 +35,7 @@ namespace
     constexpr int printed_digits = std::numeric_limits<f256>::max_digits10;
 
     constexpr std::uint64_t random_seed = 1ull;
-    constexpr int random_sample_count_scale = 100;
+    constexpr int random_sample_count_scale = 500;
 
     constexpr const char* type_label = "f256";
 
@@ -55,6 +56,89 @@ namespace
         for (int i = 0; i < digits; ++i)
             epsilon /= 10;
         return epsilon;
+    }
+
+    struct scaled_tolerance_entry
+    {
+        const char* op_name;
+        const char* tolerance;
+    };
+
+    [[nodiscard]] mpfr_ref function_scaled_tolerance(const char* op_name)
+    {
+        constexpr std::array<scaled_tolerance_entry, 39> tolerances{{
+            { "acos", "2e-60" },
+            { "acosh", "5e-61" },
+            { "add", "2e-65" },
+            { "asin", "2e-60" },
+            { "asinh", "2e-60" },
+            { "atan", "8e-63" },
+            { "atan2", "9e-63" },
+            { "atanh", "1e-62" },
+            { "cbrt", "1e-62" },
+            { "cos", "3e-60" },
+            { "cosh", "1e-62" },
+            { "divide", "2e-64" },
+            { "erf", "5e-60" },
+            { "erfc", "5e-60" },
+            { "exp", "1e-62" },
+            { "exp2", "1e-62" },
+            { "expm1", "9e-63" },
+            { "fmod", "1e-62" },
+            { "frexp", "2e-64" },
+            { "hypot", "3e-60" },
+            { "ldexp", "1e-62" },
+            { "lgamma", "7e-60" },
+            { "log", "1e-62" },
+            { "log10", "1e-62" },
+            { "log1p", "9e-63" },
+            { "log2", "1e-62" },
+            { "multiply", "2e-65" },
+            { "pow", "1e-62" },
+            { "pow10_256", "2e-65" },
+            { "recip", "4e-66" },
+            { "sin", "6e-60" },
+            { "sincos.cos", "4e-63" },
+            { "sincos.sin", "3e-63" },
+            { "sinh", "9e-63" },
+            { "sqrt", "3e-60" },
+            { "subtract", "2e-65" },
+            { "tan", "8e-63" },
+            { "tanh", "5e-63" },
+            { "tgamma", "6e-60" }
+        }};
+
+        for (const auto& entry : tolerances)
+        {
+            if (std::strcmp(op_name, entry.op_name) == 0)
+                return mpfr_ref{ entry.tolerance };
+        }
+
+        return mpfr_ref{ 0 };
+    }
+
+    [[nodiscard]] mpfr_ref function_tolerance(const char* op_name, const mpfr_ref& scale)
+    {
+        return function_scaled_tolerance(op_name) * scale;
+    }
+
+    [[nodiscard]] mpfr_ref combined_tolerance(
+        const char* op_name,
+        const mpfr_ref& accuracy_scale,
+        const mpfr_ref& abs_tolerance,
+        const mpfr_ref& rel_tolerance,
+        const mpfr_ref& rel_scale)
+    {
+        const mpfr_ref rel_based_tolerance = rel_tolerance * rel_scale;
+        mpfr_ref explicit_tolerance = abs_tolerance;
+        if (rel_based_tolerance > explicit_tolerance)
+            explicit_tolerance = rel_based_tolerance;
+
+        const mpfr_ref scaled_tolerance = function_tolerance(op_name, accuracy_scale);
+        if (scaled_tolerance == 0 || explicit_tolerance < scaled_tolerance)
+            return explicit_tolerance;
+
+        return scaled_tolerance;
     }
 
     [[nodiscard]] std::string to_text(const f256& value)
@@ -226,6 +310,7 @@ namespace
         ulp_count worst_ulp = 0;
         bool worst_ulp_exact = true;
         int inexact_ulp_samples = 0;
+        mpfr_ref worst_scaled_error = 0;
     };
 
     class accuracy_report_scope;
@@ -321,6 +406,7 @@ namespace
                 {
                     std::cout << ", local ulp omitted";
                 }
+                std::cout << ", worst scaled error " << std::scientific << entry.worst_scaled_error << std::fixed;
                 std::cout << "\n";
             }
 
@@ -341,6 +427,12 @@ namespace
             if (passed)
                 ++entry.passed;
             entry.achieved_digits.push_back(achieved_digits_from_error(diff, scale));
+            if (scale != 0)
+            {
+                const mpfr_ref scaled_error = diff / scale;
+                if (scaled_error > entry.worst_scaled_error)
+                    entry.worst_scaled_error = scaled_error;
+            }
 
             const ulp_distance_result ulps = true_ulp_distance_from_reference(got, expected);
             if (!ulps.exact)
@@ -390,7 +482,7 @@ namespace
         if (scale < 1)
             scale = 1;
 
-        const mpfr_ref tolerance = decimal_epsilon(checked_digits) * scale;
+        const mpfr_ref tolerance = function_tolerance(op_name, scale);
         const mpfr_ref diff = abs_ref(got_ref - expected);
 
         CAPTURE(op_name);
@@ -429,7 +521,7 @@ namespace
         if (scale < 1)
             scale = 1;
 
-        const mpfr_ref tolerance = decimal_epsilon(checked_digits) * scale;
+        const mpfr_ref tolerance = function_tolerance(op_name, scale);
         const mpfr_ref diff = abs_ref(got_ref - expected);
 
         CAPTURE(op_name);
@@ -485,10 +577,7 @@ namespace
             accuracy_scale = 1;
 
         const mpfr_ref scale = abs_ref(expected);
-        const mpfr_ref rel_based_tolerance = rel_tolerance * scale;
-        mpfr_ref tolerance = abs_tolerance;
-        if (rel_based_tolerance > tolerance)
-            tolerance = rel_based_tolerance;
+        const mpfr_ref tolerance = combined_tolerance(op_name, accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
         const mpfr_ref diff = abs_ref(got_ref - expected);
 
@@ -548,10 +637,7 @@ namespace
             accuracy_scale = 1;
 
         const mpfr_ref scale = abs_ref(expected);
-        const mpfr_ref rel_based_tolerance = rel_tolerance * scale;
-        mpfr_ref tolerance = abs_tolerance;
-        if (rel_based_tolerance > tolerance)
-            tolerance = rel_based_tolerance;
+        const mpfr_ref tolerance = combined_tolerance(op_name, accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
         const mpfr_ref diff = abs_ref(got_ref - expected);
 
@@ -836,7 +922,7 @@ namespace
         if (scale < 1)
             scale = 1;
 
-        const mpfr_ref tolerance = decimal_epsilon(checked_digits) * scale;
+        const mpfr_ref tolerance = function_tolerance("ldexp", scale);
         const mpfr_ref diff = abs_ref(got_ref - expected);
 
         CAPTURE(label);
@@ -1023,10 +1109,7 @@ namespace
                 accuracy_scale = 1;
 
             const mpfr_ref scale = abs_ref(expected_s);
-            const mpfr_ref rel_based_tolerance = rel_tolerance * scale;
-            mpfr_ref tolerance = abs_tolerance;
-            if (rel_based_tolerance > tolerance)
-                tolerance = rel_based_tolerance;
+            const mpfr_ref tolerance = combined_tolerance("sincos.sin", accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
             const mpfr_ref diff = abs_ref(got_ref - expected_s);
             CAPTURE(to_text(got_s));
@@ -1044,10 +1127,7 @@ namespace
                 accuracy_scale = 1;
 
             const mpfr_ref scale = abs_ref(expected_c);
-            const mpfr_ref rel_based_tolerance = rel_tolerance * scale;
-            mpfr_ref tolerance = abs_tolerance;
-            if (rel_based_tolerance > tolerance)
-                tolerance = rel_based_tolerance;
+            const mpfr_ref tolerance = combined_tolerance("sincos.cos", accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
             const mpfr_ref diff = abs_ref(got_ref - expected_c);
             CAPTURE(to_text(got_c));
@@ -1087,10 +1167,7 @@ namespace
             accuracy_scale = 1;
 
         const mpfr_ref scale = abs_ref(expected);
-        const mpfr_ref rel_based_tolerance = rel_tolerance * scale;
-        mpfr_ref tolerance = abs_tolerance;
-        if (rel_based_tolerance > tolerance)
-            tolerance = rel_based_tolerance;
+        const mpfr_ref tolerance = combined_tolerance("remquo", accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
         const mpfr_ref diff = abs_ref(got_ref - expected);
 
@@ -1201,8 +1278,8 @@ TEST_CASE("f256 sin matches MPFR for fixed values", "[fltx][f256][precision][tra
 
     const mpfr_ref reduced_abs_tolerance{ "1e-67" };
     const mpfr_ref reduced_rel_tolerance{ "5e-61" };
-    const mpfr_ref reduction_abs_tolerance{ "3e-60" };
-    const mpfr_ref reduction_rel_tolerance{ "6e-59" };
+    const mpfr_ref reduction_abs_tolerance{ "1e-59" };
+    const mpfr_ref reduction_rel_tolerance{ "1e-59" };
 
     check_sin_case("zero", mpfr_ref{ 0 }, reduced_abs_tolerance, reduced_rel_tolerance);
     check_sin_case("minus_zero", mpfr_ref{ "-0" }, reduced_abs_tolerance, reduced_rel_tolerance);
@@ -1221,8 +1298,8 @@ TEST_CASE("f256 sin matches MPFR for fixed argument-reduction stress values", "[
     const mpfr_ref two_pi = pi * 2;
     const mpfr_ref tiny{ "1e-40" };
 
-    const mpfr_ref reduction_abs_tolerance{ "3e-60" };
-    const mpfr_ref reduction_rel_tolerance{ "6e-59" };
+    const mpfr_ref reduction_abs_tolerance{ "1e-59" };
+    const mpfr_ref reduction_rel_tolerance{ "1e-59" };
     const mpfr_ref tiny_offset_abs_tolerance{ "2e-65" };
 
     check_sin_case("pi_minus_tiny", pi - tiny, tiny_offset_abs_tolerance, reduction_rel_tolerance);
@@ -1269,8 +1346,8 @@ TEST_CASE("f256 sin matches MPFR on random range-reduced inputs away from zero-c
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "3e-60" };
-    const mpfr_ref rel_tolerance{ "6e-59" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     const mpfr_ref zero_crossing_threshold{ "0.125" };
     print_random_run("random range-reduced sin cases away from zero-crossings", count);
 
@@ -1305,8 +1382,8 @@ TEST_CASE("f256 sin matches MPFR on random range-reduced zero-crossing stress in
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 64 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "3e-60" };
-    const mpfr_ref rel_tolerance{ "6e-59" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     const mpfr_ref zero_crossing_threshold{ "0.125" };
     print_random_run("random range-reduced sin zero-crossing stress cases", count);
 
@@ -1346,8 +1423,8 @@ TEST_CASE("f256 cos matches MPFR for fixed values", "[fltx][f256][precision][tra
 
     const mpfr_ref reduced_abs_tolerance{ "1e-67" };
     const mpfr_ref reduced_rel_tolerance{ "5e-61" };
-    const mpfr_ref reduction_abs_tolerance{ "3e-60" };
-    const mpfr_ref reduction_rel_tolerance{ "6e-59" };
+    const mpfr_ref reduction_abs_tolerance{ "1e-59" };
+    const mpfr_ref reduction_rel_tolerance{ "1e-59" };
 
     check_cos_case("zero", mpfr_ref{ 0 }, reduced_abs_tolerance, reduced_rel_tolerance);
     check_cos_case("minus_zero", mpfr_ref{ "-0" }, reduced_abs_tolerance, reduced_rel_tolerance);
@@ -1366,8 +1443,8 @@ TEST_CASE("f256 cos matches MPFR for fixed argument-reduction stress values", "[
     const mpfr_ref two_pi = pi * 2;
     const mpfr_ref tiny{ "1e-40" };
 
-    const mpfr_ref reduction_abs_tolerance{ "3e-60" };
-    const mpfr_ref reduction_rel_tolerance{ "6e-59" };
+    const mpfr_ref reduction_abs_tolerance{ "1e-59" };
+    const mpfr_ref reduction_rel_tolerance{ "1e-59" };
     check_cos_case("pi_over_2", half_pi, reduction_abs_tolerance, reduction_rel_tolerance);
     const mpfr_ref tiny_offset_abs_tolerance{ "2e-65" };
 
@@ -1415,8 +1492,8 @@ TEST_CASE("f256 cos matches MPFR on random range-reduced inputs away from zero-c
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "3e-60" };
-    const mpfr_ref rel_tolerance{ "6e-59" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     const mpfr_ref zero_crossing_threshold{ "0.125" };
     print_random_run("random range-reduced cos cases away from zero-crossings", count);
 
@@ -1451,8 +1528,8 @@ TEST_CASE("f256 cos matches MPFR on random range-reduced zero-crossing stress in
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 64 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "3e-60" };
-    const mpfr_ref rel_tolerance{ "6e-59" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     const mpfr_ref zero_crossing_threshold{ "0.125" };
     print_random_run("random range-reduced cos zero-crossing stress cases", count);
 
@@ -1736,8 +1813,8 @@ TEST_CASE("f256 exp matches MPFR for fixed values", "[fltx][f256][precision][tra
         "20"
     }};
 
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -1757,8 +1834,8 @@ TEST_CASE("f256 exp matches MPFR on random moderate inputs", "[fltx][f256][preci
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random exp cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -1793,8 +1870,8 @@ TEST_CASE("f256 exp2 matches MPFR for fixed values", "[fltx][f256][precision][tr
         "20"
     }};
 
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -1814,8 +1891,8 @@ TEST_CASE("f256 exp2 matches MPFR on random moderate inputs", "[fltx][f256][prec
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random exp2 cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -1850,8 +1927,8 @@ TEST_CASE("f256 log matches MPFR for fixed values", "[fltx][f256][precision][tra
         "123456789.125"
     }};
 
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -1871,8 +1948,8 @@ TEST_CASE("f256 log matches MPFR on random positive inputs", "[fltx][f256][preci
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random log cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -1907,8 +1984,8 @@ TEST_CASE("f256 log2 matches MPFR for fixed values", "[fltx][f256][precision][tr
         "123456789.125"
     }};
 
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -1928,8 +2005,8 @@ TEST_CASE("f256 log2 matches MPFR on random positive inputs", "[fltx][f256][prec
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random log2 cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -1964,8 +2041,8 @@ TEST_CASE("f256 log10 matches MPFR for fixed values", "[fltx][f256][precision][t
         "123456789.125"
     }};
 
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -1985,8 +2062,8 @@ TEST_CASE("f256 log10 matches MPFR on random positive inputs", "[fltx][f256][pre
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "2e-58" };
-    const mpfr_ref rel_tolerance{ "2e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random log10 cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2010,8 +2087,8 @@ TEST_CASE("f256 log10 matches MPFR on random positive inputs", "[fltx][f256][pre
 TEST_CASE("f256 pow matches MPFR for fixed values", "[fltx][f256][precision][transcendental][pow]")
 {
     accuracy_report_scope report_scope{ "f256 pow matches MPFR for fixed values" };
-    const mpfr_ref abs_tolerance{ "5e-57" };
-    const mpfr_ref rel_tolerance{ "5e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     check_pow_case("two_to_ten", mpfr_ref{ 2 }, mpfr_ref{ 10 }, abs_tolerance, rel_tolerance);
     check_pow_case("two_to_minus_ten", mpfr_ref{ 2 }, mpfr_ref{ -10 }, abs_tolerance, rel_tolerance);
@@ -2034,8 +2111,8 @@ TEST_CASE("f256 pow matches MPFR on random positive-base inputs", "[fltx][f256][
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "5e-57" };
-    const mpfr_ref rel_tolerance{ "5e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random pow cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2095,7 +2172,7 @@ TEST_CASE("f256 utility math helpers behave correctly for fixed values", "[fltx]
         mpfr_ref scale = abs_ref(expected);
         if (scale < 1)
             scale = 1;
-        const mpfr_ref tolerance = decimal_epsilon(checked_digits) * scale;
+        const mpfr_ref tolerance = function_tolerance("fma", scale);
         record_accuracy_sample("fma", got, expected, diff, scale, diff <= tolerance);
         REQUIRE(diff <= tolerance);
     }
@@ -2146,7 +2223,7 @@ TEST_CASE("f256 utility math helpers behave correctly for fixed values", "[fltx]
             mpfr_ref scale = abs_ref(expected);
             if (scale < 1)
                 scale = 1;
-            const mpfr_ref tolerance = decimal_epsilon(checked_digits) * scale;
+            const mpfr_ref tolerance = function_tolerance("pow10_256", scale);
             const mpfr_ref diff = abs_ref(got_ref - expected);
             CAPTURE(exponent);
             CAPTURE(to_text(got));
@@ -2173,6 +2250,9 @@ TEST_CASE("f256 utility math helpers behave correctly for fixed values", "[fltx]
 
 TEST_CASE("f256 public math results remain canonical on edge-shaped inputs", "[fltx][f256][math][canonical]")
 {
+    if (bl::is_constant_evaluated() && !bl::use_constexpr_parity())
+        SKIP("canonicalization is not required when simulating consteval mode without FLTX_CONSTEXPR_PARITY");
+
     accuracy_report_scope report_scope{ "f256 public math results remain canonical on edge-shaped inputs" };
 
     const f256 a = detail::_f256::renorm4(1.0, std::ldexp(1.0, -60), -std::ldexp(1.0, -121), std::ldexp(1.0, -180));
@@ -2278,8 +2358,8 @@ TEST_CASE("f256 sincos matches MPFR for fixed values", "[fltx][f256][precision][
         "1234.56789"
     }};
 
-    const mpfr_ref abs_tolerance{ "3e-58" };
-    const mpfr_ref rel_tolerance{ "3e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
         check_sincos_case("fixed", mpfr_ref{ input }, abs_tolerance, rel_tolerance);
@@ -2299,8 +2379,8 @@ TEST_CASE("f256 tan matches MPFR for fixed values", "[fltx][f256][precision][tra
         "3.0"
     }};
 
-    const mpfr_ref abs_tolerance{ "6e-57" };
-    const mpfr_ref rel_tolerance{ "6e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -2320,8 +2400,8 @@ TEST_CASE("f256 tan matches MPFR on random moderate inputs", "[fltx][f256][preci
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
-    const mpfr_ref abs_tolerance{ "6e-57" };
-    const mpfr_ref rel_tolerance{ "6e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random tan cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2356,8 +2436,8 @@ TEST_CASE("f256 atan matches MPFR for fixed values", "[fltx][f256][precision][tr
         "100"
     }};
 
-    const mpfr_ref abs_tolerance{ "4e-57" };
-    const mpfr_ref rel_tolerance{ "4e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -2377,8 +2457,8 @@ TEST_CASE("f256 atan matches MPFR on random moderate inputs", "[fltx][f256][prec
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
-    const mpfr_ref abs_tolerance{ "4e-57" };
-    const mpfr_ref rel_tolerance{ "4e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random atan cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2415,8 +2495,8 @@ TEST_CASE("f256 atan2 matches MPFR for fixed values", "[fltx][f256][precision][t
         { "-123.456", "789.25" }
     }};
 
-    const mpfr_ref abs_tolerance{ "6e-57" };
-    const mpfr_ref rel_tolerance{ "6e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const auto& [lhs, rhs] : cases)
     {
@@ -2437,8 +2517,8 @@ TEST_CASE("f256 atan2 matches MPFR on random moderate inputs", "[fltx][f256][pre
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
-    const mpfr_ref abs_tolerance{ "6e-57" };
-    const mpfr_ref rel_tolerance{ "6e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random atan2 cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2481,8 +2561,8 @@ TEST_CASE("f256 asin and acos match MPFR for fixed values", "[fltx][f256][precis
         "1"
     }};
 
-    const mpfr_ref abs_tolerance{ "6e-57" };
-    const mpfr_ref rel_tolerance{ "6e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -2510,8 +2590,8 @@ TEST_CASE("f256 asin and acos match MPFR on random unit inputs", "[fltx][f256][p
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
-    const mpfr_ref abs_tolerance{ "6e-57" };
-    const mpfr_ref rel_tolerance{ "6e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random asin/acos cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2626,8 +2706,8 @@ TEST_CASE("f256 expm1 matches MPFR for fixed values", "[fltx][f256][precision][t
         "20"
     }};
 
-    const mpfr_ref abs_tolerance{ "3e-58" };
-    const mpfr_ref rel_tolerance{ "3e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -2647,8 +2727,8 @@ TEST_CASE("f256 expm1 matches MPFR on random moderate inputs", "[fltx][f256][pre
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
-    const mpfr_ref abs_tolerance{ "3e-58" };
-    const mpfr_ref rel_tolerance{ "3e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random expm1 cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2684,8 +2764,8 @@ TEST_CASE("f256 log1p matches MPFR for fixed values", "[fltx][f256][precision][t
         "10"
     }};
 
-    const mpfr_ref abs_tolerance{ "3e-58" };
-    const mpfr_ref rel_tolerance{ "3e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -2705,8 +2785,8 @@ TEST_CASE("f256 log1p matches MPFR on random valid inputs", "[fltx][f256][precis
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
-    const mpfr_ref abs_tolerance{ "3e-58" };
-    const mpfr_ref rel_tolerance{ "3e-57" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random log1p cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2741,8 +2821,8 @@ TEST_CASE("f256 hyperbolic functions match MPFR for fixed values", "[fltx][f256]
         "8"
     }};
 
-    const mpfr_ref abs_tolerance{ "8e-57" };
-    const mpfr_ref rel_tolerance{ "8e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -2778,8 +2858,8 @@ TEST_CASE("f256 hyperbolic functions match MPFR on random moderate inputs", "[fl
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
-    const mpfr_ref abs_tolerance{ "8e-57" };
-    const mpfr_ref rel_tolerance{ "8e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random hyperbolic cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2823,8 +2903,8 @@ TEST_CASE("f256 inverse hyperbolic functions match MPFR for fixed values", "[flt
     const std::array<const char*, 7> acosh_cases = {{ "1", "1.125", "1.5", "2", "4", "8", "16" }};
     const std::array<const char*, 8> atanh_cases = {{ "-0.95", "-0.5", "-0.125", "-1e-10", "0", "1e-10", "0.125", "0.95" }};
 
-    const mpfr_ref abs_tolerance{ "8e-57" };
-    const mpfr_ref rel_tolerance{ "8e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : asinh_cases)
     {
@@ -2866,8 +2946,8 @@ TEST_CASE("f256 inverse hyperbolic functions match MPFR on random valid inputs",
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
-    const mpfr_ref abs_tolerance{ "8e-57" };
-    const mpfr_ref rel_tolerance{ "8e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random inverse hyperbolic cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -2923,8 +3003,8 @@ TEST_CASE("f256 cbrt and hypot match MPFR for fixed values", "[fltx][f256][preci
         { "0.125", "0.5" }
     }};
 
-    const mpfr_ref abs_tolerance{ "6e-57" };
-    const mpfr_ref rel_tolerance{ "6e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cbrt_cases)
     {
@@ -2956,8 +3036,8 @@ TEST_CASE("f256 cbrt and hypot match MPFR on random moderate inputs", "[fltx][f2
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
-    const mpfr_ref abs_tolerance{ "6e-57" };
-    const mpfr_ref rel_tolerance{ "6e-56" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random cbrt/hypot cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -3002,7 +3082,7 @@ TEST_CASE("f256 decomposition and stepping functions behave correctly", "[fltx][
         const f256 rebuilt = bl::ldexp(mantissa, exponent);
         const mpfr_ref diff = abs_ref(to_ref_exact(rebuilt) - to_ref_exact(input));
         const mpfr_ref scale = abs_ref(to_ref_exact(input));
-        const mpfr_ref tolerance = decimal_epsilon(checked_digits) * scale;
+        const mpfr_ref tolerance = function_tolerance("frexp", scale);
         CAPTURE(exponent);
         CAPTURE(to_text(mantissa));
         CAPTURE(to_text(rebuilt));
@@ -3018,7 +3098,8 @@ TEST_CASE("f256 decomposition and stepping functions behave correctly", "[fltx][
         const mpfr_ref sum_diff = abs_ref((to_ref_exact(frac) + to_ref_exact(ip)) - to_ref_exact(input));
         CAPTURE(to_text(frac));
         CAPTURE(to_text(ip));
-        REQUIRE(sum_diff <= decimal_epsilon(checked_digits) * abs_ref(to_ref_exact(input)));
+        const mpfr_ref sum_scale = abs_ref(to_ref_exact(input));
+        REQUIRE(sum_diff <= function_tolerance("modf", sum_scale));
         require_exact_value("modf.integer", ip, bl::trunc(input));
     }
     {
@@ -3065,8 +3146,8 @@ TEST_CASE("f256 decomposition and stepping functions behave correctly", "[fltx][
         require_exact_value("nextafter.zero", got, f256{ -std::numeric_limits<double>::denorm_min(), 0.0, 0.0, 0.0 });
     }
     {
-        const mpfr_ref abs_tolerance{ "4e-58" };
-        const mpfr_ref rel_tolerance{ "4e-57" };
+        const mpfr_ref abs_tolerance{ "1e-59" };
+        const mpfr_ref rel_tolerance{ "1e-59" };
         check_remquo_case("fixed.positive", mpfr_ref{ "5.25" }, mpfr_ref{ "2" }, abs_tolerance, rel_tolerance);
         check_remquo_case("fixed.negative", mpfr_ref{ "-5.25" }, mpfr_ref{ "2" }, abs_tolerance, rel_tolerance);
         check_remquo_case("fixed.fractional", mpfr_ref{ "123.456" }, mpfr_ref{ "0.5" }, abs_tolerance, rel_tolerance);
@@ -3088,8 +3169,8 @@ TEST_CASE("f256 erf and erfc match MPFR for fixed values", "[fltx][f256][precisi
         "4"
     }};
 
-    const mpfr_ref abs_tolerance{ "1e-56" };
-    const mpfr_ref rel_tolerance{ "1e-55" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -3117,8 +3198,8 @@ TEST_CASE("f256 erf and erfc match MPFR on random moderate inputs", "[fltx][f256
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "1e-56" };
-    const mpfr_ref rel_tolerance{ "1e-55" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random erf/erfc cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -3161,8 +3242,8 @@ TEST_CASE("f256 lgamma and tgamma match MPFR for fixed values", "[fltx][f256][pr
         "10"
     }};
 
-    const mpfr_ref abs_tolerance{ "2e-56" };
-    const mpfr_ref rel_tolerance{ "2e-55" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
 
     for (const char* input : cases)
     {
@@ -3190,8 +3271,8 @@ TEST_CASE("f256 lgamma and tgamma match MPFR on random positive inputs", "[fltx]
     std::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
-    const mpfr_ref abs_tolerance{ "2e-56" };
-    const mpfr_ref rel_tolerance{ "2e-55" };
+    const mpfr_ref abs_tolerance{ "1e-59" };
+    const mpfr_ref rel_tolerance{ "1e-59" };
     print_random_run("random gamma cases", count);
 
     for (int i = 0; i < count; ++i)

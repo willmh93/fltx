@@ -75,7 +75,6 @@ namespace detail::_f256_runtime
     [[nodiscard]] BL_NO_INLINE f256_s tgamma(const f256_s& x);
     [[nodiscard]] BL_NO_INLINE f256_s f256_mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
 }
-
 namespace detail::_f256_constexpr
 {
     using namespace detail::_f256;
@@ -184,7 +183,7 @@ namespace detail::_f256_constexpr
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s lgamma(const f256_s& x);
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s tgamma(const f256_s& x);
 
-/// ------------------ math ------------------
+/// ============= Math =============
 
 namespace detail::_f256
 {
@@ -2135,7 +2134,7 @@ namespace detail::_f256
     }
 }
 
-/// ------------------ f256 inline public wrappers ------------------
+/// ============= f256 inline public wrappers =============
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double log_as_double(f256_s a) noexcept { return detail::_f256::log_as_double_impl(a); }
 
@@ -2150,12 +2149,13 @@ namespace detail::_f256
 [[nodiscard]] BL_FORCE_INLINE constexpr bool islessequal(const f256_s& a, const f256_s& b) noexcept { return detail::_f256::islessequal_impl(a, b); }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool islessgreater(const f256_s& a, const f256_s& b) noexcept { return detail::_f256::islessgreater_impl(a, b); }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s hypot(const f256_s& x, const f256_s& y) { return detail::_f256::hypot_impl(x, y); }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s rint(const f256_s& x) { return detail::_f256::rint_impl(x); }
 [[nodiscard]] BL_FORCE_INLINE constexpr long lround(const f256_s& x) { return detail::_f256::lround_impl(x); }
 [[nodiscard]] BL_FORCE_INLINE constexpr long long llround(const f256_s& x) { return detail::_f256::llround_impl(x); }
 [[nodiscard]] BL_FORCE_INLINE constexpr long lrint(const f256_s& x) { return detail::_f256::lrint_impl(x); }
 [[nodiscard]] BL_FORCE_INLINE constexpr long long llrint(const f256_s& x) { return detail::_f256::llrint_impl(x); }
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s hypot(const f256_s& x, const f256_s& y) { return detail::_f256::hypot_impl(x, y); }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s fma(const f256_s& x, const f256_s& y, const f256_s& z) { return detail::_f256::fma_impl(x, y, z); }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s fmin(const f256_s& a, const f256_s& b) { return detail::_f256::fmin_impl(a, b); }
@@ -2163,9 +2163,7 @@ namespace detail::_f256
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s fdim(const f256_s& x, const f256_s& y) { return detail::_f256::fdim_impl(x, y); }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s copysign(const f256_s& x, const f256_s& y) { return detail::_f256::copysign_impl(x, y); }
 
-/// ------------------ f256 constexpr implementations ------------------
-
-// still check ::use_constexpr_math() since the ::_f256_runtime still calls these internally
+/// ============= f256 constexpr implementations =============
 
 [[nodiscard]] BL_FORCE_INLINE  constexpr f256_s detail::_f256_constexpr::fmod(const f256_s& x, const f256_s& y)
 {
@@ -2684,7 +2682,6 @@ namespace detail::_f256
     const f256_s denom = add_scalar_precise(em1, 2.0);
 
     f256_s out = div_inline(em1, denom);
-    out = add_inline(out, div_inline(sub_inline(em1, mul_inline(out, denom)), denom));
 
     if (signbit(x))
         out = -out;
@@ -3068,7 +3065,7 @@ namespace detail::_f256
     return canonicalize_math_result(out);
 }
 
-/// ------------------ f256 public wrappers ------------------
+/// ============= f256 public wrappers =============
 
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s fmod(const f256_s& x, const f256_s& y)
 {

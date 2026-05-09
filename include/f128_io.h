@@ -17,7 +17,7 @@
 
 namespace bl {
 
-/// ======== Public string conversion wrappers ========
+/// ============= Public string conversion wrappers =============
 
 namespace detail::_f128
 {
@@ -600,14 +600,14 @@ template<std::size_t capacity = bl::default_io_string::static_capacity>
     return std::string(text.data(), text.size());
 }
 
-/// ======== Stream output ========
+/// ============= Stream output =============
 
 BL_FORCE_INLINE std::ostream& operator<<(std::ostream& os, const f128_s& x)
 {
     return detail::write_to_stream<detail::_f128::f128_io_traits>(os, x);
 }
 
-/// ======== Literals ========
+/// ============= Literals =============
 namespace literals
 {
     [[nodiscard]] consteval f128_s operator""_dd(const char* text)

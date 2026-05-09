@@ -1,6 +1,8 @@
 #include "f256.h"
 
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #ifndef FLTX_TEST_NAME
 #define FLTX_TEST_NAME "unknown_tests"
@@ -29,10 +31,37 @@
 
 namespace
 {
+    [[nodiscard]] bool env_requests_simulated_consteval(bool fallback) noexcept
+    {
+        const char* value = std::getenv("FLTX_SIMULATE_CONSTEVAL");
+        if (value == nullptr || *value == '\0')
+            return fallback;
+
+        if (std::strcmp(value, "0") == 0 ||
+            std::strcmp(value, "false") == 0 ||
+            std::strcmp(value, "FALSE") == 0 ||
+            std::strcmp(value, "off") == 0 ||
+            std::strcmp(value, "OFF") == 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     struct fltx_test_macro_status_printer
     {
         fltx_test_macro_status_printer() noexcept
         {
+            #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
+            bool simulated_consteval_enabled = false;
+            #if defined(FLTX_TEST_FORCE_SIMULATED_CONSTEVAL)
+            simulated_consteval_enabled = true;
+            #endif
+            simulated_consteval_enabled = env_requests_simulated_consteval(simulated_consteval_enabled);
+            bl::_fltx_debug::set_simulated_consteval_path(simulated_consteval_enabled);
+            #endif
+
             std::fputs("[fltx ", stderr);
             std::fputs(FLTX_TEST_NAME, stderr);
             std::fputs("] BL_FAST_MATH=", stderr);
@@ -49,11 +78,25 @@ namespace
             std::fputs("not defined", stderr);
             #endif
 
-            std::fputs(", FLTX_CONSTEXPR_PARITY_TEST_MODE=", stderr);
-            #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE)
+            std::fputs(", FLTX_SIMULATE_CONSTEVAL_MODE=", stderr);
+            #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
             std::fputs("defined", stderr);
             #else
             std::fputs("not defined", stderr);
+            #endif
+
+            std::fputs(", FLTX_TEST_FORCE_SIMULATED_CONSTEVAL=", stderr);
+            #if defined(FLTX_TEST_FORCE_SIMULATED_CONSTEVAL)
+            std::fputs("defined", stderr);
+            #else
+            std::fputs("not defined", stderr);
+            #endif
+
+            std::fputs(", simulated_consteval=", stderr);
+            #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
+            std::fputs(simulated_consteval_enabled ? "on" : "off", stderr);
+            #else
+            std::fputs("unavailable", stderr);
             #endif
 
             std::fputs(", BL_F256_HAS_SSE2=", stderr);

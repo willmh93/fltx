@@ -24,6 +24,7 @@
 - No required runtime dependencies
 - Standard-library integration for streams, `std::numeric_limits`, `std::numbers`, and common stream manipulators
 - Runtime code favors native performance by default; define `FLTX_CONSTEXPR_PARITY` when you need bitwise-identical runtime and `constexpr` results
+- Test builds can define `FLTX_SIMULATE_CONSTEVAL_MODE` to run runtime samples through the branches used during constant evaluation without enabling `FLTX_CONSTEXPR_PARITY`
 - Suitable for lightweight native builds, WebAssembly / Emscripten
 - Optional runtime-to-compile-time dispatch helper for template-specialized kernels
 

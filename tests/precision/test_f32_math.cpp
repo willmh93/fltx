@@ -37,7 +37,7 @@ namespace
     constexpr float min_subnormal = std::numeric_limits<float>::denorm_min();
 
     constexpr std::uint64_t random_seed = 1ull;
-    constexpr int random_sample_count = 100;
+    constexpr int random_sample_count = 500;
     constexpr const char* type_label = "f32";
 
     struct accuracy_stats_entry
@@ -46,6 +46,7 @@ namespace
         int passed = 0;
         std::vector<float> achieved_digits;
         std::uint32_t worst_ulp = 0;
+        float worst_scaled_error = 0.0f;
     };
 
     class accuracy_report_scope;
@@ -586,6 +587,7 @@ namespace
                           << ", worst " << worst << "/" << checked_digits
                           << " digits (" << normalized_accuracy_percent(worst) << "%)"
                           << ", worst ulp " << entry.worst_ulp
+                          << ", worst scaled error " << std::scientific << entry.worst_scaled_error << std::fixed
                           << "\n";
             }
 
@@ -602,6 +604,8 @@ namespace
             entry.achieved_digits.push_back(achieved_digits_from_error(diff, scale));
             if (ulp_diff > entry.worst_ulp)
                 entry.worst_ulp = ulp_diff;
+            if (scale != 0.0f && std::isfinite(diff) && std::isfinite(scale))
+                entry.worst_scaled_error = std::max(entry.worst_scaled_error, diff / scale);
         }
 
     private:
@@ -745,7 +749,11 @@ namespace
             result.rel_diff = result.abs_diff / abs_ref(expected);
 
         result.ulp_diff = ulp_distance(got, expected);
-        result.passed = (result.abs_diff <= result.allowed_diff) || (result.ulp_diff <= tolerance.max_ulps);
+        const bool within_diff = result.abs_diff <= result.allowed_diff;
+        const bool within_ulps = result.ulp_diff <= tolerance.max_ulps;
+        result.passed = (tolerance.abs_tolerance != 0.0f || tolerance.rel_tolerance != 0.0f) && tolerance.max_ulps != 0
+            ? (within_diff && within_ulps)
+            : (within_diff || within_ulps);
         result.achieved_digits = achieved_digits_from_error(result.abs_diff, result.scale);
         result.reason = result.passed ? "within tolerance" : "outside tolerance";
 
@@ -1065,30 +1073,59 @@ namespace
         return tolerance_spec{ abs_tol, rel_tol, ulps };
     }
 
+    struct default_tolerance_entry
+    {
+        const char* op_name;
+        std::uint32_t ulps;
+        float tolerance;
+    };
+
+    [[nodiscard]] tolerance_spec default_mpfr_tolerance_for_op(const char* op_name)
+    {
+        constexpr std::array<default_tolerance_entry, 26> tolerances{{
+            { "acos", 1, 2e-7f },
+            { "acosh", 1, 2e-7f },
+            { "asin", 1, 2e-7f },
+            { "asinh", 1, 2e-7f },
+            { "atan", 1, 2e-7f },
+            { "atan2", 1, 1e-7f },
+            { "atanh", 1, 2e-7f },
+            { "cbrt", 1, 2e-7f },
+            { "cbrt.neg", 1, 2e-7f },
+            { "cos", 1, 3e-8f },
+            { "cosh", 1, 7e-8f },
+            { "erf", 3, 2e-7f },
+            { "erfc", 3, 2e-7f },
+            { "exp", 1, 2e-7f },
+            { "exp2", 1, 1e-7f },
+            { "expm1", 1, 2e-7f },
+            { "lgamma", 2, 2e-7f },
+            { "log", 1, 2e-7f },
+            { "log10", 1, 2e-7f },
+            { "log1p", 1, 9e-8f },
+            { "pow", 1, 9e-8f },
+            { "sin", 1, 6e-8f },
+            { "sinh", 1, 2e-7f },
+            { "tan", 1, 2e-7f },
+            { "tanh", 1, 6e-8f },
+            { "tgamma", 3, 4e-7f }
+        }};
+
+        for (const auto& entry : tolerances)
+        {
+            if (op_is(op_name, entry.op_name))
+                return close_tol(entry.ulps, entry.tolerance, entry.tolerance);
+        }
+
+        return exact_tol();
+    }
+
     [[nodiscard]] tolerance_spec with_default_mpfr_tolerance(const char* op_name, tolerance_spec tolerance)
     {
         if (tolerance.abs_tolerance != 0.0f || tolerance.rel_tolerance != 0.0f || tolerance.max_ulps != 0)
             return tolerance;
 
-        if (op_is(op_name, "pow") || op_is(op_name, "lgamma") || op_is(op_name, "tgamma"))
-            return close_tol(16);
-
-        if (op_is(op_name, "sqrt"))
-            return close_tol(1);
-
-        if (op_is(op_name, "sin") || op_is(op_name, "cos") || op_is(op_name, "tan") ||
-            op_is(op_name, "atan") || op_is(op_name, "asin") || op_is(op_name, "acos") ||
-            op_is(op_name, "atan2") || op_is(op_name, "exp") || op_is(op_name, "exp2") ||
-            op_is(op_name, "expm1") || op_is(op_name, "log") || op_is(op_name, "log2") ||
-            op_is(op_name, "log10") || op_is(op_name, "log1p") || op_starts_with(op_name, "cbrt") ||
-            op_is(op_name, "hypot") || op_is(op_name, "sinh") || op_is(op_name, "cosh") ||
-            op_is(op_name, "tanh") || op_is(op_name, "asinh") || op_is(op_name, "acosh") ||
-            op_is(op_name, "atanh") || op_is(op_name, "erf") || op_is(op_name, "erfc"))
-        {
-            return close_tol(4);
-        }
-
-        return tolerance;
+        return default_mpfr_tolerance_for_op(op_name);
     }
 }
 
@@ -1205,11 +1242,11 @@ TEST_CASE("f32 trig matches MPFR for fixed values", "[fltx][f32][precision][tran
 
         if (input >= -1.0 && input <= 1.0)
         {
-            check_unary_op("asin", input, close_tol(4),
+            check_unary_op("asin", input, exact_tol(),
                 [](float x) { return bl::asin(x); },
                 [](float x) { return std::asin(x); });
 
-            check_unary_op("acos", input, close_tol(4),
+            check_unary_op("acos", input, exact_tol(),
                 [](float x) { return bl::acos(x); },
                 [](float x) { return std::acos(x); });
         }
@@ -1265,11 +1302,11 @@ TEST_CASE("f32 trig matches MPFR on random inputs", "[fltx][f32][precision][tran
             [](float v) { return bl::atan(v); },
             [](float v) { return std::atan(v); });
 
-        check_unary_op("asin", unit_input, close_tol(4),
+        check_unary_op("asin", unit_input, exact_tol(),
             [](float v) { return bl::asin(v); },
             [](float v) { return std::asin(v); });
 
-        check_unary_op("acos", unit_input, close_tol(4),
+        check_unary_op("acos", unit_input, exact_tol(),
             [](float v) { return bl::acos(v); },
             [](float v) { return std::acos(v); });
 
@@ -1556,7 +1593,7 @@ TEST_CASE("f32 root and power functions match MPFR", "[fltx][f32][precision][mat
 
     for (const auto& [base, exponent] : pow_cases)
     {
-        check_binary_op("pow", base, exponent, close_tol(16),
+        check_binary_op("pow", base, exponent, exact_tol(),
             [](float a, float b) { return bl::pow(a, b); },
             [](float a, float b) { return std::pow(a, b); });
     }
@@ -1585,7 +1622,7 @@ TEST_CASE("f32 root and power functions match MPFR", "[fltx][f32][precision][mat
             [](float a, float b) { return bl::hypot(a, b); },
             [](float a, float b) { return std::hypot(a, b); });
 
-        check_binary_op("pow", base, exponent, close_tol(16),
+        check_binary_op("pow", base, exponent, exact_tol(),
             [](float a, float b) { return bl::pow(a, b); },
             [](float a, float b) { return std::pow(a, b); });
     }
@@ -1929,7 +1966,7 @@ TEST_CASE("f32 utility helpers match reference semantics", "[fltx][f32][precisio
 
     for (const auto& [x, y, z] : fma_cases)
     {
-        check_fma_result(x, y, z, close_tol(8));
+        check_fma_result(x, y, z, exact_tol());
     }
 }
 

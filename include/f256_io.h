@@ -17,7 +17,7 @@
 
 namespace bl {
 
-/// ------------------ printing helpers ------------------
+/// ============= Printing helpers =============
 
 namespace detail::_f256
 {
@@ -595,7 +595,7 @@ namespace detail::_f256
 
 }
 
-/// ------------------ printing / parsing (public) ------------------
+/// ============= Printing / parsing (public) =============
 
 [[nodiscard]] BL_MSVC_NOINLINE constexpr bool parse_flt256(const char* s, f256_s& out, const char** endptr = nullptr) noexcept
 {
@@ -631,14 +631,14 @@ template<std::size_t capacity = bl::default_io_string::static_capacity>
     return std::string(text.data(), text.size());
 }
 
-/// ------------------ stream output ------------------
+/// ============= Stream output =============
 
 inline std::ostream& operator<<(std::ostream& os, const f256_s& x)
 {
     return detail::write_to_stream<detail::_f256::f256_io_traits>(os, x);
 }
 
-/// ------------------ literals ------------------
+/// ============= Literals =============
 namespace literals
 {
     [[nodiscard]] consteval f256_s operator""_qd(const char* text)

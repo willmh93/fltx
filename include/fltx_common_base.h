@@ -131,31 +131,27 @@ static_assert(std::numeric_limits<double>::is_iec559 &&
 #define BL_POP_PRECISE
 #endif
 
-#ifdef FLTX_CONSTEXPR_PARITY_TEST_MODE
-#define BL_CONSTEXPR
-#else
-#define BL_CONSTEXPR constexpr
-#endif
-
 namespace bl
 {
-    #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE)
+    #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
     namespace _fltx_debug {
-        inline bool always_constexpr_path = false;
+        inline bool simulate_consteval_path = false;
 
-        BL_FORCE_INLINE void set_forced_constexpr_path() noexcept { always_constexpr_path = true; }
-        BL_FORCE_INLINE void set_forced_runtime_path() noexcept { always_constexpr_path = false; }
+        BL_FORCE_INLINE void set_simulated_consteval_path(bool enabled) noexcept { simulate_consteval_path = enabled; }
+        BL_FORCE_INLINE void set_forced_constexpr_path() noexcept { set_simulated_consteval_path(true); }
+        BL_FORCE_INLINE void set_forced_runtime_path() noexcept { set_simulated_consteval_path(false); }
     }
     #endif
 
     [[nodiscard]] BL_FORCE_INLINE constexpr bool is_constant_evaluated() noexcept
     {
-        // In parity test mode, the runtime toggle lets tests run code as if it
-        // were constant-evaluated. FLTX_CONSTEXPR_PARITY itself is intentionally
-        // not part of this decision; it requests bitwise-compatible results, not
-        // forced constexpr-path execution.
-        #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE)
-        return std::is_constant_evaluated() ? true : _fltx_debug::always_constexpr_path;
+        // In simulated-consteval mode, tests can run ordinary runtime calls
+        // through the branches that would be selected during constant
+        // evaluation. FLTX_CONSTEXPR_PARITY itself is intentionally not part of
+        // this decision; it requests bitwise-compatible results, not forced
+        // constexpr-path execution.
+        #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
+        return std::is_constant_evaluated() ? true : _fltx_debug::simulate_consteval_path;
         #else
         return std::is_constant_evaluated();
         #endif
@@ -175,12 +171,12 @@ namespace bl
     [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_math() noexcept
     {
         // Select constexpr-safe algorithms. In normal builds this tracks actual
-        // constant evaluation. In parity test mode, tests can force this at
-        // runtime to compare predicted consteval results with runtime results.
-        // FLTX_CONSTEXPR_PARITY does not change is_constant_evaluated(), but it
-        // may choose constexpr-safe runtime algorithms when that is the cleanest
-        // way to guarantee bitwise-identical results.
-        #if defined(FLTX_CONSTEXPR_PARITY_TEST_MODE)
+        // constant evaluation. In simulated-consteval mode, tests can force
+        // this at runtime to compare predicted consteval results with runtime
+        // results. FLTX_CONSTEXPR_PARITY does not change is_constant_evaluated(),
+        // but it may choose constexpr-safe runtime algorithms when that is the
+        // cleanest way to guarantee bitwise-identical results.
+        #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
         return is_constant_evaluated() || use_constexpr_parity();
         #else
         return std::is_constant_evaluated() || use_constexpr_parity();
@@ -189,49 +185,49 @@ namespace bl
 }
 
 #ifndef BL_DEFINE_FLOAT_WRAPPER_NUMERIC_LIMITS
-#define BL_DEFINE_FLOAT_WRAPPER_NUMERIC_LIMITS(wrapper_type, storage_type) \
-template<>                                                                \
-struct std::numeric_limits<wrapper_type>                                  \
-{                                                                         \
-    using base = std::numeric_limits<storage_type>;                       \
-                                                                          \
-    static constexpr bool is_specialized = base::is_specialized;          \
-                                                                          \
-    static constexpr wrapper_type min() noexcept           { return wrapper_type{ base::min() }; } \
-    static constexpr wrapper_type max() noexcept           { return wrapper_type{ base::max() }; } \
-    static constexpr wrapper_type lowest() noexcept        { return wrapper_type{ base::lowest() }; } \
-    static constexpr wrapper_type epsilon() noexcept       { return wrapper_type{ base::epsilon() }; } \
-    static constexpr wrapper_type round_error() noexcept   { return wrapper_type{ base::round_error() }; } \
-    static constexpr wrapper_type infinity() noexcept      { return wrapper_type{ base::infinity() }; } \
-    static constexpr wrapper_type quiet_NaN() noexcept     { return wrapper_type{ base::quiet_NaN() }; } \
+#define BL_DEFINE_FLOAT_WRAPPER_NUMERIC_LIMITS(wrapper_type, storage_type)                                   \
+template<>                                                                                                   \
+struct std::numeric_limits<wrapper_type>                                                                     \
+{                                                                                                            \
+    using base = std::numeric_limits<storage_type>;                                                          \
+                                                                                                             \
+    static constexpr bool is_specialized = base::is_specialized;                                             \
+                                                                                                             \
+    static constexpr wrapper_type min() noexcept           { return wrapper_type{ base::min() }; }           \
+    static constexpr wrapper_type max() noexcept           { return wrapper_type{ base::max() }; }           \
+    static constexpr wrapper_type lowest() noexcept        { return wrapper_type{ base::lowest() }; }        \
+    static constexpr wrapper_type epsilon() noexcept       { return wrapper_type{ base::epsilon() }; }       \
+    static constexpr wrapper_type round_error() noexcept   { return wrapper_type{ base::round_error() }; }   \
+    static constexpr wrapper_type infinity() noexcept      { return wrapper_type{ base::infinity() }; }      \
+    static constexpr wrapper_type quiet_NaN() noexcept     { return wrapper_type{ base::quiet_NaN() }; }     \
     static constexpr wrapper_type signaling_NaN() noexcept { return wrapper_type{ base::signaling_NaN() }; } \
-    static constexpr wrapper_type denorm_min() noexcept    { return wrapper_type{ base::denorm_min() }; } \
-                                                                          \
-    static constexpr bool has_infinity      = base::has_infinity;         \
-    static constexpr bool has_quiet_NaN     = base::has_quiet_NaN;        \
-    static constexpr bool has_signaling_NaN = base::has_signaling_NaN;    \
-                                                                          \
-    static constexpr int digits         = base::digits;                   \
-    static constexpr int digits10       = base::digits10;                 \
-    static constexpr int max_digits10   = base::max_digits10;             \
-                                                                          \
-    static constexpr bool is_signed     = base::is_signed;                \
-    static constexpr bool is_integer    = base::is_integer;               \
-    static constexpr bool is_exact      = base::is_exact;                 \
-    static constexpr int radix          = base::radix;                    \
-                                                                          \
-    static constexpr int min_exponent   = base::min_exponent;             \
-    static constexpr int max_exponent   = base::max_exponent;             \
-    static constexpr int min_exponent10 = base::min_exponent10;           \
-    static constexpr int max_exponent10 = base::max_exponent10;           \
-                                                                          \
-    static constexpr bool is_iec559       = base::is_iec559;              \
-    static constexpr bool is_bounded      = base::is_bounded;             \
-    static constexpr bool is_modulo       = base::is_modulo;              \
-    static constexpr bool traps           = base::traps;                  \
-    static constexpr bool tinyness_before = base::tinyness_before;        \
-                                                                          \
-    static constexpr std::float_round_style round_style = base::round_style; \
+    static constexpr wrapper_type denorm_min() noexcept    { return wrapper_type{ base::denorm_min() }; }    \
+                                                                                                             \
+    static constexpr bool has_infinity      = base::has_infinity;                                            \
+    static constexpr bool has_quiet_NaN     = base::has_quiet_NaN;                                           \
+    static constexpr bool has_signaling_NaN = base::has_signaling_NaN;                                       \
+                                                                                                             \
+    static constexpr int digits         = base::digits;                                                      \
+    static constexpr int digits10       = base::digits10;                                                    \
+    static constexpr int max_digits10   = base::max_digits10;                                                \
+                                                                                                             \
+    static constexpr bool is_signed     = base::is_signed;                                                   \
+    static constexpr bool is_integer    = base::is_integer;                                                  \
+    static constexpr bool is_exact      = base::is_exact;                                                    \
+    static constexpr int radix          = base::radix;                                                       \
+                                                                                                             \
+    static constexpr int min_exponent   = base::min_exponent;                                                \
+    static constexpr int max_exponent   = base::max_exponent;                                                \
+    static constexpr int min_exponent10 = base::min_exponent10;                                              \
+    static constexpr int max_exponent10 = base::max_exponent10;                                              \
+                                                                                                             \
+    static constexpr bool is_iec559       = base::is_iec559;                                                 \
+    static constexpr bool is_bounded      = base::is_bounded;                                                \
+    static constexpr bool is_modulo       = base::is_modulo;                                                 \
+    static constexpr bool traps           = base::traps;                                                     \
+    static constexpr bool tinyness_before = base::tinyness_before;                                           \
+                                                                                                             \
+    static constexpr std::float_round_style round_style = base::round_style;                                 \
 };
 #endif
 
