@@ -8,9 +8,9 @@
 
   "configurePresets": [
     {
-      "name": "ninja-debug",
+      "name": "native-debug",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/ninja-debug",
+      "binaryDir": "${sourceDir}/build/native-debug",
       "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
@@ -18,9 +18,9 @@
       }
     },
     {
-      "name": "ninja-release",
+      "name": "native-release",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/ninja-release",
+      "binaryDir": "${sourceDir}/build/native-release",
       "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
@@ -87,11 +87,11 @@
   ],
 
   "buildPresets": [
-    { "name": "ninja-debug",       "configurePreset": "ninja-debug" },
-    { "name": "ninja-release",     "configurePreset": "ninja-release" },
-    { "name": "04. mingw-debug",   "configurePreset": "mingw-debug" },
-    { "name": "05. mingw-release", "configurePreset": "mingw-release" },
-    { "name": "wasm32-release",    "configurePreset": "wasm32-release" },
-    { "name": "macos-release",     "configurePreset": "macos-release" }
+    { "name": "01. native-debug",     "configurePreset": "native-debug" },
+    { "name": "02. native-release",   "configurePreset": "native-release" },
+    { "name": "03. mingw-debug",      "configurePreset": "mingw-debug" },
+    { "name": "04. mingw-release",    "configurePreset": "mingw-release" },
+    { "name": "05. wasm32-release",   "configurePreset": "wasm32-release" },
+    { "name": "06. macos-release",    "configurePreset": "macos-release" }
   ]
 }

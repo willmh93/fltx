@@ -804,7 +804,7 @@ namespace detail::_f256
         double p11{}, q11{};
         double p12{}, q12{};
 
-        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        #if BL_F256_ENABLE_SIMD
         if (f256_runtime_simd_enabled())
         {
             f256_simd2d p00p12{}, q00q12{};
@@ -1302,7 +1302,7 @@ namespace detail::_f256
         f256_s ps = f256_sin_coeffs_pi4[0];
         f256_s pc = f256_cos_coeffs_pi4[0];
 
-        #if BL_F256_ENABLE_SIMD
+        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
         if (f256_runtime_trig_simd_enabled())
         {
             for (std::size_t i = 1; i < f256_trig_coeff_count_pi4; ++i)
@@ -1463,7 +1463,7 @@ namespace detail::_f256
         }
 
         const f256_s exp2_ln2 = mul_double_inline(ln2, static_cast<double>(exp2));
-        f256_s y = exp2_ln2 + f256_s{ log_as_double_impl(m), 0.0, 0.0, 0.0 };
+        f256_s y = exp2_ln2 + log_as_double_impl(m);
         if (bl::use_constexpr_math())
         {
             y += m * _exp(exp2_ln2 - y) - 1.0;
@@ -1733,6 +1733,40 @@ namespace detail::_f256
             return 0;
 
         return static_cast<SignedInt>(out);
+    }
+    template<typename SignedInt>
+    BL_FORCE_INLINE constexpr bool try_round_to_signed_integer(
+        const f256_s& x,
+        bool ties_to_even,
+        SignedInt& out) noexcept
+    {
+        static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
+        static_assert(sizeof(SignedInt) <= sizeof(std::int64_t));
+
+        if (bl::isnan(x) || bl::isinf(x) || absd(x.x0) >= 0x1p52)
+            return false;
+
+        constexpr auto lo_i = static_cast<std::int64_t>(std::numeric_limits<SignedInt>::lowest());
+        constexpr auto hi_i = static_cast<std::int64_t>(std::numeric_limits<SignedInt>::max());
+        if (x < detail::_f256_constexpr::to_f256(lo_i) || x > detail::_f256_constexpr::to_f256(hi_i))
+            return false;
+
+        const std::int64_t base = static_cast<std::int64_t>(x.x0);
+        const f256_s frac = x - f256_s{ static_cast<double>(base) };
+        const f256_s abs_frac = abs(frac);
+        std::int64_t rounded = base;
+
+        if (abs_frac > f256_s{ 0.5 } || (!ties_to_even && abs_frac == f256_s{ 0.5 }) ||
+            (ties_to_even && abs_frac == f256_s{ 0.5 } && (base & 1ll) != 0))
+        {
+            rounded += (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0))) ? -1 : 1;
+        }
+
+        if (rounded < lo_i || rounded > hi_i)
+            return false;
+
+        out = static_cast<SignedInt>(rounded);
+        return true;
     }
     BL_FORCE_INLINE constexpr f256_s nearest_integer_ties_even(const f256_s& q) noexcept
     {
@@ -2141,15 +2175,6 @@ namespace detail::_f256
 [[nodiscard]] BL_FORCE_INLINE constexpr double log_as_double(f256_s a) noexcept { return detail::_f256::log_as_double_impl(a); }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s fabs(const f256_s& a) noexcept { return detail::_f256::fabs_impl(a); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool signbit(const f256_s& x) noexcept { return detail::_f256::signbit_impl(x); }
-[[nodiscard]] BL_FORCE_INLINE constexpr int fpclassify(const f256_s& x) noexcept { return detail::_f256::fpclassify_impl(x); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool isnormal(const f256_s& x) noexcept { return detail::_f256::isnormal_impl(x); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool isunordered(const f256_s& a, const f256_s& b) noexcept { return detail::_f256::isunordered_impl(a, b); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool isgreater(const f256_s& a, const f256_s& b) noexcept { return detail::_f256::isgreater_impl(a, b); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool isgreaterequal(const f256_s& a, const f256_s& b) noexcept { return detail::_f256::isgreaterequal_impl(a, b); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool isless(const f256_s& a, const f256_s& b) noexcept { return detail::_f256::isless_impl(a, b); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool islessequal(const f256_s& a, const f256_s& b) noexcept { return detail::_f256::islessequal_impl(a, b); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool islessgreater(const f256_s& a, const f256_s& b) noexcept { return detail::_f256::islessgreater_impl(a, b); }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s rint(const f256_s& x) { BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::nearbyint(x), detail::_f256_runtime::rint(x)); }
 [[nodiscard]] BL_FORCE_INLINE constexpr long lround(const f256_s& x) { BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256::to_signed_integer_or_zero<long>(detail::_f256::round_half_away_zero(x)), detail::_f256_runtime::lround(x)); }
@@ -2809,6 +2834,7 @@ namespace detail::_f256
     }
     else
     {
+        y = cbrt_tail_step(y);
         y = cbrt_tail_step(y);
         y = cbrt_tail_step(y);
         y = cbrt_tail_step(y);

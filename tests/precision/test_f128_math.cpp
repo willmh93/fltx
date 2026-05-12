@@ -496,6 +496,50 @@ namespace
         REQUIRE(diff <= tolerance);
     }
 
+    template<typename Scalar, typename F128Op, typename RefOp>
+    void check_scalar_binary_op(
+        const char* op_name,
+        const char* case_label,
+        const char* scalar_kind,
+        const char* value_text,
+        Scalar scalar,
+        F128Op&& f128_op,
+        RefOp&& ref_op)
+    {
+        const f128 value = to_f128(value_text);
+        const mpfr_ref value_ref = to_ref_exact(value);
+        const mpfr_ref scalar_ref{ static_cast<double>(scalar) };
+
+        const f128 got = f128_op(value, scalar);
+        const mpfr_ref got_ref = to_ref_exact(got);
+        const mpfr_ref expected = ref_op(value_ref, scalar_ref);
+
+        mpfr_ref scale = abs_ref(expected);
+        if (scale < 1)
+            scale = 1;
+
+        const mpfr_ref tolerance = function_tolerance(op_name, scale);
+        const mpfr_ref diff = abs_ref(got_ref - expected);
+
+        CAPTURE(op_name);
+        CAPTURE(case_label);
+        CAPTURE(scalar_kind);
+        CAPTURE(value_text);
+        CAPTURE(to_text_double(static_cast<double>(scalar)));
+        CAPTURE(to_text(got));
+        CAPTURE(to_text(expected));
+        CAPTURE(to_text(diff));
+        CAPTURE(to_text(tolerance));
+
+        CAPTURE(to_text_double(got.hi));
+        CAPTURE(to_text_double(got.lo));
+        CAPTURE(to_text_double_hex(got.hi));
+        CAPTURE(to_text_double_hex(got.lo));
+
+        record_accuracy_sample(op_name, got, expected, diff, scale, diff <= tolerance);
+        REQUIRE(diff <= tolerance);
+    }
+
     template<typename F128Op, typename RefOp>
     void check_unary_op(const char* op_name, const char* input_text, F128Op&& f128_op, RefOp&& ref_op)
     {
@@ -822,16 +866,6 @@ namespace
         if (value == 0)
             value = mpfr_ref{ "0.5" };
         return value;
-    }
-
-    [[nodiscard]] mpfr_ref random_moderate_for_f128(std::mt19937_64& rng)
-    {
-        return random_signed_interval_for_f128(rng, mpfr_ref{ "1e12" });
-    }
-
-    [[nodiscard]] mpfr_ref random_fmod_rhs_for_f128(std::mt19937_64& rng)
-    {
-        return mpfr_ref{ "0.125" } + random_unit_interval_for_f128(rng) * mpfr_ref{ "127.875" };
     }
 
     [[nodiscard]] mpfr_ref random_pow_base_for_f128(std::mt19937_64& rng)
@@ -1216,6 +1250,79 @@ TEST_CASE("f128 brute-force random arithmetic matches MPFR within tolerance", "[
                 [](const f128& a, const f128& b) { return a / b; },
                 [](const mpfr_ref& a, const mpfr_ref& b) { return a / b; });
         }
+    }
+}
+
+TEST_CASE("f128 mixed scalar arithmetic matches MPFR within tolerance", "[fltx][f128][precision][arithmetic][scalar]")
+{
+    accuracy_report_scope report_scope{ "f128 mixed scalar arithmetic matches MPFR within tolerance" };
+
+    constexpr std::array<const char*, 6> values{{
+        "3.1415926535897932384626433832795028841971",
+        "-2.7182818284590452353602874713526624977572",
+        "1.0000000000000000000000000000000001",
+        "-123456789012345678901234567890.125",
+        "1e-30",
+        "1e30"
+    }};
+
+    constexpr std::array<double, 6> double_scalars{{
+        0.5,
+        -1.5,
+        3.141592653589793,
+        -0.125,
+        1.0e-15,
+        -1.0e15
+    }};
+
+    constexpr std::array<float, 6> float_scalars{{
+        0.5f,
+        -1.25f,
+        3.75f,
+        -0.125f,
+        1.0e-7f,
+        -1.0e7f
+    }};
+
+    auto check_all_scalar_orders = [](const char* scalar_kind, auto scalar, const char* value_text)
+    {
+        check_scalar_binary_op("add", "f128 + scalar", scalar_kind, value_text, scalar,
+            [](const f128& a, auto b) { return a + b; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return a + b; });
+
+        check_scalar_binary_op("add", "scalar + f128", scalar_kind, value_text, scalar,
+            [](const f128& a, auto b) { return b + a; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return b + a; });
+
+        check_scalar_binary_op("subtract", "f128 - scalar", scalar_kind, value_text, scalar,
+            [](const f128& a, auto b) { return a - b; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return a - b; });
+
+        check_scalar_binary_op("subtract", "scalar - f128", scalar_kind, value_text, scalar,
+            [](const f128& a, auto b) { return b - a; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return b - a; });
+
+        check_scalar_binary_op("multiply", "f128 * scalar", scalar_kind, value_text, scalar,
+            [](const f128& a, auto b) { return a * b; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return a * b; });
+
+        check_scalar_binary_op("multiply", "scalar * f128", scalar_kind, value_text, scalar,
+            [](const f128& a, auto b) { return b * a; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return b * a; });
+
+        check_scalar_binary_op("divide", "f128 / scalar", scalar_kind, value_text, scalar,
+            [](const f128& a, auto b) { return a / b; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return a / b; });
+
+        check_scalar_binary_op("divide", "scalar / f128", scalar_kind, value_text, scalar,
+            [](const f128& a, auto b) { return b / a; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return b / a; });
+    };
+
+    for (std::size_t i = 0; i < values.size(); ++i)
+    {
+        check_all_scalar_orders("double", double_scalars[i], values[i]);
+        check_all_scalar_orders("float", float_scalars[i], values[i]);
     }
 }
 

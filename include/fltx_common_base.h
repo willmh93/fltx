@@ -81,10 +81,12 @@ static_assert(std::numeric_limits<double>::is_iec559 &&
 #endif
 #endif
 
+#if !defined(FLTX_DISABLE_FMA_AVAILABLE)
 #ifndef FMA_AVAILABLE
 #ifndef __EMSCRIPTEN__
 #if defined(__FMA__) || defined(__FMA4__) || defined(_MSC_VER) || defined(__clang__)
 #define FMA_AVAILABLE
+#endif
 #endif
 #endif
 #endif

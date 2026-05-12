@@ -64,8 +64,8 @@ struct f128_s
     BL_FORCE_INLINE constexpr f128_s& operator=(double x) noexcept { hi = x; lo = 0.0; return *this; }
     BL_FORCE_INLINE constexpr f128_s& operator=(float x) noexcept { hi = static_cast<double>(x); lo = 0.0; return *this; }
 
-    BL_FORCE_INLINE constexpr f128_s& operator=(uint64_t u) noexcept;
-    BL_FORCE_INLINE constexpr f128_s& operator=(int64_t v) noexcept;
+    BL_MSVC_NOINLINE constexpr f128_s& operator=(uint64_t u) noexcept;
+    BL_MSVC_NOINLINE constexpr f128_s& operator=(int64_t v) noexcept;
 
     template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_signed_v<T> && (sizeof(T) < 8), int> = 0>
     BL_FORCE_INLINE constexpr f128_s& operator=(T v) noexcept {
@@ -254,21 +254,72 @@ namespace detail::_f128
     }
 }
 
-BL_FORCE_INLINE constexpr f128_s& f128_s::operator=(uint64_t u) noexcept {
-    const f128_s result = detail::_f128::uint64_to_f128(u);
-    hi = result.hi; lo = result.lo; return *this;
+// constexpr/runtime declarations needed by public conversion wrappers
+namespace detail::_f128_constexpr
+{
+    using namespace detail::_f128;
+
+    // scalar conversion
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s to_f128(uint64_t u) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s to_f128(int64_t v) noexcept;
+
+    BL_FORCE_INLINE constexpr f128_s& assign(f128_s& out, uint64_t u) noexcept;
+    BL_FORCE_INLINE constexpr f128_s& assign(f128_s& out, int64_t v) noexcept;
+
+    // rounding and powers
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s floor(const f128_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s ceil(const f128_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s trunc(const f128_s& a);
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s pow10_128(int k);
 }
-BL_FORCE_INLINE constexpr f128_s& f128_s::operator=(int64_t v) noexcept {
-    const f128_s result = detail::_f128::int64_to_f128(v);
-    hi = result.hi; lo = result.lo; return *this;
+namespace detail::_f128_runtime
+{
+    BL_NO_INLINE f128_s to_f128(uint64_t u) noexcept;
+    BL_NO_INLINE f128_s to_f128(int64_t v) noexcept;
+    BL_NO_INLINE f128_s& assign(f128_s& out, uint64_t u) noexcept;
+    BL_NO_INLINE f128_s& assign(f128_s& out, int64_t v) noexcept;
 }
 
-[[nodiscard]] constexpr f128_s to_f128(double x) noexcept { return f128_s{ x, 0.0 }; }
-[[nodiscard]] constexpr f128_s to_f128(float x) noexcept { return f128_s{ (double)x, 0.0 }; }
-[[nodiscard]] constexpr f128_s to_f128(int32_t v) noexcept { return f128_s{ (double)v, 0.0 }; }
-[[nodiscard]] constexpr f128_s to_f128(uint32_t v) noexcept { return f128_s{ (double)v, 0.0 }; }
-[[nodiscard]] constexpr f128_s to_f128(int64_t v) noexcept { return detail::_f128::int64_to_f128(v); }
-[[nodiscard]] constexpr f128_s to_f128(uint64_t u)  noexcept { return detail::_f128::uint64_to_f128(u); }
+BL_MSVC_NOINLINE constexpr f128_s& f128_s::operator=(uint64_t u) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f128_constexpr::assign(*this, u);
+
+    return detail::_f128_runtime::assign(*this, u);
+}
+BL_MSVC_NOINLINE constexpr f128_s& f128_s::operator=(int64_t v) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f128_constexpr::assign(*this, v);
+
+    return detail::_f128_runtime::assign(*this, v);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s to_f128(double x) noexcept { return f128_s{ x, 0.0 }; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s to_f128(float x) noexcept { return f128_s{ (double)x, 0.0 }; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s to_f128(int32_t v) noexcept { return f128_s{ (double)v, 0.0 }; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s to_f128(uint32_t v) noexcept { return f128_s{ (double)v, 0.0 }; }
+
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s to_f128(uint64_t u) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f128_constexpr::to_f128(u);
+
+    return detail::_f128_runtime::to_f128(u);
+}
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s to_f128(int64_t v) noexcept
+{
+    if (bl::use_constexpr_math())
+        return detail::_f128_constexpr::to_f128(v);
+
+    return detail::_f128_runtime::to_f128(v);
+}
+
+// Remaining public f128 core wrappers are defined together after the constexpr implementations.
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s floor(const f128_s& a);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s ceil(const f128_s& a);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s trunc(const f128_s& a);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s pow10_128(int k);
 
 /// ============= Comparisons =============
 
@@ -383,40 +434,20 @@ namespace detail::_f128
 [[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; detail::_f128::uint64_compare_pair(b, bhi, blo); return a.hi != bhi || a.lo != blo; }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; detail::_f128::uint64_compare_pair(a, ahi, alo); return ahi != b.hi || alo != b.lo; }
 
+/// ============= Value utilities =============
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s abs(const f128_s& a) noexcept
+{
+    return (a.hi < 0.0) ? -a : a;
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s clamp(const f128_s& v, const f128_s& lo, const f128_s& hi) noexcept
+{
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
 /// ============= Classification =============
-
-BL_FORCE_INLINE constexpr f128_s abs(const f128_s& a);
-
-namespace detail::_f128_constexpr
-{
-    // rounding and powers
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s floor(const f128_s& a);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s ceil(const f128_s& a);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s trunc(const f128_s& a);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s pow10_128(int k);
-
-    // f64 <=> f128 arithmetic
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sub_double_f128(double a, const f128_s& b) noexcept;
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s div_double_f128(double a, const f128_s& b) noexcept;
-}
-
-// Public f128 core wrappers are defined together after the constexpr implementations.
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s floor(const f128_s& a);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s ceil(const f128_s& a);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s trunc(const f128_s& a);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s pow10_128(int k);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s operator-(double a, const f128_s& b) noexcept;
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s operator/(double a, const f128_s& b) noexcept;
-
-namespace detail::_f128_runtime
-{
-    [[nodiscard]] BL_NO_INLINE f128_s floor(const f128_s& a);
-    [[nodiscard]] BL_NO_INLINE f128_s ceil(const f128_s& a);
-    [[nodiscard]] BL_NO_INLINE f128_s trunc(const f128_s& a);
-    [[nodiscard]] BL_NO_INLINE f128_s pow10_128(int k);
-    [[nodiscard]] BL_NO_INLINE f128_s sub_double_f128(double a, const f128_s& b) noexcept;
-    [[nodiscard]] BL_NO_INLINE f128_s div_double_f128(double a, const f128_s& b) noexcept;
-}
 
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isnan(const f128_s& x) noexcept      { return detail::fp::isnan(x.hi); }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isinf(const f128_s& x) noexcept      { return detail::fp::isinf(x.hi); }
@@ -465,30 +496,12 @@ namespace detail::_f128_runtime
     return !isunordered(a, b) && a != b;
 }
 
-/// ============= Arithmetic operators =============
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s clamp(const f128_s& v, const f128_s& lo, const f128_s& hi)
+namespace detail::_f128_runtime
 {
-    if (v < lo) return lo;
-    if (v > hi) return hi;
-    return v;
-}
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s abs(const f128_s& a)
-{
-    return (a.hi < 0.0) ? -a : a;
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s recip(f128_s b)
-{
-    constexpr f128_s one = f128_s{ 1.0 };
-    f128_s y = f128_s{ 1.0 / b.hi };
-    f128_s e = one - b * y;
-
-    y += y * e;
-    e = one - b * y;
-    y += y * e;
-
-    return y;
+    [[nodiscard]] BL_NO_INLINE f128_s floor(const f128_s& a);
+    [[nodiscard]] BL_NO_INLINE f128_s ceil(const f128_s& a);
+    [[nodiscard]] BL_NO_INLINE f128_s trunc(const f128_s& a);
+    [[nodiscard]] BL_NO_INLINE f128_s pow10_128(int k);
 }
 
 /// ============= Core helpers =============
@@ -575,6 +588,88 @@ namespace detail::_f128
         return renorm(q0, q1);
     }
 
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s add_double_inline(const f128_s& a, double b) noexcept
+    {
+        double s{}, e{};
+        two_sum_precise(a.hi, b, s, e);
+        e += a.lo;
+        return renorm(s, e);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s add_double_inline(double a, const f128_s& b) noexcept
+    {
+        return add_double_inline(b, a);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sub_double_inline(const f128_s& a, double b) noexcept
+    {
+        return add_double_inline(a, -b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sub_double_inline(double a, const f128_s& b) noexcept
+    {
+        return add_double_inline(-b, a);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s mul_double_inline(const f128_s& a, double b) noexcept
+    {
+        double p{}, e{};
+        two_prod_precise(a.hi, b, p, e);
+
+        e += a.lo * b;
+        return renorm(p, e);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s mul_double_inline(double a, const f128_s& b) noexcept
+    {
+        return mul_double_inline(b, a);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s div_double_inline(const f128_s& a, double b) noexcept
+    {
+        if (bl::use_constexpr_math())
+        {
+            if (isnan(a.hi) || isnan(b)) [[unlikely]]
+                return std::numeric_limits<f128_s>::quiet_NaN();
+
+            if (isinf(b))
+            {
+                if (isinf(a.hi))
+                    return std::numeric_limits<f128_s>::quiet_NaN();
+
+                const bool neg = signbit_constexpr(a.hi) ^ signbit_constexpr(b);
+                return f128_s{ neg ? -0.0 : 0.0, 0.0 };
+            }
+
+            if (b == 0.0) [[unlikely]]
+            {
+                if (a.hi == 0.0 && a.lo == 0.0)
+                    return std::numeric_limits<f128_s>::quiet_NaN();
+
+                const bool neg = signbit_constexpr(a.hi) ^ signbit_constexpr(b);
+                return f128_s{ neg ? -std::numeric_limits<double>::infinity()
+                             : std::numeric_limits<double>::infinity(), 0.0 };
+            }
+
+            if (isinf(a.hi)) [[unlikely]]
+            {
+                const bool neg = signbit_constexpr(a.hi) ^ signbit_constexpr(b);
+                return f128_s{ neg ? -std::numeric_limits<double>::infinity()
+                             : std::numeric_limits<double>::infinity(), 0.0 };
+            }
+        }
+
+        if (!bl::use_constexpr_math())
+            return div_f128_double_runtime(a, b);
+
+        const double q0 = a.hi / b;
+        const f128_s r = sub_mul_scalar_exact(a, f128_s{ b, 0.0 }, q0);
+        const double q1 = r.hi / b;
+
+        return renorm(q0, q1);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s div_double_inline(double a, const f128_s& b) noexcept
+    {
+        const double q0 = a / b.hi;
+        const f128_s r = sub_mul_scalar_exact(f128_s{ a, 0.0 }, b, q0);
+        const double q1 = r.hi / b.hi;
+        return renorm(q0, q1);
+    }
+
     BL_PUSH_PRECISE;
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s mul_add_inline(const f128_s& a, const f128_s& b, const f128_s& c) noexcept
     {
@@ -633,126 +728,63 @@ namespace detail::_f128
     BL_POP_PRECISE;
 }
 
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s recip(f128_s b) noexcept
+{
+    constexpr f128_s one = f128_s{ 1.0 };
+    f128_s y = f128_s{ 1.0 / b.hi };
+    f128_s e = one - b * y;
+
+    y += y * e;
+    e = one - b * y;
+    y += y * e;
+
+    return y;
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s inv(const f128_s& a) { return recip(a); }
+
 /// ============= Scalar =============
 
 BL_PUSH_PRECISE;
 [[nodiscard]] FLTX_CORE_INLINE constexpr f128_s operator+(const f128_s& a, const f128_s& b) noexcept
 {
-    // accurate sum of the high parts
-    double s{}, e{};
-    detail::_f128::two_sum_precise(a.hi, b.hi, s, e);
-
-    // fold low parts into the error
-    double t = a.lo + b.lo;
-    e += t;
-
-    // renormalize
-    return detail::_f128::renorm(s, e);
+    return detail::_f128::add_inline(a, b);
 }
 [[nodiscard]] FLTX_CORE_INLINE constexpr f128_s operator-(const f128_s& a, const f128_s& b) noexcept
 {
-    double s{}, e{};
-    detail::_f128::two_sum_precise(a.hi, -b.hi, s, e);
-
-    double t = a.lo - b.lo;
-    e += t;
-
-    return detail::_f128::renorm(s, e);
+    return detail::_f128::sub_inline(a, b);
 }
 BL_POP_PRECISE;
 [[nodiscard]] FLTX_CORE_INLINE constexpr f128_s operator*(const f128_s& a, const f128_s& b) noexcept
 {
-    double p, e;
-    detail::_f128::two_prod_precise(a.hi, b.hi, p, e);
-
-    e += a.hi * b.lo + a.lo * b.hi;
-    e += a.lo * b.lo;
-    return detail::_f128::renorm(p, e);
+    return detail::_f128::mul_inline(a, b);
 }
 [[nodiscard]] FLTX_CORE_INLINE constexpr f128_s operator/(const f128_s& a, const f128_s& b) noexcept
 {
-    if (b.lo == 0.0)
-        return a / b.hi;
-
-    const double inv_b0 = 1.0 / b.hi;
-
-    const double q0 = a.hi * inv_b0;
-    f128_s r = detail::_f128::sub_mul_scalar_exact(a, b, q0);
-
-    const double q1 = r.hi * inv_b0;
-
-    return detail::_f128::renorm(q0, q1);
+    return detail::_f128::div_inline(a, b);
 }
 
 // f128 <=> double
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator+(const f128_s& a, double b) noexcept
 {
-    double s{}, e{};
-    detail::_f128::two_sum_precise(a.hi, b, s, e);
-    e += a.lo;
-    return detail::_f128::renorm(s, e);
+    return detail::_f128::add_double_inline(a, b);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator-(const f128_s& a, double b) noexcept
 {
-    double s{}, e{};
-    detail::_f128::two_sum_precise(a.hi, -b, s, e);
-    e += a.lo;
-    return detail::_f128::renorm(s, e);
+    return detail::_f128::sub_double_inline(a, b);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator*(const f128_s& a, double b) noexcept
 {
-    double p{}, e{};
-    detail::_f128::two_prod_precise(a.hi, b, p, e);
-
-	e += a.lo * b;
-    return detail::_f128::renorm(p, e);
+    return detail::_f128::mul_double_inline(a, b);
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator/(const f128_s& a, double b) noexcept
 {
-    if (bl::use_constexpr_math())
-    {
-        if (isnan(a) || detail::_f128::isnan(b)) [[unlikely]]
-            return std::numeric_limits<f128_s>::quiet_NaN();
-
-        if (detail::_f128::isinf(b))
-        {
-            if (isinf(a))
-                return std::numeric_limits<f128_s>::quiet_NaN();
-
-            const bool neg = detail::_f128::signbit_constexpr(a.hi) ^ detail::_f128::signbit_constexpr(b);
-            return f128_s{ neg ? -0.0 : 0.0, 0.0 };
-        }
-
-        if (b == 0.0) [[unlikely]]
-        {
-            if (iszero(a))
-                return std::numeric_limits<f128_s>::quiet_NaN();
-
-            const bool neg = detail::_f128::signbit_constexpr(a.hi) ^ detail::_f128::signbit_constexpr(b);
-            return f128_s{ neg ? -std::numeric_limits<double>::infinity()
-                             : std::numeric_limits<double>::infinity(), 0.0 };
-        }
-
-        if (isinf(a)) [[unlikely]]
-        {
-            const bool neg = detail::_f128::signbit_constexpr(a.hi) ^ detail::_f128::signbit_constexpr(b);
-            return f128_s{ neg ? -std::numeric_limits<double>::infinity()
-                             : std::numeric_limits<double>::infinity(), 0.0 };
-        }
-    }
-
-    if (!bl::use_constexpr_math())
-        return detail::_f128::div_f128_double_runtime(a, b);
-
-    const double q0 = a.hi / b;
-    const f128_s r = detail::_f128::sub_mul_scalar_exact(a, f128_s{ b, 0.0 }, q0);
-    const double q1 = r.hi / b;
-
-    return detail::_f128::renorm(q0, q1);
+    return detail::_f128::div_double_inline(a, b);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator+(double a, const f128_s& b) noexcept { return b + a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator-(double a, const f128_s& b) noexcept { return -(b - a); }
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator*(double a, const f128_s& b) noexcept { return b * a; }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator/(double a, const f128_s& b) noexcept { return f128_s{ a } / b; }
 
 // f128 <=> float
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator+(const f128_s& a, float b) noexcept { return a + (double)b; }
@@ -766,6 +798,27 @@ BL_POP_PRECISE;
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s operator/(float a, const f128_s& b) noexcept { return (double)a / b; }
 
 /// ============= f128 constexpr core implementations =============
+
+// scalar conversion
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::to_f128(uint64_t u) noexcept
+{
+    return detail::_f128::uint64_to_f128(u);
+}
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::to_f128(int64_t v) noexcept
+{
+    return detail::_f128::int64_to_f128(v);
+}
+
+BL_FORCE_INLINE constexpr f128_s& detail::_f128_constexpr::assign(f128_s& out, uint64_t u) noexcept
+{
+    out = to_f128(u);
+    return out;
+}
+BL_FORCE_INLINE constexpr f128_s& detail::_f128_constexpr::assign(f128_s& out, int64_t v) noexcept
+{
+    out = to_f128(v);
+    return out;
+}
 
 // rounding and powers
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::floor(const f128_s& a)
@@ -842,22 +895,6 @@ BL_POP_PRECISE;
     return (k >= 0) ? r : (f128_s{ 1.0 } / r);
 }
 
-// f64 <=> f128 arithmetic
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::sub_double_f128(double a, const f128_s& b) noexcept
-{
-    double s{}, e{};
-    detail::_f128::two_sum_precise(a, -b.hi, s, e);
-    e -= b.lo;
-    return detail::_f128::renorm(s, e);
-}
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::div_double_f128(double a, const f128_s& b) noexcept
-{
-    const double q0 = a / b.hi;
-    const f128_s r = detail::_f128::sub_mul_scalar_exact(f128_s{ a, 0.0 }, b, q0);
-    const double q1 = r.hi / b.hi;
-    return detail::_f128::renorm(q0, q1);
-}
-
 /// ============= f128 public core wrappers =============
 
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s floor(const f128_s& a)
@@ -887,21 +924,6 @@ BL_POP_PRECISE;
         return detail::_f128_constexpr::pow10_128(k);
 
     return detail::_f128_runtime::pow10_128(k);
-}
-
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s operator-(double a, const f128_s& b) noexcept
-{
-    if (bl::use_constexpr_math())
-        return detail::_f128_constexpr::sub_double_f128(a, b);
-
-    return detail::_f128_runtime::sub_double_f128(a, b);
-}
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s operator/(double a, const f128_s& b) noexcept
-{
-    if (bl::use_constexpr_math())
-        return detail::_f128_constexpr::div_double_f128(a, b);
-
-    return detail::_f128_runtime::div_double_f128(a, b);
 }
 
 } // namespace bl

@@ -218,6 +218,12 @@ prepareTarget(io_tests        fltx::fltx)
 prepareTarget(bench_tests     ${FLTX_BENCH_TEST_LIBRARY})
 prepareTarget(parity_tests    fltx_parity_test_lib)
 
+if(FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
+    fltx_apply_fast_math_options(bench_tests)
+else()
+    fltx_apply_fast_math_options(bench_tests MODE ${FLTX_BENCH_FAST_MATH_MODE})
+endif()
+
 if (FLTX_PRECISION_TESTS_CONSTEXPR_PARITY)
     addFltxTestMacroStatus(precision_tests DEFINITIONS FLTX_CONSTEXPR_PARITY)
 elseif(FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL)

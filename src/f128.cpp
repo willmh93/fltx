@@ -2,6 +2,26 @@
 
 namespace bl::detail::_f128_runtime
 {
+    f128_s to_f128(uint64_t u) noexcept
+    {
+        return detail::_f128_constexpr::to_f128(u);
+    }
+
+    f128_s to_f128(int64_t v) noexcept
+    {
+        return detail::_f128_constexpr::to_f128(v);
+    }
+
+    f128_s& assign(f128_s& out, uint64_t u) noexcept
+    {
+        return detail::_f128_constexpr::assign(out, u);
+    }
+
+    f128_s& assign(f128_s& out, int64_t v) noexcept
+    {
+        return detail::_f128_constexpr::assign(out, v);
+    }
+
     f128_s floor(const f128_s& a)
     {
         return detail::_f128_constexpr::floor(a);
@@ -20,15 +40,5 @@ namespace bl::detail::_f128_runtime
     f128_s pow10_128(int k)
     {
         return detail::_f128_constexpr::pow10_128(k);
-    }
-
-    f128_s sub_double_f128(double a, const f128_s& b) noexcept
-    {
-        return detail::_f128_constexpr::sub_double_f128(a, b);
-    }
-
-    f128_s div_double_f128(double a, const f128_s& b) noexcept
-    {
-        return detail::_f128_constexpr::div_double_f128(a, b);
     }
 }

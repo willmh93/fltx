@@ -13,6 +13,7 @@
 #include "f128.h"
 #include "fltx_common_io.h"
 
+#include <cstddef>
 #include <cstring>
 
 namespace bl {
@@ -495,73 +496,10 @@ namespace detail::_f128
         }
     };
 
-    template<typename String, typename Writer>
-    BL_FORCE_INLINE constexpr void write_chars_to_string_f128(String& out, std::size_t cap, Writer writer)
-    {
-        detail::write_chars_to_string<f128_chars_result>(out, cap, writer);
-    }
-    BL_FORCE_INLINE const char* special_text_f128(const f128_s& x, bool uppercase = false) noexcept
-    {
-        return detail::special_text<f128_io_traits>(x, uppercase);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr bool assign_special_string_f128(String& out, const f128_s& x, bool uppercase = false) noexcept
-    {
-        return detail::assign_special_string<f128_io_traits>(out, x, uppercase);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void ensure_decimal_point_f128(String& s)
-    {
-        detail::ensure_decimal_point(s);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void apply_stream_decorations_f128(String& s, bool showpos, bool uppercase)
-    {
-        detail::apply_stream_decorations(s, showpos, uppercase);
-    }
-    BL_FORCE_INLINE bool write_stream_special_f128(std::ostream& os, const f128_s& x, bool showpos, bool uppercase)
-    {
-        return detail::write_stream_special<f128_io_traits>(os, x, showpos, uppercase);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void format_to_string_f128(String& out, const f128_s& x, int precision, f128_format_kind kind, bool strip_trailing_zeros = false)
-    {
-        detail::format_to_string<f128_io_traits>(out, x, precision, kind, strip_trailing_zeros);
-    }
     template<typename String>
     BL_FORCE_INLINE constexpr void to_string_into(String& out, const f128_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
     {
         detail::to_string_into<f128_io_traits>(out, x, precision, fixed, scientific, strip_trailing_zeros);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void emit_scientific(String& os, const f128_s& x, std::streamsize prec, bool strip_trailing_zeros)
-    {
-        detail::emit_scientific<f128_io_traits>(os, x, prec, strip_trailing_zeros);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void emit_fixed_dec(String& os, f128_s x, int prec, bool strip_trailing_zeros)
-    {
-        detail::emit_fixed_dec<f128_io_traits>(os, x, prec, strip_trailing_zeros);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void emit_scientific_sig_f128(String& os, const f128_s& x, std::streamsize sig_digits, bool strip_trailing_zeros)
-    {
-        detail::emit_scientific_sig<f128_io_traits>(os, x, sig_digits, strip_trailing_zeros);
-    }
-
-    /// ======== Parsing helpers ========
-
-    BL_FORCE_INLINE bool valid_flt128_string(const char* s) noexcept
-    {
-        return detail::valid_float_string(s);
-    }
-    BL_FORCE_INLINE unsigned char ascii_lower_f128(char c) noexcept
-    {
-        return detail::ascii_lower(c);
-    }
-    BL_FORCE_INLINE const char* skip_ascii_space_f128(const char* p) noexcept
-    {
-        return detail::skip_ascii_space(p);
     }
 
 }
@@ -608,17 +546,32 @@ BL_FORCE_INLINE std::ostream& operator<<(std::ostream& os, const f128_s& x)
 }
 
 /// ============= Literals =============
-namespace literals
+namespace detail::_f128
 {
-    [[nodiscard]] consteval f128_s operator""_dd(const char* text)
+    [[nodiscard]] consteval f128_s parse_dd_literal(const char* text, const char* expected_end)
     {
         f128_s out{};
         const char* end = text;
 
-        if (!(parse_flt128(text, out, &end) && *end == '\0'))
+        if (!(parse_flt128(text, out, &end) && end == expected_end))
             throw "invalid _dd literal";
 
         return out;
+    }
+}
+
+namespace literals
+{
+    [[nodiscard]] consteval f128 operator""_dd(const char* text, std::size_t length)
+    {
+        return detail::_f128::parse_dd_literal(text, text + length);
+    }
+
+    template<char... Chars>
+    [[nodiscard]] consteval f128 operator""_dd()
+    {
+        constexpr char text[] = { Chars..., '\0' };
+        return detail::_f128::parse_dd_literal(text, text + sizeof...(Chars));
     }
 }
 

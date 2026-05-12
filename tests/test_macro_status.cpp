@@ -71,6 +71,13 @@ namespace
             std::fputs("not defined", stderr);
             #endif
 
+            std::fputs(", FMA_AVAILABLE=", stderr);
+            #if defined(FMA_AVAILABLE)
+            std::fputs("defined", stderr);
+            #else
+            std::fputs("not defined", stderr);
+            #endif
+
             std::fputs(", FLTX_CONSTEXPR_PARITY=", stderr);
             #if defined(FLTX_CONSTEXPR_PARITY)
             std::fputs("defined", stderr);
@@ -110,6 +117,9 @@ namespace
 
             std::fputs(", BL_F256_ENABLE_TRIG_SIMD=", stderr);
             std::fputs(FLTX_STRINGIZE(BL_F256_ENABLE_TRIG_SIMD), stderr);
+
+            std::fputs(", BL_F256_USE_FMA_TWO_PROD=", stderr);
+            std::fputs(FLTX_STRINGIZE(BL_F256_USE_FMA_TWO_PROD), stderr);
 
             std::fputs(", arm64=", stderr);
             std::fputs(FLTX_ARCH_ARM64_STATUS, stderr);

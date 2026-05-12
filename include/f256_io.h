@@ -13,6 +13,7 @@
 #include "f256.h"
 #include "fltx_common_io.h"
 
+#include <cstddef>
 #include <cstring>
 
 namespace bl {
@@ -524,73 +525,10 @@ namespace detail::_f256
         }
     };
 
-    template<typename String, typename Writer>
-    BL_FORCE_INLINE constexpr void write_chars_to_string(String& out, std::size_t cap, Writer writer)
-    {
-        detail::write_chars_to_string<f256_chars_result>(out, cap, writer);
-    }
-    BL_FORCE_INLINE const char* special_text_f256(const f256_s& x, bool uppercase = false) noexcept
-    {
-        return detail::special_text<f256_io_traits>(x, uppercase);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr bool assign_special_string(String& out, const f256_s& x, bool uppercase = false) noexcept
-    {
-        return detail::assign_special_string<f256_io_traits>(out, x, uppercase);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void ensure_decimal_point(String& s)
-    {
-        detail::ensure_decimal_point(s);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void apply_stream_decorations(String& s, bool showpos, bool uppercase)
-    {
-        detail::apply_stream_decorations(s, showpos, uppercase);
-    }
-    BL_FORCE_INLINE bool write_stream_special(std::ostream& os, const f256_s& x, bool showpos, bool uppercase)
-    {
-        return detail::write_stream_special<f256_io_traits>(os, x, showpos, uppercase);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void format_to_string(String& out, const f256_s& x, int precision, f256_format_kind kind, bool strip_trailing_zeros = false)
-    {
-        detail::format_to_string<f256_io_traits>(out, x, precision, kind, strip_trailing_zeros);
-    }
     template<typename String>
     BL_FORCE_INLINE constexpr void to_string_into(String& out, const f256_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
     {
         detail::to_string_into<f256_io_traits>(out, x, precision, fixed, scientific, strip_trailing_zeros);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void emit_scientific(String& out, const f256_s& x, std::streamsize prec, bool strip_trailing_zeros)
-    {
-        detail::emit_scientific<f256_io_traits>(out, x, prec, strip_trailing_zeros);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void emit_fixed_dec(String& out, const f256_s& x, int prec, bool strip_trailing_zeros)
-    {
-        detail::emit_fixed_dec<f256_io_traits>(out, x, prec, strip_trailing_zeros);
-    }
-    template<typename String>
-    BL_FORCE_INLINE constexpr void emit_scientific_sig(String& out, const f256_s& x, std::streamsize sig_digits, bool strip_trailing_zeros)
-    {
-        detail::emit_scientific_sig<f256_io_traits>(out, x, sig_digits, strip_trailing_zeros);
-    }
-
-    /// ======== Parsing helpers ========
-
-    BL_FORCE_INLINE bool valid_flt256_string(const char* s) noexcept
-    {
-        return detail::valid_float_string(s);
-    }
-    BL_FORCE_INLINE unsigned char ascii_lower_f256(char c) noexcept
-    {
-        return detail::ascii_lower(c);
-    }
-    BL_FORCE_INLINE const char* skip_ascii_space_f256(const char* p) noexcept
-    {
-        return detail::skip_ascii_space(p);
     }
 
 }
@@ -639,17 +577,32 @@ inline std::ostream& operator<<(std::ostream& os, const f256_s& x)
 }
 
 /// ============= Literals =============
-namespace literals
+namespace detail::_f256
 {
-    [[nodiscard]] consteval f256_s operator""_qd(const char* text)
+    [[nodiscard]] consteval f256_s parse_qd_literal(const char* text, const char* expected_end)
     {
         f256_s out{};
         const char* end = text;
 
-        if (!(parse_flt256(text, out, &end) && *end == '\0'))
+        if (!(parse_flt256(text, out, &end) && end == expected_end))
             throw "invalid _qd literal";
 
         return out;
+    }
+}
+
+namespace literals
+{
+    [[nodiscard]] consteval f256 operator""_qd(const char* text, std::size_t length)
+    {
+        return detail::_f256::parse_qd_literal(text, text + length);
+    }
+
+    template<char... Chars>
+    [[nodiscard]] consteval f256 operator""_qd()
+    {
+        constexpr char text[] = { Chars..., '\0' };
+        return detail::_f256::parse_qd_literal(text, text + sizeof...(Chars));
     }
 }
 

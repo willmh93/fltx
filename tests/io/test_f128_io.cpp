@@ -175,6 +175,19 @@ TEST_CASE("f128 parses decimal and scientific strings accurately", "[fltx][f128]
         check_parse_case(text);
 }
 
+TEST_CASE("f128 literals parse numeric and string source text", "[fltx][f128][io][literal]")
+{
+    using namespace bl::literals;
+
+    constexpr f128 numeric = 0.123456789012345678901234567890123_dd;
+    constexpr f128 scientific = 1.25e-20_dd;
+    constexpr f128 text = "0.123456789012345678901234567890123"_dd;
+
+    require_close(numeric, to_ref("0.123456789012345678901234567890123"));
+    require_close(scientific, to_ref("1.25e-20"));
+    require_close(text, to_ref("0.123456789012345678901234567890123"));
+}
+
 TEST_CASE("f128 parser handles special values, partial tokens, and invalid inputs", "[fltx][f128][io][parse][edge]")
 {
     {

@@ -507,6 +507,55 @@ namespace
         REQUIRE(diff <= tolerance);
     }
 
+    template<typename Scalar, typename F256Op, typename RefOp>
+    void check_scalar_binary_op(
+        const char* op_name,
+        const char* case_label,
+        const char* scalar_kind,
+        const char* value_text,
+        Scalar scalar,
+        F256Op&& f256_op,
+        RefOp&& ref_op)
+    {
+        const f256 value = to_f256(value_text);
+        const mpfr_ref value_ref = to_ref_exact(value);
+        const mpfr_ref scalar_ref{ static_cast<double>(scalar) };
+
+        const f256 got = f256_op(value, scalar);
+        const mpfr_ref got_ref = to_ref_exact(got);
+        const mpfr_ref expected = ref_op(value_ref, scalar_ref);
+
+        mpfr_ref scale = abs_ref(expected);
+        if (scale < 1)
+            scale = 1;
+
+        const mpfr_ref tolerance = function_tolerance(op_name, scale);
+        const mpfr_ref diff = abs_ref(got_ref - expected);
+
+        CAPTURE(op_name);
+        CAPTURE(case_label);
+        CAPTURE(scalar_kind);
+        CAPTURE(value_text);
+        CAPTURE(to_text_double(static_cast<double>(scalar)));
+        CAPTURE(to_text(got));
+        CAPTURE(to_text(expected));
+        CAPTURE(to_text(diff));
+        CAPTURE(to_text(tolerance));
+
+        CAPTURE(to_text_double(got.x0));
+        CAPTURE(to_text_double(got.x1));
+        CAPTURE(to_text_double(got.x2));
+        CAPTURE(to_text_double(got.x3));
+
+        CAPTURE(to_text_double_hex(got.x0));
+        CAPTURE(to_text_double_hex(got.x1));
+        CAPTURE(to_text_double_hex(got.x2));
+        CAPTURE(to_text_double_hex(got.x3));
+
+        record_accuracy_sample(op_name, got, expected, diff, scale, diff <= tolerance);
+        REQUIRE(diff <= tolerance);
+    }
+
     template<typename F256Op, typename RefOp>
     void check_unary_op(const char* op_name, const char* input_text, F256Op&& f256_op, RefOp&& ref_op)
     {
@@ -884,6 +933,20 @@ namespace
         return value;
     }
 
+    [[nodiscard]] mpfr_ref random_signed_interval_away_from_zero_for_f256(
+        std::mt19937_64& rng,
+        const mpfr_ref& minimum,
+        const mpfr_ref& width)
+    {
+        std::uniform_int_distribution<int> sign_dist(0, 1);
+
+        mpfr_ref value = minimum + random_unit_interval_for_f256(rng) * width;
+        if (sign_dist(rng) != 0)
+            value = -value;
+
+        return value;
+    }
+
     [[nodiscard]] mpfr_ref random_positive_for_f256(std::mt19937_64& rng)
     {
         mpfr_ref value = abs_ref(mpfr_ref{ random_finite_for_f256(rng) });
@@ -1186,6 +1249,637 @@ namespace
         REQUIRE(got_quo == expected_quo);
     }
 
+    struct scalar_mixed_recurrence_case
+    {
+        const char* x = "0";
+        const char* y = "0";
+        const char* a = "0";
+        const char* b = "0";
+        const char* c = "1";
+        const char* d = "1";
+    };
+
+    template<typename T>
+    struct scalar_mixed_recurrence_state
+    {
+        T x{};
+        T y{};
+        T a{};
+        T b{};
+        T c{};
+        T d{};
+    };
+
+    template<typename T>
+    [[nodiscard]] T scalar_mixed_recurrence_value(const char* text);
+
+    template<>
+    [[nodiscard]] f256 scalar_mixed_recurrence_value<f256>(const char* text)
+    {
+        return to_f256(text);
+    }
+
+    template<>
+    [[nodiscard]] mpfr_ref scalar_mixed_recurrence_value<mpfr_ref>(const char* text)
+    {
+        return to_ref_exact(to_f256(text));
+    }
+
+    template<typename T>
+    [[nodiscard]] T blend_scalar_mixed_recurrence_result(const T& value, const T& acc)
+    {
+        const T scaled_acc = acc * 0.25;
+        return value + scaled_acc;
+    }
+
+    template<typename T, std::size_t ValueCount>
+    [[nodiscard]] std::pair<T, T> run_scalar_mixed_recurrence_precision(
+        const std::array<scalar_mixed_recurrence_case, ValueCount>& specs,
+        int rounds)
+    {
+        std::array<scalar_mixed_recurrence_state<T>, ValueCount> state{};
+        for (std::size_t i = 0; i < ValueCount; ++i)
+        {
+            state[i].x = scalar_mixed_recurrence_value<T>(specs[i].x);
+            state[i].y = scalar_mixed_recurrence_value<T>(specs[i].y);
+            state[i].a = scalar_mixed_recurrence_value<T>(specs[i].a);
+            state[i].b = scalar_mixed_recurrence_value<T>(specs[i].b);
+            state[i].c = scalar_mixed_recurrence_value<T>(specs[i].c);
+            state[i].d = scalar_mixed_recurrence_value<T>(specs[i].d);
+        }
+
+        constexpr std::array<double, 8> add_rhs{ 0.125, -0.1875, 0.3125, -0.4375, 0.5625, -0.6875, 0.8125, -0.9375 };
+        constexpr std::array<double, 8> add_lhs{ -0.03125, 0.09375, -0.15625, 0.21875, -0.28125, 0.34375, -0.40625, 0.46875 };
+        constexpr std::array<double, 8> mul_rhs{ 0.875, -1.125, 1.375, -0.625, 0.5625, -0.8125, 1.0625, -1.3125 };
+        constexpr std::array<double, 8> mul_lhs{ -1.0625, 0.6875, -0.9375, 1.1875, -0.75, 1.5, -1.25, 0.8125 };
+        constexpr std::array<double, 8> div_rhs{ 1.125, -1.375, 1.625, -1.875, 2.125, -2.375, 2.625, -2.875 };
+
+        T acc_x = state.front().x;
+        T acc_y = state.front().y;
+
+        for (int round = 0; round < rounds; ++round)
+        {
+            for (std::size_t i = 0; i < ValueCount; ++i)
+            {
+                auto& item = state[i];
+                const std::size_t scalar_index = (i + static_cast<std::size_t>(round)) % add_rhs.size();
+
+                const T scalar_rhs_add = item.x + add_rhs[scalar_index];
+                const T scalar_lhs_add = add_lhs[scalar_index] + item.y;
+                const T scalar_rhs_mul = scalar_rhs_add * mul_rhs[scalar_index];
+                const T scalar_lhs_mul = mul_lhs[scalar_index] * scalar_lhs_add;
+                const T scalar_div = scalar_rhs_mul / div_rhs[scalar_index];
+
+                const T qd_add = scalar_div + item.a;
+                const T qd_sub = scalar_lhs_mul - item.b;
+                const T qd_mul = qd_add * qd_sub;
+                const T c2 = item.c * item.c;
+                const T d2 = item.d * item.d;
+                const T denominator_base = c2 + d2;
+                const T denominator = denominator_base + 1.0;
+                const T qd_div = qd_mul / denominator;
+
+                const T x_denominator = denominator + 2.0;
+                const T c_half = item.c * 0.5;
+                const T y_denominator_base = denominator + c_half;
+                const T y_denominator = y_denominator_base + 2.5;
+
+                const T x_step = qd_div / x_denominator;
+                const T x_damping = 0.125 * item.a;
+                const T y_delta = qd_add - qd_sub;
+                const T y_step = y_delta / y_denominator;
+                const T y_damping = item.b * 0.0625;
+
+                item.x = x_step + x_damping;
+                item.y = y_step - y_damping;
+
+                acc_x = blend_scalar_mixed_recurrence_result(item.x, acc_x);
+                acc_y = blend_scalar_mixed_recurrence_result(item.y, acc_y);
+            }
+        }
+
+        return { acc_x, acc_y };
+    }
+
+    [[nodiscard]] mpfr_ref scalar_mixed_recurrence_tolerance(const mpfr_ref& scale, int rounds, std::size_t state_count)
+    {
+        constexpr int operations_per_state_update = 24;
+        const mpfr_ref operation_count =
+            mpfr_ref{ static_cast<int>(state_count) } *
+            mpfr_ref{ rounds } *
+            mpfr_ref{ operations_per_state_update };
+        return function_scaled_tolerance("divide") * operation_count * scale;
+    }
+
+    void check_scalar_mixed_recurrence_component(
+        const char* component,
+        const f256& got,
+        const mpfr_ref& expected,
+        int rounds,
+        std::size_t state_count)
+    {
+        const mpfr_ref got_ref = to_ref_exact(got);
+        mpfr_ref scale = abs_ref(expected);
+        if (scale < 1)
+            scale = 1;
+
+        const mpfr_ref tolerance = scalar_mixed_recurrence_tolerance(scale, rounds, state_count);
+        const mpfr_ref diff = abs_ref(got_ref - expected);
+
+        CAPTURE(component);
+        CAPTURE(rounds);
+        CAPTURE(state_count);
+        CAPTURE(to_text(got));
+        CAPTURE(to_text(expected));
+        CAPTURE(to_text(diff));
+        CAPTURE(to_text(tolerance));
+        CAPTURE(to_text_double(got.x0));
+        CAPTURE(to_text_double(got.x1));
+        CAPTURE(to_text_double(got.x2));
+        CAPTURE(to_text_double(got.x3));
+        CAPTURE(to_text_double_hex(got.x0));
+        CAPTURE(to_text_double_hex(got.x1));
+        CAPTURE(to_text_double_hex(got.x2));
+        CAPTURE(to_text_double_hex(got.x3));
+
+        record_accuracy_sample("scalar_mixed_recurrence", got, expected, diff, scale, diff <= tolerance);
+        REQUIRE(diff <= tolerance);
+    }
+
+    struct fused_expression_case
+    {
+        std::string a;
+        std::string b;
+        std::string c;
+        std::string d;
+        std::string e;
+        double scalar = 1.0;
+        double denom_plus = 2.0;
+        double denom_minus = 3.0;
+    };
+
+    struct fused_expression_budget
+    {
+        int add = 0;
+        int subtract = 0;
+        int multiply = 0;
+        int divide = 0;
+    };
+
+    [[nodiscard]] mpfr_ref fused_expression_tolerance(const mpfr_ref& scale, fused_expression_budget budget)
+    {
+        mpfr_ref tolerance = 0;
+        tolerance += function_scaled_tolerance("add") * budget.add;
+        tolerance += function_scaled_tolerance("subtract") * budget.subtract;
+        tolerance += function_scaled_tolerance("multiply") * budget.multiply;
+        tolerance += function_scaled_tolerance("divide") * budget.divide;
+        return tolerance * scale;
+    }
+
+    void update_expression_scale(mpfr_ref& scale, const mpfr_ref& value)
+    {
+        const mpfr_ref magnitude = abs_ref(value);
+        if (magnitude > scale)
+            scale = magnitude;
+    }
+
+    [[nodiscard]] mpfr_ref fused_expression_scale(
+        const mpfr_ref& expected,
+        const mpfr_ref& a,
+        const mpfr_ref& b,
+        const mpfr_ref& c,
+        const mpfr_ref& d,
+        const mpfr_ref& e,
+        const mpfr_ref& scalar,
+        const mpfr_ref& denom_plus,
+        const mpfr_ref& denom_minus)
+    {
+        mpfr_ref scale = 1;
+        update_expression_scale(scale, expected);
+        update_expression_scale(scale, a);
+        update_expression_scale(scale, b);
+        update_expression_scale(scale, c);
+        update_expression_scale(scale, d);
+        update_expression_scale(scale, e);
+        update_expression_scale(scale, a * b);
+        update_expression_scale(scale, c * d);
+        update_expression_scale(scale, a * scalar);
+        update_expression_scale(scale, b * scalar);
+        update_expression_scale(scale, e + denom_plus);
+        update_expression_scale(scale, denom_minus - e);
+        return scale;
+    }
+
+    template<typename F256Op, typename RefOp>
+    void check_fused_expression_case(
+        const char* label,
+        const fused_expression_case& spec,
+        std::size_t case_index,
+        fused_expression_budget budget,
+        F256Op&& f256_op,
+        RefOp&& ref_op)
+    {
+        const f256 a = to_f256(spec.a.c_str());
+        const f256 b = to_f256(spec.b.c_str());
+        const f256 c = to_f256(spec.c.c_str());
+        const f256 d = to_f256(spec.d.c_str());
+        const f256 e = to_f256(spec.e.c_str());
+
+        const mpfr_ref a_ref = to_ref_exact(a);
+        const mpfr_ref b_ref = to_ref_exact(b);
+        const mpfr_ref c_ref = to_ref_exact(c);
+        const mpfr_ref d_ref = to_ref_exact(d);
+        const mpfr_ref e_ref = to_ref_exact(e);
+        const mpfr_ref scalar_ref{ spec.scalar };
+        const mpfr_ref denom_plus_ref{ spec.denom_plus };
+        const mpfr_ref denom_minus_ref{ spec.denom_minus };
+
+        const f256 got = f256_op(a, b, c, d, e, spec.scalar, spec.denom_plus, spec.denom_minus);
+        const mpfr_ref got_ref = to_ref_exact(got);
+        const mpfr_ref expected = ref_op(
+            a_ref,
+            b_ref,
+            c_ref,
+            d_ref,
+            e_ref,
+            scalar_ref,
+            denom_plus_ref,
+            denom_minus_ref);
+
+        const mpfr_ref scale = fused_expression_scale(
+            expected,
+            a_ref,
+            b_ref,
+            c_ref,
+            d_ref,
+            e_ref,
+            scalar_ref,
+            denom_plus_ref,
+            denom_minus_ref);
+        const mpfr_ref tolerance = fused_expression_tolerance(scale, budget);
+        const mpfr_ref diff = abs_ref(got_ref - expected);
+
+        CAPTURE(label);
+        CAPTURE(case_index);
+        CAPTURE(spec.a);
+        CAPTURE(spec.b);
+        CAPTURE(spec.c);
+        CAPTURE(spec.d);
+        CAPTURE(spec.e);
+        CAPTURE(to_text_double(spec.scalar));
+        CAPTURE(to_text_double(spec.denom_plus));
+        CAPTURE(to_text_double(spec.denom_minus));
+        CAPTURE(to_text(got));
+        CAPTURE(to_text(expected));
+        CAPTURE(to_text(diff));
+        CAPTURE(to_text(tolerance));
+        CAPTURE(to_text(scale));
+
+        CAPTURE(to_text_double(got.x0));
+        CAPTURE(to_text_double(got.x1));
+        CAPTURE(to_text_double(got.x2));
+        CAPTURE(to_text_double(got.x3));
+
+        CAPTURE(to_text_double_hex(got.x0));
+        CAPTURE(to_text_double_hex(got.x1));
+        CAPTURE(to_text_double_hex(got.x2));
+        CAPTURE(to_text_double_hex(got.x3));
+
+        record_accuracy_sample(label, got, expected, diff, scale, diff <= tolerance);
+        REQUIRE(diff <= tolerance);
+    }
+
+    template<typename Cases>
+    void run_fused_expression_precision_suite(const Cases& cases)
+    {
+        std::size_t case_index = 0;
+        for (const auto& spec : cases)
+        {
+            check_fused_expression_case(
+                "fused add/add leaf chain",
+                spec,
+                case_index,
+                { 2, 0, 0, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return (a + b) + c;
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return (a + b) + c;
+                });
+
+            check_fused_expression_case(
+                "fused scaled add leaf chain",
+                spec,
+                case_index,
+                { 2, 0, 0, 0 },
+                [](const auto& a, const auto&, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return (a + a) + c;
+                },
+                [](const auto& a, const auto&, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return (a + a) + c;
+                });
+
+            check_fused_expression_case(
+                "fused sub/add leaf chain",
+                spec,
+                case_index,
+                { 1, 1, 0, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return (a - b) + c;
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return (a - b) + c;
+                });
+
+            check_fused_expression_case(
+                "fused value plus leaf difference",
+                spec,
+                case_index,
+                { 1, 1, 0, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return a + (b - c);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return a + (b - c);
+                });
+
+            check_fused_expression_case(
+                "fused add/sub leaf chain",
+                spec,
+                case_index,
+                { 1, 1, 0, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return (a + b) - c;
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return (a + b) - c;
+                });
+
+            check_fused_expression_case(
+                "fused value minus leaf sum",
+                spec,
+                case_index,
+                { 1, 1, 0, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return a - (b + c);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return a - (b + c);
+                });
+
+            check_fused_expression_case(
+                "fused value minus leaf difference",
+                spec,
+                case_index,
+                { 1, 1, 0, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return a - (b - c);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return a - (b - c);
+                });
+
+            check_fused_expression_case(
+                "fused product plus value",
+                spec,
+                case_index,
+                { 1, 0, 1, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return (a * b) + c;
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return (a * b) + c;
+                });
+
+            check_fused_expression_case(
+                "fused value plus product",
+                spec,
+                case_index,
+                { 1, 0, 1, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return a + (b * c);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return a + (b * c);
+                });
+
+            check_fused_expression_case(
+                "fused product minus value",
+                spec,
+                case_index,
+                { 0, 1, 1, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return (a * b) - c;
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return (a * b) - c;
+                });
+
+            check_fused_expression_case(
+                "fused value minus product",
+                spec,
+                case_index,
+                { 0, 1, 1, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto, auto, auto) {
+                    return a - (b * c);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto&, const auto&, const auto&) {
+                    return a - (b * c);
+                });
+
+            check_fused_expression_case(
+                "fused product sum",
+                spec,
+                case_index,
+                { 1, 0, 2, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto&, auto, auto, auto) {
+                    return (a * b) + (c * d);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto&, const auto&, const auto&, const auto&) {
+                    return (a * b) + (c * d);
+                });
+
+            check_fused_expression_case(
+                "fused product difference",
+                spec,
+                case_index,
+                { 0, 1, 2, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto&, auto, auto, auto) {
+                    return (a * b) - (c * d);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto&, const auto&, const auto&, const auto&) {
+                    return (a * b) - (c * d);
+                });
+
+            check_fused_expression_case(
+                "fused product sum plus value",
+                spec,
+                case_index,
+                { 2, 0, 2, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto, auto) {
+                    return ((a * b) + (c * d)) + e;
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto&) {
+                    return ((a * b) + (c * d)) + e;
+                });
+
+            check_fused_expression_case(
+                "fused product sum minus value",
+                spec,
+                case_index,
+                { 1, 1, 2, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto, auto) {
+                    return ((a * b) + (c * d)) - e;
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto&) {
+                    return ((a * b) + (c * d)) - e;
+                });
+
+            check_fused_expression_case(
+                "fused product difference plus value",
+                spec,
+                case_index,
+                { 1, 1, 2, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto, auto) {
+                    return ((a * b) - (c * d)) + e;
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto&) {
+                    return ((a * b) - (c * d)) + e;
+                });
+
+            check_fused_expression_case(
+                "fused product difference minus value",
+                spec,
+                case_index,
+                { 0, 2, 2, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto, auto) {
+                    return ((a * b) - (c * d)) - e;
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto&) {
+                    return ((a * b) - (c * d)) - e;
+                });
+
+            check_fused_expression_case(
+                "fused scalar product plus value",
+                spec,
+                case_index,
+                { 1, 0, 1, 0 },
+                [](const auto& a, const auto& b, const auto&, const auto&, const auto&, auto scalar, auto, auto) {
+                    return (a * scalar) + b;
+                },
+                [](const auto& a, const auto& b, const auto&, const auto&, const auto&, const auto& scalar, const auto&, const auto&) {
+                    return (a * scalar) + b;
+                });
+
+            check_fused_expression_case(
+                "fused value plus scalar product",
+                spec,
+                case_index,
+                { 1, 0, 1, 0 },
+                [](const auto& a, const auto& b, const auto&, const auto&, const auto&, auto scalar, auto, auto) {
+                    return a + (b * scalar);
+                },
+                [](const auto& a, const auto& b, const auto&, const auto&, const auto&, const auto& scalar, const auto&, const auto&) {
+                    return a + (b * scalar);
+                });
+
+            check_fused_expression_case(
+                "fused scalar product minus value",
+                spec,
+                case_index,
+                { 0, 1, 1, 0 },
+                [](const auto& a, const auto& b, const auto&, const auto&, const auto&, auto scalar, auto, auto) {
+                    return (a * scalar) - b;
+                },
+                [](const auto& a, const auto& b, const auto&, const auto&, const auto&, const auto& scalar, const auto&, const auto&) {
+                    return (a * scalar) - b;
+                });
+
+            check_fused_expression_case(
+                "fused value minus scalar product",
+                spec,
+                case_index,
+                { 0, 1, 1, 0 },
+                [](const auto& a, const auto& b, const auto&, const auto&, const auto&, auto scalar, auto, auto) {
+                    return a - (b * scalar);
+                },
+                [](const auto& a, const auto& b, const auto&, const auto&, const auto&, const auto& scalar, const auto&, const auto&) {
+                    return a - (b * scalar);
+                });
+
+            check_fused_expression_case(
+                "fused product sum over add-double denominator",
+                spec,
+                case_index,
+                { 2, 0, 2, 1 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto denom_plus, auto) {
+                    return ((a * b) + (c * d)) / (e + denom_plus);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto& denom_plus, const auto&) {
+                    return ((a * b) + (c * d)) / (e + denom_plus);
+                });
+
+            check_fused_expression_case(
+                "fused product difference over double-sub denominator",
+                spec,
+                case_index,
+                { 0, 2, 2, 1 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto, auto denom_minus) {
+                    return ((a * b) - (c * d)) / (denom_minus - e);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto& denom_minus) {
+                    return ((a * b) - (c * d)) / (denom_minus - e);
+                });
+
+            check_fused_expression_case(
+                "fused product sum over product-sum denominator",
+                spec,
+                case_index,
+                { 2, 0, 4, 1 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto, auto) {
+                    return (((a * b) + (c * d)) + e) / ((c * c) + (d * d));
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto&) {
+                    return (((a * b) + (c * d)) + e) / ((c * c) + (d * d));
+                });
+
+            ++case_index;
+        }
+    }
+
+    [[nodiscard]] std::string fused_expression_random_text(const mpfr_ref& value)
+    {
+        return to_scientific_text(value, printed_digits + 6);
+    }
+
+    [[nodiscard]] fused_expression_case random_fused_expression_case(std::mt19937_64& rng)
+    {
+        constexpr std::array<double, 12> scalars{{
+            0.5, -0.75, 1.125, -1.375, 1.625, -1.875,
+            0.3125, -0.4375, 2.25, -2.5, 0.0625, -0.09375
+        }};
+        constexpr std::array<double, 8> add_denominators{{
+            1.5, 1.875, 2.25, 2.625, 3.0, 3.375, 3.75, 4.125
+        }};
+        constexpr std::array<double, 8> sub_denominators{{
+            2.0, 2.375, 2.75, 3.125, 3.5, 3.875, 4.25, 4.625
+        }};
+
+        std::uniform_int_distribution<std::size_t> scalar_dist(0, scalars.size() - 1);
+        std::uniform_int_distribution<std::size_t> denominator_dist(0, add_denominators.size() - 1);
+
+        return {
+            fused_expression_random_text(random_signed_interval_for_f256(rng, mpfr_ref{ 2.0 })),
+            fused_expression_random_text(random_signed_interval_for_f256(rng, mpfr_ref{ 2.0 })),
+            fused_expression_random_text(random_signed_interval_away_from_zero_for_f256(rng, mpfr_ref{ "0.25" }, mpfr_ref{ "1.75" })),
+            fused_expression_random_text(random_signed_interval_away_from_zero_for_f256(rng, mpfr_ref{ "0.25" }, mpfr_ref{ "1.75" })),
+            fused_expression_random_text(random_signed_interval_for_f256(rng, mpfr_ref{ "0.75" })),
+            scalars[scalar_dist(rng)],
+            add_denominators[denominator_dist(rng)],
+            sub_denominators[denominator_dist(rng)]
+        };
+    }
+
 }
 
 TEST_CASE("f256 matches MPFR for + - * /", "[fltx][f256][precision][arithmetic]")
@@ -1264,6 +1958,228 @@ TEST_CASE("f256 brute-force random arithmetic matches MPFR within tolerance", "[
                 [](const mpfr_ref& a, const mpfr_ref& b) { return a / b; });
         }
     }
+}
+
+TEST_CASE("f256 mixed scalar arithmetic matches MPFR within tolerance", "[fltx][f256][precision][arithmetic][scalar]")
+{
+    accuracy_report_scope report_scope{ "f256 mixed scalar arithmetic matches MPFR within tolerance" };
+
+    constexpr std::array<const char*, 6> values{{
+        "3.1415926535897932384626433832795028841971",
+        "-2.7182818284590452353602874713526624977572",
+        "1.0000000000000000000000000000000001",
+        "-123456789012345678901234567890.125",
+        "1e-50",
+        "1e50"
+    }};
+
+    constexpr std::array<double, 6> double_scalars{{
+        0.5,
+        -1.5,
+        3.141592653589793,
+        -0.125,
+        1.0e-20,
+        -1.0e20
+    }};
+
+    constexpr std::array<float, 6> float_scalars{{
+        0.5f,
+        -1.25f,
+        3.75f,
+        -0.125f,
+        1.0e-10f,
+        -1.0e10f
+    }};
+
+    auto check_all_scalar_orders = [](const char* scalar_kind, auto scalar, const char* value_text)
+    {
+        check_scalar_binary_op("add", "f256 + scalar", scalar_kind, value_text, scalar,
+            [](const f256& a, auto b) { return a + b; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return a + b; });
+
+        check_scalar_binary_op("add", "scalar + f256", scalar_kind, value_text, scalar,
+            [](const f256& a, auto b) { return b + a; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return b + a; });
+
+        check_scalar_binary_op("subtract", "f256 - scalar", scalar_kind, value_text, scalar,
+            [](const f256& a, auto b) { return a - b; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return a - b; });
+
+        check_scalar_binary_op("subtract", "scalar - f256", scalar_kind, value_text, scalar,
+            [](const f256& a, auto b) { return b - a; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return b - a; });
+
+        check_scalar_binary_op("multiply", "f256 * scalar", scalar_kind, value_text, scalar,
+            [](const f256& a, auto b) { return a * b; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return a * b; });
+
+        check_scalar_binary_op("multiply", "scalar * f256", scalar_kind, value_text, scalar,
+            [](const f256& a, auto b) { return b * a; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return b * a; });
+
+        check_scalar_binary_op("divide", "f256 / scalar", scalar_kind, value_text, scalar,
+            [](const f256& a, auto b) { return a / b; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return a / b; });
+
+        check_scalar_binary_op("divide", "scalar / f256", scalar_kind, value_text, scalar,
+            [](const f256& a, auto b) { return b / a; },
+            [](const mpfr_ref& a, const mpfr_ref& b) { return b / a; });
+    };
+
+    for (std::size_t i = 0; i < values.size(); ++i)
+    {
+        check_all_scalar_orders("double", double_scalars[i], values[i]);
+        check_all_scalar_orders("float", float_scalars[i], values[i]);
+    }
+}
+
+TEST_CASE("f256 scalar mixed recurrence stays within MPFR tolerance", "[fltx][f256][precision][arithmetic][scalar][mixed]")
+{
+    accuracy_report_scope report_scope{ "f256 scalar mixed recurrence stays within MPFR tolerance" };
+
+    constexpr std::array<scalar_mixed_recurrence_case, 8> cases{{
+        { "-0.75", "0.125", "0.875", "-0.375", "1.25", "0.625" },
+        { "0.5", "-0.25", "-0.625", "0.75", "0.875", "1.125" },
+        { "-0.3437500000000000000000000000000001", "0.8437500000000000000000000000000001", "0.4687500000000000000000000000000001", "0.6562500000000000000000000000000001", "1.5625000000000000000000000000000001", "0.9062500000000000000000000000000001" },
+        { "0.1562500000000000000000000000000001", "-0.7187500000000000000000000000000001", "-0.8437500000000000000000000000000001", "0.3437500000000000000000000000000001", "0.7187500000000000000000000000000001", "1.4062500000000000000000000000000001" },
+        { "-1.3333333333333333333333333333333333", "0.4142135623730950488016887242096981", "0.7071067811865475244008443621048490", "-0.5773502691896257645091487805019575", "1.6180339887498948482045868343656381", "0.6180339887498948482045868343656381" },
+        { "0.5773502691896257645091487805019575", "-1.2247448713915890490986420373529457", "-0.4142135623730950488016887242096981", "0.8660254037844386467637231707529362", "0.7071067811865475244008443621048490", "1.4142135623730950488016887242096981" },
+        { "0.8660254037844386467637231707529362", "-1.1180339887498948482045868343656381", "0.7639320225002103035908263312687238", "0.2679491924311227064725536584941276", "1.5", "0.5773502691896257645091487805019575" },
+        { "-0.2679491924311227064725536584941276", "1.2247448713915890490986420373529457", "-0.6180339887498948482045868343656381", "-0.7639320225002103035908263312687238", "0.6666666666666666666666666666666667", "1.5" }
+    }};
+
+    constexpr int rounds = 32;
+    const auto got = run_scalar_mixed_recurrence_precision<f256>(cases, rounds);
+    const auto expected = run_scalar_mixed_recurrence_precision<mpfr_ref>(cases, rounds);
+
+    check_scalar_mixed_recurrence_component("x accumulator", got.first, expected.first, rounds, cases.size());
+    check_scalar_mixed_recurrence_component("y accumulator", got.second, expected.second, rounds, cases.size());
+}
+
+TEST_CASE("f256 fused expression evaluator matches MPFR for routed shapes", "[fltx][f256][precision][arithmetic][fused]")
+{
+    accuracy_report_scope report_scope{ "f256 fused expression evaluator matches MPFR for routed shapes" };
+
+    const std::array<fused_expression_case, 10> cases{{
+        {
+            "1.0000000000000000000000000000000001",
+            "-0.9999999999999999999999999999999997",
+            "0.3333333333333333333333333333333333",
+            "-0.2500000000000000000000000000000001",
+            "0.1250000000000000000000000000000003",
+            0.5,
+            2.0,
+            3.0
+        },
+        {
+            "-1.4142135623730950488016887242096981",
+            "0.7071067811865475244008443621048490",
+            "-0.5773502691896257645091487805019575",
+            "1.7320508075688772935274463415058724",
+            "-0.2187500000000000000000000000000001",
+            -0.75,
+            2.25,
+            3.25
+        },
+        {
+            "3.1415926535897932384626433832795029",
+            "-2.7182818284590452353602874713526625",
+            "1.6180339887498948482045868343656381",
+            "-0.6180339887498948482045868343656381",
+            "0.4142135623730950488016887242096981",
+            1.125,
+            3.0,
+            4.0
+        },
+        {
+            "-0.00000000000000000000000000000125",
+            "0.00000000000000000000000000000250",
+            "-1.0000000000000000000000000000000001",
+            "0.9999999999999999999999999999999999",
+            "-0.3333333333333333333333333333333333",
+            -1.375,
+            1.5,
+            2.5
+        },
+        {
+            "1099511627776.0000000000000000000000000001",
+            "-0.0000000000009094947017729282379150390625",
+            "0.8750000000000000000000000000000001",
+            "-1.1250000000000000000000000000000001",
+            "0.0625000000000000000000000000000001",
+            0.3125,
+            2.625,
+            3.625
+        },
+        {
+            "-4503599627370496.000000000000000000000000001",
+            "0.0000000000000002220446049250313080847263336181640625",
+            "1.2500000000000000000000000000000001",
+            "0.7500000000000000000000000000000001",
+            "-0.1562500000000000000000000000000001",
+            -0.4375,
+            3.375,
+            4.375
+        },
+        {
+            "0.875",
+            "-1.125",
+            "1.375",
+            "-1.625",
+            "0.00000000000000000000000000000000000000000000000001",
+            2.25,
+            4.125,
+            5.125
+        },
+        {
+            "-0.8750000000000000000000000000000001",
+            "1.1250000000000000000000000000000001",
+            "-1.3750000000000000000000000000000001",
+            "1.6250000000000000000000000000000001",
+            "-0.00000000000000000000000000000000000000000000000001",
+            -2.5,
+            1.875,
+            2.875
+        },
+        {
+            "0.1562500000000000000000000000000001",
+            "-0.8437500000000000000000000000000001",
+            "1.5625000000000000000000000000000001",
+            "0.9062500000000000000000000000000001",
+            "-0.7187500000000000000000000000000001",
+            0.0625,
+            2.75,
+            3.75
+        },
+        {
+            "-1.3333333333333333333333333333333333",
+            "0.4142135623730950488016887242096981",
+            "0.7071067811865475244008443621048490",
+            "-0.5773502691896257645091487805019575",
+            "0.8660254037844386467637231707529362",
+            -0.09375,
+            3.5,
+            4.5
+        }
+    }};
+
+    run_fused_expression_precision_suite(cases);
+}
+
+TEST_CASE("f256 fused expression evaluator matches MPFR on random routed shapes", "[fltx][f256][precision][arithmetic][fused][random]")
+{
+    accuracy_report_scope report_scope{ "f256 fused expression evaluator matches MPFR on random routed shapes" };
+    std::mt19937_64 rng{ random_seed };
+
+    constexpr int count = 48;
+    print_random_run("random fused expression cases", count);
+
+    std::vector<fused_expression_case> cases;
+    cases.reserve(count);
+    for (int i = 0; i < count; ++i)
+        cases.push_back(random_fused_expression_case(rng));
+
+    run_fused_expression_precision_suite(cases);
 }
 
 TEST_CASE("f256 sin matches MPFR for fixed values", "[fltx][f256][precision][transcendental][trig][sin]")

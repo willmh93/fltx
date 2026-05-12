@@ -13,10 +13,34 @@ namespace bl::detail::_f256_runtime
     BL_NO_INLINE f256_s sqrt(const f256_s& a) { return detail::_f256_constexpr::sqrt(a); }
     BL_NO_INLINE f256_s nearbyint(const f256_s& a) { return detail::_f256_constexpr::nearbyint(a); }
     BL_NO_INLINE f256_s rint(const f256_s& x) { return detail::_f256_constexpr::nearbyint(x); }
-    BL_NO_INLINE long   lround(const f256_s& x) { return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256::round_half_away_zero(x)); }
-    BL_NO_INLINE long long llround(const f256_s& x) { return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256::round_half_away_zero(x)); }
-    BL_NO_INLINE long   lrint(const f256_s& x) { return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256_constexpr::nearbyint(x)); }
-    BL_NO_INLINE long long llrint(const f256_s& x) { return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256_constexpr::nearbyint(x)); }
+    BL_NO_INLINE long lround(const f256_s& x)
+    {
+        long out = 0;
+        if (detail::_f256::try_round_to_signed_integer(x, false, out))
+            return out;
+        return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256::round_half_away_zero(x));
+    }
+    BL_NO_INLINE long long llround(const f256_s& x)
+    {
+        long long out = 0;
+        if (detail::_f256::try_round_to_signed_integer(x, false, out))
+            return out;
+        return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256::round_half_away_zero(x));
+    }
+    BL_NO_INLINE long lrint(const f256_s& x)
+    {
+        long out = 0;
+        if (detail::_f256::try_round_to_signed_integer(x, true, out))
+            return out;
+        return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256_constexpr::nearbyint(x));
+    }
+    BL_NO_INLINE long long llrint(const f256_s& x)
+    {
+        long long out = 0;
+        if (detail::_f256::try_round_to_signed_integer(x, true, out))
+            return out;
+        return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256_constexpr::nearbyint(x));
+    }
     BL_NO_INLINE f256_s ldexp(const f256_s& a, int e) { return detail::_f256_constexpr::ldexp(a, e); }
 
     BL_NO_INLINE f256_s exp(const f256_s& x) { return detail::_f256_constexpr::exp(x); }

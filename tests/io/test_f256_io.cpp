@@ -192,6 +192,21 @@ TEST_CASE("f256 parses decimal and scientific strings accurately", "[fltx][f256]
         check_parse_case(text);
 }
 
+TEST_CASE("f256 literals parse numeric and string source text", "[fltx][f256][io][literal]")
+{
+    using namespace bl::literals;
+
+    constexpr f256 integer = 1_qd;
+    constexpr f256 numeric = 0.123456789012345678901234567890123456789_qd;
+    constexpr f256 scientific = 1.25e-50_qd;
+    constexpr f256 text = "3.1415926535897932384626433832795028841971"_qd;
+
+    require_close(integer, to_ref("1"));
+    require_close(numeric, to_ref("0.123456789012345678901234567890123456789"));
+    require_close(scientific, to_ref("1.25e-50"));
+    require_close(text, to_ref("3.1415926535897932384626433832795028841971"));
+}
+
 TEST_CASE("f256 parser handles special values, partial tokens, and invalid inputs", "[fltx][f256][io][parse][edge]")
 {
     {

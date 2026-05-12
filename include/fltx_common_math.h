@@ -18,12 +18,17 @@
 #include <type_traits>
 #include <utility>
 
+#ifndef BL_CXX_LANGUAGE_VERSION
+#if defined(_MSVC_LANG) && (!defined(__cplusplus) || (_MSVC_LANG > __cplusplus))
+#define BL_CXX_LANGUAGE_VERSION _MSVC_LANG
+#else
+#define BL_CXX_LANGUAGE_VERSION __cplusplus
+#endif
+#endif
+
 #ifndef BL_HAS_IF_CONSTEVAL
-#if defined(__cpp_if_consteval) && (__cpp_if_consteval >= 202106L)
+#if (BL_CXX_LANGUAGE_VERSION > 202002L) && defined(__cpp_if_consteval) && (__cpp_if_consteval >= 202106L)
 #define BL_HAS_IF_CONSTEVAL 1
-#elif defined(_MSC_VER) && !defined(__clang__) && defined(__cpp_consteval) && (_MSC_VER >= 1936)
-#define BL_HAS_IF_CONSTEVAL 1
-#define BL_IF_CONSTEVAL_MSVC_CXX20_EXTENSION 1
 #else
 #define BL_HAS_IF_CONSTEVAL 0
 #endif
@@ -32,23 +37,6 @@
 #ifndef BL_CONSTEXPR_RUNTIME_DISPATCH
 #if !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE) && BL_HAS_IF_CONSTEVAL
 #define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 1
-#if defined(BL_IF_CONSTEVAL_MSVC_CXX20_EXTENSION)
-#define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
-    do                                                              \
-    {                                                               \
-        __pragma(warning(push))                                     \
-        __pragma(warning(disable: 5282))                            \
-        if consteval                                                \
-        {                                                           \
-            return (CONSTEVAL_EXPR);                                \
-        }                                                           \
-        else                                                        \
-        {                                                           \
-            return (RUNTIME_EXPR);                                  \
-        }                                                           \
-        __pragma(warning(pop))                                      \
-    } while (false)
-#else
 #define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
     do                                                              \
     {                                                               \
@@ -61,7 +49,6 @@
             return (RUNTIME_EXPR);                                  \
         }                                                           \
     } while (false)
-#endif
 #elif !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE)
 #define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
 #define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
@@ -617,11 +604,23 @@ BL_FORCE_INLINE constexpr double atan_series_constexpr(double x) noexcept
     }
     return sum;
 }
+BL_FORCE_INLINE constexpr double atan_unit_constexpr(double x) noexcept
+{
+    constexpr double pi_4 = 0.7853981633974483096156608458198757210493;
+    constexpr double tan_pi_8 = 0.4142135623730950488016887242096980785697;
+
+    if (x > tan_pi_8)
+    {
+        const double t = (x - 1.0) / (x + 1.0);
+        return pi_4 + atan_series_constexpr(t);
+    }
+
+    return atan_series_constexpr(x);
+}
+
 BL_FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
 {
     constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
-    constexpr double pi_4 = 0.7853981633974483096156608458198757210493;
-    constexpr double tan_pi_8 = 0.4142135623730950488016887242096980785697;
 
     if (isnan(x))
         return std::numeric_limits<double>::quiet_NaN();
@@ -633,18 +632,9 @@ BL_FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
     const bool neg = x < 0.0;
     const double ax = neg ? -x : x;
 
-    double out = 0.0;
-    if (ax > 1.0)
-    {
-        out = pi_2 - atan_constexpr(1.0 / ax);
-    }
-    else if (ax > tan_pi_8)
-    {
-        const double t = (ax - 1.0) / (ax + 1.0);
-        out = pi_4 + atan_series_constexpr(t);
-    }
-    else
-        out = atan_series_constexpr(ax);
+    const double out = ax > 1.0
+        ? pi_2 - atan_unit_constexpr(1.0 / ax)
+        : atan_unit_constexpr(ax);
 
     return neg ? -out : out;
 }
@@ -853,7 +843,7 @@ BL_POP_PRECISE
 
 BL_FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, double& err) noexcept
 {
-#ifdef FMA_AVAILABLE
+    #ifdef FMA_AVAILABLE
     if (bl::is_constant_evaluated() || bl::use_constexpr_parity())
     {
         two_prod_precise_dekker(a, b, p, err);

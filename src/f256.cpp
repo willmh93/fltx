@@ -42,43 +42,4 @@ namespace bl::detail::_f256_runtime
         return detail::_f256_constexpr::assign(out, v);
     }
 
-    f256_s add(const f256_s& a, const f256_s& b) noexcept
-    {
-        return detail::_f256_constexpr::add(a, b);
-    }
-
-    f256_s sub(const f256_s& a, const f256_s& b) noexcept
-    {
-        return detail::_f256_constexpr::sub(a, b);
-    }
-
-    f256_s mul(const f256_s& a, const f256_s& b) noexcept
-    {
-        return detail::_f256_constexpr::mul(a, b);
-    }
-
-    f256_s div(const f256_s& a, const f256_s& b) noexcept
-    {
-        return detail::_f256_constexpr::div(a, b);
-    }
-
-    f256_s add_double(const f256_s& a, double b) noexcept
-    {
-        return detail::_f256_constexpr::add_double(a, b);
-    }
-
-    f256_s sub_double(const f256_s& a, double b) noexcept
-    {
-        return detail::_f256_constexpr::sub_double(a, b);
-    }
-
-    f256_s mul_double(const f256_s& a, double b) noexcept
-    {
-        return detail::_f256_constexpr::mul_double(a, b);
-    }
-
-    f256_s div_double(const f256_s& a, double b) noexcept
-    {
-        return detail::_f256_constexpr::div_double(a, b);
-    }
 }

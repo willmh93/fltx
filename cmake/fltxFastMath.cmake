@@ -22,6 +22,10 @@ endif()
 set(FLTX_FAST_MATH_MODE "${FLTX_FAST_MATH_MODE}" CACHE STRING "fltx fast-math mode: AUTO, ON, or OFF" FORCE)
 set_property(CACHE FLTX_FAST_MATH_MODE PROPERTY STRINGS AUTO ON OFF)
 
+option(FLTX_FAST_MATH_NATIVE "Tune fast-math builds for the local host CPU with -march=native/-mtune=native where supported" OFF)
+option(FLTX_FMA_AVAILABLE "Use FMA-based error-free transforms where the source checks FMA_AVAILABLE" ON)
+option(FLTX_F256_FMA_TWO_PROD "Use hardware FMA for f256 SIMD two-product error terms when available" ON)
+
 set(_FLTX_FAST_MATH_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR};${CMAKE_VS_PLATFORM_NAME}")
 string(TOLOWER "${_FLTX_FAST_MATH_PROCESSOR}" _FLTX_FAST_MATH_PROCESSOR)
 
@@ -77,6 +81,10 @@ function(fltx_apply_fast_math_options _TARGET)
 
     target_compile_definitions(${_TARGET} PRIVATE
         $<$<CONFIG:Release>:BL_FAST_MATH>
+        $<$<AND:$<CONFIG:Release>,$<BOOL:${FLTX_FMA_AVAILABLE}>>:FMA_AVAILABLE>
+        $<$<AND:$<CONFIG:Release>,$<NOT:$<BOOL:${FLTX_FMA_AVAILABLE}>>>:FLTX_DISABLE_FMA_AVAILABLE=1>
+        $<$<AND:$<CONFIG:Release>,$<BOOL:${FLTX_F256_FMA_TWO_PROD}>>:BL_F256_USE_FMA_TWO_PROD=1>
+        $<$<AND:$<CONFIG:Release>,$<NOT:$<BOOL:${FLTX_F256_FMA_TWO_PROD}>>>:BL_F256_USE_FMA_TWO_PROD=0>
     )
 
     if(MSVC)
@@ -100,6 +108,14 @@ function(fltx_apply_fast_math_options _TARGET)
         if(_FLTX_FAST_MATH_ENABLE_AVX2)
             target_compile_options(${_TARGET} PRIVATE
                 $<$<CONFIG:Release>:-mavx2>
+                $<$<CONFIG:Release>:-mfma>
+            )
+        endif()
+
+        if(FLTX_FAST_MATH_NATIVE)
+            target_compile_options(${_TARGET} PRIVATE
+                $<$<CONFIG:Release>:-march=native>
+                $<$<CONFIG:Release>:-mtune=native>
             )
         endif()
 
