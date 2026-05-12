@@ -11,4 +11,4 @@ jobs:
     with:
       platform_name: Linux
       runner: ubuntu-latest
-      test_command: ./build/ninja-release/tests/io_tests
+      test_command: ./build/native-release/tests/io_tests

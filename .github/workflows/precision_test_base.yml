@@ -103,7 +103,7 @@ jobs:
         run: .\vcpkg\bootstrap-vcpkg.bat
 
       - name: Configure
-        run: cmake --preset ninja-release -DFLTX_EXAMPLE_VIEWER=OFF -DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON
+        run: cmake --preset native-release -DFLTX_EXAMPLE_VIEWER=OFF -DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON
 
       - name: Save vcpkg binary cache
         if: steps.vcpkg-cache.outputs.cache-hit != 'true'
@@ -113,7 +113,7 @@ jobs:
           key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
       - name: Build precision tests
-        run: cmake --build --preset ninja-release --target precision_tests --parallel
+        run: cmake --build build/native-release --target precision_tests --parallel
 
       - name: Run precision tests
         run: ${{ inputs.test_command }}
