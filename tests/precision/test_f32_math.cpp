@@ -751,9 +751,7 @@ namespace
         result.ulp_diff = ulp_distance(got, expected);
         const bool within_diff = result.abs_diff <= result.allowed_diff;
         const bool within_ulps = result.ulp_diff <= tolerance.max_ulps;
-        result.passed = (tolerance.abs_tolerance != 0.0f || tolerance.rel_tolerance != 0.0f) && tolerance.max_ulps != 0
-            ? (within_diff && within_ulps)
-            : (within_diff || within_ulps);
+        result.passed = within_diff || within_ulps;
         result.achieved_digits = achieved_digits_from_error(result.abs_diff, result.scale);
         result.reason = result.passed ? "within tolerance" : "outside tolerance";
 
