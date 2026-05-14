@@ -166,6 +166,50 @@ namespace
         return mpfr_ref(text);
     }
 
+    template<typename T>
+    [[nodiscard]] T primitive_add(const T& a, const T& b)
+    {
+        return a + b;
+    }
+
+    [[nodiscard]] f256 primitive_add(const f256& a, const f256& b)
+    {
+        return detail::_f256::add_eval(a, b);
+    }
+
+    template<typename T>
+    [[nodiscard]] T primitive_subtract(const T& a, const T& b)
+    {
+        return a - b;
+    }
+
+    [[nodiscard]] f256 primitive_subtract(const f256& a, const f256& b)
+    {
+        return detail::_f256::sub_eval(a, b);
+    }
+
+    template<typename T>
+    [[nodiscard]] T primitive_multiply(const T& a, const T& b)
+    {
+        return a * b;
+    }
+
+    [[nodiscard]] f256 primitive_multiply(const f256& a, const f256& b)
+    {
+        return detail::_f256::mul_eval(a, b);
+    }
+
+    template<typename T>
+    [[nodiscard]] T primitive_divide(const T& a, const T& b)
+    {
+        return a / b;
+    }
+
+    [[nodiscard]] f256 primitive_divide(const f256& a, const f256& b)
+    {
+        return detail::_f256::div_eval(a, b);
+    }
+
     [[nodiscard]] const char* benchmark_text(const char* text)
     {
         return text;
@@ -1208,6 +1252,11 @@ namespace
     [[nodiscard]] T blend_result(const U& value, const T& acc)
     {
         return static_cast<T>(value) + acc * 0.25;
+    }
+
+    [[nodiscard]] f256 blend_result(const f256_s& value, const f256& acc)
+    {
+        return detail::_f256::add_eval(value, detail::_f256::mul_double_eval(acc, 0.25));
     }
 
     template<typename T, typename U>
@@ -2757,7 +2806,55 @@ namespace
     }
 }
 
-TEST_CASE("f256 vs mpfr add performance", "[bench][fltx][f256][arithmetic][add]")
+TEST_CASE("f256 vs mpfr primitive add performance", "[bench][fltx][f256][arithmetic][add][primitive]")
+{
+    const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(generic_value_buckets(), total_iterations, [](const auto& values, std::size_t i)
+    {
+        const auto& a = values[i];
+        const auto& b = values[(i + 1) % bucket_value_count];
+        return primitive_add(a, b);
+    });
+    print_bucketed_results("Arithmetic", "primitive add", results);
+}
+
+TEST_CASE("f256 vs mpfr primitive subtract performance", "[bench][fltx][f256][arithmetic][subtract][primitive]")
+{
+    const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(generic_value_buckets(), total_iterations, [](const auto& values, std::size_t i)
+    {
+        const auto& a = values[i];
+        const auto& b = values[(i + 1) % bucket_value_count];
+        return primitive_subtract(a, b);
+    });
+    print_bucketed_results("Arithmetic", "primitive subtract", results);
+}
+
+TEST_CASE("f256 vs mpfr primitive multiply performance", "[bench][fltx][f256][arithmetic][multiply][primitive]")
+{
+    const std::int64_t total_iterations = 12000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(generic_value_buckets(), total_iterations, [](const auto& values, std::size_t i)
+    {
+        const auto& a = values[i];
+        const auto& b = values[(i + 3) % bucket_value_count];
+        return primitive_multiply(a, b);
+    });
+    print_bucketed_results("Arithmetic", "primitive multiply", results);
+}
+
+TEST_CASE("f256 vs mpfr primitive divide performance", "[bench][fltx][f256][arithmetic][divide][primitive]")
+{
+    const std::int64_t total_iterations = 8000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_value_benchmark(generic_value_buckets(), total_iterations, [](const auto& values, std::size_t i)
+    {
+        const auto& numerator = values[(i + 2) % bucket_value_count];
+        const auto& denominator = values[(i + 5) % bucket_value_count];
+        return primitive_divide(numerator, denominator);
+    });
+    print_bucketed_results("Arithmetic", "primitive divide", results);
+}
+
+TEST_CASE("f256 vs mpfr public expression add performance", "[bench][fltx][f256][arithmetic][add][expressions]")
 {
     const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(generic_value_buckets(), total_iterations, [](const auto& values, std::size_t i)
@@ -2766,22 +2863,10 @@ TEST_CASE("f256 vs mpfr add performance", "[bench][fltx][f256][arithmetic][add]"
         const auto& b = values[(i + 1) % bucket_value_count];
         return a + b;
     });
-    print_bucketed_results("Arithmetic", "add", results);
+    print_bucketed_results("Arithmetic", "public expression add", results);
 }
 
-TEST_CASE("f256 vs mpfr subtract performance", "[bench][fltx][f256][arithmetic][subtract]")
-{
-    const std::int64_t total_iterations = 30000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark(generic_value_buckets(), total_iterations, [](const auto& values, std::size_t i)
-    {
-        const auto& a = values[i];
-        const auto& b = values[(i + 1) % bucket_value_count];
-        return a - b;
-    });
-    print_bucketed_results("Arithmetic", "subtract", results);
-}
-
-TEST_CASE("f256 vs mpfr multiply performance", "[bench][fltx][f256][arithmetic][multiply]")
+TEST_CASE("f256 vs mpfr public expression multiply performance", "[bench][fltx][f256][arithmetic][multiply][expressions]")
 {
     const std::int64_t total_iterations = 12000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_value_benchmark(generic_value_buckets(), total_iterations, [](const auto& values, std::size_t i)
@@ -2790,19 +2875,7 @@ TEST_CASE("f256 vs mpfr multiply performance", "[bench][fltx][f256][arithmetic][
         const auto& b = values[(i + 3) % bucket_value_count];
         return a * b;
     });
-    print_bucketed_results("Arithmetic", "multiply", results);
-}
-
-TEST_CASE("f256 vs mpfr divide performance", "[bench][fltx][f256][arithmetic][divide]")
-{
-    const std::int64_t total_iterations = 8000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark(generic_value_buckets(), total_iterations, [](const auto& values, std::size_t i)
-    {
-        const auto& numerator = values[(i + 2) % bucket_value_count];
-        const auto& denominator = values[(i + 5) % bucket_value_count];
-        return numerator / denominator;
-    });
-    print_bucketed_results("Arithmetic", "divide", results);
+    print_bucketed_results("Arithmetic", "public expression multiply", results);
 }
 
 TEST_CASE("f256 vs mpfr mixed recurrence performance", "[bench][fltx][f256][arithmetic][mixed]")
