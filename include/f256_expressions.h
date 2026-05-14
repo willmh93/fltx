@@ -584,6 +584,51 @@ namespace detail::_f256_expr
 
         [[nodiscard]] BL_FORCE_INLINE constexpr operator f256() const noexcept { return f256{ eval_to_f256_s(*this) }; }
     };
+
+    template<class L, class R, int RightSign>
+    struct product_pair_expr
+    {
+        static constexpr int right_sign = RightSign;
+
+        L left;
+        R right;
+
+        [[nodiscard]] BL_FORCE_INLINE constexpr operator f256() const noexcept { return f256{ eval_to_f256_s(*this) }; }
+    };
+
+    template<class P, class V, int ValueSign>
+    struct product_value_expr
+    {
+        static constexpr int value_sign = ValueSign;
+
+        P product;
+        V value;
+
+        [[nodiscard]] BL_FORCE_INLINE constexpr operator f256() const noexcept { return f256{ eval_to_f256_s(*this) }; }
+    };
+
+    template<class L, class R, class V, int RightSign, int ValueSign>
+    struct product_pair_value_expr
+    {
+        static constexpr int right_sign = RightSign;
+        static constexpr int value_sign = ValueSign;
+
+        L left;
+        R right;
+        V value;
+
+        [[nodiscard]] BL_FORCE_INLINE constexpr operator f256() const noexcept { return f256{ eval_to_f256_s(*this) }; }
+    };
+
+    template<class A, class B, class C>
+    struct product_triple_add_expr
+    {
+        A first;
+        B second;
+        C third;
+
+        [[nodiscard]] BL_FORCE_INLINE constexpr operator f256() const noexcept { return f256{ eval_to_f256_s(*this) }; }
+    };
                                 
     template<>                  struct is_expr<leaf_expr>          : std::true_type {};
     template<class L>           struct is_expr<mul_double_expr<L>> : std::true_type {};
@@ -595,6 +640,10 @@ namespace detail::_f256_expr
     template<class L, class R>  struct is_expr<div_expr<L, R>>     : std::true_type {};
     template<class L>           struct is_expr<div_double_expr<L>> : std::true_type {};
     template<class R>           struct is_expr<double_div_expr<R>> : std::true_type {};
+    template<class L, class R, int S> struct is_expr<product_pair_expr<L, R, S>> : std::true_type {};
+    template<class P, class V, int S> struct is_expr<product_value_expr<P, V, S>> : std::true_type {};
+    template<class L, class R, class V, int RS, int VS> struct is_expr<product_pair_value_expr<L, R, V, RS, VS>> : std::true_type {};
+    template<class A, class B, class C> struct is_expr<product_triple_add_expr<A, B, C>> : std::true_type {};
                                 
     template<class T>           inline constexpr bool is_f256_value_v = std::is_same_v<clean_t<T>, f256>;
     template<class T>           inline constexpr bool is_leaf_v       = std::is_same_v<clean_t<T>, leaf_expr>;
@@ -625,6 +674,10 @@ namespace detail::_f256_expr
     template<class T>           inline constexpr bool is_add_product_product_add_add_product_product_v = false;
     template<class T>           inline constexpr bool is_mul_double_add_mul_double_v = false;
     template<class T>           inline constexpr bool is_mul_double_add_mul_double_add_leaf_v = false;
+    template<class T>           inline constexpr bool is_product_pair_v = false;
+    template<class T>           inline constexpr bool is_product_value_v = false;
+    template<class T>           inline constexpr bool is_product_pair_value_v = false;
+    template<class T>           inline constexpr bool is_product_triple_add_v = false;
                                 
     template<class L>           inline constexpr bool is_mul_double_v<mul_double_expr<L>> = true;
     template<class L>           inline constexpr bool is_add_double_v<add_double_expr<L>> = true;
@@ -650,6 +703,10 @@ namespace detail::_f256_expr
     template<class L, class R>  inline constexpr bool is_add_product_product_add_add_product_product_v<add_expr<L, R>> = is_add_product_product_v<L> && is_add_product_product_v<R>;
     template<class L, class R>  inline constexpr bool is_mul_double_add_mul_double_v<add_expr<L, R>> = is_mul_double_v<L> && is_mul_double_v<R>;
     template<class L, class R>  inline constexpr bool is_mul_double_add_mul_double_add_leaf_v<add_expr<L, R>> = is_mul_double_add_mul_double_v<L> && is_leaf_v<R>;
+    template<class L, class R, int S> inline constexpr bool is_product_pair_v<product_pair_expr<L, R, S>> = true;
+    template<class P, class V, int S> inline constexpr bool is_product_value_v<product_value_expr<P, V, S>> = true;
+    template<class L, class R, class V, int RS, int VS> inline constexpr bool is_product_pair_value_v<product_pair_value_expr<L, R, V, RS, VS>> = true;
+    template<class A, class B, class C> inline constexpr bool is_product_triple_add_v<product_triple_add_expr<A, B, C>> = true;
 
     template<class T>
     [[nodiscard]] BL_FORCE_INLINE constexpr auto as_expr(T&& value) noexcept
@@ -1523,6 +1580,46 @@ namespace detail::_f256_expr
             leaf_value(value));
     }
 
+    template<class Expr>
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_product_pair_expr(const Expr& expr) noexcept
+    {
+        if constexpr (clean_t<Expr>::right_sign > 0)
+            return eval_leaf_product_add_leaf_product(expr.left, expr.right);
+        else
+            return eval_leaf_product_sub_leaf_product(expr.left, expr.right);
+    }
+
+    template<class Expr>
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_product_value_expr(const Expr& expr) noexcept
+    {
+        if constexpr (clean_t<Expr>::value_sign > 0)
+            return eval_leaf_product_add_value(expr.product, expr.value);
+        else
+            return eval_leaf_product_sub_value(expr.product, expr.value);
+    }
+
+    template<class Expr>
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_product_pair_value_expr(const Expr& expr) noexcept
+    {
+        if constexpr (clean_t<Expr>::right_sign > 0 && clean_t<Expr>::value_sign > 0)
+            return eval_leaf_product_add_leaf_product_add_value(expr.left, expr.right, expr.value);
+        else if constexpr (clean_t<Expr>::right_sign > 0)
+            return eval_leaf_product_add_leaf_product_sub_value(expr.left, expr.right, expr.value);
+        else if constexpr (clean_t<Expr>::value_sign > 0)
+            return eval_leaf_product_sub_leaf_product_add_value(expr.left, expr.right, expr.value);
+        else
+            return eval_leaf_product_sub_leaf_product_sub_value(expr.left, expr.right, expr.value);
+    }
+
+    template<class Expr>
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_product_triple_add_expr(const Expr& expr) noexcept
+    {
+        return mul_add_mul_add_mul_eval(
+            leaf_value(expr.first.left), leaf_value(expr.first.right),
+            leaf_value(expr.second.left), leaf_value(expr.second.right),
+            leaf_value(expr.third.left), leaf_value(expr.third.right));
+    }
+
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_add_value_add_value(const Product& product, const leaf_expr& first, const leaf_expr& second) noexcept
     {
@@ -1564,7 +1661,47 @@ namespace detail::_f256_expr
     {
         using NumeratorType = clean_t<Numerator>;
 
-        if constexpr (is_product_add_leaf_v<NumeratorType>)
+        if constexpr (is_product_value_v<NumeratorType>)
+        {
+            if constexpr (NumeratorType::value_sign > 0)
+            {
+                if (leaf_product_is_square(numerator.product))
+                    return div_eval(sqr_add_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator);
+
+                return mul_add_div_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator);
+            }
+            else
+            {
+                if (leaf_product_is_square(numerator.product))
+                    return div_eval(sqr_sub_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator);
+
+                return mul_sub_div_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator);
+            }
+        }
+        else if constexpr (is_product_pair_v<NumeratorType>)
+        {
+            if constexpr (NumeratorType::right_sign > 0)
+            {
+                if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
+                    return div_eval(sqr_add_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator);
+
+                return mul_add_mul_div_eval(
+                    leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                    leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                    denominator);
+            }
+            else
+            {
+                if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
+                    return div_eval(sqr_sub_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator);
+
+                return mul_sub_mul_div_eval(
+                    leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                    leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                    denominator);
+            }
+        }
+        else if constexpr (is_product_add_leaf_v<NumeratorType>)
         {
             if (leaf_product_is_square(numerator.left))
                 return div_eval(sqr_add_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator);
@@ -1672,7 +1809,47 @@ namespace detail::_f256_expr
     {
         using NumeratorType = clean_t<Numerator>;
 
-        if constexpr (is_product_add_leaf_v<NumeratorType>)
+        if constexpr (is_product_value_v<NumeratorType>)
+        {
+            if constexpr (NumeratorType::value_sign > 0)
+            {
+                if (leaf_product_is_square(numerator.product))
+                    return div_add_double_eval(sqr_add_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator, scalar);
+
+                return mul_add_div_add_double_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator, scalar);
+            }
+            else
+            {
+                if (leaf_product_is_square(numerator.product))
+                    return div_add_double_eval(sqr_sub_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator, scalar);
+
+                return mul_sub_div_add_double_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator, scalar);
+            }
+        }
+        else if constexpr (is_product_pair_v<NumeratorType>)
+        {
+            if constexpr (NumeratorType::right_sign > 0)
+            {
+                if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
+                    return div_add_double_eval(sqr_add_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator, scalar);
+
+                return mul_add_mul_div_add_double_eval(
+                    leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                    leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                    denominator, scalar);
+            }
+            else
+            {
+                if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
+                    return div_add_double_eval(sqr_sub_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator, scalar);
+
+                return mul_sub_mul_div_add_double_eval(
+                    leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                    leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                    denominator, scalar);
+            }
+        }
+        else if constexpr (is_product_add_leaf_v<NumeratorType>)
         {
             if (leaf_product_is_square(numerator.left))
                 return div_add_double_eval(sqr_add_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator, scalar);
@@ -1780,6 +1957,22 @@ namespace detail::_f256_expr
         {
             return leaf_value(expr);
         }
+        else if constexpr (is_product_pair_v<ExprType>)
+        {
+            return eval_product_pair_expr(expr);
+        }
+        else if constexpr (is_product_value_v<ExprType>)
+        {
+            return eval_product_value_expr(expr);
+        }
+        else if constexpr (is_product_pair_value_v<ExprType>)
+        {
+            return eval_product_pair_value_expr(expr);
+        }
+        else if constexpr (is_product_triple_add_v<ExprType>)
+        {
+            return eval_product_triple_add_expr(expr);
+        }
         else if constexpr (is_mul_v<ExprType>)
         {
             const f256_s left = eval_eager(expr.left);
@@ -1849,6 +2042,22 @@ namespace detail::_f256_expr
         if constexpr (is_leaf_v<ExprType>)
         {
             return leaf_value(expr);
+        }
+        else if constexpr (is_product_pair_v<ExprType>)
+        {
+            return eval_product_pair_expr(expr);
+        }
+        else if constexpr (is_product_value_v<ExprType>)
+        {
+            return eval_product_value_expr(expr);
+        }
+        else if constexpr (is_product_pair_value_v<ExprType>)
+        {
+            return eval_product_pair_value_expr(expr);
+        }
+        else if constexpr (is_product_triple_add_v<ExprType>)
+        {
+            return eval_product_triple_add_expr(expr);
         }
         else if constexpr (is_mul_v<ExprType>)
         {
@@ -2239,31 +2448,185 @@ namespace detail::_f256_expr
         }
     }
 
-    template<class L, class R, std::enable_if_t<is_expr_v<L> && is_expr_v<R>, int> = 0>
-    [[nodiscard]] BL_FORCE_INLINE constexpr auto operator+(L&& left, R&& right) noexcept
+    template<class L, class R>
+    [[nodiscard]] BL_FORCE_INLINE constexpr auto make_add_expr(L&& left, R&& right) noexcept
     {
-        return add_expr<decltype(as_expr(std::forward<L>(left))), decltype(as_expr(std::forward<R>(right)))>{
+        using LeftExpr = clean_t<decltype(as_expr(std::forward<L>(left)))>;
+        using RightExpr = clean_t<decltype(as_expr(std::forward<R>(right)))>;
+
+        LeftExpr left_expr = as_expr(std::forward<L>(left));
+        RightExpr right_expr = as_expr(std::forward<R>(right));
+
+        if constexpr (is_leaf_product_v<LeftExpr> && is_leaf_product_v<RightExpr>)
+        {
+            return product_pair_expr<LeftExpr, RightExpr, 1>{ left_expr, right_expr };
+        }
+        else if constexpr (is_product_pair_v<LeftExpr> && is_leaf_v<RightExpr>)
+        {
+            using FirstProduct = clean_t<decltype(left_expr.left)>;
+            using SecondProduct = clean_t<decltype(left_expr.right)>;
+            return product_pair_value_expr<FirstProduct, SecondProduct, RightExpr, LeftExpr::right_sign, 1>{
+                left_expr.left, left_expr.right, right_expr
+            };
+        }
+        else if constexpr (is_leaf_v<LeftExpr> && is_product_pair_v<RightExpr>)
+        {
+            using FirstProduct = clean_t<decltype(right_expr.left)>;
+            using SecondProduct = clean_t<decltype(right_expr.right)>;
+            return product_pair_value_expr<FirstProduct, SecondProduct, LeftExpr, RightExpr::right_sign, 1>{
+                right_expr.left, right_expr.right, left_expr
+            };
+        }
+        else if constexpr (is_product_value_v<LeftExpr> && is_leaf_product_v<RightExpr>)
+        {
+            using Product = clean_t<decltype(left_expr.product)>;
+            using Value = clean_t<decltype(left_expr.value)>;
+            return product_pair_value_expr<Product, RightExpr, Value, 1, LeftExpr::value_sign>{
+                left_expr.product, right_expr, left_expr.value
+            };
+        }
+        else if constexpr (is_leaf_product_v<LeftExpr> && is_product_value_v<RightExpr>)
+        {
+            using Product = clean_t<decltype(right_expr.product)>;
+            using Value = clean_t<decltype(right_expr.value)>;
+            return product_pair_value_expr<LeftExpr, Product, Value, 1, RightExpr::value_sign>{
+                left_expr, right_expr.product, right_expr.value
+            };
+        }
+        else if constexpr (is_product_pair_v<LeftExpr> && is_leaf_product_v<RightExpr>)
+        {
+            if constexpr (LeftExpr::right_sign > 0)
+            {
+                using FirstProduct = clean_t<decltype(left_expr.left)>;
+                using SecondProduct = clean_t<decltype(left_expr.right)>;
+                return product_triple_add_expr<FirstProduct, SecondProduct, RightExpr>{
+                    left_expr.left, left_expr.right, right_expr
+                };
+            }
+            else
+            {
+                return add_expr<LeftExpr, RightExpr>{ left_expr, right_expr };
+            }
+        }
+        else if constexpr (is_leaf_product_v<LeftExpr> && is_product_pair_v<RightExpr>)
+        {
+            if constexpr (RightExpr::right_sign > 0)
+            {
+                using FirstProduct = clean_t<decltype(right_expr.left)>;
+                using SecondProduct = clean_t<decltype(right_expr.right)>;
+                return product_triple_add_expr<FirstProduct, SecondProduct, LeftExpr>{
+                    right_expr.left, right_expr.right, left_expr
+                };
+            }
+            else
+            {
+                return add_expr<LeftExpr, RightExpr>{ left_expr, right_expr };
+            }
+        }
+        else if constexpr (is_leaf_product_v<LeftExpr> && is_leaf_v<RightExpr>)
+        {
+            return product_value_expr<LeftExpr, RightExpr, 1>{ left_expr, right_expr };
+        }
+        else if constexpr (is_leaf_v<LeftExpr> && is_leaf_product_v<RightExpr>)
+        {
+            return product_value_expr<RightExpr, LeftExpr, 1>{ right_expr, left_expr };
+        }
+        else
+        {
+            return add_expr<LeftExpr, RightExpr>{ left_expr, right_expr };
+        }
+    }
+
+    template<class L, class R>
+    [[nodiscard]] BL_FORCE_INLINE constexpr auto make_sub_expr(L&& left, R&& right) noexcept
+    {
+        using LeftExpr = clean_t<decltype(as_expr(std::forward<L>(left)))>;
+        using RightExpr = clean_t<decltype(as_expr(std::forward<R>(right)))>;
+
+        LeftExpr left_expr = as_expr(std::forward<L>(left));
+        RightExpr right_expr = as_expr(std::forward<R>(right));
+
+        if constexpr (is_leaf_product_v<LeftExpr> && is_leaf_product_v<RightExpr>)
+        {
+            return product_pair_expr<LeftExpr, RightExpr, -1>{ left_expr, right_expr };
+        }
+        else if constexpr (is_product_pair_v<LeftExpr> && is_leaf_v<RightExpr>)
+        {
+            using FirstProduct = clean_t<decltype(left_expr.left)>;
+            using SecondProduct = clean_t<decltype(left_expr.right)>;
+            return product_pair_value_expr<FirstProduct, SecondProduct, RightExpr, LeftExpr::right_sign, -1>{
+                left_expr.left, left_expr.right, right_expr
+            };
+        }
+        else if constexpr (is_leaf_v<LeftExpr> && is_product_pair_v<RightExpr>)
+        {
+            if constexpr (RightExpr::right_sign < 0)
+            {
+                using FirstProduct = clean_t<decltype(right_expr.right)>;
+                using SecondProduct = clean_t<decltype(right_expr.left)>;
+                return product_pair_value_expr<FirstProduct, SecondProduct, LeftExpr, -1, 1>{
+                    right_expr.right, right_expr.left, left_expr
+                };
+            }
+            else
+            {
+                return sub_expr<LeftExpr, RightExpr>{ left_expr, right_expr };
+            }
+        }
+        else if constexpr (is_product_value_v<LeftExpr> && is_leaf_product_v<RightExpr>)
+        {
+            using Product = clean_t<decltype(left_expr.product)>;
+            using Value = clean_t<decltype(left_expr.value)>;
+            return product_pair_value_expr<Product, RightExpr, Value, -1, LeftExpr::value_sign>{
+                left_expr.product, right_expr, left_expr.value
+            };
+        }
+        else if constexpr (is_leaf_product_v<LeftExpr> && is_product_value_v<RightExpr>)
+        {
+            using Product = clean_t<decltype(right_expr.product)>;
+            using Value = clean_t<decltype(right_expr.value)>;
+            return product_pair_value_expr<LeftExpr, Product, Value, -1, -RightExpr::value_sign>{
+                left_expr, right_expr.product, right_expr.value
+            };
+        }
+        else if constexpr (is_leaf_product_v<LeftExpr> && is_leaf_v<RightExpr>)
+        {
+            return product_value_expr<LeftExpr, RightExpr, -1>{ left_expr, right_expr };
+        }
+        else
+        {
+            return sub_expr<LeftExpr, RightExpr>{ left_expr, right_expr };
+        }
+    }
+
+    template<class L, class R>
+    [[nodiscard]] BL_FORCE_INLINE constexpr auto make_mul_expr(L&& left, R&& right) noexcept
+    {
+        using LeftExpr = clean_t<decltype(as_expr(std::forward<L>(left)))>;
+        using RightExpr = clean_t<decltype(as_expr(std::forward<R>(right)))>;
+
+        return mul_expr<LeftExpr, RightExpr>{
             as_expr(std::forward<L>(left)),
             as_expr(std::forward<R>(right))
         };
+    }
+
+    template<class L, class R, std::enable_if_t<is_expr_v<L> && is_expr_v<R>, int> = 0>
+    [[nodiscard]] BL_FORCE_INLINE constexpr auto operator+(L&& left, R&& right) noexcept
+    {
+        return make_add_expr(std::forward<L>(left), std::forward<R>(right));
     }
 
     template<class L, class R, std::enable_if_t<is_expr_v<L> && is_expr_v<R>, int> = 0>
     [[nodiscard]] BL_FORCE_INLINE constexpr auto operator-(L&& left, R&& right) noexcept
     {
-        return sub_expr<decltype(as_expr(std::forward<L>(left))), decltype(as_expr(std::forward<R>(right)))>{
-            as_expr(std::forward<L>(left)),
-            as_expr(std::forward<R>(right))
-        };
+        return make_sub_expr(std::forward<L>(left), std::forward<R>(right));
     }
 
     template<class L, class R, std::enable_if_t<is_expr_v<L> && is_expr_v<R>, int> = 0>
     [[nodiscard]] BL_FORCE_INLINE constexpr auto operator*(L&& left, R&& right) noexcept
     {
-        return mul_expr<decltype(as_expr(std::forward<L>(left))), decltype(as_expr(std::forward<R>(right)))>{
-            as_expr(std::forward<L>(left)),
-            as_expr(std::forward<R>(right))
-        };
+        return make_mul_expr(std::forward<L>(left), std::forward<R>(right));
     }
 
     template<class L, std::enable_if_t<is_expr_v<L>, int> = 0>
@@ -2351,19 +2714,13 @@ namespace detail::_f256_expr
 template<class L, class R, std::enable_if_t<detail::_f256_expr::is_operand_v<L> && detail::_f256_expr::is_operand_v<R> && (detail::_f256_expr::is_f256_value_v<L> || detail::_f256_expr::is_f256_value_v<R>), int> = 0>
 [[nodiscard]] BL_FORCE_INLINE constexpr auto operator+(L&& left, R&& right) noexcept
 {
-    return detail::_f256_expr::add_expr<decltype(detail::_f256_expr::as_expr(std::forward<L>(left))), decltype(detail::_f256_expr::as_expr(std::forward<R>(right)))>{
-        detail::_f256_expr::as_expr(std::forward<L>(left)),
-        detail::_f256_expr::as_expr(std::forward<R>(right))
-    };
+    return detail::_f256_expr::make_add_expr(std::forward<L>(left), std::forward<R>(right));
 }
 
 template<class L, class R, std::enable_if_t<detail::_f256_expr::is_operand_v<L> && detail::_f256_expr::is_operand_v<R> && (detail::_f256_expr::is_f256_value_v<L> || detail::_f256_expr::is_f256_value_v<R>), int> = 0>
 [[nodiscard]] BL_FORCE_INLINE constexpr auto operator-(L&& left, R&& right) noexcept
 {
-    return detail::_f256_expr::sub_expr<decltype(detail::_f256_expr::as_expr(std::forward<L>(left))), decltype(detail::_f256_expr::as_expr(std::forward<R>(right)))>{
-        detail::_f256_expr::as_expr(std::forward<L>(left)),
-        detail::_f256_expr::as_expr(std::forward<R>(right))
-    };
+    return detail::_f256_expr::make_sub_expr(std::forward<L>(left), std::forward<R>(right));
 }
 
 template<class L, std::enable_if_t<detail::_f256_expr::is_f256_value_v<L>, int> = 0>
@@ -2429,10 +2786,7 @@ template<class R, std::enable_if_t<detail::_f256_expr::is_f256_value_v<R>, int> 
 template<class L, class R, std::enable_if_t<detail::_f256_expr::is_operand_v<L> && detail::_f256_expr::is_operand_v<R> && (detail::_f256_expr::is_f256_value_v<L> || detail::_f256_expr::is_f256_value_v<R>), int> = 0>
 [[nodiscard]] BL_FORCE_INLINE constexpr auto operator*(L&& left, R&& right) noexcept
 {
-    return detail::_f256_expr::mul_expr<decltype(detail::_f256_expr::as_expr(std::forward<L>(left))), decltype(detail::_f256_expr::as_expr(std::forward<R>(right)))>{
-        detail::_f256_expr::as_expr(std::forward<L>(left)),
-        detail::_f256_expr::as_expr(std::forward<R>(right))
-    };
+    return detail::_f256_expr::make_mul_expr(std::forward<L>(left), std::forward<R>(right));
 }
 
 template<class L, std::enable_if_t<detail::_f256_expr::is_f256_value_v<L>, int> = 0>
