@@ -1429,37 +1429,57 @@ namespace detail::_f256_expr
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product(const Product& product) noexcept
     {
-        if (leaf_product_is_square(product))
-            return sqr_eval(leaf_value(product.left));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return sqr_eval(leaf_value(product.left));
 
-        return mul_eval(leaf_value(product.left), leaf_value(product.right));
+            return mul_eval(leaf_value(product.left), leaf_value(product.right));
+        }
+
+        return detail::_f256_runtime::product(leaf_value(product.left), leaf_value(product.right));
     }
 
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_add_value(const Product& product, const leaf_expr& value) noexcept
     {
-        if (leaf_product_is_square(product))
-            return sqr_add_eval(leaf_value(product.left), leaf_value(value));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return sqr_add_eval(leaf_value(product.left), leaf_value(value));
 
-        return mul_add_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
+            return mul_add_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
+        }
+
+        return detail::_f256_runtime::product_add_value(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
     }
 
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_sub_value(const Product& product, const leaf_expr& value) noexcept
     {
-        if (leaf_product_is_square(product))
-            return sqr_sub_eval(leaf_value(product.left), leaf_value(value));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return sqr_sub_eval(leaf_value(product.left), leaf_value(value));
 
-        return mul_sub_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
+            return mul_sub_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
+        }
+
+        return detail::_f256_runtime::product_sub_value(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
     }
 
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_value_sub_leaf_product(const leaf_expr& value, const Product& product) noexcept
     {
-        if (leaf_product_is_square(product))
-            return value_sub_sqr_eval(leaf_value(value), leaf_value(product.left));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return value_sub_sqr_eval(leaf_value(value), leaf_value(product.left));
 
-        return value_sub_mul_eval(leaf_value(value), leaf_value(product.left), leaf_value(product.right));
+            return value_sub_mul_eval(leaf_value(value), leaf_value(product.left), leaf_value(product.right));
+        }
+
+        return detail::_f256_runtime::value_sub_product(leaf_value(value), leaf_value(product.left), leaf_value(product.right));
     }
 
     template<class LeftProduct, class RightProduct>
@@ -1472,14 +1492,21 @@ namespace detail::_f256_expr
     template<class LeftProduct, class RightProduct>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_add_leaf_product(const LeftProduct& left, const RightProduct& right) noexcept
     {
-        if (leaf_products_are_same(left, right))
-            return leaf_product_is_square(left)
-                ? sqr_twice_eval(leaf_value(left.left))
-                : mul_twice_eval(leaf_value(left.left), leaf_value(left.right));
-        if (leaf_product_is_square(left) && leaf_product_is_square(right))
-            return sqr_add_sqr_eval(leaf_value(left.left), leaf_value(right.left));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_products_are_same(left, right))
+                return leaf_product_is_square(left)
+                    ? sqr_twice_eval(leaf_value(left.left))
+                    : mul_twice_eval(leaf_value(left.left), leaf_value(left.right));
+            if (leaf_product_is_square(left) && leaf_product_is_square(right))
+                return sqr_add_sqr_eval(leaf_value(left.left), leaf_value(right.left));
 
-        return mul_add_mul_eval(
+            return mul_add_mul_eval(
+                leaf_value(left.left), leaf_value(left.right),
+                leaf_value(right.left), leaf_value(right.right));
+        }
+
+        return detail::_f256_runtime::product_add_product(
             leaf_value(left.left), leaf_value(left.right),
             leaf_value(right.left), leaf_value(right.right));
     }
@@ -1487,12 +1514,19 @@ namespace detail::_f256_expr
     template<class LeftProduct, class RightProduct>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_sub_leaf_product(const LeftProduct& left, const RightProduct& right) noexcept
     {
-        if (leaf_products_are_same(left, right))
-            return {};
-        if (leaf_product_is_square(left) && leaf_product_is_square(right))
-            return sqr_sub_sqr_eval(leaf_value(left.left), leaf_value(right.left));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_products_are_same(left, right))
+                return {};
+            if (leaf_product_is_square(left) && leaf_product_is_square(right))
+                return sqr_sub_sqr_eval(leaf_value(left.left), leaf_value(right.left));
 
-        return mul_sub_mul_eval(
+            return mul_sub_mul_eval(
+                leaf_value(left.left), leaf_value(left.right),
+                leaf_value(right.left), leaf_value(right.right));
+        }
+
+        return detail::_f256_runtime::product_sub_product(
             leaf_value(left.left), leaf_value(left.right),
             leaf_value(right.left), leaf_value(right.right));
     }
@@ -1500,19 +1534,35 @@ namespace detail::_f256_expr
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_twice_add_value(const Product& product, const leaf_expr& value) noexcept
     {
-        if (leaf_product_is_square(product))
-            return sqr_twice_add_eval(leaf_value(product.left), leaf_value(value));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return sqr_twice_add_eval(leaf_value(product.left), leaf_value(value));
 
-        return mul_twice_add_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
+            return mul_twice_add_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
+        }
+
+        return detail::_f256_runtime::product_add_product_add_value(
+            leaf_value(product.left), leaf_value(product.right),
+            leaf_value(product.left), leaf_value(product.right),
+            leaf_value(value));
     }
 
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_twice_sub_value(const Product& product, const leaf_expr& value) noexcept
     {
-        if (leaf_product_is_square(product))
-            return sqr_twice_sub_eval(leaf_value(product.left), leaf_value(value));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return sqr_twice_sub_eval(leaf_value(product.left), leaf_value(value));
 
-        return mul_twice_sub_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
+            return mul_twice_sub_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(value));
+        }
+
+        return detail::_f256_runtime::product_add_product_sub_value(
+            leaf_value(product.left), leaf_value(product.right),
+            leaf_value(product.left), leaf_value(product.right),
+            leaf_value(value));
     }
 
     template<class Product>
@@ -1527,12 +1577,20 @@ namespace detail::_f256_expr
     template<class LeftProduct, class RightProduct>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_add_leaf_product_add_value(const LeftProduct& left, const RightProduct& right, const leaf_expr& value) noexcept
     {
-        if (leaf_products_are_same(left, right))
-            return eval_leaf_product_twice_add_value(left, value);
-        if (leaf_product_is_square(left) && leaf_product_is_square(right))
-            return sqr_add_sqr_add_eval(leaf_value(left.left), leaf_value(right.left), leaf_value(value));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_products_are_same(left, right))
+                return eval_leaf_product_twice_add_value(left, value);
+            if (leaf_product_is_square(left) && leaf_product_is_square(right))
+                return sqr_add_sqr_add_eval(leaf_value(left.left), leaf_value(right.left), leaf_value(value));
 
-        return mul_add_mul_add_eval(
+            return mul_add_mul_add_eval(
+                leaf_value(left.left), leaf_value(left.right),
+                leaf_value(right.left), leaf_value(right.right),
+                leaf_value(value));
+        }
+
+        return detail::_f256_runtime::product_add_product_add_value(
             leaf_value(left.left), leaf_value(left.right),
             leaf_value(right.left), leaf_value(right.right),
             leaf_value(value));
@@ -1541,12 +1599,20 @@ namespace detail::_f256_expr
     template<class LeftProduct, class RightProduct>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_add_leaf_product_sub_value(const LeftProduct& left, const RightProduct& right, const leaf_expr& value) noexcept
     {
-        if (leaf_products_are_same(left, right))
-            return eval_leaf_product_twice_sub_value(left, value);
-        if (leaf_product_is_square(left) && leaf_product_is_square(right))
-            return sqr_add_sqr_sub_eval(leaf_value(left.left), leaf_value(right.left), leaf_value(value));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_products_are_same(left, right))
+                return eval_leaf_product_twice_sub_value(left, value);
+            if (leaf_product_is_square(left) && leaf_product_is_square(right))
+                return sqr_add_sqr_sub_eval(leaf_value(left.left), leaf_value(right.left), leaf_value(value));
 
-        return mul_add_mul_sub_eval(
+            return mul_add_mul_sub_eval(
+                leaf_value(left.left), leaf_value(left.right),
+                leaf_value(right.left), leaf_value(right.right),
+                leaf_value(value));
+        }
+
+        return detail::_f256_runtime::product_add_product_sub_value(
             leaf_value(left.left), leaf_value(left.right),
             leaf_value(right.left), leaf_value(right.right),
             leaf_value(value));
@@ -1555,12 +1621,20 @@ namespace detail::_f256_expr
     template<class LeftProduct, class RightProduct>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_sub_leaf_product_add_value(const LeftProduct& left, const RightProduct& right, const leaf_expr& value) noexcept
     {
-        if (leaf_products_are_same(left, right))
-            return leaf_value(value);
-        if (leaf_product_is_square(left) && leaf_product_is_square(right))
-            return sqr_sub_sqr_add_eval(leaf_value(left.left), leaf_value(right.left), leaf_value(value));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_products_are_same(left, right))
+                return leaf_value(value);
+            if (leaf_product_is_square(left) && leaf_product_is_square(right))
+                return sqr_sub_sqr_add_eval(leaf_value(left.left), leaf_value(right.left), leaf_value(value));
 
-        return mul_sub_mul_add_eval(
+            return mul_sub_mul_add_eval(
+                leaf_value(left.left), leaf_value(left.right),
+                leaf_value(right.left), leaf_value(right.right),
+                leaf_value(value));
+        }
+
+        return detail::_f256_runtime::product_sub_product_add_value(
             leaf_value(left.left), leaf_value(left.right),
             leaf_value(right.left), leaf_value(right.right),
             leaf_value(value));
@@ -1569,12 +1643,20 @@ namespace detail::_f256_expr
     template<class LeftProduct, class RightProduct>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_sub_leaf_product_sub_value(const LeftProduct& left, const RightProduct& right, const leaf_expr& value) noexcept
     {
-        if (leaf_products_are_same(left, right))
-            return -leaf_value(value);
-        if (leaf_product_is_square(left) && leaf_product_is_square(right))
-            return sqr_sub_sqr_sub_eval(leaf_value(left.left), leaf_value(right.left), leaf_value(value));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_products_are_same(left, right))
+                return -leaf_value(value);
+            if (leaf_product_is_square(left) && leaf_product_is_square(right))
+                return sqr_sub_sqr_sub_eval(leaf_value(left.left), leaf_value(right.left), leaf_value(value));
 
-        return mul_sub_mul_sub_eval(
+            return mul_sub_mul_sub_eval(
+                leaf_value(left.left), leaf_value(left.right),
+                leaf_value(right.left), leaf_value(right.right),
+                leaf_value(value));
+        }
+
+        return detail::_f256_runtime::product_sub_product_sub_value(
             leaf_value(left.left), leaf_value(left.right),
             leaf_value(right.left), leaf_value(right.right),
             leaf_value(value));
@@ -1623,37 +1705,61 @@ namespace detail::_f256_expr
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_add_value_add_value(const Product& product, const leaf_expr& first, const leaf_expr& second) noexcept
     {
-        if (leaf_product_is_square(product))
-            return sqr_add_add_eval(leaf_value(product.left), leaf_value(first), leaf_value(second));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return sqr_add_add_eval(leaf_value(product.left), leaf_value(first), leaf_value(second));
 
-        return mul_add_add_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(first), leaf_value(second));
+            return mul_add_add_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(first), leaf_value(second));
+        }
+
+        return detail::_f256_runtime::product_add_value_add_value(
+            leaf_value(product.left), leaf_value(product.right), leaf_value(first), leaf_value(second));
     }
 
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_add_value_sub_value(const Product& product, const leaf_expr& addend, const leaf_expr& subtrahend) noexcept
     {
-        if (leaf_product_is_square(product))
-            return sqr_add_sub_eval(leaf_value(product.left), leaf_value(addend), leaf_value(subtrahend));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return sqr_add_sub_eval(leaf_value(product.left), leaf_value(addend), leaf_value(subtrahend));
 
-        return mul_add_sub_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(addend), leaf_value(subtrahend));
+            return mul_add_sub_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(addend), leaf_value(subtrahend));
+        }
+
+        return detail::_f256_runtime::product_add_value_sub_value(
+            leaf_value(product.left), leaf_value(product.right), leaf_value(addend), leaf_value(subtrahend));
     }
 
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_sub_value_add_value(const Product& product, const leaf_expr& subtrahend, const leaf_expr& addend) noexcept
     {
-        if (leaf_product_is_square(product))
-            return sqr_sub_add_eval(leaf_value(product.left), leaf_value(subtrahend), leaf_value(addend));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return sqr_sub_add_eval(leaf_value(product.left), leaf_value(subtrahend), leaf_value(addend));
 
-        return mul_sub_add_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(subtrahend), leaf_value(addend));
+            return mul_sub_add_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(subtrahend), leaf_value(addend));
+        }
+
+        return detail::_f256_runtime::product_sub_value_add_value(
+            leaf_value(product.left), leaf_value(product.right), leaf_value(subtrahend), leaf_value(addend));
     }
 
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_sub_value_sub_value(const Product& product, const leaf_expr& first, const leaf_expr& second) noexcept
     {
-        if (leaf_product_is_square(product))
-            return sqr_sub_sub_eval(leaf_value(product.left), leaf_value(first), leaf_value(second));
+        if (bl::is_constant_evaluated())
+        {
+            if (leaf_product_is_square(product))
+                return sqr_sub_sub_eval(leaf_value(product.left), leaf_value(first), leaf_value(second));
 
-        return mul_sub_sub_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(first), leaf_value(second));
+            return mul_sub_sub_eval(leaf_value(product.left), leaf_value(product.right), leaf_value(first), leaf_value(second));
+        }
+
+        return detail::_f256_runtime::product_sub_value_sub_value(
+            leaf_value(product.left), leaf_value(product.right), leaf_value(first), leaf_value(second));
     }
 
     template<class Numerator>
@@ -1665,22 +1771,103 @@ namespace detail::_f256_expr
         {
             if constexpr (NumeratorType::value_sign > 0)
             {
-                if (leaf_product_is_square(numerator.product))
-                    return div_eval(sqr_add_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator);
+                if (bl::is_constant_evaluated())
+                {
+                    if (leaf_product_is_square(numerator.product))
+                        return div_eval(sqr_add_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator);
 
-                return mul_add_div_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator);
+                    return mul_add_div_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator);
+                }
+
+                return detail::_f256_runtime::product_add_value_div(
+                    leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator);
             }
             else
             {
-                if (leaf_product_is_square(numerator.product))
-                    return div_eval(sqr_sub_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator);
+                if (bl::is_constant_evaluated())
+                {
+                    if (leaf_product_is_square(numerator.product))
+                        return div_eval(sqr_sub_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator);
 
-                return mul_sub_div_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator);
+                    return mul_sub_div_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator);
+                }
+
+                return detail::_f256_runtime::product_sub_value_div(
+                    leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator);
             }
         }
         else if constexpr (is_product_pair_v<NumeratorType>)
         {
             if constexpr (NumeratorType::right_sign > 0)
+            {
+                if (bl::is_constant_evaluated())
+                {
+                    if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
+                        return div_eval(sqr_add_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator);
+
+                    return mul_add_mul_div_eval(
+                        leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                        leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                        denominator);
+                }
+
+                return detail::_f256_runtime::product_add_product_div(
+                    leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                    leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                    denominator);
+            }
+            else
+            {
+                if (bl::is_constant_evaluated())
+                {
+                    if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
+                        return div_eval(sqr_sub_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator);
+
+                    return mul_sub_mul_div_eval(
+                        leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                        leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                        denominator);
+                }
+
+                return detail::_f256_runtime::product_sub_product_div(
+                    leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                    leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                    denominator);
+            }
+        }
+        else if constexpr (is_product_add_leaf_v<NumeratorType>)
+        {
+            if (bl::is_constant_evaluated())
+            {
+                if (leaf_product_is_square(numerator.left))
+                    return div_eval(sqr_add_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator);
+
+                return mul_add_div_eval(leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator);
+            }
+
+            return detail::_f256_runtime::product_add_value_div(
+                leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator);
+        }
+        else if constexpr (is_product_sub_leaf_v<NumeratorType>)
+        {
+            if (bl::is_constant_evaluated())
+            {
+                if (leaf_product_is_square(numerator.left))
+                    return div_eval(sqr_sub_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator);
+
+                return mul_sub_div_eval(leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator);
+            }
+
+            return detail::_f256_runtime::product_sub_value_div(
+                leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator);
+        }
+        else if constexpr (is_leaf_product_v<NumeratorType>)
+        {
+            return div_eval(eval_leaf_product(numerator), denominator);
+        }
+        else if constexpr (is_add_product_product_v<NumeratorType>)
+        {
+            if (bl::is_constant_evaluated())
             {
                 if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
                     return div_eval(sqr_add_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator);
@@ -1690,7 +1877,15 @@ namespace detail::_f256_expr
                     leaf_value(numerator.right.left), leaf_value(numerator.right.right),
                     denominator);
             }
-            else
+
+            return detail::_f256_runtime::product_add_product_div(
+                leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                denominator);
+        }
+        else if constexpr (is_sub_product_product_v<NumeratorType>)
+        {
+            if (bl::is_constant_evaluated())
             {
                 if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
                     return div_eval(sqr_sub_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator);
@@ -1700,41 +1895,8 @@ namespace detail::_f256_expr
                     leaf_value(numerator.right.left), leaf_value(numerator.right.right),
                     denominator);
             }
-        }
-        else if constexpr (is_product_add_leaf_v<NumeratorType>)
-        {
-            if (leaf_product_is_square(numerator.left))
-                return div_eval(sqr_add_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator);
 
-            return mul_add_div_eval(leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator);
-        }
-        else if constexpr (is_product_sub_leaf_v<NumeratorType>)
-        {
-            if (leaf_product_is_square(numerator.left))
-                return div_eval(sqr_sub_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator);
-
-            return mul_sub_div_eval(leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator);
-        }
-        else if constexpr (is_leaf_product_v<NumeratorType>)
-        {
-            return div_eval(eval_leaf_product(numerator), denominator);
-        }
-        else if constexpr (is_add_product_product_v<NumeratorType>)
-        {
-            if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
-                return div_eval(sqr_add_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator);
-
-            return mul_add_mul_div_eval(
-                leaf_value(numerator.left.left), leaf_value(numerator.left.right),
-                leaf_value(numerator.right.left), leaf_value(numerator.right.right),
-                denominator);
-        }
-        else if constexpr (is_sub_product_product_v<NumeratorType>)
-        {
-            if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
-                return div_eval(sqr_sub_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator);
-
-            return mul_sub_mul_div_eval(
+            return detail::_f256_runtime::product_sub_product_div(
                 leaf_value(numerator.left.left), leaf_value(numerator.left.right),
                 leaf_value(numerator.right.left), leaf_value(numerator.right.right),
                 denominator);
@@ -1813,22 +1975,99 @@ namespace detail::_f256_expr
         {
             if constexpr (NumeratorType::value_sign > 0)
             {
-                if (leaf_product_is_square(numerator.product))
-                    return div_add_double_eval(sqr_add_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator, scalar);
+                if (bl::is_constant_evaluated())
+                {
+                    if (leaf_product_is_square(numerator.product))
+                        return div_add_double_eval(sqr_add_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator, scalar);
 
-                return mul_add_div_add_double_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator, scalar);
+                    return mul_add_div_add_double_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator, scalar);
+                }
+
+                return detail::_f256_runtime::product_add_value_div_add_double(
+                    leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator, scalar);
             }
             else
             {
-                if (leaf_product_is_square(numerator.product))
-                    return div_add_double_eval(sqr_sub_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator, scalar);
+                if (bl::is_constant_evaluated())
+                {
+                    if (leaf_product_is_square(numerator.product))
+                        return div_add_double_eval(sqr_sub_eval(leaf_value(numerator.product.left), leaf_value(numerator.value)), denominator, scalar);
 
-                return mul_sub_div_add_double_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator, scalar);
+                    return mul_sub_div_add_double_eval(leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator, scalar);
+                }
+
+                return detail::_f256_runtime::product_sub_value_div_add_double(
+                    leaf_value(numerator.product.left), leaf_value(numerator.product.right), leaf_value(numerator.value), denominator, scalar);
             }
         }
         else if constexpr (is_product_pair_v<NumeratorType>)
         {
             if constexpr (NumeratorType::right_sign > 0)
+            {
+                if (bl::is_constant_evaluated())
+                {
+                    if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
+                        return div_add_double_eval(sqr_add_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator, scalar);
+
+                    return mul_add_mul_div_add_double_eval(
+                        leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                        leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                        denominator, scalar);
+                }
+
+                return detail::_f256_runtime::product_add_product_div_add_double(
+                    leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                    leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                    denominator, scalar);
+            }
+            else
+            {
+                if (bl::is_constant_evaluated())
+                {
+                    if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
+                        return div_add_double_eval(sqr_sub_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator, scalar);
+
+                    return mul_sub_mul_div_add_double_eval(
+                        leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                        leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                        denominator, scalar);
+                }
+
+                return detail::_f256_runtime::product_sub_product_div_add_double(
+                    leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                    leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                    denominator, scalar);
+            }
+        }
+        else if constexpr (is_product_add_leaf_v<NumeratorType>)
+        {
+            if (bl::is_constant_evaluated())
+            {
+                if (leaf_product_is_square(numerator.left))
+                    return div_add_double_eval(sqr_add_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator, scalar);
+
+                return mul_add_div_add_double_eval(leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator, scalar);
+            }
+
+            return detail::_f256_runtime::product_add_value_div_add_double(
+                leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator, scalar);
+        }
+        else if constexpr (is_product_sub_leaf_v<NumeratorType>)
+        {
+            if (bl::is_constant_evaluated())
+            {
+                if (leaf_product_is_square(numerator.left))
+                    return div_add_double_eval(sqr_sub_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator, scalar);
+
+                return mul_sub_div_add_double_eval(leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator, scalar);
+            }
+
+            return detail::_f256_runtime::product_sub_value_div_add_double(
+                leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator, scalar);
+        }
+        else if constexpr (is_add_product_product_v<NumeratorType>)
+        {
+            if (bl::is_constant_evaluated())
             {
                 if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
                     return div_add_double_eval(sqr_add_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator, scalar);
@@ -1838,7 +2077,15 @@ namespace detail::_f256_expr
                     leaf_value(numerator.right.left), leaf_value(numerator.right.right),
                     denominator, scalar);
             }
-            else
+
+            return detail::_f256_runtime::product_add_product_div_add_double(
+                leaf_value(numerator.left.left), leaf_value(numerator.left.right),
+                leaf_value(numerator.right.left), leaf_value(numerator.right.right),
+                denominator, scalar);
+        }
+        else if constexpr (is_sub_product_product_v<NumeratorType>)
+        {
+            if (bl::is_constant_evaluated())
             {
                 if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
                     return div_add_double_eval(sqr_sub_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator, scalar);
@@ -1848,37 +2095,8 @@ namespace detail::_f256_expr
                     leaf_value(numerator.right.left), leaf_value(numerator.right.right),
                     denominator, scalar);
             }
-        }
-        else if constexpr (is_product_add_leaf_v<NumeratorType>)
-        {
-            if (leaf_product_is_square(numerator.left))
-                return div_add_double_eval(sqr_add_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator, scalar);
 
-            return mul_add_div_add_double_eval(leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator, scalar);
-        }
-        else if constexpr (is_product_sub_leaf_v<NumeratorType>)
-        {
-            if (leaf_product_is_square(numerator.left))
-                return div_add_double_eval(sqr_sub_eval(leaf_value(numerator.left.left), leaf_value(numerator.right)), denominator, scalar);
-
-            return mul_sub_div_add_double_eval(leaf_value(numerator.left.left), leaf_value(numerator.left.right), leaf_value(numerator.right), denominator, scalar);
-        }
-        else if constexpr (is_add_product_product_v<NumeratorType>)
-        {
-            if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
-                return div_add_double_eval(sqr_add_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator, scalar);
-
-            return mul_add_mul_div_add_double_eval(
-                leaf_value(numerator.left.left), leaf_value(numerator.left.right),
-                leaf_value(numerator.right.left), leaf_value(numerator.right.right),
-                denominator, scalar);
-        }
-        else if constexpr (is_sub_product_product_v<NumeratorType>)
-        {
-            if (leaf_product_is_square(numerator.left) && leaf_product_is_square(numerator.right))
-                return div_add_double_eval(sqr_sub_sqr_eval(leaf_value(numerator.left.left), leaf_value(numerator.right.left)), denominator, scalar);
-
-            return mul_sub_mul_div_add_double_eval(
+            return detail::_f256_runtime::product_sub_product_div_add_double(
                 leaf_value(numerator.left.left), leaf_value(numerator.left.right),
                 leaf_value(numerator.right.left), leaf_value(numerator.right.right),
                 denominator, scalar);

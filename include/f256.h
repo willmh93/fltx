@@ -1131,6 +1131,7 @@ namespace detail::_f256_runtime
 
     // Fused expression bodies
     [[nodiscard]] BL_NO_INLINE f256_s sqr(const f256_s& a) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product(const f256_s& a, const f256_s& b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_pow2_or_double(const f256_s& a, double b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s sqr_add(const f256_s& a, const f256_s& b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s sqr_sub(const f256_s& a, const f256_s& b) noexcept;
@@ -1138,6 +1139,13 @@ namespace detail::_f256_runtime
     [[nodiscard]] BL_NO_INLINE f256_s mul_add(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_sub(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s value_sub_mul(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_value(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_value(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s value_sub_product(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_value_add_value(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_value_sub_value(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_value_add_value(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_value_sub_value(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_add_add(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_add_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_sub_add(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept;
@@ -1166,6 +1174,12 @@ namespace detail::_f256_runtime
     [[nodiscard]] BL_NO_INLINE f256_s mul_add_mul_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_sub_mul_add(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_sub_mul_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_product(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_product(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_product_add_value(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_product_sub_value(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_product_add_value(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_product_sub_value(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_add_mul_add_mul(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e, const f256_s& f) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_add_mul_add_mul_add_mul(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e, const f256_s& f, const f256_s& g, const f256_s& h) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s add_add_add(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
@@ -1194,6 +1208,10 @@ namespace detail::_f256_runtime
     [[nodiscard]] BL_NO_INLINE f256_s value_sub_mul_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_add_mul_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_sub_mul_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_value_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_value_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_product_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_product_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s add_add_add_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s add_sub_add_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s add_add_sub_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept;
@@ -1206,6 +1224,10 @@ namespace detail::_f256_runtime
     [[nodiscard]] BL_NO_INLINE f256_s value_sub_mul_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_add_mul_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator, double scalar) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_sub_mul_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator, double scalar) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_value_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_value_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_add_product_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator, double scalar) noexcept;
+    [[nodiscard]] BL_NO_INLINE f256_s product_sub_product_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator, double scalar) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s add_add_add_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s add_sub_add_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s add_add_sub_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept;
