@@ -1363,446 +1363,6 @@ namespace detail::_f256_expr
         return detail::_f256_runtime::mul_double_sub_div_add_double(value, value_scalar, subtrahend, denominator, denominator_scalar);
     }
 
-    enum class normalized_linear_atom_kind { value, product, square };
-
-    struct normalized_linear_atom
-    {
-        normalized_linear_atom_kind kind{};
-        const f256_s* left{};
-        const f256_s* right{};
-    };
-
-    struct normalized_linear_term
-    {
-        normalized_linear_atom atom{};
-        int coefficient{};
-    };
-
-    template<std::size_t MaxTerms>
-    struct normalized_linear_form
-    {
-        std::array<normalized_linear_term, MaxTerms> terms{};
-        std::size_t count{};
-        bool valid = true;
-    };
-
-    struct normalized_linear_eval_result
-    {
-        bool matched{};
-        f256_s value{};
-    };
-
-    struct normalized_scalar_coefficient
-    {
-        bool valid{};
-        int value{};
-    };
-
-    inline constexpr std::size_t normalized_linear_max_terms = 8;
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr normalized_scalar_coefficient normalized_integer_scalar(double value) noexcept
-    {
-        if (value == 1.0)
-            return { true, 1 };
-        if (value == -1.0)
-            return { true, -1 };
-        if (value == 2.0)
-            return { true, 2 };
-        if (value == -2.0)
-            return { true, -2 };
-
-        return {};
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr normalized_linear_atom make_value_atom(const leaf_expr& leaf) noexcept
-    {
-        return { normalized_linear_atom_kind::value, &leaf_value(leaf), nullptr };
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr normalized_linear_atom make_product_atom(const leaf_expr& left_leaf, const leaf_expr& right_leaf) noexcept
-    {
-        const f256_s& left = leaf_value(left_leaf);
-        const f256_s& right = leaf_value(right_leaf);
-
-        if (same_f256_value(left, right))
-            return { normalized_linear_atom_kind::square, &left, nullptr };
-        if (f256_value_less(right, left))
-            return { normalized_linear_atom_kind::product, &right, &left };
-
-        return { normalized_linear_atom_kind::product, &left, &right };
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool same_normalized_atom(const normalized_linear_atom& a, const normalized_linear_atom& b) noexcept
-    {
-        if (a.kind != b.kind || a.left == nullptr || b.left == nullptr)
-            return false;
-        if (!same_f256_value(*a.left, *b.left))
-            return false;
-
-        if (a.kind != normalized_linear_atom_kind::product)
-            return true;
-
-        return a.right != nullptr && b.right != nullptr && same_f256_value(*a.right, *b.right);
-    }
-
-    template<std::size_t MaxTerms>
-    BL_FORCE_INLINE constexpr void add_normalized_term(normalized_linear_form<MaxTerms>& form, const normalized_linear_atom& atom, int coefficient) noexcept
-    {
-        if (!form.valid || coefficient == 0)
-            return;
-
-        for (std::size_t i = 0; i < form.count; ++i)
-        {
-            if (!same_normalized_atom(form.terms[i].atom, atom))
-                continue;
-
-            form.terms[i].coefficient += coefficient;
-            if (form.terms[i].coefficient == 0)
-                form.terms[i] = form.terms[--form.count];
-            return;
-        }
-
-        if (form.count == MaxTerms)
-        {
-            form.valid = false;
-            return;
-        }
-
-        form.terms[form.count++] = { atom, coefficient };
-    }
-
-    template<std::size_t MaxTerms, class Expr>
-    BL_FORCE_INLINE constexpr void collect_normalized_linear_form(normalized_linear_form<MaxTerms>& form, const Expr& expr, int coefficient) noexcept
-    {
-        if (!form.valid || coefficient == 0)
-            return;
-
-        using ExprType = clean_t<Expr>;
-
-        if constexpr (is_leaf_v<ExprType>)
-        {
-            add_normalized_term(form, make_value_atom(expr), coefficient);
-        }
-        else if constexpr (is_add_v<ExprType>)
-        {
-            collect_normalized_linear_form(form, expr.left, coefficient);
-            collect_normalized_linear_form(form, expr.right, coefficient);
-        }
-        else if constexpr (is_sub_v<ExprType>)
-        {
-            collect_normalized_linear_form(form, expr.left, coefficient);
-            collect_normalized_linear_form(form, expr.right, -coefficient);
-        }
-        else if constexpr (is_leaf_product_v<ExprType>)
-        {
-            add_normalized_term(form, make_product_atom(expr.left, expr.right), coefficient);
-        }
-        else if constexpr (is_mul_double_v<ExprType>)
-        {
-            const normalized_scalar_coefficient scalar = normalized_integer_scalar(expr.right);
-            if (!scalar.valid)
-            {
-                form.valid = false;
-                return;
-            }
-
-            collect_normalized_linear_form(form, expr.left, coefficient * scalar.value);
-        }
-        else
-        {
-            form.valid = false;
-        }
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool normalized_atom_is_square(const normalized_linear_atom& atom) noexcept
-    {
-        return atom.kind == normalized_linear_atom_kind::square;
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool normalized_atom_is_product_like(const normalized_linear_atom& atom) noexcept
-    {
-        return atom.kind == normalized_linear_atom_kind::product || atom.kind == normalized_linear_atom_kind::square;
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr const f256_s& normalized_atom_left(const normalized_linear_atom& atom) noexcept
-    {
-        return *atom.left;
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr const f256_s& normalized_atom_right(const normalized_linear_atom& atom) noexcept
-    {
-        return atom.kind == normalized_linear_atom_kind::square ? *atom.left : *atom.right;
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool normalized_atoms_are_squares(const normalized_linear_atom& a, const normalized_linear_atom& b) noexcept
-    {
-        return normalized_atom_is_square(a) && normalized_atom_is_square(b);
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_normalized_product_atom(const normalized_linear_atom& atom) noexcept
-    {
-        if (atom.kind == normalized_linear_atom_kind::square)
-            return sqr_eval(normalized_atom_left(atom));
-
-        return mul_eval(normalized_atom_left(atom), normalized_atom_right(atom));
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_normalized_product_twice(const normalized_linear_atom& atom) noexcept
-    {
-        if (atom.kind == normalized_linear_atom_kind::square)
-            return sqr_twice_eval(normalized_atom_left(atom));
-
-        return mul_twice_eval(normalized_atom_left(atom), normalized_atom_right(atom));
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr normalized_linear_eval_result eval_normalized_product_value(
-        const normalized_linear_term& product_term, const normalized_linear_term& value_term) noexcept
-    {
-        const normalized_linear_atom& product = product_term.atom;
-        const f256_s& value = normalized_atom_left(value_term.atom);
-
-        if (product_term.coefficient == 1 && value_term.coefficient == 1)
-        {
-            if (normalized_atom_is_square(product))
-                return { true, sqr_add_eval(normalized_atom_left(product), value) };
-            return { true, mul_add_eval(normalized_atom_left(product), normalized_atom_right(product), value) };
-        }
-        if (product_term.coefficient == 1 && value_term.coefficient == -1)
-        {
-            if (normalized_atom_is_square(product))
-                return { true, sqr_sub_eval(normalized_atom_left(product), value) };
-            return { true, mul_sub_eval(normalized_atom_left(product), normalized_atom_right(product), value) };
-        }
-        if (product_term.coefficient == -1 && value_term.coefficient == 1)
-        {
-            if (normalized_atom_is_square(product))
-                return { true, value_sub_sqr_eval(value, normalized_atom_left(product)) };
-            return { true, value_sub_mul_eval(value, normalized_atom_left(product), normalized_atom_right(product)) };
-        }
-        if (product_term.coefficient == 2 && value_term.coefficient == 1)
-        {
-            if (normalized_atom_is_square(product))
-                return { true, sqr_twice_add_eval(normalized_atom_left(product), value) };
-            return { true, mul_twice_add_eval(normalized_atom_left(product), normalized_atom_right(product), value) };
-        }
-        if (product_term.coefficient == 2 && value_term.coefficient == -1)
-        {
-            if (normalized_atom_is_square(product))
-                return { true, sqr_twice_sub_eval(normalized_atom_left(product), value) };
-            return { true, mul_twice_sub_eval(normalized_atom_left(product), normalized_atom_right(product), value) };
-        }
-        if (product_term.coefficient == -2 && value_term.coefficient == 1)
-        {
-            if (normalized_atom_is_square(product))
-                return { true, value_sub_sqr_twice_eval(value, normalized_atom_left(product)) };
-            return { true, value_sub_mul_twice_eval(value, normalized_atom_left(product), normalized_atom_right(product)) };
-        }
-
-        return {};
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr normalized_linear_eval_result eval_normalized_product_pair(
-        const normalized_linear_term& first, const normalized_linear_term& second, const normalized_linear_term* value_term) noexcept
-    {
-        const normalized_linear_term* positive = &first;
-        const normalized_linear_term* other = &second;
-        bool subtract = false;
-
-        if (first.coefficient == 1 && second.coefficient == 1)
-        {
-            subtract = false;
-        }
-        else if (first.coefficient == 1 && second.coefficient == -1)
-        {
-            subtract = true;
-        }
-        else if (first.coefficient == -1 && second.coefficient == 1)
-        {
-            positive = &second;
-            other = &first;
-            subtract = true;
-        }
-        else
-        {
-            return {};
-        }
-
-        const normalized_linear_atom& lhs = positive->atom;
-        const normalized_linear_atom& rhs = other->atom;
-
-        if (value_term == nullptr)
-        {
-            if (!subtract)
-            {
-                if (normalized_atoms_are_squares(lhs, rhs))
-                    return { true, sqr_add_sqr_eval(normalized_atom_left(lhs), normalized_atom_left(rhs)) };
-                return { true, mul_add_mul_eval(normalized_atom_left(lhs), normalized_atom_right(lhs), normalized_atom_left(rhs), normalized_atom_right(rhs)) };
-            }
-
-            if (normalized_atoms_are_squares(lhs, rhs))
-                return { true, sqr_sub_sqr_eval(normalized_atom_left(lhs), normalized_atom_left(rhs)) };
-            return { true, mul_sub_mul_eval(normalized_atom_left(lhs), normalized_atom_right(lhs), normalized_atom_left(rhs), normalized_atom_right(rhs)) };
-        }
-
-        const f256_s& value = normalized_atom_left(value_term->atom);
-
-        if (!subtract)
-        {
-            if (value_term->coefficient == 1)
-            {
-                if (normalized_atoms_are_squares(lhs, rhs))
-                    return { true, sqr_add_sqr_add_eval(normalized_atom_left(lhs), normalized_atom_left(rhs), value) };
-                return { true, mul_add_mul_add_eval(normalized_atom_left(lhs), normalized_atom_right(lhs), normalized_atom_left(rhs), normalized_atom_right(rhs), value) };
-            }
-            if (value_term->coefficient == -1)
-            {
-                if (normalized_atoms_are_squares(lhs, rhs))
-                    return { true, sqr_add_sqr_sub_eval(normalized_atom_left(lhs), normalized_atom_left(rhs), value) };
-                return { true, mul_add_mul_sub_eval(normalized_atom_left(lhs), normalized_atom_right(lhs), normalized_atom_left(rhs), normalized_atom_right(rhs), value) };
-            }
-
-            return {};
-        }
-
-        if (value_term->coefficient == 1)
-        {
-            if (normalized_atoms_are_squares(lhs, rhs))
-                return { true, sqr_sub_sqr_add_eval(normalized_atom_left(lhs), normalized_atom_left(rhs), value) };
-            return { true, mul_sub_mul_add_eval(normalized_atom_left(lhs), normalized_atom_right(lhs), normalized_atom_left(rhs), normalized_atom_right(rhs), value) };
-        }
-        if (value_term->coefficient == -1)
-        {
-            if (normalized_atoms_are_squares(lhs, rhs))
-                return { true, sqr_sub_sqr_sub_eval(normalized_atom_left(lhs), normalized_atom_left(rhs), value) };
-            return { true, mul_sub_mul_sub_eval(normalized_atom_left(lhs), normalized_atom_right(lhs), normalized_atom_left(rhs), normalized_atom_right(rhs), value) };
-        }
-
-        return {};
-    }
-
-    template<class LeftProduct, class RightProduct, class ValueLeaf>
-    [[nodiscard]] BL_FORCE_INLINE constexpr normalized_linear_eval_result eval_normalized_product_pair_value_expr(
-        const LeftProduct& left_product, int left_coefficient,
-        const RightProduct& right_product, int right_coefficient,
-        const ValueLeaf& value_leaf, int value_coefficient) noexcept
-    {
-        normalized_linear_term left{ make_product_atom(left_product.left, left_product.right), left_coefficient };
-        normalized_linear_term right{ make_product_atom(right_product.left, right_product.right), right_coefficient };
-        normalized_linear_term value{ make_value_atom(value_leaf), value_coefficient };
-
-        if (same_normalized_atom(left.atom, right.atom))
-        {
-            left.coefficient += right.coefficient;
-            return eval_normalized_product_value(left, value);
-        }
-
-        return eval_normalized_product_pair(left, right, &value);
-    }
-
-    template<class LeftProduct, class RightProduct>
-    [[nodiscard]] BL_FORCE_INLINE constexpr normalized_linear_eval_result eval_normalized_product_pair_expr(
-        const LeftProduct& left_product, int left_coefficient,
-        const RightProduct& right_product, int right_coefficient) noexcept
-    {
-        normalized_linear_term left{ make_product_atom(left_product.left, left_product.right), left_coefficient };
-        normalized_linear_term right{ make_product_atom(right_product.left, right_product.right), right_coefficient };
-
-        if (same_normalized_atom(left.atom, right.atom))
-        {
-            left.coefficient += right.coefficient;
-            if (left.coefficient == 1)
-                return { true, eval_normalized_product_atom(left.atom) };
-            if (left.coefficient == 2)
-                return { true, eval_normalized_product_twice(left.atom) };
-
-            return {};
-        }
-
-        return eval_normalized_product_pair(left, right, nullptr);
-    }
-
-    template<std::size_t MaxTerms>
-    [[nodiscard]] BL_FORCE_INLINE constexpr normalized_linear_eval_result eval_normalized_linear_form(const normalized_linear_form<MaxTerms>& form) noexcept
-    {
-        if (!form.valid)
-            return {};
-
-        std::array<std::size_t, MaxTerms> product_indices{};
-        std::array<std::size_t, MaxTerms> value_indices{};
-        std::size_t product_count{};
-        std::size_t value_count{};
-
-        for (std::size_t i = 0; i < form.count; ++i)
-        {
-            const normalized_linear_term& term = form.terms[i];
-
-            if (term.atom.kind == normalized_linear_atom_kind::value)
-                value_indices[value_count++] = i;
-            else if (normalized_atom_is_product_like(term.atom))
-                product_indices[product_count++] = i;
-            else
-                return {};
-        }
-
-        if (product_count == 1 && value_count == 0)
-        {
-            const normalized_linear_term& product = form.terms[product_indices[0]];
-            if (product.coefficient == 1)
-                return { true, eval_normalized_product_atom(product.atom) };
-            if (product.coefficient == 2)
-                return { true, eval_normalized_product_twice(product.atom) };
-        }
-        else if (product_count == 1 && value_count == 1)
-        {
-            return eval_normalized_product_value(form.terms[product_indices[0]], form.terms[value_indices[0]]);
-        }
-        else if (product_count == 2 && value_count == 0)
-        {
-            return eval_normalized_product_pair(form.terms[product_indices[0]], form.terms[product_indices[1]], nullptr);
-        }
-        else if (product_count == 2 && value_count == 1)
-        {
-            return eval_normalized_product_pair(form.terms[product_indices[0]], form.terms[product_indices[1]], &form.terms[value_indices[0]]);
-        }
-
-        return {};
-    }
-
-    template<class Expr>
-    [[nodiscard]] BL_FORCE_INLINE constexpr normalized_linear_eval_result eval_normalized_linear_expr(const Expr& expr) noexcept
-    {
-        using ExprType = clean_t<Expr>;
-
-        if constexpr (is_add_v<ExprType>)
-        {
-            using LeftType = clean_t<decltype(expr.left)>;
-            using RightType = clean_t<decltype(expr.right)>;
-
-            if constexpr (is_add_product_product_v<LeftType> && is_leaf_v<RightType>)
-                return eval_normalized_product_pair_value_expr(expr.left.left, 1, expr.left.right, 1, expr.right, 1);
-            else if constexpr (is_sub_product_product_v<LeftType> && is_leaf_v<RightType>)
-                return eval_normalized_product_pair_value_expr(expr.left.left, 1, expr.left.right, -1, expr.right, 1);
-            else if constexpr (is_leaf_product_v<LeftType> && is_leaf_product_v<RightType>)
-                return eval_normalized_product_pair_expr(expr.left, 1, expr.right, 1);
-        }
-        else if constexpr (is_sub_v<ExprType>)
-        {
-            using LeftType = clean_t<decltype(expr.left)>;
-            using RightType = clean_t<decltype(expr.right)>;
-
-            if constexpr (is_add_product_product_v<LeftType> && is_leaf_v<RightType>)
-                return eval_normalized_product_pair_value_expr(expr.left.left, 1, expr.left.right, 1, expr.right, -1);
-            else if constexpr (is_sub_product_product_v<LeftType> && is_leaf_v<RightType>)
-                return eval_normalized_product_pair_value_expr(expr.left.left, 1, expr.left.right, -1, expr.right, -1);
-            else if constexpr (is_leaf_product_v<LeftType> && is_leaf_product_v<RightType>)
-                return eval_normalized_product_pair_expr(expr.left, 1, expr.right, -1);
-        }
-
-        normalized_linear_form<normalized_linear_max_terms> form{};
-        collect_normalized_linear_form(form, expr, 1);
-        return eval_normalized_linear_form(form);
-    }
-
     template<class Product>
     [[nodiscard]] BL_FORCE_INLINE constexpr bool leaf_product_is_square(const Product& product) noexcept
     {
@@ -1846,8 +1406,19 @@ namespace detail::_f256_expr
     }
 
     template<class LeftProduct, class RightProduct>
+    [[nodiscard]] BL_FORCE_INLINE constexpr bool leaf_products_are_same(const LeftProduct& left, const RightProduct& right) noexcept
+    {
+        return (same_leaf_value(left.left, right.left) && same_leaf_value(left.right, right.right)) ||
+               (same_leaf_value(left.left, right.right) && same_leaf_value(left.right, right.left));
+    }
+
+    template<class LeftProduct, class RightProduct>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_add_leaf_product(const LeftProduct& left, const RightProduct& right) noexcept
     {
+        if (leaf_products_are_same(left, right))
+            return leaf_product_is_square(left)
+                ? sqr_twice_eval(leaf_value(left.left))
+                : mul_twice_eval(leaf_value(left.left), leaf_value(left.right));
         if (leaf_product_is_square(left) && leaf_product_is_square(right))
             return sqr_add_sqr_eval(leaf_value(left.left), leaf_value(right.left));
 
@@ -1859,19 +1430,14 @@ namespace detail::_f256_expr
     template<class LeftProduct, class RightProduct>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_sub_leaf_product(const LeftProduct& left, const RightProduct& right) noexcept
     {
+        if (leaf_products_are_same(left, right))
+            return {};
         if (leaf_product_is_square(left) && leaf_product_is_square(right))
             return sqr_sub_sqr_eval(leaf_value(left.left), leaf_value(right.left));
 
         return mul_sub_mul_eval(
             leaf_value(left.left), leaf_value(left.right),
             leaf_value(right.left), leaf_value(right.right));
-    }
-
-    template<class LeftProduct, class RightProduct>
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool leaf_products_are_same(const LeftProduct& left, const RightProduct& right) noexcept
-    {
-        return (same_leaf_value(left.left, right.left) && same_leaf_value(left.right, right.right)) ||
-               (same_leaf_value(left.left, right.right) && same_leaf_value(left.right, right.left));
     }
 
     template<class Product>
@@ -1946,6 +1512,8 @@ namespace detail::_f256_expr
     template<class LeftProduct, class RightProduct>
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_leaf_product_sub_leaf_product_sub_value(const LeftProduct& left, const RightProduct& right, const leaf_expr& value) noexcept
     {
+        if (leaf_products_are_same(left, right))
+            return -leaf_value(value);
         if (leaf_product_is_square(left) && leaf_product_is_square(right))
             return sqr_sub_sqr_sub_eval(leaf_value(left.left), leaf_value(right.left), leaf_value(value));
 
@@ -2274,7 +1842,7 @@ namespace detail::_f256_expr
             return sub_eval(left, right);
         }
     }
-    template<class Expr> [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_to_f256_s(const Expr& expr) noexcept
+    template<class Expr> [[nodiscard]] BL_F256_EXPR_EVAL_INLINE constexpr f256_s eval_to_f256_s(const Expr& expr) noexcept
     {
         using ExprType = clean_t<Expr>;
 
@@ -2372,18 +1940,30 @@ namespace detail::_f256_expr
             {
                 return eval_leaf_product_sub_leaf_product_add_value(expr.left.left, expr.left.right, expr.right);
             }
-            else if constexpr (is_leaf_product_v<LeftType> && is_add_product_product_v<RightType>)
+            else if constexpr (is_leaf_v<LeftType> && is_add_product_product_v<RightType>)
             {
                 return eval_leaf_product_add_leaf_product_add_value(expr.right.left, expr.right.right, expr.left);
             }
-            else if constexpr (is_leaf_product_v<LeftType> && is_sub_product_product_v<RightType>)
+            else if constexpr (is_leaf_v<LeftType> && is_sub_product_product_v<RightType>)
             {
                 return eval_leaf_product_sub_leaf_product_add_value(expr.right.left, expr.right.right, expr.left);
             }
-
-            const normalized_linear_eval_result normalized = eval_normalized_linear_expr(expr);
-            if (normalized.matched)
-                return normalized.value;
+            else if constexpr (is_product_add_leaf_v<LeftType> && is_leaf_product_v<RightType>)
+            {
+                return eval_leaf_product_add_leaf_product_add_value(expr.left.left, expr.right, expr.left.right);
+            }
+            else if constexpr (is_product_sub_leaf_v<LeftType> && is_leaf_product_v<RightType>)
+            {
+                return eval_leaf_product_add_leaf_product_sub_value(expr.left.left, expr.right, expr.left.right);
+            }
+            else if constexpr (is_leaf_product_v<LeftType> && is_product_add_leaf_v<RightType>)
+            {
+                return eval_leaf_product_add_leaf_product_add_value(expr.left, expr.right.left, expr.right.right);
+            }
+            else if constexpr (is_leaf_product_v<LeftType> && is_product_sub_leaf_v<RightType>)
+            {
+                return eval_leaf_product_add_leaf_product_sub_value(expr.left, expr.right.left, expr.right.right);
+            }
 
             if constexpr (is_leaf_add_add_leaf_v<LeftType> && is_leaf_v<RightType>)
             {
@@ -2530,10 +2110,31 @@ namespace detail::_f256_expr
             {
                 return eval_leaf_product_sub_leaf_product_sub_value(expr.left.left, expr.left.right, expr.right);
             }
-
-            const normalized_linear_eval_result normalized = eval_normalized_linear_expr(expr);
-            if (normalized.matched)
-                return normalized.value;
+            else if constexpr (is_leaf_v<LeftType> && is_add_product_product_v<RightType>)
+            {
+                if (leaf_products_are_same(expr.right.left, expr.right.right))
+                    return eval_value_sub_leaf_product_twice(expr.left, expr.right.left);
+            }
+            else if constexpr (is_leaf_v<LeftType> && is_sub_product_product_v<RightType>)
+            {
+                return eval_leaf_product_sub_leaf_product_add_value(expr.right.right, expr.right.left, expr.left);
+            }
+            else if constexpr (is_product_add_leaf_v<LeftType> && is_leaf_product_v<RightType>)
+            {
+                return eval_leaf_product_sub_leaf_product_add_value(expr.left.left, expr.right, expr.left.right);
+            }
+            else if constexpr (is_product_sub_leaf_v<LeftType> && is_leaf_product_v<RightType>)
+            {
+                return eval_leaf_product_sub_leaf_product_sub_value(expr.left.left, expr.right, expr.left.right);
+            }
+            else if constexpr (is_leaf_product_v<LeftType> && is_product_add_leaf_v<RightType>)
+            {
+                return eval_leaf_product_sub_leaf_product_sub_value(expr.left, expr.right.left, expr.right.right);
+            }
+            else if constexpr (is_leaf_product_v<LeftType> && is_product_sub_leaf_v<RightType>)
+            {
+                return eval_leaf_product_sub_leaf_product_add_value(expr.left, expr.right.left, expr.right.right);
+            }
 
             if constexpr (is_leaf_add_add_leaf_v<LeftType> && is_leaf_v<RightType>)
             {

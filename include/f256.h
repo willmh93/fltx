@@ -51,6 +51,10 @@
 #  endif
 #endif
 
+#ifndef BL_F256_EXPR_EVAL_INLINE
+#  define BL_F256_EXPR_EVAL_INLINE BL_FORCE_INLINE
+#endif
+
 #if BL_F256_ENABLE_SIMD
 #  if BL_F256_HAS_SSE2
 #    include <emmintrin.h>
@@ -409,7 +413,7 @@ namespace detail::_f256_expr
     struct is_expr : std::false_type {};
 
     template<class Expr>
-    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_to_f256_s(const Expr& expr) noexcept;
+    [[nodiscard]] BL_F256_EXPR_EVAL_INLINE constexpr f256_s eval_to_f256_s(const Expr& expr) noexcept;
 }
 
 // complete value type
@@ -1963,88 +1967,52 @@ BL_FORCE_INLINE constexpr f256_s& detail::_f256_constexpr::assign(f256_s& out, i
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(const f256_s& a, const f256_s& b) noexcept
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::add_inline(a, b);
-
-    return detail::_f256_runtime::add(a, b);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::add_inline(a, b), detail::_f256_runtime::add(a, b));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(const f256_s& a, const f256_s& b) noexcept
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::sub_inline(a, b);
-
-    return detail::_f256_runtime::sub(a, b);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::sub_inline(a, b), detail::_f256_runtime::sub(a, b));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(const f256_s& a, const f256_s& b) noexcept
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::mul_inline(a, b);
-
-    return detail::_f256_runtime::mul(a, b);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::mul_inline(a, b), detail::_f256_runtime::mul(a, b));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(const f256_s& a, const f256_s& b) noexcept
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::div_inline(a, b);
-
-    return detail::_f256_runtime::div(a, b);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::div_inline(a, b), detail::_f256_runtime::div(a, b));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator+(const f256_s& a, double b) noexcept
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::add_double_inline(a, b);
-
-    return detail::_f256_runtime::add_double(a, b);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::add_double_inline(a, b), detail::_f256_runtime::add_double(a, b));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator-(const f256_s& a, double b) noexcept
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::sub_double_inline(a, b);
-
-    return detail::_f256_runtime::sub_double(a, b);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::sub_double_inline(a, b), detail::_f256_runtime::sub_double(a, b));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator*(const f256_s& a, double b) noexcept
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::mul_double_inline(a, b);
-
-    return detail::_f256_runtime::mul_double(a, b);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::mul_double_inline(a, b), detail::_f256_runtime::mul_double(a, b));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s operator/(const f256_s& a, double b) noexcept
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::div_double_inline(a, b);
-
-    return detail::_f256_runtime::div_double(a, b);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::div_double_inline(a, b), detail::_f256_runtime::div_double(a, b));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s floor(const f256_s& a)
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::floor(a);
-
-    return detail::_f256_runtime::floor(a);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::floor(a), detail::_f256_runtime::floor(a));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s ceil(const f256_s& a)
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::ceil(a);
-
-    return detail::_f256_runtime::ceil(a);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::ceil(a), detail::_f256_runtime::ceil(a));
 }
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s trunc(const f256_s& a)
 {
-    if constexpr (bl::use_constexpr_math())
-        return detail::_f256_constexpr::trunc(a);
-
-    return detail::_f256_runtime::trunc(a);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::trunc(a), detail::_f256_runtime::trunc(a));
 }
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s pow10_256(int k)
 {
-    if constexpr (bl::is_constant_evaluated())
-        return detail::_f256_constexpr::pow10_256(k);
-
-    return detail::_f256_runtime::pow10_256(k);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::pow10_256(k), detail::_f256_runtime::pow10_256(k));
 }
 
 } // namespace bl

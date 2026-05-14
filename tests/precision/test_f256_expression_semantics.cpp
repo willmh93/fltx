@@ -20,14 +20,15 @@ static_assert(std::is_aggregate_v<f256_s>);
 static_assert(std::is_standard_layout_v<f256_s>);
 static_assert(std::is_trivially_copyable_v<f256_s>);
 
-static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256_s>() + std::declval<f256_s>())>>::value);
-static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256_s>() - std::declval<f256_s>())>>::value);
-static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256_s>() * std::declval<f256_s>())>>::value);
-static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256_s>() / std::declval<f256_s>())>>::value);
-static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256_s>() + 0.5)>>::value);
-static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(0.5 + std::declval<f256_s>())>>::value);
-static_assert(std::is_convertible_v<decltype(std::declval<f256_s>() * std::declval<f256_s>() + 0.5), f256_s>);
-static_assert(std::is_convertible_v<decltype(std::declval<f256_s>() * std::declval<f256_s>() + 0.5), f256>);
+static_assert(!detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256_s>() + std::declval<f256_s>())>>::value);
+static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256>() + std::declval<f256>())>>::value);
+static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256>() - std::declval<f256>())>>::value);
+static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256>() * std::declval<f256>())>>::value);
+static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256>() / std::declval<f256>())>>::value);
+static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256>() + 0.5)>>::value);
+static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(0.5 + std::declval<f256>())>>::value);
+static_assert(std::is_convertible_v<decltype(std::declval<f256>() * std::declval<f256>() + 0.5), f256_s>);
+static_assert(std::is_convertible_v<decltype(std::declval<f256>() * std::declval<f256>() + 0.5), f256>);
 
 namespace
 {
@@ -238,13 +239,38 @@ TEST_CASE("f256 delayed expressions preserve math temporary semantics", "[fltx][
     require_same_value_bits(delayed, immediate);
 }
 
-TEST_CASE("f256_s storage member expressions preserve normal value semantics", "[fltx][f256][precision][arithmetic][expressions][semantics][storage]")
+TEST_CASE("f256 delayed product expressions normalize simple multi-line forms", "[fltx][f256][precision][arithmetic][expressions][semantics][fusion]")
 {
-    const auto expression = make_returned_storage_member_expression();
+    const f256 x = make_f256("1.1250000000000000000000000000000001");
+    const f256 y = make_f256("-0.8750000000000000000000000000000001");
+    const f256 a = make_f256("0.3333333333333333333333333333333333");
+
+    const auto xy = x * y;
+    const auto xx = x * x;
+    const auto yy = y * y;
+
+    const f256 doubled = xy + xy;
+    const f256 doubled_plus = a + (xy + xy);
+    const f256 associated_plus = (xy + a) + xy;
+    const f256 associated_minus = (xy - a) + xy;
+    const f256 commuted_difference = a + (xx - yy);
+    const f256 product_reassociated = xy + (xx + yy);
+
+    require_same_value_bits(doubled, detail::_f256_runtime::mul_twice(x, y));
+    require_same_value_bits(doubled_plus, detail::_f256_runtime::mul_twice_add(x, y, a));
+    require_same_value_bits(associated_plus, detail::_f256_runtime::mul_twice_add(x, y, a));
+    require_same_value_bits(associated_minus, detail::_f256_runtime::mul_twice_sub(x, y, a));
+    require_same_value_bits(commuted_difference, detail::_f256_runtime::sqr_sub_sqr_add(x, y, a));
+    require_same_value_bits(product_reassociated, detail::_f256_runtime::mul_add_mul_add_mul(x, x, y, y, x, y));
+}
+
+TEST_CASE("f256_s storage member arithmetic preserves normal value semantics", "[fltx][f256][precision][arithmetic][expressions][semantics][storage]")
+{
+    const auto value = make_returned_storage_member_expression();
     clobber_stack_between_expression_creation_and_evaluation();
 
-    const f256 delayed_value = expression;
-    const f256_s delayed_storage = expression;
+    const f256 delayed_value = value;
+    const f256_s delayed_storage = value;
     const f256 immediate = make_materialized_storage_member_expression();
 
     require_same_value_bits(delayed_value, immediate);
