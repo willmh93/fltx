@@ -649,6 +649,238 @@ namespace detail::_f256_expr
                std::bit_cast<std::uint64_t>(a.value.x3) == std::bit_cast<std::uint64_t>(b.value.x3);
     }
 
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_eval(const f256_s& a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_inline(a, b);
+
+        return detail::_f256_runtime::add(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sub_eval(const f256_s& a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::sub_inline(a, b);
+
+        return detail::_f256_runtime::sub(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_eval(const f256_s& a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_inline(a, b);
+
+        return detail::_f256_runtime::mul(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s div_eval(const f256_s& a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::div_inline(a, b);
+
+        return detail::_f256_runtime::div(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_double_eval(const f256_s& a, double b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_double_inline(a, b);
+
+        return detail::_f256_runtime::add_double(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sub_double_eval(const f256_s& a, double b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::sub_double_inline(a, b);
+
+        return detail::_f256_runtime::sub_double(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sub_double_eval(double a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::sub_double_inline(a, b);
+
+        return detail::_f256_runtime::sub_double(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s div_double_eval(const f256_s& a, double b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::div_double_inline(a, b);
+
+        return detail::_f256_runtime::div_double(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s div_double_eval(double a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::div_double_inline(a, b);
+
+        return detail::_f256_runtime::div_double(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sqr_eval(const f256_s& a) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::sqr_inline(a);
+
+        return detail::_f256_runtime::sqr(a);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_pow2_or_double_eval(const f256_s& a, double b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_pow2_or_double_inline(a, b);
+
+        return detail::_f256_runtime::mul_pow2_or_double(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_add_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_add_inline(a, b, c);
+
+        return detail::_f256_runtime::mul_add(a, b, c);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_sub_inline(a, b, c);
+
+        return detail::_f256_runtime::mul_sub(a, b, c);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s value_sub_mul_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::value_sub_mul_inline(a, b, c);
+
+        return detail::_f256_runtime::value_sub_mul(a, b, c);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_add_mul_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_add_mul_inline(a, b, c, d);
+
+        return detail::_f256_runtime::mul_add_mul(a, b, c, d);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_sub_mul_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_sub_mul_inline(a, b, c, d);
+
+        return detail::_f256_runtime::mul_sub_mul(a, b, c, d);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_add_mul_add_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_add_mul_add_inline(a, b, c, d, e);
+
+        return detail::_f256_runtime::mul_add_mul_add(a, b, c, d, e);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_add_mul_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_add_mul_sub_inline(a, b, c, d, e);
+
+        return detail::_f256_runtime::mul_add_mul_sub(a, b, c, d, e);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_sub_mul_add_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_sub_mul_add_inline(a, b, c, d, e);
+
+        return detail::_f256_runtime::mul_sub_mul_add(a, b, c, d, e);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_sub_mul_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_sub_mul_sub_inline(a, b, c, d, e);
+
+        return detail::_f256_runtime::mul_sub_mul_sub(a, b, c, d, e);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_add_add_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_add_add_inline(a, b, c);
+
+        return detail::_f256_runtime::add_add_add(a, b, c);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_sub_add_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_sub_add_inline(a, b, c);
+
+        return detail::_f256_runtime::add_sub_add(a, b, c);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_add_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_add_sub_inline(a, b, c);
+
+        return detail::_f256_runtime::add_add_sub(a, b, c);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_sub_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_sub_sub_inline(a, b, c);
+
+        return detail::_f256_runtime::add_sub_sub(a, b, c);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_scaled_2_1_eval(const f256_s& a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_scaled_inline<2, 1>(a, b);
+
+        return detail::_f256_runtime::add_scaled_2_1(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_scaled_1_2_eval(const f256_s& a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_scaled_inline<1, 2>(a, b);
+
+        return detail::_f256_runtime::add_scaled_1_2(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_scaled_2_neg1_eval(const f256_s& a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_scaled_inline<2, -1>(a, b);
+
+        return detail::_f256_runtime::add_scaled_2_neg1(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_scaled_1_neg2_eval(const f256_s& a, const f256_s& b) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_scaled_inline<1, -2>(a, b);
+
+        return detail::_f256_runtime::add_scaled_1_neg2(a, b);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_mul_double_eval(const f256_s& addend, const f256_s& value, double scalar) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::add_mul_double_inline(addend, value, scalar);
+
+        return detail::_f256_runtime::add_mul_double(addend, value, scalar);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sub_mul_double_eval(const f256_s& minuend, const f256_s& value, double scalar) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::sub_mul_double_inline(minuend, value, scalar);
+
+        return detail::_f256_runtime::sub_mul_double(minuend, value, scalar);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mul_double_sub_eval(const f256_s& value, double scalar, const f256_s& subtrahend) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::mul_double_sub_inline(value, scalar, subtrahend);
+
+        return detail::_f256_runtime::mul_double_sub(value, scalar, subtrahend);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s div_add_double_eval(const f256_s& numerator, const f256_s& base_denominator, double scalar) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::div_add_double_inline(numerator, base_denominator, scalar);
+
+        return detail::_f256_runtime::div_add_double(numerator, base_denominator, scalar);
+    }
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s div_double_sub_eval(const f256_s& numerator, double scalar, const f256_s& base_denominator) noexcept
+    {
+        if (bl::is_constant_evaluated())
+            return detail::_f256::div_double_sub_inline(numerator, scalar, base_denominator);
+
+        return detail::_f256_runtime::div_double_sub(numerator, scalar, base_denominator);
+    }
+
     template<class Expr> [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_eager(const Expr& expr) noexcept;
     template<class Expr> [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_eager(const Expr& expr) noexcept
     {
@@ -664,60 +896,60 @@ namespace detail::_f256_expr
             const f256_s right = eval_eager(expr.right);
 
             if (&left == &right)
-                return detail::_f256::sqr_inline(left);
+                return sqr_eval(left);
 
-            return detail::_f256::mul_inline(left, right);
+            return mul_eval(left, right);
         }
         else if constexpr (is_mul_double_v<ExprType>)
         {
             const f256_s left = eval_eager(expr.left);
 
-            return detail::_f256::mul_pow2_or_double_inline(left, expr.right);
+            return mul_pow2_or_double_eval(left, expr.right);
         }
         else if constexpr (is_add_double_v<ExprType>)
         {
             const f256_s left = eval_eager(expr.left);
 
-            return detail::_f256::add_double_inline(left, expr.right);
+            return add_double_eval(left, expr.right);
         }
         else if constexpr (is_double_sub_v<ExprType>)
         {
             const f256_s right = eval_eager(expr.right);
 
-            return detail::_f256::sub_double_inline(expr.left, right);
+            return sub_double_eval(expr.left, right);
         }
         else if constexpr (is_div_double_v<ExprType>)
         {
             const f256_s left = eval_eager(expr.left);
 
-            return detail::_f256::div_double_inline(left, expr.right);
+            return div_double_eval(left, expr.right);
         }
         else if constexpr (is_double_div_v<ExprType>)
         {
             const f256_s right = eval_eager(expr.right);
 
-            return detail::_f256::div_double_inline(expr.left, right);
+            return div_double_eval(expr.left, right);
         }
         else if constexpr (is_add_v<ExprType>)
         {
             const f256_s left = eval_eager(expr.left);
             const f256_s right = eval_eager(expr.right);
 
-            return detail::_f256::add_inline(left, right);
+            return add_eval(left, right);
         }
         else if constexpr (is_div_v<ExprType>)
         {
             const f256_s left = eval_eager(expr.left);
             const f256_s right = eval_eager(expr.right);
 
-            return detail::_f256::div_inline(left, right);
+            return div_eval(left, right);
         }
         else
         {
             const f256_s left = eval_eager(expr.left);
             const f256_s right = eval_eager(expr.right);
 
-            return detail::_f256::sub_inline(left, right);
+            return sub_eval(left, right);
         }
     }
     template<class Expr> [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_to_f256_s(const Expr& expr) noexcept
@@ -733,9 +965,9 @@ namespace detail::_f256_expr
             if constexpr (is_leaf_product_v<ExprType>)
             {
                 if (same_leaf_value(expr.left, expr.right))
-                    return detail::_f256::sqr_inline(leaf_value(expr.left));
+                    return sqr_eval(leaf_value(expr.left));
 
-                return detail::_f256::mul_inline(leaf_value(expr.left), leaf_value(expr.right));
+                return mul_eval(leaf_value(expr.left), leaf_value(expr.right));
             }
             else
             {
@@ -746,31 +978,31 @@ namespace detail::_f256_expr
         {
             const f256_s left = eval_to_f256_s(expr.left);
 
-            return detail::_f256::mul_pow2_or_double_inline(left, expr.right);
+            return mul_pow2_or_double_eval(left, expr.right);
         }
         else if constexpr (is_add_double_v<ExprType>)
         {
             const f256_s left = eval_to_f256_s(expr.left);
 
-            return detail::_f256::add_double_inline(left, expr.right);
+            return add_double_eval(left, expr.right);
         }
         else if constexpr (is_double_sub_v<ExprType>)
         {
             const f256_s right = eval_to_f256_s(expr.right);
 
-            return detail::_f256::sub_double_inline(expr.left, right);
+            return sub_double_eval(expr.left, right);
         }
         else if constexpr (is_div_double_v<ExprType>)
         {
             const f256_s left = eval_to_f256_s(expr.left);
 
-            return detail::_f256::div_double_inline(left, expr.right);
+            return div_double_eval(left, expr.right);
         }
         else if constexpr (is_double_div_v<ExprType>)
         {
             const f256_s right = eval_to_f256_s(expr.right);
 
-            return detail::_f256::div_double_inline(expr.left, right);
+            return div_double_eval(expr.left, right);
         }
         else if constexpr (is_div_v<ExprType>)
         {
@@ -781,19 +1013,19 @@ namespace detail::_f256_expr
             {
                 const f256_s base_denominator = eval_to_f256_s(expr.right.left);
 
-                return detail::_f256::div_add_double_inline(left_value, base_denominator, expr.right.right);
+                return div_add_double_eval(left_value, base_denominator, expr.right.right);
             }
             else if constexpr (is_double_sub_v<RightType>)
             {
                 const f256_s base_denominator = eval_to_f256_s(expr.right.right);
 
-                return detail::_f256::div_double_sub_inline(left_value, expr.right.left, base_denominator);
+                return div_double_sub_eval(left_value, expr.right.left, base_denominator);
             }
             else
             {
                 const f256_s right_value = eval_to_f256_s(expr.right);
 
-                return detail::_f256::div_inline(left_value, right_value);
+                return div_eval(left_value, right_value);
             }
         }
         else if constexpr (is_add_v<ExprType>)
@@ -801,57 +1033,57 @@ namespace detail::_f256_expr
             if constexpr (is_leaf_add_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
                 if (same_leaf_value(expr.left.left, expr.left.right))
-                    return detail::_f256::add_scaled_inline<2, 1>(leaf_value(expr.left.left), leaf_value(expr.right));
+                    return add_scaled_2_1_eval(leaf_value(expr.left.left), leaf_value(expr.right));
 
-                return detail::_f256::add_add_add_inline(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
+                return add_add_add_eval(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
             }
             else if constexpr (is_leaf_sub_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::add_sub_add_inline(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
+                return add_sub_add_eval(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
             }
             else if constexpr (is_leaf_v<clean_t<decltype(expr.left)>> && is_leaf_add_v<clean_t<decltype(expr.right)>>)
             {
                 if (same_leaf_value(expr.right.left, expr.right.right))
-                    return detail::_f256::add_scaled_inline<1, 2>(leaf_value(expr.left), leaf_value(expr.right.left));
+                    return add_scaled_1_2_eval(leaf_value(expr.left), leaf_value(expr.right.left));
 
-                return detail::_f256::add_add_add_inline(leaf_value(expr.left), leaf_value(expr.right.left), leaf_value(expr.right.right));
+                return add_add_add_eval(leaf_value(expr.left), leaf_value(expr.right.left), leaf_value(expr.right.right));
             }
             else if constexpr (is_leaf_v<clean_t<decltype(expr.left)>> && is_leaf_sub_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::add_sub_add_inline(leaf_value(expr.left), leaf_value(expr.right.right), leaf_value(expr.right.left));
+                return add_sub_add_eval(leaf_value(expr.left), leaf_value(expr.right.right), leaf_value(expr.right.left));
             }
             else if constexpr (is_mul_double_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::add_mul_double_inline(leaf_value(expr.right), eval_to_f256_s(expr.left.left), expr.left.right);
+                return add_mul_double_eval(leaf_value(expr.right), eval_to_f256_s(expr.left.left), expr.left.right);
             }
             else if constexpr (is_leaf_v<clean_t<decltype(expr.left)>> && is_mul_double_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::add_mul_double_inline(leaf_value(expr.left), eval_to_f256_s(expr.right.left), expr.right.right);
+                return add_mul_double_eval(leaf_value(expr.left), eval_to_f256_s(expr.right.left), expr.right.right);
             }
             else if constexpr (is_leaf_product_v<clean_t<decltype(expr.left)>> && is_leaf_product_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_add_mul_inline(
+                return mul_add_mul_eval(
                     leaf_value(expr.left.left), leaf_value(expr.left.right),
                     leaf_value(expr.right.left), leaf_value(expr.right.right));
             }
             else if constexpr (is_leaf_product_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_add_inline(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
+                return mul_add_eval(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
             }
             else if constexpr (is_leaf_v<clean_t<decltype(expr.left)>> && is_leaf_product_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_add_inline(leaf_value(expr.right.left), leaf_value(expr.right.right), leaf_value(expr.left));
+                return mul_add_eval(leaf_value(expr.right.left), leaf_value(expr.right.right), leaf_value(expr.left));
             }
             else if constexpr (is_add_product_product_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_add_mul_add_inline(
+                return mul_add_mul_add_eval(
                     leaf_value(expr.left.left.left), leaf_value(expr.left.left.right),
                     leaf_value(expr.left.right.left), leaf_value(expr.left.right.right),
                     leaf_value(expr.right));
             }
             else if constexpr (is_sub_product_product_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_sub_mul_add_inline(
+                return mul_sub_mul_add_eval(
                     leaf_value(expr.left.left.left), leaf_value(expr.left.left.right),
                     leaf_value(expr.left.right.left), leaf_value(expr.left.right.right),
                     leaf_value(expr.right));
@@ -866,57 +1098,57 @@ namespace detail::_f256_expr
             if constexpr (is_leaf_add_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
                 if (same_leaf_value(expr.left.left, expr.left.right))
-                    return detail::_f256::add_scaled_inline<2, -1>(leaf_value(expr.left.left), leaf_value(expr.right));
+                    return add_scaled_2_neg1_eval(leaf_value(expr.left.left), leaf_value(expr.right));
 
-                return detail::_f256::add_add_sub_inline(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
+                return add_add_sub_eval(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
             }
             else if constexpr (is_leaf_sub_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::add_sub_sub_inline(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
+                return add_sub_sub_eval(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
             }
             else if constexpr (is_leaf_v<clean_t<decltype(expr.left)>> && is_leaf_add_v<clean_t<decltype(expr.right)>>)
             {
                 if (same_leaf_value(expr.right.left, expr.right.right))
-                    return detail::_f256::add_scaled_inline<1, -2>(leaf_value(expr.left), leaf_value(expr.right.left));
+                    return add_scaled_1_neg2_eval(leaf_value(expr.left), leaf_value(expr.right.left));
 
-                return detail::_f256::add_sub_sub_inline(leaf_value(expr.left), leaf_value(expr.right.left), leaf_value(expr.right.right));
+                return add_sub_sub_eval(leaf_value(expr.left), leaf_value(expr.right.left), leaf_value(expr.right.right));
             }
             else if constexpr (is_leaf_v<clean_t<decltype(expr.left)>> && is_leaf_sub_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::add_sub_add_inline(leaf_value(expr.left), leaf_value(expr.right.left), leaf_value(expr.right.right));
+                return add_sub_add_eval(leaf_value(expr.left), leaf_value(expr.right.left), leaf_value(expr.right.right));
             }
             else if constexpr (is_mul_double_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_double_sub_inline(eval_to_f256_s(expr.left.left), expr.left.right, leaf_value(expr.right));
+                return mul_double_sub_eval(eval_to_f256_s(expr.left.left), expr.left.right, leaf_value(expr.right));
             }
             else if constexpr (is_leaf_v<clean_t<decltype(expr.left)>> && is_mul_double_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::sub_mul_double_inline(leaf_value(expr.left), eval_to_f256_s(expr.right.left), expr.right.right);
+                return sub_mul_double_eval(leaf_value(expr.left), eval_to_f256_s(expr.right.left), expr.right.right);
             }
             else if constexpr (is_leaf_product_v<clean_t<decltype(expr.left)>> && is_leaf_product_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_sub_mul_inline(
+                return mul_sub_mul_eval(
                     leaf_value(expr.left.left), leaf_value(expr.left.right),
                     leaf_value(expr.right.left), leaf_value(expr.right.right));
             }
             else if constexpr (is_leaf_product_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_sub_inline(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
+                return mul_sub_eval(leaf_value(expr.left.left), leaf_value(expr.left.right), leaf_value(expr.right));
             }
             else if constexpr (is_leaf_v<clean_t<decltype(expr.left)>> && is_leaf_product_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::value_sub_mul_inline(leaf_value(expr.left), leaf_value(expr.right.left), leaf_value(expr.right.right));
+                return value_sub_mul_eval(leaf_value(expr.left), leaf_value(expr.right.left), leaf_value(expr.right.right));
             }
             else if constexpr (is_add_product_product_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_add_mul_sub_inline(
+                return mul_add_mul_sub_eval(
                     leaf_value(expr.left.left.left), leaf_value(expr.left.left.right),
                     leaf_value(expr.left.right.left), leaf_value(expr.left.right.right),
                     leaf_value(expr.right));
             }
             else if constexpr (is_sub_product_product_v<clean_t<decltype(expr.left)>> && is_leaf_v<clean_t<decltype(expr.right)>>)
             {
-                return detail::_f256::mul_sub_mul_sub_inline(
+                return mul_sub_mul_sub_eval(
                     leaf_value(expr.left.left.left), leaf_value(expr.left.left.right),
                     leaf_value(expr.left.right.left), leaf_value(expr.left.right.right),
                     leaf_value(expr.right));
