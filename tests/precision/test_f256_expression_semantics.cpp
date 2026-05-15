@@ -239,11 +239,15 @@ TEST_CASE("f256 delayed expressions preserve math temporary semantics", "[fltx][
     require_same_value_bits(delayed, immediate);
 }
 
-TEST_CASE("f256 delayed product expressions normalize simple multi-line forms", "[fltx][f256][precision][arithmetic][expressions][semantics][fusion]")
+TEST_CASE("f256 delayed product expressions preserve simple multi-line value semantics", "[fltx][f256][precision][arithmetic][expressions][semantics][fusion]")
 {
     const f256 x = make_f256("1.1250000000000000000000000000000001");
     const f256 y = make_f256("-0.8750000000000000000000000000000001");
     const f256 a = make_f256("0.3333333333333333333333333333333333");
+
+    const mpfr_ref x_ref = to_ref_exact(x);
+    const mpfr_ref y_ref = to_ref_exact(y);
+    const mpfr_ref a_ref = to_ref_exact(a);
 
     const auto xy = x * y;
     const auto xx = x * x;
@@ -256,12 +260,12 @@ TEST_CASE("f256 delayed product expressions normalize simple multi-line forms", 
     const f256 commuted_difference = a + (xx - yy);
     const f256 product_reassociated = xy + (xx + yy);
 
-    require_same_value_bits(doubled, detail::_f256_runtime::mul_twice(x, y));
-    require_same_value_bits(doubled_plus, detail::_f256_runtime::mul_twice_add(x, y, a));
-    require_same_value_bits(associated_plus, detail::_f256_runtime::mul_twice_add(x, y, a));
-    require_same_value_bits(associated_minus, detail::_f256_runtime::mul_twice_sub(x, y, a));
-    require_same_value_bits(commuted_difference, detail::_f256_runtime::sqr_sub_sqr_add(x, y, a));
-    require_same_value_bits(product_reassociated, detail::_f256_runtime::mul_add_mul_add_mul(x, x, y, y, x, y));
+    require_close_to_reference(doubled, x_ref * y_ref + x_ref * y_ref);
+    require_close_to_reference(doubled_plus, a_ref + (x_ref * y_ref + x_ref * y_ref));
+    require_close_to_reference(associated_plus, (x_ref * y_ref + a_ref) + x_ref * y_ref);
+    require_close_to_reference(associated_minus, (x_ref * y_ref - a_ref) + x_ref * y_ref);
+    require_close_to_reference(commuted_difference, a_ref + (x_ref * x_ref - y_ref * y_ref));
+    require_close_to_reference(product_reassociated, x_ref * y_ref + (x_ref * x_ref + y_ref * y_ref));
 }
 
 TEST_CASE("f256_s storage member arithmetic preserves normal value semantics", "[fltx][f256][precision][arithmetic][expressions][semantics][storage]")
