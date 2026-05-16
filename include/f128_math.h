@@ -19,91 +19,91 @@ namespace bl {
 
 namespace detail::_f128_runtime
 {
-    [[nodiscard]] BL_NO_INLINE f128_s fmod(const f128_s& x, const f128_s& y);
-    [[nodiscard]] BL_NO_INLINE f128_s round_to_decimals(f128_s v, int prec);
-    [[nodiscard]] BL_NO_INLINE f128_s remainder(const f128_s& x, const f128_s& y);
-    [[nodiscard]] BL_NO_INLINE f128_s sqrt(f128_s a);
-    [[nodiscard]] BL_NO_INLINE f128_s ldexp(const f128_s& x, int e);
+    BL_NO_INLINE f128_s fmod(const f128_s& x, const f128_s& y);
+    BL_NO_INLINE f128_s round_to_decimals(f128_s v, int prec);
+    BL_NO_INLINE f128_s remainder(const f128_s& x, const f128_s& y);
+    BL_NO_INLINE f128_s sqrt(f128_s a);
+    BL_NO_INLINE f128_s ldexp(const f128_s& x, int e);
 
-    [[nodiscard]] BL_NO_INLINE f128_s exp(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s exp2(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s log(const f128_s& a);
-    [[nodiscard]] BL_NO_INLINE f128_s log2(const f128_s& a);
-    [[nodiscard]] BL_NO_INLINE f128_s log10(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s pow(const f128_s& x, const f128_s& y);
-    [[nodiscard]] BL_NO_INLINE f128_s pow(const f128_s& x, double y);
+    BL_NO_INLINE f128_s exp(const f128_s& x);
+    BL_NO_INLINE f128_s exp2(const f128_s& x);
+    BL_NO_INLINE f128_s log(const f128_s& a);
+    BL_NO_INLINE f128_s log2(const f128_s& a);
+    BL_NO_INLINE f128_s log10(const f128_s& x);
+    BL_NO_INLINE f128_s pow(const f128_s& x, const f128_s& y);
+    BL_NO_INLINE f128_s pow(const f128_s& x, double y);
 
-    [[nodiscard]] BL_NO_INLINE bool   sincos(const f128_s& x, f128_s& s_out, f128_s& c_out);
-    [[nodiscard]] BL_NO_INLINE f128_s sin(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s cos(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s tan(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s atan2(const f128_s& y, const f128_s& x);
+    BL_NO_INLINE bool   sincos(const f128_s& x, f128_s& s_out, f128_s& c_out);
+    BL_NO_INLINE f128_s sin(const f128_s& x);
+    BL_NO_INLINE f128_s cos(const f128_s& x);
+    BL_NO_INLINE f128_s tan(const f128_s& x);
+    BL_NO_INLINE f128_s atan2(const f128_s& y, const f128_s& x);
 
-    [[nodiscard]] BL_NO_INLINE f128_s expm1(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s log1p(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s sinh(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s cosh(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s tanh(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s asinh(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s acosh(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s atanh(const f128_s& x);
+    BL_NO_INLINE f128_s expm1(const f128_s& x);
+    BL_NO_INLINE f128_s log1p(const f128_s& x);
+    BL_NO_INLINE f128_s sinh(const f128_s& x);
+    BL_NO_INLINE f128_s cosh(const f128_s& x);
+    BL_NO_INLINE f128_s tanh(const f128_s& x);
+    BL_NO_INLINE f128_s asinh(const f128_s& x);
+    BL_NO_INLINE f128_s acosh(const f128_s& x);
+    BL_NO_INLINE f128_s atanh(const f128_s& x);
 
-    [[nodiscard]] BL_NO_INLINE f128_s cbrt(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s hypot(const f128_s& x, const f128_s& y);
-    [[nodiscard]] BL_NO_INLINE f128_s remquo(const f128_s& x, const f128_s& y, int* quo);
-    [[nodiscard]] BL_NO_INLINE f128_s frexp(const f128_s& x, int* exp) noexcept;
-    [[nodiscard]] BL_NO_INLINE f128_s modf(const f128_s& x, f128_s* iptr) noexcept;
-    [[nodiscard]] BL_NO_INLINE f128_s nextafter(const f128_s& from, const f128_s& to) noexcept;
+    BL_NO_INLINE f128_s cbrt(const f128_s& x);
+    BL_NO_INLINE f128_s hypot(const f128_s& x, const f128_s& y);
+    BL_NO_INLINE f128_s remquo(const f128_s& x, const f128_s& y, int* quo);
+    BL_NO_INLINE f128_s frexp(const f128_s& x, int* exp) noexcept;
+    BL_NO_INLINE f128_s modf(const f128_s& x, f128_s* iptr) noexcept;
+    BL_NO_INLINE f128_s nextafter(const f128_s& from, const f128_s& to) noexcept;
 
-    [[nodiscard]] BL_NO_INLINE f128_s erf(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s erfc(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s lgamma(const f128_s& x);
-    [[nodiscard]] BL_NO_INLINE f128_s tgamma(const f128_s& x);
+    BL_NO_INLINE f128_s erf(const f128_s& x);
+    BL_NO_INLINE f128_s erfc(const f128_s& x);
+    BL_NO_INLINE f128_s lgamma(const f128_s& x);
+    BL_NO_INLINE f128_s tgamma(const f128_s& x);
 }
 namespace detail::_f128_constexpr
 {
     using namespace detail::_f128;
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s fmod(const f128_s& x, const f128_s& y);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s round_to_decimals(f128_s v, int prec);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s remainder(const f128_s& x, const f128_s& y);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sqrt(f128_s a);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s ldexp(const f128_s& x, int e);
+    BL_FORCE_INLINE constexpr f128_s fmod(const f128_s& x, const f128_s& y);
+    BL_FORCE_INLINE constexpr f128_s round_to_decimals(f128_s v, int prec);
+    BL_FORCE_INLINE constexpr f128_s remainder(const f128_s& x, const f128_s& y);
+    BL_FORCE_INLINE constexpr f128_s sqrt(f128_s a);
+    BL_FORCE_INLINE constexpr f128_s ldexp(const f128_s& x, int e);
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s exp(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s exp2(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s log(const f128_s& a);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s log2(const f128_s& a);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s log10(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s pow(const f128_s& x, const f128_s& y);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s pow(const f128_s& x, double y);
+    BL_FORCE_INLINE constexpr f128_s exp(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s exp2(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s log(const f128_s& a);
+    BL_FORCE_INLINE constexpr f128_s log2(const f128_s& a);
+    BL_FORCE_INLINE constexpr f128_s log10(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s pow(const f128_s& x, const f128_s& y);
+    BL_FORCE_INLINE constexpr f128_s pow(const f128_s& x, double y);
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool sincos(const f128_s& x, f128_s& s_out, f128_s& c_out);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sin(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s cos(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s tan(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s atan2(const f128_s& y, const f128_s& x);
+    BL_FORCE_INLINE constexpr bool sincos(const f128_s& x, f128_s& s_out, f128_s& c_out);
+    BL_FORCE_INLINE constexpr f128_s sin(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s cos(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s tan(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s atan2(const f128_s& y, const f128_s& x);
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s expm1(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s log1p(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sinh(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s cosh(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s tanh(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s asinh(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s acosh(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s atanh(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s expm1(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s log1p(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s sinh(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s cosh(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s tanh(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s asinh(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s acosh(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s atanh(const f128_s& x);
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s cbrt(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s hypot(const f128_s& x, const f128_s& y);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s remquo(const f128_s& x, const f128_s& y, int* quo);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s frexp(const f128_s& x, int* exp) noexcept;
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s modf(const f128_s& x, f128_s* iptr) noexcept;
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s nextafter(const f128_s& from, const f128_s& to) noexcept;
+    BL_FORCE_INLINE constexpr f128_s cbrt(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s hypot(const f128_s& x, const f128_s& y);
+    BL_FORCE_INLINE constexpr f128_s remquo(const f128_s& x, const f128_s& y, int* quo);
+    BL_FORCE_INLINE constexpr f128_s frexp(const f128_s& x, int* exp) noexcept;
+    BL_FORCE_INLINE constexpr f128_s modf(const f128_s& x, f128_s* iptr) noexcept;
+    BL_FORCE_INLINE constexpr f128_s nextafter(const f128_s& from, const f128_s& to) noexcept;
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s erf(const f128_s& x);
-    [[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s erfc(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s lgamma(const f128_s& x);
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s tgamma(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s erf(const f128_s& x);
+    BL_MSVC_NOINLINE constexpr f128_s erfc(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s lgamma(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s tgamma(const f128_s& x);
 }
 
 // forward declare wrappers to runtime/constexpr calls

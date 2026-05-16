@@ -1664,9 +1664,9 @@ namespace
             {
                 for (auto& item : state)
                 {
-                    const T xx = item.x * item.x;
-                    const T yy = item.y * item.y;
-                    const T xy = item.x * item.y;
+                    const auto xx = item.x * item.x;
+                    const auto yy = item.y * item.y;
+                    const auto xy = item.x * item.y;
 
                     item.x = (xx - yy) + item.a;
                     item.y = (xy + xy) + item.b;

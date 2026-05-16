@@ -42,4 +42,396 @@ namespace bl::detail::_f256_runtime
         return detail::_f256_constexpr::assign(out, v);
     }
 
+    namespace
+    {
+        [[nodiscard]] BL_FORCE_INLINE f256_s div_add_double_impl(const f256_s& numerator, const f256_s& base_denominator, double scalar) noexcept
+        {
+            double head{}, carry{};
+            detail::fp::two_sum_precise(base_denominator.x0, scalar, head, carry);
+
+            const double head_abs = head < 0.0 ? -head : head;
+            const double base_abs = base_denominator.x0 < 0.0 ? -base_denominator.x0 : base_denominator.x0;
+            if (carry == 0.0 && head_abs >= base_abs)
+                return detail::_f256::div_inline(numerator, f256_s{ head, base_denominator.x1, base_denominator.x2, base_denominator.x3 });
+
+            return detail::_f256::div_inline(numerator, detail::_f256::add_double_inline(base_denominator, scalar));
+        }
+    }
+
+    // Core arithmetic bodies
+
+    f256_s add(const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::add_inline(a, b);
+    }
+
+    f256_s sub(const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::sub_inline(a, b);
+    }
+
+    f256_s mul(const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::mul_inline(a, b);
+    }
+
+    f256_s div(const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::div_inline(a, b);
+    }
+
+    f256_s add_double(const f256_s& a, double b) noexcept
+    {
+        return detail::_f256::add_double_inline(a, b);
+    }
+
+    f256_s sub_double(const f256_s& a, double b) noexcept
+    {
+        return detail::_f256::sub_double_inline(a, b);
+    }
+
+    f256_s sub_double(double a, const f256_s& b) noexcept
+    {
+        return detail::_f256::sub_double_inline(a, b);
+    }
+
+    f256_s mul_double(const f256_s& a, double b) noexcept
+    {
+        return detail::_f256::mul_double_inline(a, b);
+    }
+
+    f256_s div_double(const f256_s& a, double b) noexcept
+    {
+        return detail::_f256::div_double_inline(a, b);
+    }
+
+    f256_s div_double(double a, const f256_s& b) noexcept
+    {
+        return detail::_f256::div_double_inline(a, b);
+    }
+
+    // Fused expression bodies
+
+    f256_s sqr(const f256_s& a) noexcept
+    {
+        return detail::_f256::sqr_inline(a);
+    }
+
+    f256_s mul_pow2_or_double(const f256_s& a, double b) noexcept
+    {
+        return detail::_f256::mul_pow2_or_double_inline(a, b);
+    }
+
+    f256_s mul_add(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        return detail::_f256::mul_add_inline(a, b, c);
+    }
+
+    f256_s mul_sub(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        return detail::_f256::mul_sub_inline(a, b, c);
+    }
+
+    f256_s value_sub_mul(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        return detail::_f256::value_sub_mul_inline(a, b, c);
+    }
+
+    f256_s mul_add_add(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::add_inline(detail::_f256::mul_add_inline(a, b, c), d);
+    }
+
+    f256_s mul_add_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::sub_inline(detail::_f256::mul_add_inline(a, b, c), d);
+    }
+
+    f256_s mul_sub_add(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::add_inline(detail::_f256::mul_sub_inline(a, b, c), d);
+    }
+
+    f256_s mul_sub_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::sub_inline(detail::_f256::mul_sub_inline(a, b, c), d);
+    }
+
+    f256_s mul_add_mul(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::mul_add_mul_inline(a, b, c, d);
+    }
+
+    f256_s mul_sub_mul(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::mul_sub_mul_inline(a, b, c, d);
+    }
+
+    f256_s mul_add_mul_add(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
+    {
+        return detail::_f256::mul_add_mul_add_inline(a, b, c, d, e);
+    }
+
+    f256_s mul_add_mul_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
+    {
+        return detail::_f256::mul_add_mul_sub_inline(a, b, c, d, e);
+    }
+
+    f256_s mul_sub_mul_add(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
+    {
+        return detail::_f256::mul_sub_mul_add_inline(a, b, c, d, e);
+    }
+
+    f256_s mul_sub_mul_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
+    {
+        return detail::_f256::mul_sub_mul_sub_inline(a, b, c, d, e);
+    }
+
+    f256_s mul_add_mul_add_mul(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e, const f256_s& f) noexcept
+    {
+        return detail::_f256::add_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256::mul_inline(e, f));
+    }
+
+    f256_s mul_add_mul_add_mul_add_mul(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e, const f256_s& f, const f256_s& g, const f256_s& h) noexcept
+    {
+        return detail::_f256::add_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256::mul_add_mul_inline(e, f, g, h));
+    }
+
+    f256_s add_add_add(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        return detail::_f256::add_add_add_inline(a, b, c);
+    }
+
+    f256_s add_sub_add(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        return detail::_f256::add_sub_add_inline(a, b, c);
+    }
+
+    f256_s add_add_sub(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        return detail::_f256::add_add_sub_inline(a, b, c);
+    }
+
+    f256_s add_sub_sub(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    {
+        return detail::_f256::add_sub_sub_inline(a, b, c);
+    }
+
+    f256_s add_add_add_add(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::add_inline(detail::_f256::add_add_add_inline(a, b, c), d);
+    }
+
+    f256_s add_add_add_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::sub_inline(detail::_f256::add_add_add_inline(a, b, c), d);
+    }
+
+    f256_s add_add_sub_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::sub_inline(detail::_f256::add_add_sub_inline(a, b, c), d);
+    }
+
+    f256_s add_sub_sub_sub(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
+    {
+        return detail::_f256::sub_inline(detail::_f256::add_sub_sub_inline(a, b, c), d);
+    }
+
+    f256_s add_scaled_2_1(const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::add_scaled_inline<2, 1>(a, b);
+    }
+
+    f256_s add_scaled_1_2(const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::add_scaled_inline<1, 2>(a, b);
+    }
+
+    f256_s add_scaled_2_neg1(const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::add_scaled_inline<2, -1>(a, b);
+    }
+
+    f256_s add_scaled_1_neg2(const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::add_scaled_inline<1, -2>(a, b);
+    }
+
+    f256_s add_mul_double(const f256_s& addend, const f256_s& value, double scalar) noexcept
+    {
+        return detail::_f256::add_mul_double_inline(addend, value, scalar);
+    }
+
+    f256_s sub_mul_double(const f256_s& minuend, const f256_s& value, double scalar) noexcept
+    {
+        return detail::_f256::sub_mul_double_inline(minuend, value, scalar);
+    }
+
+    f256_s mul_double_sub(const f256_s& value, double scalar, const f256_s& subtrahend) noexcept
+    {
+        return detail::_f256::mul_double_sub_inline(value, scalar, subtrahend);
+    }
+
+    f256_s mul_double_add_mul_double(const f256_s& a, double a_scalar, const f256_s& b, double b_scalar) noexcept
+    {
+        return detail::_f256::add_raw5_raw5_inline(
+            detail::_f256::mul_double_raw5_inline(a, a_scalar),
+            detail::_f256::mul_double_raw5_inline(b, b_scalar));
+    }
+
+    f256_s mul_double_add_mul_double_add(const f256_s& a, double a_scalar, const f256_s& b, double b_scalar, const f256_s& c) noexcept
+    {
+        return detail::_f256::add_raw5_raw5_value_inline(
+            detail::_f256::mul_double_raw5_inline(a, a_scalar),
+            detail::_f256::mul_double_raw5_inline(b, b_scalar),
+            c);
+    }
+
+    f256_s div_add(const f256_s& numerator, const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::div_inline(numerator, detail::_f256::add_inline(a, b));
+    }
+
+    f256_s div_sub(const f256_s& numerator, const f256_s& a, const f256_s& b) noexcept
+    {
+        return detail::_f256::div_inline(numerator, detail::_f256::sub_inline(a, b));
+    }
+
+    f256_s div_add_double(const f256_s& numerator, const f256_s& base_denominator, double scalar) noexcept
+    {
+        double head{}, carry{};
+        detail::fp::two_sum_precise(base_denominator.x0, scalar, head, carry);
+
+        const double head_abs = head < 0.0 ? -head : head;
+        const double base_abs = base_denominator.x0 < 0.0 ? -base_denominator.x0 : base_denominator.x0;
+        if (carry == 0.0 && head_abs >= base_abs)
+            return detail::_f256::div_inline(numerator, f256_s{ head, base_denominator.x1, base_denominator.x2, base_denominator.x3 });
+
+        return detail::_f256::div_inline(numerator, detail::_f256::add_double_inline(base_denominator, scalar));
+    }
+
+    f256_s div_double_sub(const f256_s& numerator, double scalar, const f256_s& base_denominator) noexcept
+    {
+        return detail::_f256::div_double_sub_inline(numerator, scalar, base_denominator);
+    }
+
+    f256_s mul_add_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_add_inline(a, b, c), denominator);
+    }
+
+    f256_s mul_sub_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_sub_inline(a, b, c), denominator);
+    }
+
+    f256_s value_sub_mul_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::value_sub_mul_inline(a, b, c), denominator);
+    }
+
+    f256_s mul_add_mul_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), denominator);
+    }
+
+    f256_s mul_sub_mul_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_sub_mul_inline(a, b, c, d), denominator);
+    }
+
+    f256_s add_add_add_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_add_add_inline(a, b, c), denominator);
+    }
+
+    f256_s add_sub_add_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_sub_add_inline(a, b, c), denominator);
+    }
+
+    f256_s add_add_sub_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_add_sub_inline(a, b, c), denominator);
+    }
+
+    f256_s add_sub_sub_div(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_sub_sub_inline(a, b, c), denominator);
+    }
+
+    f256_s add_mul_double_div(const f256_s& addend, const f256_s& value, double scalar, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_mul_double_inline(addend, value, scalar), denominator);
+    }
+
+    f256_s sub_mul_double_div(const f256_s& minuend, const f256_s& value, double scalar, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::sub_mul_double_inline(minuend, value, scalar), denominator);
+    }
+
+    f256_s mul_double_sub_div(const f256_s& value, double scalar, const f256_s& subtrahend, const f256_s& denominator) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_double_sub_inline(value, scalar, subtrahend), denominator);
+    }
+
+    f256_s mul_add_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_add_inline(a, b, c), detail::_f256::add_double_inline(denominator, scalar));
+    }
+
+    f256_s mul_sub_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_sub_inline(a, b, c), detail::_f256::add_double_inline(denominator, scalar));
+    }
+
+    f256_s value_sub_mul_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::value_sub_mul_inline(a, b, c), detail::_f256::add_double_inline(denominator, scalar));
+    }
+
+    f256_s mul_add_mul_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator, double scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256::add_double_inline(denominator, scalar));
+    }
+
+    f256_s mul_sub_mul_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& denominator, double scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_sub_mul_inline(a, b, c, d), detail::_f256::add_double_inline(denominator, scalar));
+    }
+
+    f256_s add_add_add_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_add_add_inline(a, b, c), detail::_f256::add_double_inline(denominator, scalar));
+    }
+
+    f256_s add_sub_add_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_sub_add_inline(a, b, c), detail::_f256::add_double_inline(denominator, scalar));
+    }
+
+    f256_s add_add_sub_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_add_sub_inline(a, b, c), detail::_f256::add_double_inline(denominator, scalar));
+    }
+
+    f256_s add_sub_sub_div_add_double(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& denominator, double scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_sub_sub_inline(a, b, c), detail::_f256::add_double_inline(denominator, scalar));
+    }
+
+    f256_s add_mul_double_div_add_double(const f256_s& addend, const f256_s& value, double value_scalar, const f256_s& denominator, double denominator_scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::add_mul_double_inline(addend, value, value_scalar), detail::_f256::add_double_inline(denominator, denominator_scalar));
+    }
+
+    f256_s sub_mul_double_div_add_double(const f256_s& minuend, const f256_s& value, double value_scalar, const f256_s& denominator, double denominator_scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::sub_mul_double_inline(minuend, value, value_scalar), detail::_f256::add_double_inline(denominator, denominator_scalar));
+    }
+
+    f256_s mul_double_sub_div_add_double(const f256_s& value, double value_scalar, const f256_s& subtrahend, const f256_s& denominator, double denominator_scalar) noexcept
+    {
+        return detail::_f256::div_inline(detail::_f256::mul_double_sub_inline(value, value_scalar, subtrahend), detail::_f256::add_double_inline(denominator, denominator_scalar));
+    }
 }
