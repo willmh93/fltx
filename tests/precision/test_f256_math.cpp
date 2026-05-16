@@ -2033,6 +2033,62 @@ TEST_CASE("f256 mixed scalar arithmetic matches MPFR within tolerance", "[fltx][
     }
 }
 
+TEST_CASE("f256 integer compound assignment overloads use exact integer conversion", "[fltx][f256][precision][arithmetic][scalar][integer]")
+{
+    auto check_signed = [](auto rhs, const char* label)
+    {
+        const f256 base = to_f256("1.2345678901234567890123456789012345678901234567890123456789");
+        const f256 rhs_value = to_f256(static_cast<std::int64_t>(rhs));
+
+        f256 got = base;
+        got += rhs;
+        require_exact_value(label, got, base + rhs_value);
+
+        got = base;
+        got -= rhs;
+        require_exact_value(label, got, base - rhs_value);
+
+        got = base;
+        got *= rhs;
+        require_exact_value(label, got, base * rhs_value);
+
+        got = base;
+        got /= rhs;
+        require_exact_value(label, got, base / rhs_value);
+    };
+
+    auto check_unsigned = [](auto rhs, const char* label)
+    {
+        const f256 base = to_f256("1.2345678901234567890123456789012345678901234567890123456789");
+        const f256 rhs_value = to_f256(static_cast<std::uint64_t>(rhs));
+
+        f256 got = base;
+        got += rhs;
+        require_exact_value(label, got, base + rhs_value);
+
+        got = base;
+        got -= rhs;
+        require_exact_value(label, got, base - rhs_value);
+
+        got = base;
+        got *= rhs;
+        require_exact_value(label, got, base * rhs_value);
+
+        got = base;
+        got /= rhs;
+        require_exact_value(label, got, base / rhs_value);
+    };
+
+    check_signed(std::int8_t{ -7 }, "int8");
+    check_unsigned(std::uint8_t{ 7 }, "uint8");
+    check_signed(std::int16_t{ -257 }, "int16");
+    check_unsigned(std::uint16_t{ 257 }, "uint16");
+    check_signed(std::int32_t{ -65537 }, "int32");
+    check_unsigned(std::uint32_t{ 65537 }, "uint32");
+    check_signed(static_cast<std::int64_t>(-9007199254740993ll), "int64");
+    check_unsigned(std::uint64_t{ 9007199254740993ull }, "uint64");
+}
+
 TEST_CASE("f256 scalar mixed recurrence stays within MPFR tolerance", "[fltx][f256][precision][arithmetic][scalar][mixed]")
 {
     accuracy_report_scope report_scope{ "f256 scalar mixed recurrence stays within MPFR tolerance" };

@@ -395,6 +395,34 @@ struct f256_s
     BL_FORCE_INLINE constexpr f256_s& operator*=(float rhs) noexcept { *this = *this * rhs; return *this; }
     BL_FORCE_INLINE constexpr f256_s& operator/=(float rhs) noexcept { *this = *this / rhs; return *this; }
 
+    BL_FORCE_INLINE constexpr f256_s& operator+=(int64_t rhs) noexcept { f256_s value{}; value = rhs; *this = *this + value; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator-=(int64_t rhs) noexcept { f256_s value{}; value = rhs; *this = *this - value; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator*=(int64_t rhs) noexcept { f256_s value{}; value = rhs; *this = *this * value; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator/=(int64_t rhs) noexcept { f256_s value{}; value = rhs; *this = *this / value; return *this; }
+
+    BL_FORCE_INLINE constexpr f256_s& operator+=(uint64_t rhs) noexcept { f256_s value{}; value = rhs; *this = *this + value; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator-=(uint64_t rhs) noexcept { f256_s value{}; value = rhs; *this = *this - value; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator*=(uint64_t rhs) noexcept { f256_s value{}; value = rhs; *this = *this * value; return *this; }
+    BL_FORCE_INLINE constexpr f256_s& operator/=(uint64_t rhs) noexcept { f256_s value{}; value = rhs; *this = *this / value; return *this; }
+
+    template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_signed_v<T> && (sizeof(T) < 8), int> = 0>
+    BL_FORCE_INLINE constexpr f256_s& operator+=(T rhs) noexcept { return (*this += static_cast<int64_t>(rhs)); }
+    template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_signed_v<T> && (sizeof(T) < 8), int> = 0>
+    BL_FORCE_INLINE constexpr f256_s& operator-=(T rhs) noexcept { return (*this -= static_cast<int64_t>(rhs)); }
+    template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_signed_v<T> && (sizeof(T) < 8), int> = 0>
+    BL_FORCE_INLINE constexpr f256_s& operator*=(T rhs) noexcept { return (*this *= static_cast<int64_t>(rhs)); }
+    template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_signed_v<T> && (sizeof(T) < 8), int> = 0>
+    BL_FORCE_INLINE constexpr f256_s& operator/=(T rhs) noexcept { return (*this /= static_cast<int64_t>(rhs)); }
+
+    template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_unsigned_v<T> && (sizeof(T) < 8), int> = 0>
+    BL_FORCE_INLINE constexpr f256_s& operator+=(T rhs) noexcept { return (*this += static_cast<uint64_t>(rhs)); }
+    template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_unsigned_v<T> && (sizeof(T) < 8), int> = 0>
+    BL_FORCE_INLINE constexpr f256_s& operator-=(T rhs) noexcept { return (*this -= static_cast<uint64_t>(rhs)); }
+    template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_unsigned_v<T> && (sizeof(T) < 8), int> = 0>
+    BL_FORCE_INLINE constexpr f256_s& operator*=(T rhs) noexcept { return (*this *= static_cast<uint64_t>(rhs)); }
+    template<class T, std::enable_if_t<std::is_integral_v<T>&& std::is_unsigned_v<T> && (sizeof(T) < 8), int> = 0>
+    BL_FORCE_INLINE constexpr f256_s& operator/=(T rhs) noexcept { return (*this /= static_cast<uint64_t>(rhs)); }
+
     [[nodiscard]] explicit constexpr operator f128() const noexcept;
     [[nodiscard]] explicit constexpr operator f128_s()   const noexcept;
     [[nodiscard]] explicit constexpr operator double() const noexcept { return ((x0 + x1) + (x2 + x3)); }
