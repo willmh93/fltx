@@ -12,7 +12,8 @@
 
 #include "f256.h"
 #include "f256_consts.h"
-#include "fltx_common_exact.h"
+#include "fltx_common_math.h"
+#include "fltx_decimal.h"
 #include "fltx_math_utils.h"
 
 namespace bl {
@@ -199,6 +200,10 @@ namespace detail::_f256
     using detail::exact_decimal::decompose_double_mantissa;
     using detail::exact_decimal::mod_shift_subtract;
     using detail::exact_decimal::signed_biguint;
+    using detail::fp::fmod_constexpr;
+    using detail::fp::frexp_exponent_constexpr;
+    using detail::fp::nearbyint_ties_even;
+    using detail::fp::sqrt_seed_constexpr;
 
     BL_FORCE_INLINE constexpr f256_s add_inline(const f256_s& a, const f256_s& b) noexcept;
     BL_FORCE_INLINE constexpr f256_s sub_inline(const f256_s& a, const f256_s& b) noexcept;

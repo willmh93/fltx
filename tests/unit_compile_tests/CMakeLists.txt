@@ -27,6 +27,8 @@ add_executable(isolated_f256_math ${ISOLATED_F256_SOURCES})
 
 target_link_libraries(isolated_f128_math PRIVATE fltx::fltx)
 target_link_libraries(isolated_f256_math PRIVATE fltx::fltx)
+add_dependencies(isolated_f128_math fltx)
+add_dependencies(isolated_f256_math fltx)
 
 target_include_directories(isolated_f128_math PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/f128")
 target_include_directories(isolated_f256_math PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/f256")

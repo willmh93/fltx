@@ -16,8 +16,10 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <utility>
 
+#include <f128.h>
 #include <f256_math.h>
 #include <f256_io.h>
 
@@ -165,6 +167,14 @@ namespace
         return sum;
     }
 
+    [[nodiscard]] mpfr_ref to_ref_exact(const f128_s& value)
+    {
+        mpfr_ref sum = 0;
+        sum += mpfr_ref{ value.hi };
+        sum += mpfr_ref{ value.lo };
+        return sum;
+    }
+
     [[nodiscard]] std::string to_text_double(double value)
     {
         std::ostringstream out;
@@ -179,6 +189,26 @@ namespace
         std::ostringstream out;
         out << std::hexfloat << value;
         return out.str();
+    }
+
+    template<typename Scalar>
+    [[nodiscard]] mpfr_ref scalar_to_ref(Scalar scalar)
+    {
+        using scalar_t = std::remove_cv_t<std::remove_reference_t<Scalar>>;
+        if constexpr (std::is_same_v<scalar_t, f128_s>)
+            return to_ref_exact(scalar);
+        else
+            return mpfr_ref{ scalar };
+    }
+
+    template<typename Scalar>
+    [[nodiscard]] std::string scalar_to_text(Scalar scalar)
+    {
+        using scalar_t = std::remove_cv_t<std::remove_reference_t<Scalar>>;
+        if constexpr (std::is_same_v<scalar_t, f128_s>)
+            return to_text(f256{ scalar });
+        else
+            return to_text_double(static_cast<double>(scalar));
     }
 
     using ulp_count = boost::multiprecision::cpp_int;
@@ -519,7 +549,7 @@ namespace
     {
         const f256 value = to_f256(value_text);
         const mpfr_ref value_ref = to_ref_exact(value);
-        const mpfr_ref scalar_ref{ static_cast<double>(scalar) };
+        const mpfr_ref scalar_ref = scalar_to_ref(scalar);
 
         const f256 got = f256_op(value, scalar);
         const mpfr_ref got_ref = to_ref_exact(got);
@@ -536,7 +566,7 @@ namespace
         CAPTURE(case_label);
         CAPTURE(scalar_kind);
         CAPTURE(value_text);
-        CAPTURE(to_text_double(static_cast<double>(scalar)));
+        CAPTURE(scalar_to_text(scalar));
         CAPTURE(to_text(got));
         CAPTURE(to_text(expected));
         CAPTURE(to_text(diff));
@@ -1991,6 +2021,15 @@ TEST_CASE("f256 mixed scalar arithmetic matches MPFR within tolerance", "[fltx][
         -1.0e10f
     }};
 
+    constexpr std::array<f128_s, 6> f128_scalars{{
+        { 0.5, 0.0 },
+        { -1.5, 0.0 },
+        { 3.141592653589793, 1.2246467991473532e-16 },
+        { -0.125, 0.0 },
+        { 1.0e-20, -5.4846728545790429e-37 },
+        { -1.0e20, 0.0 }
+    }};
+
     auto check_all_scalar_orders = [](const char* scalar_kind, auto scalar, const char* value_text)
     {
         check_scalar_binary_op("add", "f256 + scalar", scalar_kind, value_text, scalar,
@@ -2030,53 +2069,94 @@ TEST_CASE("f256 mixed scalar arithmetic matches MPFR within tolerance", "[fltx][
     {
         check_all_scalar_orders("double", double_scalars[i], values[i]);
         check_all_scalar_orders("float", float_scalars[i], values[i]);
+        check_all_scalar_orders("f128", f128_scalars[i], values[i]);
     }
 }
 
-TEST_CASE("f256 integer compound assignment overloads use exact integer conversion", "[fltx][f256][precision][arithmetic][scalar][integer]")
+TEST_CASE("f256 integer overloads preserve exact integer values", "[fltx][f256][precision][arithmetic][scalar][integer]")
 {
     auto check_signed = [](auto rhs, const char* label)
     {
         const f256 base = to_f256("1.2345678901234567890123456789012345678901234567890123456789");
         const f256 rhs_value = to_f256(static_cast<std::int64_t>(rhs));
+        const bool rhs_fits_double = detail::_f256::integer_fits_exact_double(rhs);
+        const double rhs_double = static_cast<double>(rhs);
+
+        auto add_right = [&]() -> f256 { return rhs_fits_double ? f256{ base + rhs_double } : f256{ base + rhs_value }; };
+        auto add_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double + base } : f256{ rhs_value + base }; };
+        auto sub_right = [&]() -> f256 { return rhs_fits_double ? f256{ base - rhs_double } : f256{ base - rhs_value }; };
+        auto sub_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double - base } : f256{ rhs_value - base }; };
+        auto mul_right = [&]() -> f256 { return rhs_fits_double ? f256{ base * rhs_double } : f256{ base * rhs_value }; };
+        auto mul_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double * base } : f256{ rhs_value * base }; };
+        auto div_right = [&]() -> f256 { return rhs_fits_double ? f256{ base / rhs_double } : f256{ base / rhs_value }; };
+        auto div_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double / base } : f256{ rhs_value / base }; };
 
         f256 got = base;
         got += rhs;
-        require_exact_value(label, got, base + rhs_value);
+        require_exact_value(label, got, add_right());
 
         got = base;
         got -= rhs;
-        require_exact_value(label, got, base - rhs_value);
+        require_exact_value(label, got, sub_right());
 
         got = base;
         got *= rhs;
-        require_exact_value(label, got, base * rhs_value);
+        require_exact_value(label, got, mul_right());
 
         got = base;
         got /= rhs;
-        require_exact_value(label, got, base / rhs_value);
+        require_exact_value(label, got, div_right());
+
+        require_exact_value(label, base + rhs, add_right());
+        require_exact_value(label, rhs + base, add_left());
+        require_exact_value(label, base - rhs, sub_right());
+        require_exact_value(label, rhs - base, sub_left());
+        require_exact_value(label, base * rhs, mul_right());
+        require_exact_value(label, rhs * base, mul_left());
+        require_exact_value(label, base / rhs, div_right());
+        require_exact_value(label, rhs / base, div_left());
     };
 
     auto check_unsigned = [](auto rhs, const char* label)
     {
         const f256 base = to_f256("1.2345678901234567890123456789012345678901234567890123456789");
         const f256 rhs_value = to_f256(static_cast<std::uint64_t>(rhs));
+        const bool rhs_fits_double = detail::_f256::integer_fits_exact_double(rhs);
+        const double rhs_double = static_cast<double>(rhs);
+
+        auto add_right = [&]() -> f256 { return rhs_fits_double ? f256{ base + rhs_double } : f256{ base + rhs_value }; };
+        auto add_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double + base } : f256{ rhs_value + base }; };
+        auto sub_right = [&]() -> f256 { return rhs_fits_double ? f256{ base - rhs_double } : f256{ base - rhs_value }; };
+        auto sub_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double - base } : f256{ rhs_value - base }; };
+        auto mul_right = [&]() -> f256 { return rhs_fits_double ? f256{ base * rhs_double } : f256{ base * rhs_value }; };
+        auto mul_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double * base } : f256{ rhs_value * base }; };
+        auto div_right = [&]() -> f256 { return rhs_fits_double ? f256{ base / rhs_double } : f256{ base / rhs_value }; };
+        auto div_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double / base } : f256{ rhs_value / base }; };
 
         f256 got = base;
         got += rhs;
-        require_exact_value(label, got, base + rhs_value);
+        require_exact_value(label, got, add_right());
 
         got = base;
         got -= rhs;
-        require_exact_value(label, got, base - rhs_value);
+        require_exact_value(label, got, sub_right());
 
         got = base;
         got *= rhs;
-        require_exact_value(label, got, base * rhs_value);
+        require_exact_value(label, got, mul_right());
 
         got = base;
         got /= rhs;
-        require_exact_value(label, got, base / rhs_value);
+        require_exact_value(label, got, div_right());
+
+        require_exact_value(label, base + rhs, add_right());
+        require_exact_value(label, rhs + base, add_left());
+        require_exact_value(label, base - rhs, sub_right());
+        require_exact_value(label, rhs - base, sub_left());
+        require_exact_value(label, base * rhs, mul_right());
+        require_exact_value(label, rhs * base, mul_left());
+        require_exact_value(label, base / rhs, div_right());
+        require_exact_value(label, rhs / base, div_left());
     };
 
     check_signed(std::int8_t{ -7 }, "int8");

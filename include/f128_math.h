@@ -12,7 +12,8 @@
 
 #include "f128.h"
 #include "f128_consts.h"
-#include "fltx_common_exact.h"
+#include "fltx_common_math.h"
+#include "fltx_decimal.h"
 #include "fltx_math_utils.h"
 
 namespace bl {

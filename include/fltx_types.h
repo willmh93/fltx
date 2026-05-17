@@ -10,7 +10,7 @@
 #ifndef FLTX_TYPES_INCLUDED
 #define FLTX_TYPES_INCLUDED
 
-#include "fltx_common_base.h"
+#include "fltx_config.h"
 
 #include <concepts>
 #include <cstdint>

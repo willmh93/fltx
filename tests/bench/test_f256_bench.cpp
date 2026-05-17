@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include <f128.h>
 #include <f256_math.h>
 #include <f256_io.h>
 #include "benchmark_chart_writer.h"
@@ -164,6 +165,13 @@ namespace
     [[nodiscard]] mpfr_ref parse_benchmark_value<mpfr_ref>(const char* text)
     {
         return mpfr_ref(text);
+    }
+
+    [[nodiscard]] mpfr_ref to_mpfr_exact(const f128_s& value)
+    {
+        mpfr_ref out{ value.hi };
+        out += mpfr_ref{ value.lo };
+        return out;
     }
 
     [[nodiscard]] const char* benchmark_text(const char* text)
@@ -1177,10 +1185,12 @@ namespace
     {
         if (std::string_view(label) != "fabs")
             chart_writer.record_result(group, label, results.typical.f256.ns_per_iter, results.typical.mpfr.ns_per_iter);
-        std::string easy_label = std::string(label) + " [easy]";
-        std::string medium_label = std::string(label) + " [medium]";
-        std::string hard_label = std::string(label) + " [hard]";
-        std::string typical_label = std::string(label) + " [typical]";
+
+        const std::string label_prefix = std::string(group) + " / " + label;
+        std::string easy_label = label_prefix + " [easy]";
+        std::string medium_label = label_prefix + " [medium]";
+        std::string hard_label = label_prefix + " [hard]";
+        std::string typical_label = label_prefix + " [typical]";
 
         if constexpr (!only_bench_typical)
         {
@@ -1204,10 +1214,13 @@ namespace
             << "\n";
     }
 
-    template<typename T, typename U>
-    [[nodiscard]] T blend_result(const U& value, const T& acc)
+    template<class T> inline constexpr bool is_std_pair_v = false;
+    template<class T, class U> inline constexpr bool is_std_pair_v<std::pair<T, U>> = true;
+
+    template<typename T, typename U, std::enable_if_t<!is_std_pair_v<std::remove_cvref_t<U>>, int> = 0>
+    [[nodiscard]] T blend_result(U&& value, const T& acc)
     {
-        return static_cast<T>(value) + acc * 0.25;
+        return static_cast<T>(std::forward<U>(value)) + acc * 0.25;
     }
 
     template<typename T, typename U>
@@ -1521,6 +1534,109 @@ namespace
         return nexttoward(from, mpfr_ref(to));
     }
 
+    constexpr std::array<double, 8> arithmetic_f64_scalars{
+        0.125,
+        -0.1875,
+        0.3125,
+        -0.4375,
+        0.5625,
+        -0.6875,
+        0.8125,
+        -0.9375
+    };
+
+    constexpr std::array<float, 8> arithmetic_f32_scalars{
+        0.125f,
+        -0.1875f,
+        0.3125f,
+        -0.4375f,
+        0.5625f,
+        -0.6875f,
+        0.8125f,
+        -0.9375f
+    };
+
+    constexpr std::array<f128_s, 8> arithmetic_f128_scalars{{
+        { 0.125, 0.0 },
+        { -0.1875, 0.0 },
+        { 0.3125, 0.0 },
+        { -0.4375, 0.0 },
+        { 0.5625, 0.0 },
+        { -0.6875, 0.0 },
+        { 0.8125, 0.0 },
+        { -0.9375, 0.0 }
+    }};
+
+    constexpr std::array<std::int64_t, 8> arithmetic_i64_scalars{
+        2ll,
+        -3ll,
+        5ll,
+        -7ll,
+        9'007'199'254'740'993ll,
+        -9'007'199'254'740'993ll,
+        1'234'567'890'123'456'789ll,
+        -1'234'567'890'123'456'789ll
+    };
+
+    constexpr std::array<std::int32_t, 8> arithmetic_i32_scalars{
+        2,
+        -3,
+        5,
+        -7,
+        11,
+        -13,
+        65'537,
+        -65'537
+    };
+
+    template<typename Value, typename Scalar>
+    [[nodiscard]] auto scalar_for_value(Scalar scalar)
+    {
+        using value_t = std::remove_cv_t<std::remove_reference_t<Value>>;
+        using scalar_t = std::remove_cv_t<std::remove_reference_t<Scalar>>;
+
+        if constexpr (std::is_same_v<value_t, mpfr_ref> && std::is_same_v<scalar_t, f128_s>)
+            return to_mpfr_exact(scalar);
+        else
+            return scalar;
+    }
+
+    template<typename Value, typename Scalar>
+    [[nodiscard]] Value apply_scalar_add(const Value& value, Scalar scalar, bool scalar_left)
+    {
+        const auto value_scalar = scalar_for_value<Value>(scalar);
+        if (scalar_left)
+            return Value{ value_scalar + value };
+        return Value{ value + value_scalar };
+    }
+
+    template<typename Value, typename Scalar>
+    [[nodiscard]] Value apply_scalar_subtract(const Value& value, Scalar scalar, bool scalar_left)
+    {
+        const auto value_scalar = scalar_for_value<Value>(scalar);
+        if (scalar_left)
+            return Value{ value_scalar - value };
+        return Value{ value - value_scalar };
+    }
+
+    template<typename Value, typename Scalar>
+    [[nodiscard]] Value apply_scalar_multiply(const Value& value, Scalar scalar, bool scalar_left)
+    {
+        const auto value_scalar = scalar_for_value<Value>(scalar);
+        if (scalar_left)
+            return Value{ value_scalar * value };
+        return Value{ value * value_scalar };
+    }
+
+    template<typename Value, typename Scalar>
+    [[nodiscard]] Value apply_scalar_divide(const Value& value, Scalar scalar, bool scalar_left)
+    {
+        const auto value_scalar = scalar_for_value<Value>(scalar);
+        if (scalar_left)
+            return Value{ value_scalar / value };
+        return Value{ value / value_scalar };
+    }
+
     template<typename T, typename Text, std::size_t ValueCount, typename Op>
     [[nodiscard]] bench_result benchmark_value_bucket(
         const std::array<Text, ValueCount>& texts,
@@ -1545,6 +1661,43 @@ namespace
             {
                 for (std::size_t i = 0; i < ValueCount; ++i)
                     acc = blend_result(op(values, i), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, typename Scalar, typename Text, std::size_t ValueCount, std::size_t ScalarCount, typename Op>
+    [[nodiscard]] bench_result benchmark_scalar_overload_value_bucket(
+        const std::array<Text, ValueCount>& texts,
+        const std::array<Scalar, ScalarCount>& scalars,
+        std::int64_t total_iterations,
+        Op&& op,
+        bool scale_to_bucket = true)
+    {
+        static_assert(ScalarCount > 0);
+
+        std::array<T, ValueCount> values{};
+        for (std::size_t i = 0; i < ValueCount; ++i)
+            values[i] = parse_benchmark_value<T>(benchmark_text(texts[i]));
+
+        const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+
+        return run_benchmark(iteration_count, [&]()
+        {
+            T acc = values.front();
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < ValueCount; ++i)
+                {
+                    const Scalar scalar = scalars[i % ScalarCount];
+                    const bool scalar_left = ((static_cast<std::size_t>(outer) + i) & 1u) != 0u;
+                    acc = blend_result(op(values[i], scalar, scalar_left), acc);
+                }
             }
 
             return acc;
@@ -1664,12 +1817,14 @@ namespace
             {
                 for (auto& item : state)
                 {
-                    const auto xx = item.x * item.x;
-                    const auto yy = item.y * item.y;
-                    const auto xy = item.x * item.y;
+                    auto xx = item.x * item.x;
+                    auto yy = item.y * item.y;
+                    auto xy0 = item.x * item.y;
+                    auto xy1 = item.x * item.y;
 
-                    item.x = (xx - yy) + item.a;
-                    item.y = (xy + xy) + item.b;
+                    const T next_x = (std::move(xx) - std::move(yy)) + item.a;
+                    item.y = (std::move(xy0) + std::move(xy1)) + item.b;
+                    item.x = next_x;
                     item.x = item.x / (item.c + 0.5);
                     item.y = item.y / (item.d + 1.5);
 
@@ -2152,6 +2307,44 @@ namespace
         out.typical.mpfr = benchmark_value_bucket<mpfr_ref>(typical_specs, total_iterations, op, false);
 
         return out;
+    }
+
+    template<typename Scalar, std::size_t ScalarCount, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_scalar_overload_value_benchmark(
+        const bucket_array_set<const char*>& specs,
+        const std::array<Scalar, ScalarCount>& scalars,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        bucketed_comparison_result out{};
+        if constexpr (!only_bench_typical)
+        {
+            out.easy.f256 = benchmark_scalar_overload_value_bucket<f256>(specs.easy, scalars, total_iterations, op);
+            out.easy.mpfr = benchmark_scalar_overload_value_bucket<mpfr_ref>(specs.easy, scalars, total_iterations, op);
+            out.medium.f256 = benchmark_scalar_overload_value_bucket<f256>(specs.medium, scalars, total_iterations, op);
+            out.medium.mpfr = benchmark_scalar_overload_value_bucket<mpfr_ref>(specs.medium, scalars, total_iterations, op);
+            out.hard.f256 = benchmark_scalar_overload_value_bucket<f256>(specs.hard, scalars, total_iterations, op);
+            out.hard.mpfr = benchmark_scalar_overload_value_bucket<mpfr_ref>(specs.hard, scalars, total_iterations, op);
+        }
+        const auto typical_specs = make_typical_value_specs(specs);
+        out.typical.f256 = benchmark_scalar_overload_value_bucket<f256>(typical_specs, scalars, total_iterations, op, false);
+        out.typical.mpfr = benchmark_scalar_overload_value_bucket<mpfr_ref>(typical_specs, scalars, total_iterations, op, false);
+
+        return out;
+    }
+
+    template<typename Op>
+    void print_f256_scalar_overload_results(
+        const char* label,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        const auto specs = generic_value_buckets();
+        print_bucketed_results("f256 <-> f128", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_f128_scalars, total_iterations, op));
+        print_bucketed_results("f256 <-> f64", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_f64_scalars, total_iterations, op));
+        print_bucketed_results("f256 <-> f32", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_f32_scalars, total_iterations, op));
+        print_bucketed_results("f256 <-> i64", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_i64_scalars, total_iterations, op));
+        print_bucketed_results("f256 <-> i32", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_i32_scalars, total_iterations, op));
     }
 
     template<typename Op>
@@ -2766,7 +2959,11 @@ TEST_CASE("f256 vs mpfr add performance", "[bench][fltx][f256][arithmetic][add]"
         const auto& b = values[(i + 1) % bucket_value_count];
         return a + b;
     });
-    print_bucketed_results("Arithmetic", "add", results);
+    print_bucketed_results("f256 <-> f256", "add", results);
+    print_f256_scalar_overload_results("add", total_iterations, [](const auto& value, auto scalar, bool scalar_left)
+    {
+        return apply_scalar_add(value, scalar, scalar_left);
+    });
 }
 
 TEST_CASE("f256 vs mpfr subtract performance", "[bench][fltx][f256][arithmetic][subtract]")
@@ -2778,7 +2975,11 @@ TEST_CASE("f256 vs mpfr subtract performance", "[bench][fltx][f256][arithmetic][
         const auto& b = values[(i + 1) % bucket_value_count];
         return a - b;
     });
-    print_bucketed_results("Arithmetic", "subtract", results);
+    print_bucketed_results("f256 <-> f256", "subtract", results);
+    print_f256_scalar_overload_results("subtract", total_iterations, [](const auto& value, auto scalar, bool scalar_left)
+    {
+        return apply_scalar_subtract(value, scalar, scalar_left);
+    });
 }
 
 TEST_CASE("f256 vs mpfr multiply performance", "[bench][fltx][f256][arithmetic][multiply]")
@@ -2790,7 +2991,11 @@ TEST_CASE("f256 vs mpfr multiply performance", "[bench][fltx][f256][arithmetic][
         const auto& b = values[(i + 3) % bucket_value_count];
         return a * b;
     });
-    print_bucketed_results("Arithmetic", "multiply", results);
+    print_bucketed_results("f256 <-> f256", "multiply", results);
+    print_f256_scalar_overload_results("multiply", total_iterations, [](const auto& value, auto scalar, bool scalar_left)
+    {
+        return apply_scalar_multiply(value, scalar, scalar_left);
+    });
 }
 
 TEST_CASE("f256 vs mpfr divide performance", "[bench][fltx][f256][arithmetic][divide]")
@@ -2802,7 +3007,11 @@ TEST_CASE("f256 vs mpfr divide performance", "[bench][fltx][f256][arithmetic][di
         const auto& denominator = values[(i + 5) % bucket_value_count];
         return numerator / denominator;
     });
-    print_bucketed_results("Arithmetic", "divide", results);
+    print_bucketed_results("f256 <-> f256", "divide", results);
+    print_f256_scalar_overload_results("divide", total_iterations, [](const auto& value, auto scalar, bool scalar_left)
+    {
+        return apply_scalar_divide(value, scalar, scalar_left);
+    });
 }
 
 TEST_CASE("f256 vs mpfr mixed recurrence performance", "[bench][fltx][f256][arithmetic][mixed]")

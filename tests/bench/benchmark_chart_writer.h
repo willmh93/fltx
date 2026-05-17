@@ -154,28 +154,40 @@ namespace bl::bench
 
     [[nodiscard]] inline int benchmark_group_rank(std::string_view group)
     {
-        if (group == "Arithmetic")
+        if (group == "f128 <-> f128" || group == "f256 <-> f256")
             return 0;
-        if (group == "Rounding")
+        if (group == "f256 <-> f128")
             return 1;
-        if (group == "Remainders")
+        if (group == "f128 <-> f64" || group == "f256 <-> f64")
             return 2;
-        if (group == "Floating-point utilities")
+        if (group == "f128 <-> f32" || group == "f256 <-> f32")
             return 3;
-        if (group == "Roots & powers")
+        if (group == "f128 <-> i64" || group == "f256 <-> i64")
             return 4;
-        if (group == "Exponentials")
+        if (group == "f128 <-> i32" || group == "f256 <-> i32")
             return 5;
-        if (group == "Logarithms")
+        if (group == "Arithmetic")
             return 6;
-        if (group == "Trigonometric")
-            return 7;
-        if (group == "Hyperbolic")
-            return 8;
-        if (group == "Inverse hyperbolic")
-            return 9;
-        if (group == "Special functions")
+        if (group == "Rounding")
             return 10;
+        if (group == "Remainders")
+            return 11;
+        if (group == "Floating-point utilities")
+            return 12;
+        if (group == "Roots & powers")
+            return 13;
+        if (group == "Exponentials")
+            return 14;
+        if (group == "Logarithms")
+            return 15;
+        if (group == "Trigonometric")
+            return 16;
+        if (group == "Hyperbolic")
+            return 17;
+        if (group == "Inverse hyperbolic")
+            return 18;
+        if (group == "Special functions")
+            return 19;
         return 100;
     }
 

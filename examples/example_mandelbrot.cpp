@@ -4,10 +4,11 @@
 #include <fstream>
 #include <iostream>
 #include <thread>
+#include <utility>
 #include <vector>
 #include <filesystem>
 
-#include <fltx.h>
+#include <fltx>
 using namespace bl;
 using namespace bl::literals;
 
@@ -32,11 +33,13 @@ static unsigned char to_byte(f64 x)
 
 int main()
 {
+    using flt = f256;
+
     // mandelbrot setup
     constexpr int max_iter  =  20000;
-    constexpr f128 center_x = -1.73200006480238126967529761198455_dd;
-    constexpr f128 center_y =  0.00000019235376499049335337716270_dd;
-    constexpr f128 zoom     =  2.0e+28_dd;
+    constexpr flt center_x = flt("-1.73200006480238126967529761198455");
+    constexpr flt center_y = flt("0.00000019235376499049335337716270");
+    constexpr flt zoom     = flt("2.0e+28");
 
     // image setup
     constexpr int width = 1024;
@@ -49,10 +52,10 @@ int main()
     std::vector<unsigned char> pixels(pixel_bytes);
     std::atomic<int> rows_done = 0;
 
-    const f128 scale_x = 4.0 / (zoom * f128(width));
-    const f128 scale_y = 4.0 / (zoom * f128(height));
-    const f128 half_w = f128(width) * 0.5;
-    const f128 half_h = f128(height) * 0.5;
+    const flt scale_x = 4.0 / (zoom * width);
+    const flt scale_y = 4.0 / (zoom * height);
+    const flt half_w = width * 0.5;
+    const flt half_h = height * 0.5;
 
     // threads setup
     std::size_t thread_count = std::thread::hardware_concurrency();
@@ -70,15 +73,15 @@ int main()
 
             for (int px = 0; px < width; ++px)
             {
-                f128 cx = center_x + (f128(px) - half_w) * scale_x;
-                f128 cy = center_y + (f128(py) - half_h) * scale_y;
-                f128 x = 0, y = 0;
+                flt cx = center_x + (flt(px) - half_w) * scale_x;
+                flt cy = center_y + (flt(py) - half_h) * scale_y;
+                flt x = 0, y = 0;
 
                 // determine iterations until escape
                 int iter = 0;
-                while (iter < max_iter && x * x + y * y <= 4.0)
+                while (iter < max_iter && bl::sq((f64)x) + bl::sq((f64)y) <= 4.0)
                 {
-                    f128 xx = x * x - y * y + cx;
+                    flt xx = x * x - y * y + cx;
                     y = 2.0 * x * y + cy;
                     x = xx;
                     ++iter;
@@ -114,6 +117,8 @@ int main()
     std::vector<std::thread> threads;
     threads.reserve(thread_count);
 
+    const auto render_start = std::chrono::steady_clock::now();
+
     for (std::size_t i = 0; i < thread_count; ++i)
     {
         int row_begin = (int)i * rows_per_thread;
@@ -148,7 +153,11 @@ int main()
     for (std::thread& thread : threads)
         thread.join();
 
+    const auto render_end = std::chrono::steady_clock::now();
+    const std::chrono::duration<double> render_time = render_end - render_start;
+
     std::cout << "\r100% complete\n";
+    std::cout << "generation took " << render_time.count() << " seconds\n";
 
     // save image
     const std::filesystem::path output_path = std::filesystem::absolute("mandelbrot.bmp");
