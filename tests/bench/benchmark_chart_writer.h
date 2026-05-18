@@ -13,6 +13,9 @@
 
 namespace bl::bench
 {
+    inline constexpr const char* mixed_workloads_group_name = "Mixed Workloads";
+    inline constexpr const char* mixed_workloads_average_label = "mixed workload average";
+
     [[nodiscard]] inline std::string_view benchmark_compiler_name()
     {
         #if defined(__MINGW32__) || defined(__MINGW64__)
@@ -168,6 +171,8 @@ namespace bl::bench
             return 5;
         if (group == "Arithmetic")
             return 6;
+        if (group == mixed_workloads_group_name)
+            return 7;
         if (group == "Rounding")
             return 10;
         if (group == "Remainders")
@@ -207,7 +212,16 @@ namespace bl::bench
         if (label == "subtract") return 1;
         if (label == "multiply") return 2;
         if (label == "divide") return 3;
-        if (label == "mixed recurrence") return 4;
+        if (label == "affine trig transform") return 1;
+        if (label == "mandelbrot kernel") return 2;
+        if (label == "((x*x - y*y) + a) / (c + scalar)") return 3;
+        if (label == "((x*a + y*b) + c) / (c + scalar)") return 4;
+        if (label == "((x*sa + y*sb) + a) / (c + scalar)") return 5;
+        if (label == "((x + a) + b) / ((c + d) + scalar)") return 6;
+        if (label == "((x*a + y*b) + c*d) / ((c + d) + scalar)") return 7;
+        if (label == "((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)") return 8;
+        if (label == "((x*y + a*b) + c) / (c*c + scalar)") return 9;
+        if (label == mixed_workloads_average_label) return 10;
 
         if (label == "floor") return 10;
         if (label == "ceil") return 11;
@@ -374,6 +388,7 @@ namespace bl::bench
         [[nodiscard]] std::vector<benchmark_chart_entry> make_sorted_entries() const
         {
             std::vector<benchmark_chart_entry> sorted = entries;
+            append_mixed_workloads_average(sorted);
             std::sort(sorted.begin(), sorted.end(), [](const benchmark_chart_entry& lhs, const benchmark_chart_entry& rhs)
             {
                 const int lhs_group_rank = benchmark_group_rank(lhs.group);
@@ -389,6 +404,45 @@ namespace bl::bench
                 return lhs.label < rhs.label;
             });
             return sorted;
+        }
+
+        void append_mixed_workloads_average(std::vector<benchmark_chart_entry>& output_entries) const
+        {
+            double candidate_total = 0.0;
+            double reference_total = 0.0;
+            double ratio_total = 0.0;
+            std::size_t count = 0;
+
+            for (const auto& entry : entries)
+            {
+                if (entry.group != mixed_workloads_group_name || entry.label == mixed_workloads_average_label)
+                    continue;
+
+                candidate_total += entry.candidate_ns_per_iter;
+                reference_total += entry.reference_ns_per_iter;
+                ratio_total += entry.ratio;
+                ++count;
+            }
+
+            if (count == 0)
+                return;
+
+            benchmark_chart_entry average{};
+            average.group = mixed_workloads_group_name;
+            average.label = mixed_workloads_average_label;
+            average.candidate_ns_per_iter = candidate_total / static_cast<double>(count);
+            average.reference_ns_per_iter = reference_total / static_cast<double>(count);
+            average.ratio = ratio_total / static_cast<double>(count);
+
+            const auto found = std::find_if(output_entries.begin(), output_entries.end(), [&](const benchmark_chart_entry& entry)
+            {
+                return entry.group == average.group && entry.label == average.label;
+            });
+
+            if (found != output_entries.end())
+                *found = std::move(average);
+            else
+                output_entries.push_back(std::move(average));
         }
 
         [[nodiscard]] std::vector<grouped_layout_entry> make_layout_entries(const std::vector<benchmark_chart_entry>& sorted_entries) const

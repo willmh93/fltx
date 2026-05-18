@@ -55,9 +55,11 @@ FAST_RATIO_COLOR = "#00B050"
 FAST_RATIO_CEILING = 10.0
 NATIVE_ARITHMETIC_GROUP = "Arithmetic"
 NATIVE_ARITHMETIC_LABELS = {"add", "subtract", "multiply", "divide"}
-VISIBLE_ARITHMETIC_LABELS = {"mixed recurrence"}
+MIXED_WORKLOADS_GROUP = "Mixed Workloads"
+MIXED_WORKLOADS_AVERAGE_LABEL = "mixed workload average"
+LEGACY_MIXED_WORKLOADS_GROUPS = {"Mixed workloads"}
+LEGACY_HIDDEN_GROUPS = {"Mandelbrot"}
 ARITHMETIC_GROUP_RE = re.compile(r"^f(?P<bits>128|256) <-> (?P<rhs>f128|f256|f64|f32|i64|i32)$")
-HIDDEN_GROUPS = {"Mandelbrot"}
 HIDDEN_ROWS: set[tuple[str, str]] = set()
 
 
@@ -71,6 +73,7 @@ class ColumnKey:
 @dataclass
 class BenchmarkCell:
     ns_per_iter: float | None = None
+    reference_ns_per_iter: float | None = None
     ratio: float | None = None
 
 
@@ -166,16 +169,30 @@ def read_csv(path: Path, fp_type: str) -> list[tuple[str, str, BenchmarkCell]]:
         if candidate_column is None:
             return []
 
+        reference_column = find_column(reader.fieldnames, "mpfr_ns_per_iter", "std_ns_per_iter")
+        if reference_column is None:
+            for name in reader.fieldnames:
+                if name.lower().endswith("_ns_per_iter") and name != candidate_column:
+                    reference_column = name
+                    break
+
         out: list[tuple[str, str, BenchmarkCell]] = []
         for row in reader:
             group = (row.get("group") or "").strip() or "Benchmarks"
             label = (row.get("label") or "").strip()
             if not label:
                 continue
+            candidate_ns = parse_float(row.get(candidate_column))
+            reference_ns = parse_float(row.get(reference_column)) if reference_column else None
+            ratio = parse_float(row.get(ratio_column)) if ratio_column else None
+            if reference_ns is None and candidate_ns is not None and ratio is not None:
+                reference_ns = candidate_ns * ratio
+            if ratio is None and candidate_ns is not None and candidate_ns > 0.0 and reference_ns is not None:
+                ratio = reference_ns / candidate_ns
             out.append((
                 group,
                 label,
-                BenchmarkCell(parse_float(row.get(candidate_column)), parse_float(row.get(ratio_column)) if ratio_column else None),
+                BenchmarkCell(candidate_ns, reference_ns, ratio),
             ))
         return out
 
@@ -188,20 +205,47 @@ def visible_table_entry(fp_type: str, group: str, label: str) -> tuple[str, str]
             return NATIVE_ARITHMETIC_GROUP, label
         return None
 
-    if group == NATIVE_ARITHMETIC_GROUP and label not in VISIBLE_ARITHMETIC_LABELS:
+    if group == NATIVE_ARITHMETIC_GROUP:
         return None
 
-    if group in HIDDEN_GROUPS or (group, label) in HIDDEN_ROWS:
+    if group in LEGACY_HIDDEN_GROUPS:
+        return None
+
+    if group == MIXED_WORKLOADS_GROUP or group in LEGACY_MIXED_WORKLOADS_GROUPS:
+        if label == MIXED_WORKLOADS_AVERAGE_LABEL:
+            return MIXED_WORKLOADS_GROUP, label
+        return None
+
+    if (group, label) in HIDDEN_ROWS:
         return None
 
     return group, label
+
+
+def average_or_none(values: list[float]) -> float | None:
+    if not values:
+        return None
+    return sum(values) / len(values)
+
+
+def average_cells(cells: list[BenchmarkCell]) -> BenchmarkCell:
+    ns_per_iter = average_or_none([cell.ns_per_iter for cell in cells if cell.ns_per_iter is not None])
+    reference_ns_per_iter = average_or_none([
+        cell.reference_ns_per_iter
+        for cell in cells
+        if cell.reference_ns_per_iter is not None
+    ])
+    ratio = average_or_none([cell.ratio for cell in cells if cell.ratio is not None])
+    if ratio is None and ns_per_iter is not None and ns_per_iter > 0.0 and reference_ns_per_iter is not None:
+        ratio = reference_ns_per_iter / ns_per_iter
+    return BenchmarkCell(ns_per_iter, reference_ns_per_iter, ratio)
 
 
 def discover_table(bench_root: Path) -> BenchmarkTable:
     columns: set[ColumnKey] = set()
     groups: list[str] = []
     rows_by_group: dict[str, list[str]] = {}
-    cells: dict[tuple[str, str, ColumnKey], BenchmarkCell] = {}
+    cell_buckets: dict[tuple[str, str, ColumnKey], list[BenchmarkCell]] = {}
 
     for path in sorted(bench_root.rglob("*.csv")):
         match = BENCH_FILE_RE.match(path.name)
@@ -224,10 +268,15 @@ def discover_table(bench_root: Path) -> BenchmarkTable:
                 rows_by_group[visible_group] = []
             if visible_label not in rows_by_group[visible_group]:
                 rows_by_group[visible_group].append(visible_label)
-            cells[(visible_group, visible_label, column)] = cell
+            cell_buckets.setdefault((visible_group, visible_label, column), []).append(cell)
 
         if has_visible_entries:
             columns.add(column)
+
+    cells = {
+        key: average_cells(values)
+        for key, values in cell_buckets.items()
+    }
 
     return BenchmarkTable(
         columns=sorted(columns, key=column_sort_key),

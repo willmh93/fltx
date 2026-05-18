@@ -33,7 +33,7 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 10;
+    constexpr int benchmark_scale = 1;
     constexpr bool only_bench_typical = true;
     constexpr std::size_t bucket_value_count = 8;
     constexpr std::size_t bucket_count = 3;
@@ -43,6 +43,15 @@ namespace
     constexpr double benchmark_pi = 3.141592653589793238462643383279502884;
     constexpr int mandelbrot_kernel_width = 32;
     constexpr int mandelbrot_kernel_height = 32;
+    constexpr const char* mixed_recurrence_square_diff_label = "((x*x - y*y) + a) / (c + scalar)";
+    constexpr const char* mixed_recurrence_product_sum_label = "((x*a + y*b) + c) / (c + scalar)";
+    constexpr const char* mixed_recurrence_scaled_product_sum_label = "((x*sa + y*sb) + a) / (c + scalar)";
+    constexpr const char* mixed_recurrence_shifted_sum_label = "((x + a) + b) / ((c + d) + scalar)";
+    constexpr const char* mixed_recurrence_three_product_sum_label = "((x*a + y*b) + c*d) / ((c + d) + scalar)";
+    constexpr const char* scalar_mixed_recurrence_label = "((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)";
+    constexpr const char* fused_mixed_expression_label = "((x*y + a*b) + c) / (c*c + scalar)";
+    constexpr const char* affine_trig_transform_label = "affine trig transform";
+    constexpr const char* mandelbrot_kernel_label = "mandelbrot kernel";
 
     struct bench_result
     {
@@ -112,6 +121,37 @@ namespace
         std::string b{};
         std::string c{};
         std::string d{};
+    };
+
+    struct affine_transform_value_spec
+    {
+        const char* x = "0";
+        const char* y = "0";
+        const char* angle = "0";
+        const char* scale_x = "1";
+        const char* scale_y = "1";
+        const char* translate_x = "0";
+        const char* translate_y = "0";
+    };
+
+    struct generated_affine_transform_value_spec
+    {
+        std::string x{};
+        std::string y{};
+        std::string angle{};
+        std::string scale_x{};
+        std::string scale_y{};
+        std::string translate_x{};
+        std::string translate_y{};
+    };
+
+    enum class mixed_recurrence_workload
+    {
+        one,
+        two,
+        three,
+        four,
+        five
     };
 
     struct ldexp_value_spec
@@ -276,6 +316,17 @@ namespace
         hash_spec(hash, spec.b);
         hash_spec(hash, spec.c);
         hash_spec(hash, spec.d);
+    }
+
+    void hash_spec(std::uint64_t& hash, const affine_transform_value_spec& spec)
+    {
+        hash_spec(hash, spec.x);
+        hash_spec(hash, spec.y);
+        hash_spec(hash, spec.angle);
+        hash_spec(hash, spec.scale_x);
+        hash_spec(hash, spec.scale_y);
+        hash_spec(hash, spec.translate_x);
+        hash_spec(hash, spec.translate_y);
     }
 
     void hash_spec(std::uint64_t& hash, const ldexp_value_spec& spec)
@@ -642,6 +693,32 @@ namespace
             spec.b = make_random_benchmark_value(rng, b_domain);
             spec.c = make_random_benchmark_value(rng, c_domain);
             spec.d = make_random_benchmark_value(rng, d_domain);
+        }
+
+        return out;
+    }
+
+    [[nodiscard]] std::array<generated_affine_transform_value_spec, typical_value_count> make_typical_affine_transform_specs(const bucket_array_set<affine_transform_value_spec>& specs)
+    {
+        std::array<generated_affine_transform_value_spec, typical_value_count> out{};
+        std::mt19937_64 rng{make_typical_seed(specs, "affine-transform")};
+        const random_value_domain x_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.x; });
+        const random_value_domain y_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.y; });
+        const random_value_domain angle_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.angle; });
+        const random_value_domain scale_x_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.scale_x; });
+        const random_value_domain scale_y_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.scale_y; });
+        const random_value_domain translate_x_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.translate_x; });
+        const random_value_domain translate_y_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.translate_y; });
+
+        for (auto& spec : out)
+        {
+            spec.x = make_random_benchmark_value(rng, x_domain);
+            spec.y = make_random_benchmark_value(rng, y_domain);
+            spec.angle = make_random_benchmark_value(rng, angle_domain);
+            spec.scale_x = make_random_benchmark_value(rng, scale_x_domain);
+            spec.scale_y = make_random_benchmark_value(rng, scale_y_domain);
+            spec.translate_x = make_random_benchmark_value(rng, translate_x_domain);
+            spec.translate_y = make_random_benchmark_value(rng, translate_y_domain);
         }
 
         return out;
@@ -1226,6 +1303,46 @@ namespace
         return out;
     }
 
+    [[nodiscard]] bucket_array_set<affine_transform_value_spec> affine_transform_specs()
+    {
+        bucket_array_set<affine_transform_value_spec> out{};
+
+        out.easy = {{
+            { "-1.0", "0.5", "-0.78539816339744830962", "0.875", "1.125", "0.25", "-0.125" },
+            { "0.75", "-0.25", "0.52359877559829887308", "1.0", "0.75", "-0.375", "0.5" },
+            { "-0.5", "-0.75", "1.04719755119659774615", "0.625", "1.25", "0.125", "0.375" },
+            { "0.25", "1.0", "-1.57079632679489661923", "1.375", "0.875", "-0.5", "-0.25" },
+            { "1.125", "-0.625", "0.39269908169872415481", "0.75", "1.0", "0.3125", "-0.4375" },
+            { "-0.875", "0.875", "-0.26179938779914943654", "1.25", "0.625", "-0.1875", "0.25" },
+            { "0.5", "0.125", "1.30899693899574718269", "0.9375", "1.1875", "0.0625", "-0.3125" },
+            { "-0.125", "-1.125", "-1.17809724509617246442", "1.0625", "0.8125", "-0.25", "0.1875" }
+        }};
+
+        out.medium = {{
+            { "-1.1250000000000000000000000000000001", "0.3125000000000000000000000000000001", "-3.1415926535897932384626433832795029", "0.8750000000000000000000000000000001", "1.1250000000000000000000000000000001", "0.2500000000000000000000000000000001", "-0.1250000000000000000000000000000001" },
+            { "0.6875000000000000000000000000000001", "-0.9375000000000000000000000000000001", "-2.3561944901923449288469825374596272", "1.0312500000000000000000000000000001", "0.7812500000000000000000000000000001", "-0.3750000000000000000000000000000001", "0.5000000000000000000000000000000001" },
+            { "-0.3437500000000000000000000000000001", "0.8437500000000000000000000000000001", "-1.0471975511965977461542144610931676", "0.7187500000000000000000000000000001", "1.3125000000000000000000000000000001", "0.1250000000000000000000000000000001", "0.3750000000000000000000000000000001" },
+            { "0.1562500000000000000000000000000001", "-0.7187500000000000000000000000000001", "-0.3926990816987241548078304229099379", "1.4062500000000000000000000000000001", "0.9062500000000000000000000000000001", "-0.5000000000000000000000000000000001", "-0.2500000000000000000000000000000001" },
+            { "1.0312500000000000000000000000000001", "0.4062500000000000000000000000000001", "0.4487989505128276054946633404685004", "0.8125000000000000000000000000000001", "1.2187500000000000000000000000000001", "0.3125000000000000000000000000000001", "-0.4375000000000000000000000000000001" },
+            { "-0.6562500000000000000000000000000001", "-0.1875000000000000000000000000000001", "1.5707963267948966192313216916397514", "1.1875000000000000000000000000000001", "0.6875000000000000000000000000000001", "-0.1875000000000000000000000000000001", "0.2500000000000000000000000000000001" },
+            { "0.7812500000000000000000000000000001", "-1.0312500000000000000000000000000001", "2.0943951023931954923084289221863353", "0.9687500000000000000000000000000001", "1.3437500000000000000000000000000001", "0.0625000000000000000000000000000001", "-0.3125000000000000000000000000000001" },
+            { "-0.2187500000000000000000000000000001", "0.9375000000000000000000000000000001", "3.1415926535897932384626433832795029", "1.0937500000000000000000000000000001", "0.8437500000000000000000000000000001", "-0.2500000000000000000000000000000001", "0.1875000000000000000000000000000001" }
+        }};
+
+        out.hard = {{
+            { "-4.1250000000000000000000000000000001", "2.3125000000000000000000000000000001", "-12.5663706143591729538505735331180115", "0.7812500000000000000000000000000001", "1.4375000000000000000000000000000001", "1.2500000000000000000000000000000001", "-1.1250000000000000000000000000000001" },
+            { "3.6875000000000000000000000000000001", "-3.9375000000000000000000000000000001", "-9.4247779607693797153879301498385087", "1.5312500000000000000000000000000001", "0.6562500000000000000000000000000001", "-1.3750000000000000000000000000000001", "1.5000000000000000000000000000000001" },
+            { "-2.3437500000000000000000000000000001", "3.8437500000000000000000000000000001", "-6.2831853071795864769252867665590058", "0.5937500000000000000000000000000001", "1.6250000000000000000000000000000001", "1.1250000000000000000000000000000001", "1.3750000000000000000000000000000001" },
+            { "2.1562500000000000000000000000000001", "-2.7187500000000000000000000000000001", "-4.7123889803846898576939650749192543", "1.6875000000000000000000000000000001", "0.5625000000000000000000000000000001", "-1.5000000000000000000000000000000001", "-1.2500000000000000000000000000000001" },
+            { "4.0312500000000000000000000000000001", "1.4062500000000000000000000000000001", "4.7123889803846898576939650749192543", "0.6875000000000000000000000000000001", "1.5625000000000000000000000000000001", "1.3125000000000000000000000000000001", "-1.4375000000000000000000000000000001" },
+            { "-3.6562500000000000000000000000000001", "-1.1875000000000000000000000000000001", "6.2831853071795864769252867665590058", "1.4375000000000000000000000000000001", "0.5937500000000000000000000000000001", "-1.1875000000000000000000000000000001", "1.2500000000000000000000000000000001" },
+            { "2.7812500000000000000000000000000001", "-4.0312500000000000000000000000000001", "9.4247779607693797153879301498385087", "0.8437500000000000000000000000000001", "1.6875000000000000000000000000000001", "1.0625000000000000000000000000000001", "-1.3125000000000000000000000000000001" },
+            { "-1.2187500000000000000000000000000001", "3.9375000000000000000000000000000001", "12.5663706143591729538505735331180115", "1.2187500000000000000000000000000001", "0.7187500000000000000000000000000001", "-1.2500000000000000000000000000000001", "1.1875000000000000000000000000000001" }
+        }};
+
+        return out;
+    }
+
     template<typename Work>
     [[nodiscard]] bench_result run_benchmark(std::int64_t iteration_count, Work&& work)
     {
@@ -1280,12 +1397,18 @@ namespace
     void print_mandelbrot_result(const char* label, const comparison_result& result)
     {
         const double ratio = result.mpfr.ns_per_iter / result.f256.ns_per_iter;
+        constexpr std::int64_t pixel_count =
+            static_cast<std::int64_t>(mandelbrot_kernel_width) * static_cast<std::int64_t>(mandelbrot_kernel_height);
+        const double f256_ns_per_pixel = (result.f256.total_ms * 1'000'000.0) / static_cast<double>(pixel_count);
+        const double mpfr_ns_per_pixel = (result.mpfr.total_ms * 1'000'000.0) / static_cast<double>(pixel_count);
 
         std::cout
             << std::fixed << std::setprecision(2)
             << label
-            << "\n  f256 : " << result.f256.total_ms << " ms total, " << result.f256.ns_per_iter << " ns/pixel" << "  (pixels: " << result.f256.iteration_count << ")"
-            << "\n  mpfr : " << result.mpfr.total_ms << " ms total, " << result.mpfr.ns_per_iter << " ns/pixel" << "  (pixels: " << result.mpfr.iteration_count << ")"
+            << "\n  f256 : " << result.f256.total_ms << " ms total, " << result.f256.ns_per_iter << " ns/formula-iter, " << f256_ns_per_pixel << " ns/pixel"
+            << "  (formula_iterations: " << result.f256.iteration_count << ", pixels: " << pixel_count << ")"
+            << "\n  mpfr : " << result.mpfr.total_ms << " ms total, " << result.mpfr.ns_per_iter << " ns/formula-iter, " << mpfr_ns_per_pixel << " ns/pixel"
+            << "  (formula_iterations: " << result.mpfr.iteration_count << ", pixels: " << pixel_count << ")"
             << "\n  mpfr/f256 ratio: " << ratio << "x"
             << "\n";
     }
@@ -1864,7 +1987,7 @@ namespace
         });
     }
 
-    template<typename T, typename Spec, std::size_t ValueCount>
+    template<mixed_recurrence_workload Workload, typename T, typename Spec, std::size_t ValueCount>
     [[nodiscard]] bench_result benchmark_mixed_recurrence_bucket(
         const std::array<Spec, ValueCount>& specs,
         std::int64_t total_iterations,
@@ -1906,16 +2029,111 @@ namespace
             {
                 for (auto& item : state)
                 {
-                    auto xx = item.x * item.x;
-                    auto yy = item.y * item.y;
-                    auto xy0 = item.x * item.y;
-                    auto xy1 = item.x * item.y;
+                    const T x = item.x;
+                    const T y = item.y;
+                    const T a = item.a;
+                    const T b = item.b;
+                    const T c = item.c;
+                    const T d = item.d;
 
-                    const T next_x = (std::move(xx) - std::move(yy)) + item.a;
-                    item.y = (std::move(xy0) + std::move(xy1)) + item.b;
+                    if constexpr (Workload == mixed_recurrence_workload::one)
+                    {
+                        auto xx = x * x;
+                        auto yy = y * y;
+                        auto xy0 = x * y;
+                        auto xy1 = x * y;
+
+                        item.x = ((std::move(xx) - std::move(yy)) + a) / (c + 0.5);
+                        item.y = ((std::move(xy0) + std::move(xy1)) + b) / (d + 1.5);
+                    }
+                    else if constexpr (Workload == mixed_recurrence_workload::two)
+                    {
+                        item.x = (((x * a) + (y * b)) + c) / (c + 2.0);
+                        item.y = (((x * b) - (a * c)) - d) / (d + 2.5);
+                    }
+                    else if constexpr (Workload == mixed_recurrence_workload::three)
+                    {
+                        item.x = (((x * 1.125) + (y * -0.625)) + a) / (c + 1.75);
+                        item.y = (b - (x * 0.375)) / (d + 2.25);
+                    }
+                    else if constexpr (Workload == mixed_recurrence_workload::four)
+                    {
+                        item.x = ((x + a) + b) / ((c + d) + 1.0);
+                        item.y = ((y + c) - d) / ((a + b) + 2.0);
+                    }
+                    else
+                    {
+                        item.x = (((x * a) + (y * b)) + (c * d)) / ((c + d) + 2.0);
+                        item.y = (((x * b) + (y * a)) + ((c * d) + (a * b))) / (c + 3.0);
+                    }
+
+                    acc_x = blend_result(item.x, acc_x);
+                    acc_y = blend_result(item.y, acc_y);
+                }
+            }
+
+            return std::pair<T, T>{ acc_x, acc_y };
+        });
+    }
+
+    template<typename T, typename Spec, std::size_t ValueCount>
+    [[nodiscard]] bench_result benchmark_affine_trig_transform_bucket(
+        const std::array<Spec, ValueCount>& specs,
+        std::int64_t total_iterations,
+        bool scale_to_bucket = true)
+    {
+        struct transform_case
+        {
+            T x{};
+            T y{};
+            T angle{};
+            T scale_x{};
+            T scale_y{};
+            T translate_x{};
+            T translate_y{};
+        };
+
+        std::array<transform_case, ValueCount> values{};
+        for (std::size_t i = 0; i < ValueCount; ++i)
+        {
+            values[i].x = parse_benchmark_value<T>(benchmark_text(specs[i].x));
+            values[i].y = parse_benchmark_value<T>(benchmark_text(specs[i].y));
+            values[i].angle = parse_benchmark_value<T>(benchmark_text(specs[i].angle));
+            values[i].scale_x = parse_benchmark_value<T>(benchmark_text(specs[i].scale_x));
+            values[i].scale_y = parse_benchmark_value<T>(benchmark_text(specs[i].scale_y));
+            values[i].translate_x = parse_benchmark_value<T>(benchmark_text(specs[i].translate_x));
+            values[i].translate_y = parse_benchmark_value<T>(benchmark_text(specs[i].translate_y));
+        }
+
+        const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+
+        return run_benchmark(iteration_count, [&]()
+        {
+            auto state = values;
+            T acc_x = state.front().x;
+            T acc_y = state.front().y;
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (auto& item : state)
+                {
+                    const T sin_angle = apply_sin(item.angle);
+                    const T cos_angle = apply_cos(item.angle);
+                    const T neg_sin_angle = -sin_angle;
+
+                    const T m00 = cos_angle * item.scale_x;
+                    const T m01 = neg_sin_angle * item.scale_y;
+                    const T m10 = sin_angle * item.scale_x;
+                    const T m11 = cos_angle * item.scale_y;
+
+                    const T next_x = ((m00 * item.x) + (m01 * item.y) + item.translate_x) / (item.scale_x + 2.0);
+                    const T next_y = ((m10 * item.x) + (m11 * item.y) + item.translate_y) / (item.scale_y + 2.0);
+
                     item.x = next_x;
-                    item.x = item.x / (item.c + 0.5);
-                    item.y = item.y / (item.d + 1.5);
+                    item.y = next_y;
 
                     acc_x = blend_result(item.x, acc_x);
                     acc_y = blend_result(item.y, acc_y);
@@ -2504,6 +2722,7 @@ namespace
         return out;
     }
 
+    template<mixed_recurrence_workload Workload>
     [[nodiscard]] bucketed_comparison_result run_bucketed_mixed_recurrence_benchmark(
         const bucket_array_set<recurrence_value_spec>& specs,
         std::int64_t total_iterations)
@@ -2511,16 +2730,37 @@ namespace
         bucketed_comparison_result out{};
         if constexpr (!only_bench_typical)
         {
-            out.easy.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.easy, total_iterations);
-            out.easy.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.easy, total_iterations);
-            out.medium.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.medium, total_iterations);
-            out.medium.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.medium, total_iterations);
-            out.hard.f256 = benchmark_mixed_recurrence_bucket<f256>(specs.hard, total_iterations);
-            out.hard.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(specs.hard, total_iterations);
+            out.easy.f256 = benchmark_mixed_recurrence_bucket<Workload, f256>(specs.easy, total_iterations);
+            out.easy.mpfr = benchmark_mixed_recurrence_bucket<Workload, mpfr_ref>(specs.easy, total_iterations);
+            out.medium.f256 = benchmark_mixed_recurrence_bucket<Workload, f256>(specs.medium, total_iterations);
+            out.medium.mpfr = benchmark_mixed_recurrence_bucket<Workload, mpfr_ref>(specs.medium, total_iterations);
+            out.hard.f256 = benchmark_mixed_recurrence_bucket<Workload, f256>(specs.hard, total_iterations);
+            out.hard.mpfr = benchmark_mixed_recurrence_bucket<Workload, mpfr_ref>(specs.hard, total_iterations);
         }
         const auto typical_specs = make_typical_recurrence_specs(specs);
-        out.typical.f256 = benchmark_mixed_recurrence_bucket<f256>(typical_specs, total_iterations, false);
-        out.typical.mpfr = benchmark_mixed_recurrence_bucket<mpfr_ref>(typical_specs, total_iterations, false);
+        out.typical.f256 = benchmark_mixed_recurrence_bucket<Workload, f256>(typical_specs, total_iterations, false);
+        out.typical.mpfr = benchmark_mixed_recurrence_bucket<Workload, mpfr_ref>(typical_specs, total_iterations, false);
+
+        return out;
+    }
+
+    [[nodiscard]] bucketed_comparison_result run_bucketed_affine_trig_transform_benchmark(
+        const bucket_array_set<affine_transform_value_spec>& specs,
+        std::int64_t total_iterations)
+    {
+        bucketed_comparison_result out{};
+        if constexpr (!only_bench_typical)
+        {
+            out.easy.f256 = benchmark_affine_trig_transform_bucket<f256>(specs.easy, total_iterations);
+            out.easy.mpfr = benchmark_affine_trig_transform_bucket<mpfr_ref>(specs.easy, total_iterations);
+            out.medium.f256 = benchmark_affine_trig_transform_bucket<f256>(specs.medium, total_iterations);
+            out.medium.mpfr = benchmark_affine_trig_transform_bucket<mpfr_ref>(specs.medium, total_iterations);
+            out.hard.f256 = benchmark_affine_trig_transform_bucket<f256>(specs.hard, total_iterations);
+            out.hard.mpfr = benchmark_affine_trig_transform_bucket<mpfr_ref>(specs.hard, total_iterations);
+        }
+        const auto typical_specs = make_typical_affine_transform_specs(specs);
+        out.typical.f256 = benchmark_affine_trig_transform_bucket<f256>(typical_specs, total_iterations, false);
+        out.typical.mpfr = benchmark_affine_trig_transform_bucket<mpfr_ref>(typical_specs, total_iterations, false);
 
         return out;
     }
@@ -2630,9 +2870,6 @@ namespace
     template<typename T>
     [[nodiscard]] bench_result benchmark_mandelbrot_kernel()
     {
-        constexpr std::int64_t pixel_count =
-            static_cast<std::int64_t>(mandelbrot_kernel_width) * static_cast<std::int64_t>(mandelbrot_kernel_height);
-
         const auto start = clock_type::now();
         const mandelbrot_kernel_total<T> total = run_mandelbrot_kernel<T>();
         const auto end = clock_type::now();
@@ -2644,8 +2881,8 @@ namespace
 
         bench_result result;
         result.total_ms = elapsed.count();
-        result.ns_per_iter = (elapsed.count() * 1'000'000.0) / static_cast<double>(pixel_count);
-        result.iteration_count = pixel_count;
+        result.ns_per_iter = (elapsed.count() * 1'000'000.0) / static_cast<double>(total.escape_iterations);
+        result.iteration_count = total.escape_iterations;
         return result;
     }
 
@@ -3127,35 +3364,70 @@ TEST_CASE("f256 vs mpfr divide performance", "[bench][fltx][f256][arithmetic][di
     });
 }
 
-TEST_CASE("f256 vs mpfr mixed recurrence performance", "[bench][fltx][f256][arithmetic][mixed]")
+TEST_CASE("f256 vs mpfr square-difference mixed recurrence performance", "[bench][fltx][f256][mixed][mixed-workload]")
 {
     const std::int64_t total_iterations = 25000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_mixed_recurrence_benchmark(recurrence_specs(), total_iterations);
-    print_bucketed_results("Arithmetic", "mixed recurrence", results);
+    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::one>(recurrence_specs(), total_iterations);
+    print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_square_diff_label, results);
 }
 
-TEST_CASE("f256 vs mpfr Mandelbrot kernel performance", "[bench][fltx][f256][mandelbrot][kernel]")
+TEST_CASE("f256 vs mpfr product-sum mixed recurrence performance", "[bench][fltx][f256][mixed][mixed-workload]")
+{
+    const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::two>(scalar_mixed_recurrence_specs(), total_iterations);
+    print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_product_sum_label, results);
+}
+
+TEST_CASE("f256 vs mpfr scaled-product-sum mixed recurrence performance", "[bench][fltx][f256][mixed][mixed-workload]")
+{
+    const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::three>(scalar_mixed_recurrence_specs(), total_iterations);
+    print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_scaled_product_sum_label, results);
+}
+
+TEST_CASE("f256 vs mpfr shifted-sum mixed recurrence performance", "[bench][fltx][f256][mixed][mixed-workload]")
+{
+    const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::four>(scalar_mixed_recurrence_specs(), total_iterations);
+    print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_shifted_sum_label, results);
+}
+
+TEST_CASE("f256 vs mpfr three-product-sum mixed recurrence performance", "[bench][fltx][f256][mixed][mixed-workload]")
+{
+    const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::five>(scalar_mixed_recurrence_specs(), total_iterations);
+    print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_three_product_sum_label, results);
+}
+
+TEST_CASE("f256 vs mpfr affine trig transform performance", "[bench][fltx][f256][mixed][mixed-workload][affine][trig]")
+{
+    const std::int64_t total_iterations = 800ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_affine_trig_transform_benchmark(affine_transform_specs(), total_iterations);
+    print_bucketed_results(bl::bench::mixed_workloads_group_name, affine_trig_transform_label, results);
+}
+
+TEST_CASE("f256 vs mpfr mandelbrot kernel performance", "[bench][fltx][f256][mixed][mixed-workload][mandelbrot][kernel]")
 {
     comparison_result result{};
     result.f256 = benchmark_mandelbrot_kernel<f256>();
     result.mpfr = benchmark_mandelbrot_kernel<mpfr_ref>();
 
-    chart_writer.record_result("Mandelbrot", "Mandelbrot kernel", result.f256.ns_per_iter, result.mpfr.ns_per_iter);
-    print_mandelbrot_result("Mandelbrot kernel [32x32]", result);
+    chart_writer.record_result(bl::bench::mixed_workloads_group_name, mandelbrot_kernel_label, result.f256.ns_per_iter, result.mpfr.ns_per_iter);
+    print_mandelbrot_result("mandelbrot kernel [32x32]", result);
 }
 
-TEST_CASE("f256 vs mpfr scalar mixed recurrence performance", "[bench][fltx][f256][arithmetic][mixed][scalar]")
+TEST_CASE("f256 vs mpfr scalar mixed recurrence performance", "[bench][fltx][f256][mixed][mixed-workload][scalar]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_scalar_mixed_recurrence_benchmark(scalar_mixed_recurrence_specs(), total_iterations);
-    print_bucketed_results("Arithmetic", "scalar mixed recurrence", results);
+    print_bucketed_results(bl::bench::mixed_workloads_group_name, scalar_mixed_recurrence_label, results);
 }
 
-TEST_CASE("f256 vs mpfr fused mixed expression performance", "[bench][fltx][f256][arithmetic][mixed][fused]")
+TEST_CASE("f256 vs mpfr fused mixed expression performance", "[bench][fltx][f256][mixed][mixed-workload][fused]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_fused_mixed_expression_benchmark(scalar_mixed_recurrence_specs(), total_iterations);
-    print_bucketed_results("Arithmetic", "fused mixed expression", results);
+    print_bucketed_results(bl::bench::mixed_workloads_group_name, fused_mixed_expression_label, results);
 }
 
 TEST_CASE("f256 vs mpfr abs performance", "[bench][fltx][f256][arithmetic][abs]")

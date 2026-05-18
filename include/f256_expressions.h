@@ -738,11 +738,13 @@ namespace detail::_f256_expr
     template<class T>           inline constexpr bool is_sub_prod_prod_v = false;
     template<class T>           inline constexpr bool is_prod_add_leaf_v = false;
     template<class T>           inline constexpr bool is_prod_sub_leaf_v = false;
+    template<class T>           inline constexpr bool is_leaf_sub_prod_v = false;
                                 
     template<class L, class R>  inline constexpr bool is_add_prod_prod_v<add_expr<L, R>> = is_leaf_prod_v<L> && is_leaf_prod_v<R>;
     template<class L, class R>  inline constexpr bool is_sub_prod_prod_v<sub_expr<L, R>> = is_leaf_prod_v<L> && is_leaf_prod_v<R>;
     template<class L, class R>  inline constexpr bool is_prod_add_leaf_v<add_expr<L, R>> = is_leaf_prod_v<L> && is_leaf_v<R>;
     template<class L, class R>  inline constexpr bool is_prod_sub_leaf_v<sub_expr<L, R>> = is_leaf_prod_v<L> && is_leaf_v<R>;
+    template<class L, class R>  inline constexpr bool is_leaf_sub_prod_v<sub_expr<L, R>> = is_leaf_v<L> && is_leaf_prod_v<R>;
                                 
     // prod chain shapes        
     template<class T>           inline constexpr bool is_add_prod_prod_add_prod_v = false;
@@ -754,9 +756,17 @@ namespace detail::_f256_expr
     // scaled chain shapes      
     template<class T>           inline constexpr bool is_mul_double_add_mul_double_v = false;
     template<class T>           inline constexpr bool is_mul_double_add_mul_double_add_leaf_v = false;
+    template<class T>           inline constexpr bool is_mul_double_add_leaf_v = false;
+    template<class T>           inline constexpr bool is_leaf_add_mul_double_v = false;
+    template<class T>           inline constexpr bool is_mul_double_sub_leaf_v = false;
+    template<class T>           inline constexpr bool is_leaf_sub_mul_double_v = false;
                                 
     template<class L, class R>  inline constexpr bool is_mul_double_add_mul_double_v<add_expr<L, R>> = is_mul_double_v<L> && is_mul_double_v<R>;
     template<class L, class R>  inline constexpr bool is_mul_double_add_mul_double_add_leaf_v<add_expr<L, R>> = is_mul_double_add_mul_double_v<L> && is_leaf_v<R>;
+    template<class L, class R>  inline constexpr bool is_mul_double_add_leaf_v<add_expr<L, R>> = is_mul_double_v<L> && is_leaf_v<R>;
+    template<class L, class R>  inline constexpr bool is_leaf_add_mul_double_v<add_expr<L, R>> = is_leaf_v<L> && is_mul_double_v<R>;
+    template<class L, class R>  inline constexpr bool is_mul_double_sub_leaf_v<sub_expr<L, R>> = is_mul_double_v<L> && is_leaf_v<R>;
+    template<class L, class R>  inline constexpr bool is_leaf_sub_mul_double_v<sub_expr<L, R>> = is_leaf_v<L> && is_mul_double_v<R>;
 
     // compact prod nodes
     template<class T>           inline constexpr bool is_prod_pair_v = false;
@@ -1871,6 +1881,14 @@ namespace detail::_f256_expr
             {
                 return eval_leaf_prod_add_leaf_prod_sub_value(expr.left, expr.right.left, expr.right.right);
             }
+            else if constexpr (is_leaf_prod_v<LType> && is_leaf_sub_prod_v<RType>)
+            {
+                return eval_leaf_prod_sub_leaf_prod_add_value(expr.left, expr.right.right, expr.right.left);
+            }
+            else if constexpr (is_leaf_sub_prod_v<LType> && is_leaf_prod_v<RType>)
+            {
+                return eval_leaf_prod_sub_leaf_prod_add_value(expr.right, expr.left.right, expr.left.left);
+            }
 
             if constexpr (is_leaf_add_add_leaf_v<LType> && is_leaf_v<RType>)
             {
@@ -1924,12 +1942,61 @@ namespace detail::_f256_expr
             {
                 return eval_leaf_prod_sub_value_add_value(expr.right.left, expr.right.right, expr.left);
             }
+            else if constexpr (is_mul_double_v<LType> && is_mul_double_add_leaf_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left), expr.left.right,
+                    eval_to_f256_s(expr.right.left.left), expr.right.left.right,
+                    leaf_value(expr.right.right));
+            }
+            else if constexpr (is_mul_double_v<LType> && is_leaf_add_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left), expr.left.right,
+                    eval_to_f256_s(expr.right.right.left), expr.right.right.right,
+                    leaf_value(expr.right.left));
+            }
+            else if constexpr (is_mul_double_v<LType> && is_leaf_sub_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left), expr.left.right,
+                    eval_to_f256_s(expr.right.right.left), -expr.right.right.right,
+                    leaf_value(expr.right.left));
+            }
+            else if constexpr (is_mul_double_add_leaf_v<LType> && is_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left.left), expr.left.left.right,
+                    eval_to_f256_s(expr.right.left), expr.right.right,
+                    leaf_value(expr.left.right));
+            }
+            else if constexpr (is_leaf_add_mul_double_v<LType> && is_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.right.left), expr.left.right.right,
+                    eval_to_f256_s(expr.right.left), expr.right.right,
+                    leaf_value(expr.left.left));
+            }
+            else if constexpr (is_leaf_sub_mul_double_v<LType> && is_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.right.left), -expr.left.right.right,
+                    eval_to_f256_s(expr.right.left), expr.right.right,
+                    leaf_value(expr.left.left));
+            }
             else if constexpr (is_mul_double_add_mul_double_v<LType> && is_leaf_v<RType>)
             {
                 return mul_double_add_mul_double_add_eval(
                     eval_to_f256_s(expr.left.left.left), expr.left.left.right,
                     eval_to_f256_s(expr.left.right.left), expr.left.right.right,
                     leaf_value(expr.right));
+            }
+            else if constexpr (is_leaf_v<LType> && is_mul_double_add_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.right.left.left), expr.right.left.right,
+                    eval_to_f256_s(expr.right.right.left), expr.right.right.right,
+                    leaf_value(expr.left));
             }
             else if constexpr (is_mul_double_v<LType> && is_mul_double_v<RType>)
             {
@@ -2031,6 +2098,10 @@ namespace detail::_f256_expr
             {
                 return eval_leaf_prod_sub_leaf_prod_add_value(expr.left, expr.right.left, expr.right.right);
             }
+            else if constexpr (is_leaf_prod_v<LType> && is_leaf_sub_prod_v<RType>)
+            {
+                return eval_leaf_prod_add_leaf_prod_sub_value(expr.left, expr.right.right, expr.right.left);
+            }
 
             if constexpr (is_leaf_add_add_leaf_v<LType> && is_leaf_v<RType>)
             {
@@ -2087,6 +2158,62 @@ namespace detail::_f256_expr
             else if constexpr (is_leaf_prod_v<LType> && is_leaf_sub_v<RType>)
             {
                 return eval_leaf_prod_sub_value_add_value(expr.left, expr.right.left, expr.right.right);
+            }
+            else if constexpr (is_mul_double_v<LType> && is_mul_double_add_leaf_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left), expr.left.right,
+                    eval_to_f256_s(expr.right.left.left), -expr.right.left.right,
+                    -leaf_value(expr.right.right));
+            }
+            else if constexpr (is_mul_double_v<LType> && is_leaf_add_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left), expr.left.right,
+                    eval_to_f256_s(expr.right.right.left), -expr.right.right.right,
+                    -leaf_value(expr.right.left));
+            }
+            else if constexpr (is_mul_double_v<LType> && is_mul_double_sub_leaf_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left), expr.left.right,
+                    eval_to_f256_s(expr.right.left.left), -expr.right.left.right,
+                    leaf_value(expr.right.right));
+            }
+            else if constexpr (is_mul_double_v<LType> && is_leaf_sub_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left), expr.left.right,
+                    eval_to_f256_s(expr.right.right.left), expr.right.right.right,
+                    -leaf_value(expr.right.left));
+            }
+            else if constexpr (is_mul_double_add_leaf_v<LType> && is_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left.left), expr.left.left.right,
+                    eval_to_f256_s(expr.right.left), -expr.right.right,
+                    leaf_value(expr.left.right));
+            }
+            else if constexpr (is_leaf_add_mul_double_v<LType> && is_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.right.left), expr.left.right.right,
+                    eval_to_f256_s(expr.right.left), -expr.right.right,
+                    leaf_value(expr.left.left));
+            }
+            else if constexpr (is_mul_double_sub_leaf_v<LType> && is_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.left.left), expr.left.left.right,
+                    eval_to_f256_s(expr.right.left), -expr.right.right,
+                    -leaf_value(expr.left.right));
+            }
+            else if constexpr (is_leaf_sub_mul_double_v<LType> && is_mul_double_v<RType>)
+            {
+                return mul_double_add_mul_double_add_eval(
+                    eval_to_f256_s(expr.left.right.left), -expr.left.right.right,
+                    eval_to_f256_s(expr.right.left), -expr.right.right,
+                    leaf_value(expr.left.left));
             }
             else if constexpr (is_mul_double_v<LType> && is_leaf_v<RType>)
             {
@@ -2172,6 +2299,22 @@ namespace detail::_f256_expr
             using Value = value_t<RExpr>;
             return prod_pair_value_expr<LExpr, Prod, Value, 1, RExpr::v_sign>{
                 l_expr, r_expr.prod, r_expr.value
+            };
+        }
+        else if constexpr (is_leaf_prod_v<LExpr> && is_leaf_sub_prod_v<RExpr>)
+        {
+            using RProd = right_t<RExpr>;
+            using Value = left_t<RExpr>;
+            return prod_pair_value_expr<LExpr, RProd, Value, -1, 1>{
+                l_expr, r_expr.right, r_expr.left
+            };
+        }
+        else if constexpr (is_leaf_sub_prod_v<LExpr> && is_leaf_prod_v<RExpr>)
+        {
+            using LProd = right_t<LExpr>;
+            using Value = left_t<LExpr>;
+            return prod_pair_value_expr<RExpr, LProd, Value, -1, 1>{
+                r_expr, l_expr.right, l_expr.left
             };
         }
         else if constexpr (is_prod_pair_v<LExpr> && is_leaf_prod_v<RExpr>)
@@ -2266,6 +2409,14 @@ namespace detail::_f256_expr
             using Value = value_t<RExpr>;
             return prod_pair_value_expr<LExpr, Prod, Value, -1, -RExpr::v_sign>{
                 l_expr, r_expr.prod, r_expr.value
+            };
+        }
+        else if constexpr (is_leaf_prod_v<LExpr> && is_leaf_sub_prod_v<RExpr>)
+        {
+            using RProd = right_t<RExpr>;
+            using Value = left_t<RExpr>;
+            return prod_pair_value_expr<LExpr, RProd, Value, 1, -1>{
+                l_expr, r_expr.right, r_expr.left
             };
         }
         else if constexpr (is_leaf_prod_v<LExpr> && is_leaf_v<RExpr>)

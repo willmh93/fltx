@@ -34,6 +34,18 @@ static_assert(!std::is_convertible_v<f256_prod_expr&, f256>);
 static_assert(!std::is_constructible_v<f256, f256_prod_expr&>);
 static_assert(!std::is_constructible_v<f256, const f256_prod_expr&&>);
 static_assert(std::is_constructible_v<f256, f256_prod_expr&&>);
+using f256_prod_plus_value_sub_prod_expr = std::remove_cvref_t<decltype(
+    (std::declval<f256>() * std::declval<f256>()) +
+    (std::declval<f256>() - (std::declval<f256>() * std::declval<f256>())))>;
+using f256_value_sub_prod_plus_prod_expr = std::remove_cvref_t<decltype(
+    (std::declval<f256>() - (std::declval<f256>() * std::declval<f256>())) +
+    (std::declval<f256>() * std::declval<f256>()))>;
+using f256_prod_minus_value_sub_prod_expr = std::remove_cvref_t<decltype(
+    (std::declval<f256>() * std::declval<f256>()) -
+    (std::declval<f256>() - (std::declval<f256>() * std::declval<f256>())))>;
+static_assert(detail::_f256_expr::is_prod_pair_value_v<f256_prod_plus_value_sub_prod_expr>);
+static_assert(detail::_f256_expr::is_prod_pair_value_v<f256_value_sub_prod_plus_prod_expr>);
+static_assert(detail::_f256_expr::is_prod_pair_value_v<f256_prod_minus_value_sub_prod_expr>);
 
 namespace
 {
@@ -279,12 +291,36 @@ TEST_CASE("f256 delayed product expressions preserve simple multi-line value sem
     auto yy1 = y * y;
     const f256 product_reassociated = std::move(xy8) + (std::move(xx1) + std::move(yy1));
 
+    auto xx2 = x * x;
+    auto yy2 = y * y;
+    const f256 product_plus_value_sub_product = std::move(xx2) + (a - std::move(yy2));
+
+    auto xx3 = x * x;
+    auto yy3 = y * y;
+    const f256 value_sub_product_plus_product = (a - std::move(xx3)) + std::move(yy3);
+
+    auto xx4 = x * x;
+    auto yy4 = y * y;
+    const f256 product_minus_value_sub_product = std::move(xx4) - (a - std::move(yy4));
+
+    const f256 scaled_right_associated = (x * 1.25) + (a + y * -0.75);
+    const f256 scaled_value_sub_product = (x * 1.25) + (a - y * 0.75);
+    const f256 scaled_sub_associated = (x * 1.25) - (a + y * 0.75);
+    const f256 scaled_left_associated = (a + x * 1.25) - (y * 0.75);
+
     require_close_to_reference(doubled, x_ref * y_ref + x_ref * y_ref);
     require_close_to_reference(doubled_plus, a_ref + (x_ref * y_ref + x_ref * y_ref));
     require_close_to_reference(associated_plus, (x_ref * y_ref + a_ref) + x_ref * y_ref);
     require_close_to_reference(associated_minus, (x_ref * y_ref - a_ref) + x_ref * y_ref);
     require_close_to_reference(commuted_difference, a_ref + (x_ref * x_ref - y_ref * y_ref));
     require_close_to_reference(product_reassociated, x_ref * y_ref + (x_ref * x_ref + y_ref * y_ref));
+    require_close_to_reference(product_plus_value_sub_product, x_ref * x_ref + (a_ref - y_ref * y_ref));
+    require_close_to_reference(value_sub_product_plus_product, (a_ref - x_ref * x_ref) + y_ref * y_ref);
+    require_close_to_reference(product_minus_value_sub_product, x_ref * x_ref - (a_ref - y_ref * y_ref));
+    require_close_to_reference(scaled_right_associated, x_ref * mpfr_ref{ 1.25 } + (a_ref + y_ref * mpfr_ref{ -0.75 }));
+    require_close_to_reference(scaled_value_sub_product, x_ref * mpfr_ref{ 1.25 } + (a_ref - y_ref * mpfr_ref{ 0.75 }));
+    require_close_to_reference(scaled_sub_associated, x_ref * mpfr_ref{ 1.25 } - (a_ref + y_ref * mpfr_ref{ 0.75 }));
+    require_close_to_reference(scaled_left_associated, (a_ref + x_ref * mpfr_ref{ 1.25 }) - y_ref * mpfr_ref{ 0.75 });
 }
 
 TEST_CASE("f256 named expressions require explicit consumption", "[fltx][f256][precision][arithmetic][expressions][semantics][fusion]")
