@@ -1742,6 +1742,30 @@ namespace
                 });
 
             check_fused_expression_case(
+                "fused product-pair sum plus product-pair difference",
+                spec,
+                case_index,
+                { 2, 1, 4, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto, auto) {
+                    return ((a * b) + (c * d)) + ((d * e) - (a * c));
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto&) {
+                    return ((a * b) + (c * d)) + ((d * e) - (a * c));
+                });
+
+            check_fused_expression_case(
+                "fused product-pair difference minus product-pair sum",
+                spec,
+                case_index,
+                { 1, 2, 4, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto, auto) {
+                    return ((a * b) - (c * d)) - ((d * e) + (a * c));
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto&) {
+                    return ((a * b) - (c * d)) - ((d * e) + (a * c));
+                });
+
+            check_fused_expression_case(
                 "fused product sum plus value",
                 spec,
                 case_index,
@@ -1838,6 +1862,54 @@ namespace
                 });
 
             check_fused_expression_case(
+                "fused product plus scalar product",
+                spec,
+                case_index,
+                { 1, 0, 2, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto scalar, auto, auto) {
+                    return (a * b) + (c * scalar);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto& scalar, const auto&, const auto&) {
+                    return (a * b) + (c * scalar);
+                });
+
+            check_fused_expression_case(
+                "fused scalar product minus product",
+                spec,
+                case_index,
+                { 0, 1, 2, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, auto scalar, auto, auto) {
+                    return (c * scalar) - (a * b);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto&, const auto&, const auto& scalar, const auto&, const auto&) {
+                    return (c * scalar) - (a * b);
+                });
+
+            check_fused_expression_case(
+                "fused product-pair difference plus scalar product",
+                spec,
+                case_index,
+                { 1, 1, 3, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto scalar, auto, auto) {
+                    return ((a * b) - (c * d)) + (e * scalar);
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto& scalar, const auto&, const auto&) {
+                    return ((a * b) - (c * d)) + (e * scalar);
+                });
+
+            check_fused_expression_case(
+                "fused scalar product minus product-pair sum",
+                spec,
+                case_index,
+                { 1, 2, 3, 0 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto scalar, auto, auto) {
+                    return (e * scalar) - ((a * b) + (c * d));
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto& scalar, const auto&, const auto&) {
+                    return (e * scalar) - ((a * b) + (c * d));
+                });
+
+            check_fused_expression_case(
                 "fused product sum over add-double denominator",
                 spec,
                 case_index,
@@ -1871,6 +1943,18 @@ namespace
                 },
                 [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto&) {
                     return (((a * b) + (c * d)) + e) / ((c * c) + (d * d));
+                });
+
+            check_fused_expression_case(
+                "fused product difference over product-difference denominator",
+                spec,
+                case_index,
+                { 1, 2, 4, 1 },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, auto, auto, auto) {
+                    return (((a * b) - (c * d)) + e) / ((a * a) - (d * d));
+                },
+                [](const auto& a, const auto& b, const auto& c, const auto& d, const auto& e, const auto&, const auto&, const auto&) {
+                    return (((a * b) - (c * d)) + e) / ((a * a) - (d * d));
                 });
 
             ++case_index;
