@@ -15,6 +15,9 @@ from typing import Iterable
 
 BENCH_FILE_RE = re.compile(r"(?P<compiler>.+)_(?P<type>f128|f256)_typical_ratios\.csv$", re.IGNORECASE)
 
+TABLE_TITLE = "fltx benchmarks"
+TABLE_SUBTITLE = "Nanoseconds per iteration over deterministic representative input distributions, with the fltx-over-MPFR speedup ratio shown below."
+
 FP_TYPE_ORDER = {"f128": 0, "f256": 1}
 FP_TYPE_LABELS = {"f128": "f128", "f256": "f256"}
 
@@ -40,19 +43,32 @@ COMPILER_LABELS = {
     "emcc": "Emscripten",
 }
 
-HEADER_BG = "#334155"
+HEADER_BG = "#3B4B63"
 PLATFORM_HEADER_BG = "#475569"
 SUBHEADER_BG = "#64748B"
-GROUP_BG = "#E5E7EB"
+GROUP_BG = "#C9CDD6"
 GRID = "#D1D5DB"
 TEXT = "#111827"
 MUTED = "#4B5563"
 WHITE = "#FFFFFF"
-TYPE_SEPARATOR = "#F8FAFC"
+PAGE_BG = "#F5F7FB"
+TYPE_GAP_WIDTH = 16
+FUNCTION_COLUMN_MIN_WIDTH = 210
+FUNCTION_COLUMN_MAX_WIDTH = 720
+FUNCTION_COLUMN_CHAR_WIDTH = 8
+FUNCTION_COLUMN_PADDING = 34
+FUNCTION_COLUMN_WIDTH_SCALE = 0.75
 SLOW_RATIO_COLOR = "#FF0000"
-EVEN_RATIO_COLOR = "#D9F99D"
+STRONG_ORANGE_RATIO_COLOR = "#F97316"
+LIGHT_ORANGE_RATIO_COLOR = "#FDBA74"
+EVEN_RATIO_COLOR = "#BFEF8A"
 FAST_RATIO_COLOR = "#00B050"
-FAST_RATIO_CEILING = 10.0
+VERY_FAST_RATIO_COLOR = "#009D4A"
+SLOW_RATIO_FLOOR = 0.25
+STRONG_ORANGE_RATIO = 0.75
+LIGHT_ORANGE_RATIO = 0.90
+FAST_RATIO = 10.0
+VERY_FAST_RATIO = 20.0
 NATIVE_ARITHMETIC_GROUP = "Arithmetic"
 NATIVE_ARITHMETIC_LABELS = {"add", "subtract", "multiply", "divide"}
 MIXED_WORKLOADS_GROUP = "Mixed Workloads"
@@ -212,9 +228,7 @@ def visible_table_entry(fp_type: str, group: str, label: str) -> tuple[str, str]
         return None
 
     if group == MIXED_WORKLOADS_GROUP or group in LEGACY_MIXED_WORKLOADS_GROUPS:
-        if label == MIXED_WORKLOADS_AVERAGE_LABEL:
-            return MIXED_WORKLOADS_GROUP, label
-        return None
+        return MIXED_WORKLOADS_GROUP, label
 
     if (group, label) in HIDDEN_ROWS:
         return None
@@ -300,14 +314,26 @@ def mix_color(a: str, b: str, t: float) -> str:
 def ratio_color(ratio: float | None) -> str:
     if ratio is None:
         return WHITE
-    if ratio <= 0.0:
+    if ratio <= SLOW_RATIO_FLOOR:
         return SLOW_RATIO_COLOR
+
+    if ratio < STRONG_ORANGE_RATIO:
+        t = (ratio - SLOW_RATIO_FLOOR) / (STRONG_ORANGE_RATIO - SLOW_RATIO_FLOOR)
+        return mix_color(SLOW_RATIO_COLOR, STRONG_ORANGE_RATIO_COLOR, t)
+    if ratio < LIGHT_ORANGE_RATIO:
+        t = (ratio - STRONG_ORANGE_RATIO) / (LIGHT_ORANGE_RATIO - STRONG_ORANGE_RATIO)
+        return mix_color(STRONG_ORANGE_RATIO_COLOR, LIGHT_ORANGE_RATIO_COLOR, t)
     if ratio < 1.0:
-        return mix_color(SLOW_RATIO_COLOR, EVEN_RATIO_COLOR, ratio)
-    if ratio < FAST_RATIO_CEILING:
-        t = math.log(ratio) / math.log(FAST_RATIO_CEILING)
+        t = (ratio - LIGHT_ORANGE_RATIO) / (1.0 - LIGHT_ORANGE_RATIO)
+        return mix_color(LIGHT_ORANGE_RATIO_COLOR, EVEN_RATIO_COLOR, t)
+
+    if ratio < FAST_RATIO:
+        t = math.log(ratio) / math.log(FAST_RATIO)
         return mix_color(EVEN_RATIO_COLOR, FAST_RATIO_COLOR, t)
-    return FAST_RATIO_COLOR
+    if ratio < VERY_FAST_RATIO:
+        t = math.log(ratio / FAST_RATIO) / math.log(VERY_FAST_RATIO / FAST_RATIO)
+        return mix_color(FAST_RATIO_COLOR, VERY_FAST_RATIO_COLOR, t)
+    return VERY_FAST_RATIO_COLOR
 
 
 def text_color(background: str) -> str:
@@ -344,10 +370,6 @@ def is_type_boundary(columns: list[ColumnKey], index: int) -> bool:
     return index > 0 and columns[index].fp_type != columns[index - 1].fp_type
 
 
-def type_boundary_class(columns: list[ColumnKey], index: int) -> str:
-    return " type-start" if is_type_boundary(columns, index) else ""
-
-
 def type_boundary_indices(columns: list[ColumnKey]) -> list[int]:
     return [index for index in range(1, len(columns)) if is_type_boundary(columns, index)]
 
@@ -360,8 +382,9 @@ def render_type_header(columns: list[ColumnKey]) -> str:
         count = 1
         while index + count < len(columns) and columns[index + count].fp_type == fp_type:
             count += 1
-        classes = f"type{type_boundary_class(columns, index)}"
-        parts.append(f'<th class="{classes}" colspan="{count}">{e(fp_type_label(fp_type))}</th>')
+        if index > 0:
+            parts.append('<th class="type-gap" rowspan="3" aria-hidden="true"></th>')
+        parts.append(f'<th class="type" colspan="{count}">{e(fp_type_label(fp_type))}</th>')
         index += count
     parts.append("</tr>")
     return "".join(parts)
@@ -380,8 +403,7 @@ def render_platform_header(columns: list[ColumnKey]) -> str:
             and columns[index + count].platform == platform
         ):
             count += 1
-        classes = f"platform{type_boundary_class(columns, index)}"
-        parts.append(f'<th class="{classes}" colspan="{count}">{e(platform_label(platform))}</th>')
+        parts.append(f'<th class="platform" colspan="{count}">{e(platform_label(platform))}</th>')
         index += count
     parts.append("</tr>")
     return "".join(parts)
@@ -389,8 +411,8 @@ def render_platform_header(columns: list[ColumnKey]) -> str:
 
 def render_compiler_header(columns: list[ColumnKey]) -> str:
     return "<tr>" + "".join(
-        f'<th class="compiler{type_boundary_class(columns, index)}">{e(compiler_label(column.compiler))}</th>'
-        for index, column in enumerate(columns)
+        f'<th class="compiler">{e(compiler_label(column.compiler))}</th>'
+        for column in columns
     ) + "</tr>"
 
 
@@ -410,11 +432,38 @@ def render_html_cell(cell: BenchmarkCell | None, boundary_class: str = "") -> st
     )
 
 
+def fp_type_spans(columns: list[ColumnKey]) -> list[tuple[int, int]]:
+    spans: list[tuple[int, int]] = []
+    index = 0
+    while index < len(columns):
+        fp_type = columns[index].fp_type
+        count = 1
+        while index + count < len(columns) and columns[index + count].fp_type == fp_type:
+            count += 1
+        spans.append((index, count))
+        index += count
+    return spans
+
+
+def render_group_row(group: str, columns: list[ColumnKey]) -> str:
+    parts = ['<tr class="group-row">']
+    spans = fp_type_spans(columns)
+    for span_index, (_, count) in enumerate(spans):
+        if span_index > 0:
+            parts.append('<th class="type-gap" aria-hidden="true"></th>')
+
+        if span_index == 0:
+            parts.append(f'<th class="group-label" colspan="{count + 1}">{e(group)}</th>')
+        else:
+            parts.append(f'<th class="group-fill" colspan="{count}"></th>')
+    parts.append("</tr>")
+    return "".join(parts)
+
+
 def render_html_table(table: BenchmarkTable) -> str:
     if not table.columns:
         return '<p class="empty">No benchmark CSV files were found for this type.</p>'
 
-    column_count = len(table.columns) + 1
     parts = [
         '<table class="bench-table">',
         "<thead>",
@@ -425,27 +474,39 @@ def render_html_table(table: BenchmarkTable) -> str:
         "<tbody>",
     ]
     for group in table.groups:
-        parts.append(f'<tr class="group-row"><th colspan="{column_count}">{e(group)}</th></tr>')
+        parts.append(render_group_row(group, table.columns))
         for label in table.rows_by_group.get(group, []):
             parts.append("<tr>")
             parts.append(f'<th class="function">{e(label)}</th>')
             for index, column in enumerate(table.columns):
-                parts.append(render_html_cell(table.cells.get((group, label, column)), type_boundary_class(table.columns, index)))
+                if is_type_boundary(table.columns, index):
+                    parts.append('<td class="type-gap" aria-hidden="true"></td>')
+                parts.append(render_html_cell(table.cells.get((group, label, column))))
             parts.append("</tr>")
     parts.extend(["</tbody>", "</table>"])
     return "\n".join(parts)
 
 
+def function_column_width(table: BenchmarkTable) -> int:
+    labels = [label for group in table.groups for label in table.rows_by_group.get(group, [])]
+    longest_label = max([len("Function")] + [len(label) for label in labels])
+    natural_width = max(
+        FUNCTION_COLUMN_MIN_WIDTH,
+        min(FUNCTION_COLUMN_MAX_WIDTH, longest_label * FUNCTION_COLUMN_CHAR_WIDTH + FUNCTION_COLUMN_PADDING),
+    )
+    return round(natural_width * FUNCTION_COLUMN_WIDTH_SCALE)
+
+
 def render_html_document(table: BenchmarkTable) -> str:
-    title = "fltx Benchmark Table"
+    function_w = function_column_width(table)
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{e(title)}</title>
+<title>{e(TABLE_TITLE)}</title>
 <style>
-:root {{ color-scheme: light; font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: #f5f7fb; color: {TEXT}; }}
+:root {{ color-scheme: light; font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: {PAGE_BG}; color: {TEXT}; }}
 body {{ margin: 0; padding: 32px; }}
 h1 {{ margin: 0 0 8px; font-size: 28px; }}
 .note {{ max-width: 960px; margin: 0 0 24px; color: {MUTED}; line-height: 1.45; }}
@@ -455,8 +516,8 @@ h1 {{ margin: 0 0 8px; font-size: 28px; }}
 .bench-table thead th {{ background: {HEADER_BG}; color: {WHITE}; font-weight: 700; }}
 .bench-table thead th.platform {{ background: {PLATFORM_HEADER_BG}; }}
 .bench-table thead th.compiler {{ background: {SUBHEADER_BG}; }}
-.bench-table th.type-start, .bench-table td.type-start {{ border-left: 6px solid {TYPE_SEPARATOR} !important; }}
-.bench-table th.function {{ min-width: 190px; text-align: left; white-space: nowrap; }}
+.bench-table th.type-gap, .bench-table td.type-gap {{ width: {TYPE_GAP_WIDTH}px; min-width: {TYPE_GAP_WIDTH}px; padding: 0; border-top: 1px hidden transparent !important; border-bottom: 1px hidden transparent !important; border-left: 1px solid {GRID} !important; border-right: 1px solid {GRID} !important; background: {PAGE_BG} !important; }}
+.bench-table th.function {{ width: {function_w}px; min-width: {function_w}px; max-width: {function_w}px; text-align: left; white-space: normal; overflow-wrap: anywhere; }}
 .bench-table tbody th.function {{ font-size: 14px; }}
 .group-row th {{ background: {GROUP_BG}; color: {TEXT}; text-align: left; font-size: 13px; letter-spacing: 0.02em; }}
 .result {{ min-width: 92px; font-weight: 700; }}
@@ -467,8 +528,8 @@ h1 {{ margin: 0 0 8px; font-size: 28px; }}
 </style>
 </head>
 <body>
-<h1>{e(title)}</h1>
-<p class="note">Each cell shows typical nanoseconds per iteration, then the reference-to-fltx speed ratio when present. Missing ratios are left white and show timing only.</p>
+<h1>{e(TABLE_TITLE)}</h1>
+<p class="note">{e(TABLE_SUBTITLE)}</p>
 <div class="table-wrap">
 {render_html_table(table)}
 </div>
@@ -488,8 +549,15 @@ def svg_rect(x: int, y: int, width: int, height: int, fill: str, stroke: str = G
     return f'<rect x="{x}" y="{y}" width="{width}" height="{height}" fill="{fill}" stroke="{stroke}" stroke-width="1"/>'
 
 
-def svg_line(x1: int, y1: int, x2: int, y2: int, color: str, width: int) -> str:
-    return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" stroke-width="{width}" stroke-linecap="square"/>'
+def svg_rect_no_stroke(x: int, y: int, width: int, height: int, fill: str) -> str:
+    return f'<rect x="{x}" y="{y}" width="{width}" height="{height}" fill="{fill}"/>'
+
+
+def svg_vertical_borders(x: int, y: int, width: int, height: int, color: str) -> str:
+    return (
+        f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + height}" stroke="{color}" stroke-width="1"/>'
+        f'<line x1="{x + width}" y1="{y}" x2="{x + width}" y2="{y + height}" stroke="{color}" stroke-width="1"/>'
+    )
 
 
 def table_row_count(table: BenchmarkTable) -> int:
@@ -504,19 +572,20 @@ def render_svg_table(table: BenchmarkTable) -> str:
     row_h = 40
     margin = 18
 
-    longest_label = max([len("Function")] + [len(label) for group in table.groups for label in table.rows_by_group.get(group, [])])
-    function_w = max(210, min(360, longest_label * 8 + 34))
+    function_w = function_column_width(table)
     column_w = 116
-    width = margin * 2 + function_w + column_w * max(1, len(table.columns))
+    boundaries = set(type_boundary_indices(table.columns))
+    width = margin * 2 + function_w + column_w * max(1, len(table.columns)) + TYPE_GAP_WIDTH * len(boundaries)
+    width = max(width, margin * 2 + math.ceil(len(TABLE_SUBTITLE) * 7.2))
     height = margin * 2 + title_h + header_h * header_rows + group_h * len(table.groups) + row_h * sum(len(table.rows_by_group.get(group, [])) for group in table.groups)
 
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
-        '<title id="title">fltx benchmark table</title>',
-        '<desc id="desc">Benchmark table showing nanoseconds per iteration and reference-to-fltx ratio by platform and compiler.</desc>',
-        f'<rect width="{width}" height="{height}" fill="#F5F7FB"/>',
-        svg_text(margin, margin + 26, "fltx Benchmark Results", 24, TEXT, 700),
-        svg_text(margin, margin + 50, "Typical ns/iter with reference-to-fltx ratio underneath", 13, MUTED),
+        f'<title id="title">{e(TABLE_TITLE)}</title>',
+        f'<desc id="desc">{e(TABLE_SUBTITLE)}</desc>',
+        f'<rect width="{width}" height="{height}" fill="{PAGE_BG}"/>',
+        svg_text(margin, margin + 26, TABLE_TITLE, 24, TEXT, 700),
+        svg_text(margin, margin + 50, TABLE_SUBTITLE, 13, MUTED),
     ]
 
     if not table.columns:
@@ -526,7 +595,6 @@ def render_svg_table(table: BenchmarkTable) -> str:
 
     table_x = margin
     y = margin + title_h
-    table_top = y
     parts.append(svg_rect(table_x, y, function_w, header_h * header_rows, HEADER_BG))
     parts.append(svg_text(table_x + 14, y + 60, "Function", 13, WHITE, 700))
 
@@ -537,6 +605,8 @@ def render_svg_table(table: BenchmarkTable) -> str:
         count = 1
         while index + count < len(table.columns) and table.columns[index + count].fp_type == fp_type:
             count += 1
+        if index in boundaries:
+            x += TYPE_GAP_WIDTH
         span_w = count * column_w
         parts.append(svg_rect(x, y, span_w, header_h, HEADER_BG))
         parts.append(svg_text(x + span_w // 2, y + 22, fp_type_label(fp_type), 13, WHITE, 700, "middle"))
@@ -556,6 +626,8 @@ def render_svg_table(table: BenchmarkTable) -> str:
             and table.columns[index + count].platform == platform
         ):
             count += 1
+        if index in boundaries:
+            x += TYPE_GAP_WIDTH
         span_w = count * column_w
         parts.append(svg_rect(x, y, span_w, header_h, PLATFORM_HEADER_BG))
         parts.append(svg_text(x + span_w // 2, y + 22, platform_label(platform), 13, WHITE, 700, "middle"))
@@ -564,15 +636,26 @@ def render_svg_table(table: BenchmarkTable) -> str:
 
     y += header_h
     x = table_x + function_w
-    for column in table.columns:
+    for index, column in enumerate(table.columns):
+        if index in boundaries:
+            x += TYPE_GAP_WIDTH
         parts.append(svg_rect(x, y, column_w, header_h, SUBHEADER_BG))
         parts.append(svg_text(x + column_w // 2, y + 22, compiler_label(column.compiler), 13, WHITE, 700, "middle"))
         x += column_w
 
     y += header_h
     for group in table.groups:
-        total_w = function_w + column_w * len(table.columns)
-        parts.append(svg_rect(table_x, y, total_w, group_h, GROUP_BG))
+        group_x = table_x
+        for span_index, (_, count) in enumerate(fp_type_spans(table.columns)):
+            if span_index == 0:
+                span_w = function_w + column_w * count
+            else:
+                parts.append(svg_rect_no_stroke(group_x, y, TYPE_GAP_WIDTH, group_h, PAGE_BG))
+                parts.append(svg_vertical_borders(group_x, y, TYPE_GAP_WIDTH, group_h, GRID))
+                group_x += TYPE_GAP_WIDTH
+                span_w = column_w * count
+            parts.append(svg_rect(group_x, y, span_w, group_h, GROUP_BG))
+            group_x += span_w
         parts.append(svg_text(table_x + 14, y + 19, group, 12, TEXT, 700))
         y += group_h
 
@@ -580,7 +663,9 @@ def render_svg_table(table: BenchmarkTable) -> str:
             parts.append(svg_rect(table_x, y, function_w, row_h, WHITE))
             parts.append(svg_text(table_x + 14, y + 25, label, 13, TEXT, 600))
             x = table_x + function_w
-            for column in table.columns:
+            for index, column in enumerate(table.columns):
+                if index in boundaries:
+                    x += TYPE_GAP_WIDTH
                 cell = table.cells.get((group, label, column))
                 if cell is None or cell.ns_per_iter is None:
                     parts.append(svg_rect(x, y, column_w, row_h, WHITE))
@@ -595,10 +680,6 @@ def render_svg_table(table: BenchmarkTable) -> str:
                     parts.append(svg_text(x + column_w // 2, y + 33, format_ratio(cell.ratio), 11, color, 600, "middle"))
                 x += column_w
             y += row_h
-
-    for index in type_boundary_indices(table.columns):
-        separator_x = table_x + function_w + index * column_w
-        parts.append(svg_line(separator_x, table_top, separator_x, y, TYPE_SEPARATOR, 6))
 
     parts.append("</svg>")
     return "\n".join(parts)

@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>fltx Benchmark Table</title>
+<title>fltx benchmarks</title>
 <style>
-:root { color-scheme: light; font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: #f5f7fb; color: #111827; }
+:root { color-scheme: light; font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: #F5F7FB; color: #111827; }
 body { margin: 0; padding: 32px; }
 h1 { margin: 0 0 8px; font-size: 28px; }
 .note { max-width: 960px; margin: 0 0 24px; color: #4B5563; line-height: 1.45; }
 .table-wrap { overflow-x: auto; }
 .bench-table { border-collapse: collapse; min-width: 760px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); font-size: 13px; }
 .bench-table th, .bench-table td { border: 1px solid #D1D5DB; padding: 6px 10px; text-align: center; vertical-align: middle; }
-.bench-table thead th { background: #334155; color: #FFFFFF; font-weight: 700; }
+.bench-table thead th { background: #3B4B63; color: #FFFFFF; font-weight: 700; }
 .bench-table thead th.platform { background: #475569; }
 .bench-table thead th.compiler { background: #64748B; }
-.bench-table th.type-start, .bench-table td.type-start { border-left: 6px solid #F8FAFC !important; }
-.bench-table th.function { min-width: 190px; text-align: left; white-space: nowrap; }
+.bench-table th.type-gap, .bench-table td.type-gap { width: 16px; min-width: 16px; padding: 0; border-top: 1px hidden transparent !important; border-bottom: 1px hidden transparent !important; border-left: 1px solid #D1D5DB !important; border-right: 1px solid #D1D5DB !important; background: #F5F7FB !important; }
+.bench-table th.function { width: 344px; min-width: 344px; max-width: 344px; text-align: left; white-space: normal; overflow-wrap: anywhere; }
 .bench-table tbody th.function { font-size: 14px; }
-.group-row th { background: #E5E7EB; color: #111827; text-align: left; font-size: 13px; letter-spacing: 0.02em; }
+.group-row th { background: #C9CDD6; color: #111827; text-align: left; font-size: 13px; letter-spacing: 0.02em; }
 .result { min-width: 92px; font-weight: 700; }
 .result.no-ratio, .missing { background: #FFFFFF; color: #000000; }
 .timer { line-height: 1.05; }
@@ -27,584 +27,595 @@ h1 { margin: 0 0 8px; font-size: 28px; }
 </style>
 </head>
 <body>
-<h1>fltx Benchmark Table</h1>
-<p class="note">Each cell shows typical nanoseconds per iteration, then the reference-to-fltx speed ratio when present. Missing ratios are left white and show timing only.</p>
+<h1>fltx benchmarks</h1>
+<p class="note">Nanoseconds per iteration over deterministic representative input distributions, with the fltx-over-MPFR speedup ratio shown below.</p>
 <div class="table-wrap">
 <table class="bench-table">
 <thead>
-<tr><th class="function" rowspan="3">Function</th><th class="type" colspan="3">f128</th><th class="type type-start" colspan="3">f256</th></tr>
-<tr><th class="platform" colspan="1">Windows</th><th class="platform" colspan="2">Linux</th><th class="platform type-start" colspan="1">Windows</th><th class="platform" colspan="2">Linux</th></tr>
-<tr><th class="compiler">MinGW</th><th class="compiler">GCC</th><th class="compiler">Clang</th><th class="compiler type-start">MinGW</th><th class="compiler">GCC</th><th class="compiler">Clang</th></tr>
+<tr><th class="function" rowspan="3">Function</th><th class="type" colspan="2">f128</th><th class="type-gap" rowspan="3" aria-hidden="true"></th><th class="type" colspan="2">f256</th></tr>
+<tr><th class="platform" colspan="2">Bench</th><th class="platform" colspan="2">Bench</th></tr>
+<tr><th class="compiler">GCC</th><th class="compiler">Clang</th><th class="compiler">GCC</th><th class="compiler">Clang</th></tr>
 </thead>
 <tbody>
-<tr class="group-row"><th colspan="7">Arithmetic</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Arithmetic</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">add</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.0ns</div><div class="ratio">24.49x</div></td>
-<td class="result" style="background:#46C869;color:#000000"><div class="timer">13.3ns</div><div class="ratio">4.74x</div></td>
-<td class="result" style="background:#1AB959;color:#000000"><div class="timer">7.51ns</div><div class="ratio">7.62x</div></td>
-<td class="result type-start" style="background:#1EBA5B;color:#000000"><div class="timer">28.3ns</div><div class="ratio">7.27x</div></td>
-<td class="result" style="background:#7FDB7D;color:#000000"><div class="timer">28.1ns</div><div class="ratio">2.61x</div></td>
-<td class="result" style="background:#89DE81;color:#000000"><div class="timer">29.7ns</div><div class="ratio">2.33x</div></td>
+<td class="result" style="background:#32C15F;color:#000000"><div class="timer">13.2ns</div><div class="ratio">5.46x</div></td>
+<td class="result" style="background:#16B757;color:#000000"><div class="timer">7.39ns</div><div class="ratio">7.70x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#71D572;color:#000000"><div class="timer">28.2ns</div><div class="ratio">2.57x</div></td>
+<td class="result" style="background:#78D874;color:#000000"><div class="timer">29.6ns</div><div class="ratio">2.35x</div></td>
 </tr>
 <tr>
 <th class="function">subtract</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.0ns</div><div class="ratio">26.22x</div></td>
-<td class="result" style="background:#47C869;color:#000000"><div class="timer">13.2ns</div><div class="ratio">4.72x</div></td>
-<td class="result" style="background:#18B858;color:#000000"><div class="timer">7.40ns</div><div class="ratio">7.78x</div></td>
-<td class="result type-start" style="background:#23BC5D;color:#000000"><div class="timer">29.8ns</div><div class="ratio">6.88x</div></td>
-<td class="result" style="background:#81DB7E;color:#000000"><div class="timer">28.5ns</div><div class="ratio">2.54x</div></td>
-<td class="result" style="background:#87DE80;color:#000000"><div class="timer">29.5ns</div><div class="ratio">2.38x</div></td>
+<td class="result" style="background:#36C260;color:#000000"><div class="timer">13.1ns</div><div class="ratio">5.23x</div></td>
+<td class="result" style="background:#18B857;color:#000000"><div class="timer">7.54ns</div><div class="ratio">7.47x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#70D572;color:#000000"><div class="timer">28.6ns</div><div class="ratio">2.58x</div></td>
+<td class="result" style="background:#77D774;color:#000000"><div class="timer">29.6ns</div><div class="ratio">2.39x</div></td>
 </tr>
 <tr>
 <th class="function">multiply</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">10.8ns</div><div class="ratio">25.44x</div></td>
-<td class="result" style="background:#45C768;color:#000000"><div class="timer">13.2ns</div><div class="ratio">4.81x</div></td>
-<td class="result" style="background:#27BD5E;color:#000000"><div class="timer">8.72ns</div><div class="ratio">6.61x</div></td>
-<td class="result type-start" style="background:#18B859;color:#000000"><div class="timer">36.2ns</div><div class="ratio">7.74x</div></td>
-<td class="result" style="background:#85DD7F;color:#000000"><div class="timer">35.2ns</div><div class="ratio">2.44x</div></td>
-<td class="result" style="background:#82DC7E;color:#000000"><div class="timer">32.6ns</div><div class="ratio">2.53x</div></td>
+<td class="result" style="background:#2FBF5E;color:#000000"><div class="timer">13.1ns</div><div class="ratio">5.70x</div></td>
+<td class="result" style="background:#20BA5A;color:#000000"><div class="timer">8.51ns</div><div class="ratio">6.82x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#77D774;color:#000000"><div class="timer">34.1ns</div><div class="ratio">2.38x</div></td>
+<td class="result" style="background:#76D774;color:#000000"><div class="timer">33.2ns</div><div class="ratio">2.41x</div></td>
 </tr>
 <tr>
 <th class="function">divide</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">10.9ns</div><div class="ratio">26.51x</div></td>
-<td class="result" style="background:#3BC465;color:#000000"><div class="timer">13.3ns</div><div class="ratio">5.33x</div></td>
-<td class="result" style="background:#0CB454;color:#000000"><div class="timer">7.64ns</div><div class="ratio">8.85x</div></td>
-<td class="result type-start" style="background:#73D779;color:#000000"><div class="timer">85.8ns</div><div class="ratio">2.97x</div></td>
-<td class="result" style="background:#CAF498;color:#000000"><div class="timer">83.4ns</div><div class="ratio">1.17x</div></td>
-<td class="result" style="background:#D5F89C;color:#000000"><div class="timer">92.4ns</div><div class="ratio">1.04x</div></td>
+<td class="result" style="background:#2EBF5E;color:#000000"><div class="timer">13.4ns</div><div class="ratio">5.75x</div></td>
+<td class="result" style="background:#08B352;color:#000000"><div class="timer">7.45ns</div><div class="ratio">9.07x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#B0EA85;color:#000000"><div class="timer">83.3ns</div><div class="ratio">1.20x</div></td>
+<td class="result" style="background:#BFEF8A;color:#000000"><div class="timer">92.3ns</div><div class="ratio">1.00x</div></td>
+</tr>
+<tr class="group-row"><th class="group-label" colspan="3">Mixed Workloads</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
+<tr>
+<th class="function">affine trig transform</th>
+<td class="result" style="background:#13B656;color:#000000"><div class="timer">197ns</div><div class="ratio">7.97x</div></td>
+<td class="result" style="background:#19B858;color:#000000"><div class="timer">200ns</div><div class="ratio">7.38x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#ADE984;color:#000000"><div class="timer">1,810ns</div><div class="ratio">1.25x</div></td>
+<td class="result" style="background:#ACE984;color:#000000"><div class="timer">1,794ns</div><div class="ratio">1.26x</div></td>
 </tr>
 <tr>
-<th class="function">mixed recurrence</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">19.5ns</div><div class="ratio">40.53x</div></td>
-<td class="result" style="background:#38C364;color:#000000"><div class="timer">18.7ns</div><div class="ratio">5.49x</div></td>
-<td class="result" style="background:#31C061;color:#000000"><div class="timer">18.2ns</div><div class="ratio">5.97x</div></td>
-<td class="result type-start" style="background:#64D273;color:#000000"><div class="timer">260ns</div><div class="ratio">3.46x</div></td>
-<td class="result" style="background:#DDDD8B;color:#000000"><div class="timer">259ns</div><div class="ratio">0.89x</div></td>
-<td class="result" style="background:#DED888;color:#000000"><div class="timer">264ns</div><div class="ratio">0.87x</div></td>
+<th class="function">mandelbrot kernel</th>
+<td class="result" style="background:#1FBA59;color:#000000"><div class="timer">19.7ns</div><div class="ratio">6.88x</div></td>
+<td class="result" style="background:#04B151;color:#000000"><div class="timer">13.6ns</div><div class="ratio">9.58x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#A3E682;color:#000000"><div class="timer">134ns</div><div class="ratio">1.40x</div></td>
+<td class="result" style="background:#91E07C;color:#000000"><div class="timer">121ns</div><div class="ratio">1.75x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Rounding</th></tr>
+<tr>
+<th class="function">((x*x - y*y) + a) / (c + scalar)</th>
+<td class="result" style="background:#00AD4F;color:#000000"><div class="timer">19.9ns</div><div class="ratio">10.97x</div></td>
+<td class="result" style="background:#00AD4F;color:#000000"><div class="timer">19.8ns</div><div class="ratio">10.97x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#B9ED88;color:#000000"><div class="timer">265ns</div><div class="ratio">1.08x</div></td>
+<td class="result" style="background:#BBEE89;color:#000000"><div class="timer">267ns</div><div class="ratio">1.04x</div></td>
+</tr>
+<tr>
+<th class="function">((x*a + y*b) + c) / (c + scalar)</th>
+<td class="result" style="background:#00A44C;color:#000000"><div class="timer">21.8ns</div><div class="ratio">15.45x</div></td>
+<td class="result" style="background:#00A44C;color:#000000"><div class="timer">20.7ns</div><div class="ratio">15.70x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#8ADE7A;color:#000000"><div class="timer">266ns</div><div class="ratio">1.89x</div></td>
+<td class="result" style="background:#97E27E;color:#000000"><div class="timer">314ns</div><div class="ratio">1.63x</div></td>
+</tr>
+<tr>
+<th class="function">((x*sa + y*sb) + a) / (c + scalar)</th>
+<td class="result" style="background:#009D4A;color:#000000"><div class="timer">18.1ns</div><div class="ratio">19.86x</div></td>
+<td class="result" style="background:#009E4A;color:#000000"><div class="timer">17.9ns</div><div class="ratio">19.53x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#75D673;color:#000000"><div class="timer">220ns</div><div class="ratio">2.45x</div></td>
+<td class="result" style="background:#7AD875;color:#000000"><div class="timer">227ns</div><div class="ratio">2.30x</div></td>
+</tr>
+<tr>
+<th class="function">((x + a) + b) / ((c + d) + scalar)</th>
+<td class="result" style="background:#00A84E;color:#000000"><div class="timer">20.0ns</div><div class="ratio">13.26x</div></td>
+<td class="result" style="background:#00A84E;color:#000000"><div class="timer">20.5ns</div><div class="ratio">13.16x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#8DDE7B;color:#000000"><div class="timer">226ns</div><div class="ratio">1.83x</div></td>
+<td class="result" style="background:#92E07C;color:#000000"><div class="timer">237ns</div><div class="ratio">1.72x</div></td>
+</tr>
+<tr>
+<th class="function">((x*a + y*b) + c*d) / ((c + d) + scalar)</th>
+<td class="result" style="background:#00A34C;color:#000000"><div class="timer">25.3ns</div><div class="ratio">16.06x</div></td>
+<td class="result" style="background:#00A54D;color:#000000"><div class="timer">25.1ns</div><div class="ratio">14.93x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#90DF7C;color:#000000"><div class="timer">334ns</div><div class="ratio">1.77x</div></td>
+<td class="result" style="background:#90DF7C;color:#000000"><div class="timer">335ns</div><div class="ratio">1.77x</div></td>
+</tr>
+<tr>
+<th class="function">((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)</th>
+<td class="result" style="background:#00A04B;color:#000000"><div class="timer">39.2ns</div><div class="ratio">17.82x</div></td>
+<td class="result" style="background:#00A24C;color:#000000"><div class="timer">39.7ns</div><div class="ratio">16.61x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#85DC79;color:#000000"><div class="timer">503ns</div><div class="ratio">2.00x</div></td>
+<td class="result" style="background:#89DD7A;color:#000000"><div class="timer">531ns</div><div class="ratio">1.91x</div></td>
+</tr>
+<tr>
+<th class="function">((x*y + a*b) + c) / (c*c + scalar)</th>
+<td class="result" style="background:#00AA4E;color:#000000"><div class="timer">24.1ns</div><div class="ratio">12.56x</div></td>
+<td class="result" style="background:#00AE4F;color:#000000"><div class="timer">23.8ns</div><div class="ratio">10.93x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#A3E682;color:#000000"><div class="timer">334ns</div><div class="ratio">1.40x</div></td>
+<td class="result" style="background:#9CE37F;color:#000000"><div class="timer">318ns</div><div class="ratio">1.52x</div></td>
+</tr>
+<tr>
+<th class="function">mixed workload average</th>
+<td class="result" style="background:#00A84D;color:#000000"><div class="timer">42.8ns</div><div class="ratio">13.43x</div></td>
+<td class="result" style="background:#00A84E;color:#000000"><div class="timer">42.3ns</div><div class="ratio">13.20x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#94E17D;color:#000000"><div class="timer">455ns</div><div class="ratio">1.67x</div></td>
+<td class="result" style="background:#95E17D;color:#000000"><div class="timer">460ns</div><div class="ratio">1.66x</div></td>
+</tr>
+<tr class="group-row"><th class="group-label" colspan="3">Rounding</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">floor</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">10.9ns</div><div class="ratio">23.90x</div></td>
-<td class="result" style="background:#4FCA6C;color:#000000"><div class="timer">13.4ns</div><div class="ratio">4.34x</div></td>
-<td class="result" style="background:#2DBF60;color:#000000"><div class="timer">9.25ns</div><div class="ratio">6.18x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">23.8ns</div><div class="ratio">10.37x</div></td>
-<td class="result" style="background:#79D97B;color:#000000"><div class="timer">24.7ns</div><div class="ratio">2.78x</div></td>
-<td class="result" style="background:#6DD577;color:#000000"><div class="timer">21.1ns</div><div class="ratio">3.15x</div></td>
+<td class="result" style="background:#3CC462;color:#000000"><div class="timer">13.3ns</div><div class="ratio">4.85x</div></td>
+<td class="result" style="background:#27BD5C;color:#000000"><div class="timer">9.26ns</div><div class="ratio">6.24x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#68D270;color:#000000"><div class="timer">24.2ns</div><div class="ratio">2.85x</div></td>
+<td class="result" style="background:#5FCF6D;color:#000000"><div class="timer">21.3ns</div><div class="ratio">3.17x</div></td>
 </tr>
 <tr>
 <th class="function">ceil</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.0ns</div><div class="ratio">23.22x</div></td>
-<td class="result" style="background:#4FCB6C;color:#000000"><div class="timer">13.4ns</div><div class="ratio">4.31x</div></td>
-<td class="result" style="background:#30C061;color:#000000"><div class="timer">9.28ns</div><div class="ratio">6.04x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">24.2ns</div><div class="ratio">10.43x</div></td>
-<td class="result" style="background:#79D97B;color:#000000"><div class="timer">25.2ns</div><div class="ratio">2.78x</div></td>
-<td class="result" style="background:#6ED577;color:#000000"><div class="timer">21.2ns</div><div class="ratio">3.13x</div></td>
+<td class="result" style="background:#3AC362;color:#000000"><div class="timer">13.2ns</div><div class="ratio">4.96x</div></td>
+<td class="result" style="background:#29BE5C;color:#000000"><div class="timer">9.27ns</div><div class="ratio">6.09x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#69D370;color:#000000"><div class="timer">24.4ns</div><div class="ratio">2.82x</div></td>
+<td class="result" style="background:#5FCF6D;color:#000000"><div class="timer">21.4ns</div><div class="ratio">3.17x</div></td>
 </tr>
 <tr>
 <th class="function">trunc</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.2ns</div><div class="ratio">22.39x</div></td>
-<td class="result" style="background:#51CB6D;color:#000000"><div class="timer">13.4ns</div><div class="ratio">4.23x</div></td>
-<td class="result" style="background:#33C162;color:#000000"><div class="timer">9.33ns</div><div class="ratio">5.81x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">24.4ns</div><div class="ratio">10.13x</div></td>
-<td class="result" style="background:#7BDA7C;color:#000000"><div class="timer">24.6ns</div><div class="ratio">2.70x</div></td>
-<td class="result" style="background:#6FD577;color:#000000"><div class="timer">21.2ns</div><div class="ratio">3.08x</div></td>
+<td class="result" style="background:#3EC463;color:#000000"><div class="timer">13.3ns</div><div class="ratio">4.75x</div></td>
+<td class="result" style="background:#2CBF5D;color:#000000"><div class="timer">9.28ns</div><div class="ratio">5.86x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#6AD370;color:#000000"><div class="timer">24.1ns</div><div class="ratio">2.78x</div></td>
+<td class="result" style="background:#63D16E;color:#000000"><div class="timer">21.6ns</div><div class="ratio">3.05x</div></td>
 </tr>
 <tr>
 <th class="function">round</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.1ns</div><div class="ratio">28.54x</div></td>
-<td class="result" style="background:#36C263;color:#000000"><div class="timer">13.5ns</div><div class="ratio">5.61x</div></td>
-<td class="result" style="background:#12B656;color:#000000"><div class="timer">10.5ns</div><div class="ratio">8.28x</div></td>
-<td class="result type-start" style="background:#0FB555;color:#000000"><div class="timer">36.2ns</div><div class="ratio">8.50x</div></td>
-<td class="result" style="background:#73D779;color:#000000"><div class="timer">29.3ns</div><div class="ratio">2.94x</div></td>
-<td class="result" style="background:#76D87A;color:#000000"><div class="timer">29.9ns</div><div class="ratio">2.86x</div></td>
+<td class="result" style="background:#27BD5C;color:#000000"><div class="timer">13.3ns</div><div class="ratio">6.26x</div></td>
+<td class="result" style="background:#0EB554;color:#000000"><div class="timer">9.24ns</div><div class="ratio">8.44x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#71D572;color:#000000"><div class="timer">33.5ns</div><div class="ratio">2.56x</div></td>
+<td class="result" style="background:#68D26F;color:#000000"><div class="timer">30.1ns</div><div class="ratio">2.87x</div></td>
 </tr>
 <tr>
 <th class="function">nearbyint</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.1ns</div><div class="ratio">29.03x</div></td>
-<td class="result" style="background:#37C364;color:#000000"><div class="timer">13.5ns</div><div class="ratio">5.56x</div></td>
-<td class="result" style="background:#0BB454;color:#000000"><div class="timer">9.37ns</div><div class="ratio">8.94x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">35.6ns</div><div class="ratio">18.94x</div></td>
-<td class="result" style="background:#0EB555;color:#000000"><div class="timer">33.4ns</div><div class="ratio">8.57x</div></td>
-<td class="result" style="background:#12B656;color:#000000"><div class="timer">33.6ns</div><div class="ratio">8.30x</div></td>
+<td class="result" style="background:#23BC5B;color:#000000"><div class="timer">13.4ns</div><div class="ratio">6.54x</div></td>
+<td class="result" style="background:#0EB454;color:#000000"><div class="timer">9.32ns</div><div class="ratio">8.48x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#0CB454;color:#000000"><div class="timer">33.4ns</div><div class="ratio">8.65x</div></td>
+<td class="result" style="background:#0DB454;color:#000000"><div class="timer">33.9ns</div><div class="ratio">8.60x</div></td>
 </tr>
 <tr>
 <th class="function">rint</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.1ns</div><div class="ratio">28.69x</div></td>
-<td class="result" style="background:#37C263;color:#000000"><div class="timer">13.4ns</div><div class="ratio">5.59x</div></td>
-<td class="result" style="background:#0AB454;color:#000000"><div class="timer">9.64ns</div><div class="ratio">8.95x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">33.7ns</div><div class="ratio">21.09x</div></td>
-<td class="result" style="background:#0EB555;color:#000000"><div class="timer">33.6ns</div><div class="ratio">8.59x</div></td>
-<td class="result" style="background:#12B656;color:#000000"><div class="timer">33.6ns</div><div class="ratio">8.30x</div></td>
+<td class="result" style="background:#27BD5C;color:#000000"><div class="timer">13.5ns</div><div class="ratio">6.22x</div></td>
+<td class="result" style="background:#05B252;color:#000000"><div class="timer">9.23ns</div><div class="ratio">9.38x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#0CB454;color:#000000"><div class="timer">33.2ns</div><div class="ratio">8.63x</div></td>
+<td class="result" style="background:#0DB454;color:#000000"><div class="timer">34.1ns</div><div class="ratio">8.56x</div></td>
 </tr>
 <tr>
 <th class="function">lround</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">5.16ns</div><div class="ratio">30.05x</div></td>
-<td class="result" style="background:#35C263;color:#000000"><div class="timer">8.73ns</div><div class="ratio">5.73x</div></td>
-<td class="result" style="background:#3EC566;color:#000000"><div class="timer">10.0ns</div><div class="ratio">5.18x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">4.41ns</div><div class="ratio">44.88x</div></td>
-<td class="result" style="background:#77D87A;color:#000000"><div class="timer">20.1ns</div><div class="ratio">2.82x</div></td>
-<td class="result" style="background:#7BD97B;color:#000000"><div class="timer">20.8ns</div><div class="ratio">2.72x</div></td>
+<td class="result" style="background:#2DBF5E;color:#000000"><div class="timer">8.61ns</div><div class="ratio">5.80x</div></td>
+<td class="result" style="background:#37C261;color:#000000"><div class="timer">9.93ns</div><div class="ratio">5.14x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#6CD471;color:#000000"><div class="timer">20.0ns</div><div class="ratio">2.73x</div></td>
+<td class="result" style="background:#6CD471;color:#000000"><div class="timer">20.9ns</div><div class="ratio">2.72x</div></td>
 </tr>
 <tr>
 <th class="function">llround</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">10.4ns</div><div class="ratio">27.37x</div></td>
-<td class="result" style="background:#33C162;color:#000000"><div class="timer">8.56ns</div><div class="ratio">5.80x</div></td>
-<td class="result" style="background:#40C667;color:#000000"><div class="timer">10.1ns</div><div class="ratio">5.07x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">20.3ns</div><div class="ratio">11.91x</div></td>
-<td class="result" style="background:#78D87B;color:#000000"><div class="timer">19.8ns</div><div class="ratio">2.79x</div></td>
-<td class="result" style="background:#78D87B;color:#000000"><div class="timer">20.8ns</div><div class="ratio">2.80x</div></td>
+<td class="result" style="background:#2EBF5E;color:#000000"><div class="timer">8.63ns</div><div class="ratio">5.76x</div></td>
+<td class="result" style="background:#38C261;color:#000000"><div class="timer">9.95ns</div><div class="ratio">5.11x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#68D270;color:#000000"><div class="timer">20.0ns</div><div class="ratio">2.84x</div></td>
+<td class="result" style="background:#6AD370;color:#000000"><div class="timer">20.8ns</div><div class="ratio">2.78x</div></td>
 </tr>
 <tr>
 <th class="function">lrint</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">5.38ns</div><div class="ratio">29.36x</div></td>
-<td class="result" style="background:#2DBF60;color:#000000"><div class="timer">7.91ns</div><div class="ratio">6.23x</div></td>
-<td class="result" style="background:#41C667;color:#000000"><div class="timer">10.1ns</div><div class="ratio">5.03x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">4.47ns</div><div class="ratio">35.04x</div></td>
-<td class="result" style="background:#80DB7E;color:#000000"><div class="timer">21.7ns</div><div class="ratio">2.56x</div></td>
-<td class="result" style="background:#77D87A;color:#000000"><div class="timer">20.2ns</div><div class="ratio">2.82x</div></td>
+<td class="result" style="background:#25BC5B;color:#000000"><div class="timer">7.78ns</div><div class="ratio">6.38x</div></td>
+<td class="result" style="background:#3AC362;color:#000000"><div class="timer">10.3ns</div><div class="ratio">4.96x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#71D572;color:#000000"><div class="timer">21.6ns</div><div class="ratio">2.56x</div></td>
+<td class="result" style="background:#68D270;color:#000000"><div class="timer">20.2ns</div><div class="ratio">2.84x</div></td>
 </tr>
 <tr>
 <th class="function">llrint</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.8ns</div><div class="ratio">21.23x</div></td>
-<td class="result" style="background:#2ABE5F;color:#000000"><div class="timer">7.82ns</div><div class="ratio">6.40x</div></td>
-<td class="result" style="background:#40C667;color:#000000"><div class="timer">10.3ns</div><div class="ratio">5.05x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">23.2ns</div><div class="ratio">10.74x</div></td>
-<td class="result" style="background:#7CDA7C;color:#000000"><div class="timer">22.6ns</div><div class="ratio">2.69x</div></td>
-<td class="result" style="background:#75D77A;color:#000000"><div class="timer">20.0ns</div><div class="ratio">2.88x</div></td>
+<td class="result" style="background:#24BC5B;color:#000000"><div class="timer">7.78ns</div><div class="ratio">6.44x</div></td>
+<td class="result" style="background:#39C361;color:#000000"><div class="timer">10.3ns</div><div class="ratio">5.02x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#71D572;color:#000000"><div class="timer">21.7ns</div><div class="ratio">2.56x</div></td>
+<td class="result" style="background:#67D26F;color:#000000"><div class="timer">20.1ns</div><div class="ratio">2.89x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Remainders</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Remainders</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">fmod</th>
-<td class="result" style="background:#01B050;color:#000000"><div class="timer">52.2ns</div><div class="ratio">9.89x</div></td>
-<td class="result" style="background:#8BDF81;color:#000000"><div class="timer">53.5ns</div><div class="ratio">2.28x</div></td>
-<td class="result" style="background:#58CE6F;color:#000000"><div class="timer">28.2ns</div><div class="ratio">3.93x</div></td>
-<td class="result type-start" style="background:#75D77A;color:#000000"><div class="timer">171ns</div><div class="ratio">2.89x</div></td>
-<td class="result" style="background:#E2BE78;color:#000000"><div class="timer">172ns</div><div class="ratio">0.76x</div></td>
-<td class="result" style="background:#DDDD8B;color:#000000"><div class="timer">132ns</div><div class="ratio">0.89x</div></td>
+<td class="result" style="background:#75D673;color:#000000"><div class="timer">51.8ns</div><div class="ratio">2.45x</div></td>
+<td class="result" style="background:#42C664;color:#000000"><div class="timer">26.0ns</div><div class="ratio">4.52x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#C1ED89;color:#000000"><div class="timer">120ns</div><div class="ratio">1.00x</div></td>
+<td class="result" style="background:#B1EA86;color:#000000"><div class="timer">105ns</div><div class="ratio">1.18x</div></td>
 </tr>
 <tr>
 <th class="function">remainder</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">51.0ns</div><div class="ratio">12.88x</div></td>
-<td class="result" style="background:#83DC7E;color:#000000"><div class="timer">56.1ns</div><div class="ratio">2.50x</div></td>
-<td class="result" style="background:#4BC96B;color:#000000"><div class="timer">29.8ns</div><div class="ratio">4.52x</div></td>
-<td class="result type-start" style="background:#2CBF60;color:#000000"><div class="timer">139ns</div><div class="ratio">6.28x</div></td>
-<td class="result" style="background:#7CDA7C;color:#000000"><div class="timer">139ns</div><div class="ratio">2.69x</div></td>
-<td class="result" style="background:#73D779;color:#000000"><div class="timer">128ns</div><div class="ratio">2.97x</div></td>
+<td class="result" style="background:#6AD370;color:#000000"><div class="timer">54.7ns</div><div class="ratio">2.80x</div></td>
+<td class="result" style="background:#43C664;color:#000000"><div class="timer">29.8ns</div><div class="ratio">4.47x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#6CD471;color:#000000"><div class="timer">144ns</div><div class="ratio">2.71x</div></td>
+<td class="result" style="background:#64D16E;color:#000000"><div class="timer">130ns</div><div class="ratio">3.00x</div></td>
 </tr>
 <tr>
 <th class="function">remquo</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">19.0ns</div><div class="ratio">36.77x</div></td>
-<td class="result" style="background:#0DB454;color:#000000"><div class="timer">18.5ns</div><div class="ratio">8.75x</div></td>
-<td class="result" style="background:#18B858;color:#000000"><div class="timer">20.0ns</div><div class="ratio">7.77x</div></td>
-<td class="result type-start" style="background:#5DCF71;color:#000000"><div class="timer">153ns</div><div class="ratio">3.74x</div></td>
-<td class="result" style="background:#C1F194;color:#000000"><div class="timer">137ns</div><div class="ratio">1.29x</div></td>
-<td class="result" style="background:#C5F296;color:#000000"><div class="timer">138ns</div><div class="ratio">1.24x</div></td>
+<td class="result" style="background:#06B252;color:#000000"><div class="timer">18.0ns</div><div class="ratio">9.35x</div></td>
+<td class="result" style="background:#15B756;color:#000000"><div class="timer">19.6ns</div><div class="ratio">7.76x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#A9E883;color:#000000"><div class="timer">137ns</div><div class="ratio">1.31x</div></td>
+<td class="result" style="background:#ABE884;color:#000000"><div class="timer">139ns</div><div class="ratio">1.27x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Floating-point utilities</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Floating-point utilities</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">abs</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">10.8ns</div><div class="ratio">22.60x</div></td>
-<td class="result" style="background:#52CB6D;color:#000000"><div class="timer">13.2ns</div><div class="ratio">4.20x</div></td>
-<td class="result" style="background:#1CB95A;color:#000000"><div class="timer">7.46ns</div><div class="ratio">7.46x</div></td>
-<td class="result type-start" style="background:#07B253;color:#000000"><div class="timer">26.0ns</div><div class="ratio">9.25x</div></td>
-<td class="result" style="background:#6ED577;color:#000000"><div class="timer">20.4ns</div><div class="ratio">3.12x</div></td>
-<td class="result" style="background:#77D87A;color:#000000"><div class="timer">21.8ns</div><div class="ratio">2.83x</div></td>
+<td class="result" style="background:#3FC563;color:#000000"><div class="timer">13.1ns</div><div class="ratio">4.66x</div></td>
+<td class="result" style="background:#18B857;color:#000000"><div class="timer">7.41ns</div><div class="ratio">7.46x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#60D06D;color:#000000"><div class="timer">20.4ns</div><div class="ratio">3.14x</div></td>
+<td class="result" style="background:#66D26F;color:#000000"><div class="timer">21.3ns</div><div class="ratio">2.93x</div></td>
 </tr>
 <tr>
 <th class="function">fma</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.2ns</div><div class="ratio">27.43x</div></td>
-<td class="result" style="background:#34C263;color:#000000"><div class="timer">13.4ns</div><div class="ratio">5.74x</div></td>
-<td class="result" style="background:#03B151;color:#000000"><div class="timer">7.87ns</div><div class="ratio">9.73x</div></td>
-<td class="result type-start" style="background:#28BD5E;color:#000000"><div class="timer">48.3ns</div><div class="ratio">6.56x</div></td>
-<td class="result" style="background:#94E285;color:#000000"><div class="timer">45.7ns</div><div class="ratio">2.07x</div></td>
-<td class="result" style="background:#82DC7E;color:#000000"><div class="timer">36.3ns</div><div class="ratio">2.51x</div></td>
+<td class="result" style="background:#23BC5B;color:#000000"><div class="timer">13.2ns</div><div class="ratio">6.56x</div></td>
+<td class="result" style="background:#03B151;color:#000000"><div class="timer">7.87ns</div><div class="ratio">9.69x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#84DB78;color:#000000"><div class="timer">45.0ns</div><div class="ratio">2.04x</div></td>
+<td class="result" style="background:#73D673;color:#000000"><div class="timer">36.5ns</div><div class="ratio">2.49x</div></td>
 </tr>
 <tr>
 <th class="function">fmin</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">10.7ns</div><div class="ratio">25.07x</div></td>
-<td class="result" style="background:#4AC96A;color:#000000"><div class="timer">13.4ns</div><div class="ratio">4.54x</div></td>
-<td class="result" style="background:#13B657;color:#000000"><div class="timer">7.49ns</div><div class="ratio">8.19x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">25.1ns</div><div class="ratio">10.79x</div></td>
-<td class="result" style="background:#68D375;color:#000000"><div class="timer">21.9ns</div><div class="ratio">3.31x</div></td>
-<td class="result" style="background:#4CCA6B;color:#000000"><div class="timer">15.9ns</div><div class="ratio">4.45x</div></td>
+<td class="result" style="background:#36C260;color:#000000"><div class="timer">13.2ns</div><div class="ratio">5.20x</div></td>
+<td class="result" style="background:#0FB555;color:#000000"><div class="timer">7.36ns</div><div class="ratio">8.31x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#5DCF6C;color:#000000"><div class="timer">22.2ns</div><div class="ratio">3.25x</div></td>
+<td class="result" style="background:#43C664;color:#000000"><div class="timer">16.0ns</div><div class="ratio">4.46x</div></td>
 </tr>
 <tr>
 <th class="function">fmax</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">10.7ns</div><div class="ratio">29.26x</div></td>
-<td class="result" style="background:#49C86A;color:#000000"><div class="timer">13.1ns</div><div class="ratio">4.62x</div></td>
-<td class="result" style="background:#11B656;color:#000000"><div class="timer">7.55ns</div><div class="ratio">8.34x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">25.5ns</div><div class="ratio">12.17x</div></td>
-<td class="result" style="background:#68D375;color:#000000"><div class="timer">22.0ns</div><div class="ratio">3.30x</div></td>
-<td class="result" style="background:#4CCA6B;color:#000000"><div class="timer">15.9ns</div><div class="ratio">4.45x</div></td>
+<td class="result" style="background:#35C160;color:#000000"><div class="timer">13.1ns</div><div class="ratio">5.28x</div></td>
+<td class="result" style="background:#12B655;color:#000000"><div class="timer">7.45ns</div><div class="ratio">8.07x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#5DCF6C;color:#000000"><div class="timer">22.2ns</div><div class="ratio">3.24x</div></td>
+<td class="result" style="background:#44C665;color:#000000"><div class="timer">16.0ns</div><div class="ratio">4.42x</div></td>
 </tr>
 <tr>
 <th class="function">fdim</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.0ns</div><div class="ratio">24.77x</div></td>
-<td class="result" style="background:#4CCA6B;color:#000000"><div class="timer">13.3ns</div><div class="ratio">4.46x</div></td>
-<td class="result" style="background:#19B859;color:#000000"><div class="timer">7.51ns</div><div class="ratio">7.66x</div></td>
-<td class="result type-start" style="background:#0AB454;color:#000000"><div class="timer">27.9ns</div><div class="ratio">8.95x</div></td>
-<td class="result" style="background:#82DC7E;color:#000000"><div class="timer">27.1ns</div><div class="ratio">2.53x</div></td>
-<td class="result" style="background:#7AD97B;color:#000000"><div class="timer">24.2ns</div><div class="ratio">2.75x</div></td>
+<td class="result" style="background:#38C361;color:#000000"><div class="timer">13.1ns</div><div class="ratio">5.06x</div></td>
+<td class="result" style="background:#15B756;color:#000000"><div class="timer">7.45ns</div><div class="ratio">7.75x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#72D673;color:#000000"><div class="timer">27.0ns</div><div class="ratio">2.53x</div></td>
+<td class="result" style="background:#6BD371;color:#000000"><div class="timer">24.0ns</div><div class="ratio">2.75x</div></td>
 </tr>
 <tr>
 <th class="function">copysign</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">10.7ns</div><div class="ratio">29.04x</div></td>
-<td class="result" style="background:#4ECA6C;color:#000000"><div class="timer">13.3ns</div><div class="ratio">4.38x</div></td>
-<td class="result" style="background:#15B758;color:#000000"><div class="timer">7.48ns</div><div class="ratio">7.98x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">25.1ns</div><div class="ratio">10.79x</div></td>
-<td class="result" style="background:#6AD476;color:#000000"><div class="timer">22.3ns</div><div class="ratio">3.24x</div></td>
-<td class="result" style="background:#67D375;color:#000000"><div class="timer">21.3ns</div><div class="ratio">3.34x</div></td>
+<td class="result" style="background:#3DC462;color:#000000"><div class="timer">13.5ns</div><div class="ratio">4.80x</div></td>
+<td class="result" style="background:#11B555;color:#000000"><div class="timer">7.43ns</div><div class="ratio">8.19x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#5DCF6C;color:#000000"><div class="timer">22.1ns</div><div class="ratio">3.27x</div></td>
+<td class="result" style="background:#5DCF6C;color:#000000"><div class="timer">21.5ns</div><div class="ratio">3.26x</div></td>
 </tr>
 <tr>
 <th class="function">ldexp</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">15.0ns</div><div class="ratio">17.07x</div></td>
-<td class="result" style="background:#4ECA6C;color:#000000"><div class="timer">13.9ns</div><div class="ratio">4.38x</div></td>
-<td class="result" style="background:#30C061;color:#000000"><div class="timer">9.46ns</div><div class="ratio">6.03x</div></td>
-<td class="result type-start" style="background:#10B656;color:#000000"><div class="timer">30.8ns</div><div class="ratio">8.41x</div></td>
-<td class="result" style="background:#6FD577;color:#000000"><div class="timer">23.7ns</div><div class="ratio">3.07x</div></td>
-<td class="result" style="background:#75D77A;color:#000000"><div class="timer">23.9ns</div><div class="ratio">2.89x</div></td>
+<td class="result" style="background:#3BC362;color:#000000"><div class="timer">13.6ns</div><div class="ratio">4.92x</div></td>
+<td class="result" style="background:#28BD5C;color:#000000"><div class="timer">9.30ns</div><div class="ratio">6.18x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#62D06E;color:#000000"><div class="timer">23.2ns</div><div class="ratio">3.08x</div></td>
+<td class="result" style="background:#65D16F;color:#000000"><div class="timer">24.1ns</div><div class="ratio">2.95x</div></td>
 </tr>
 <tr>
 <th class="function">scalbn</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">15.0ns</div><div class="ratio">17.17x</div></td>
-<td class="result" style="background:#4DCA6B;color:#000000"><div class="timer">13.6ns</div><div class="ratio">4.44x</div></td>
-<td class="result" style="background:#2FC061;color:#000000"><div class="timer">9.50ns</div><div class="ratio">6.07x</div></td>
-<td class="result type-start" style="background:#11B656;color:#000000"><div class="timer">30.2ns</div><div class="ratio">8.39x</div></td>
-<td class="result" style="background:#6DD577;color:#000000"><div class="timer">23.5ns</div><div class="ratio">3.14x</div></td>
-<td class="result" style="background:#75D77A;color:#000000"><div class="timer">24.1ns</div><div class="ratio">2.88x</div></td>
+<td class="result" style="background:#3CC462;color:#000000"><div class="timer">13.6ns</div><div class="ratio">4.86x</div></td>
+<td class="result" style="background:#26BD5C;color:#000000"><div class="timer">9.30ns</div><div class="ratio">6.31x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#62D06E;color:#000000"><div class="timer">23.3ns</div><div class="ratio">3.07x</div></td>
+<td class="result" style="background:#67D26F;color:#000000"><div class="timer">24.2ns</div><div class="ratio">2.90x</div></td>
 </tr>
 <tr>
 <th class="function">scalbln</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">15.0ns</div><div class="ratio">17.71x</div></td>
-<td class="result" style="background:#4FCB6C;color:#000000"><div class="timer">13.7ns</div><div class="ratio">4.32x</div></td>
-<td class="result" style="background:#2DBF60;color:#000000"><div class="timer">9.41ns</div><div class="ratio">6.17x</div></td>
-<td class="result type-start" style="background:#11B656;color:#000000"><div class="timer">31.6ns</div><div class="ratio">8.36x</div></td>
-<td class="result" style="background:#6ED577;color:#000000"><div class="timer">23.2ns</div><div class="ratio">3.13x</div></td>
-<td class="result" style="background:#74D779;color:#000000"><div class="timer">24.5ns</div><div class="ratio">2.93x</div></td>
+<td class="result" style="background:#3AC362;color:#000000"><div class="timer">13.6ns</div><div class="ratio">4.98x</div></td>
+<td class="result" style="background:#27BD5C;color:#000000"><div class="timer">9.24ns</div><div class="ratio">6.25x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#63D16E;color:#000000"><div class="timer">23.4ns</div><div class="ratio">3.04x</div></td>
+<td class="result" style="background:#67D26F;color:#000000"><div class="timer">24.1ns</div><div class="ratio">2.89x</div></td>
 </tr>
 <tr>
 <th class="function">frexp</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">23.5ns</div><div class="ratio">19.84x</div></td>
-<td class="result" style="background:#3EC566;color:#000000"><div class="timer">14.4ns</div><div class="ratio">5.16x</div></td>
-<td class="result" style="background:#15B757;color:#000000"><div class="timer">9.65ns</div><div class="ratio">8.00x</div></td>
-<td class="result type-start" style="background:#24BC5D;color:#000000"><div class="timer">38.5ns</div><div class="ratio">6.81x</div></td>
-<td class="result" style="background:#63D173;color:#000000"><div class="timer">25.3ns</div><div class="ratio">3.49x</div></td>
-<td class="result" style="background:#6CD476;color:#000000"><div class="timer">28.2ns</div><div class="ratio">3.18x</div></td>
+<td class="result" style="background:#30C05F;color:#000000"><div class="timer">14.3ns</div><div class="ratio">5.61x</div></td>
+<td class="result" style="background:#14B756;color:#000000"><div class="timer">9.56ns</div><div class="ratio">7.87x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#54CC6A;color:#000000"><div class="timer">24.9ns</div><div class="ratio">3.63x</div></td>
+<td class="result" style="background:#5DCF6C;color:#000000"><div class="timer">28.4ns</div><div class="ratio">3.26x</div></td>
 </tr>
 <tr>
 <th class="function">modf</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">14.7ns</div><div class="ratio">41.55x</div></td>
-<td class="result" style="background:#1AB959;color:#000000"><div class="timer">19.5ns</div><div class="ratio">7.57x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">9.42ns</div><div class="ratio">16.01x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">52.9ns</div><div class="ratio">12.06x</div></td>
-<td class="result" style="background:#62D173;color:#000000"><div class="timer">52.9ns</div><div class="ratio">3.55x</div></td>
-<td class="result" style="background:#44C768;color:#000000"><div class="timer">41.4ns</div><div class="ratio">4.85x</div></td>
+<td class="result" style="background:#0DB454;color:#000000"><div class="timer">19.4ns</div><div class="ratio">8.57x</div></td>
+<td class="result" style="background:#00A34C;color:#000000"><div class="timer">9.41ns</div><div class="ratio">15.80x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#53CB69;color:#000000"><div class="timer">52.6ns</div><div class="ratio">3.68x</div></td>
+<td class="result" style="background:#3DC463;color:#000000"><div class="timer">41.8ns</div><div class="ratio">4.77x</div></td>
 </tr>
 <tr>
 <th class="function">ilogb</th>
-<td class="result" style="background:#83DC7E;color:#000000"><div class="timer">16.8ns</div><div class="ratio">2.50x</div></td>
-<td class="result" style="background:#B5ED90;color:#000000"><div class="timer">9.24ns</div><div class="ratio">1.46x</div></td>
-<td class="result" style="background:#A8E88B;color:#000000"><div class="timer">8.13ns</div><div class="ratio">1.69x</div></td>
-<td class="result type-start" style="background:#7BD97C;color:#000000"><div class="timer">14.7ns</div><div class="ratio">2.72x</div></td>
-<td class="result" style="background:#A6E88B;color:#000000"><div class="timer">7.76ns</div><div class="ratio">1.72x</div></td>
-<td class="result" style="background:#9EE588;color:#000000"><div class="timer">7.34ns</div><div class="ratio">1.88x</div></td>
+<td class="result" style="background:#9DE480;color:#000000"><div class="timer">9.10ns</div><div class="ratio">1.50x</div></td>
+<td class="result" style="background:#96E17D;color:#000000"><div class="timer">8.06ns</div><div class="ratio">1.65x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#90DF7C;color:#000000"><div class="timer">7.74ns</div><div class="ratio">1.76x</div></td>
+<td class="result" style="background:#8EDF7B;color:#000000"><div class="timer">7.36ns</div><div class="ratio">1.81x</div></td>
 </tr>
 <tr>
 <th class="function">logb</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">19.6ns</div><div class="ratio">14.71x</div></td>
-<td class="result" style="background:#3CC465;color:#000000"><div class="timer">14.0ns</div><div class="ratio">5.30x</div></td>
-<td class="result" style="background:#19B959;color:#000000"><div class="timer">9.91ns</div><div class="ratio">7.63x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">26.0ns</div><div class="ratio">11.40x</div></td>
-<td class="result" style="background:#79D97B;color:#000000"><div class="timer">30.6ns</div><div class="ratio">2.78x</div></td>
-<td class="result" style="background:#5DCF71;color:#000000"><div class="timer">22.2ns</div><div class="ratio">3.73x</div></td>
+<td class="result" style="background:#2DBF5E;color:#000000"><div class="timer">14.1ns</div><div class="ratio">5.79x</div></td>
+<td class="result" style="background:#17B757;color:#000000"><div class="timer">10.1ns</div><div class="ratio">7.61x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#6CD471;color:#000000"><div class="timer">30.2ns</div><div class="ratio">2.73x</div></td>
+<td class="result" style="background:#53CC69;color:#000000"><div class="timer">22.5ns</div><div class="ratio">3.66x</div></td>
 </tr>
 <tr>
 <th class="function">nextafter</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">11.0ns</div><div class="ratio">79.37x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">13.6ns</div><div class="ratio">18.26x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">9.23ns</div><div class="ratio">26.62x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">26.1ns</div><div class="ratio">34.40x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">23.9ns</div><div class="ratio">11.26x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">23.3ns</div><div class="ratio">11.30x</div></td>
+<td class="result" style="background:#009E4A;color:#000000"><div class="timer">13.4ns</div><div class="ratio">19.22x</div></td>
+<td class="result" style="background:#009D4A;color:#000000"><div class="timer">9.12ns</div><div class="ratio">26.64x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#00AC4F;color:#000000"><div class="timer">24.1ns</div><div class="ratio">11.41x</div></td>
+<td class="result" style="background:#00AD4F;color:#000000"><div class="timer">23.7ns</div><div class="ratio">11.02x</div></td>
 </tr>
 <tr>
 <th class="function">nexttoward(type)</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">12.1ns</div><div class="ratio">71.28x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">13.3ns</div><div class="ratio">18.83x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">9.20ns</div><div class="ratio">26.58x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">26.2ns</div><div class="ratio">33.98x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">24.1ns</div><div class="ratio">11.16x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">23.4ns</div><div class="ratio">11.31x</div></td>
+<td class="result" style="background:#009E4A;color:#000000"><div class="timer">13.3ns</div><div class="ratio">19.34x</div></td>
+<td class="result" style="background:#009D4A;color:#000000"><div class="timer">9.14ns</div><div class="ratio">25.92x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#00AC4F;color:#000000"><div class="timer">24.1ns</div><div class="ratio">11.40x</div></td>
+<td class="result" style="background:#00AD4F;color:#000000"><div class="timer">23.6ns</div><div class="ratio">11.16x</div></td>
 </tr>
 <tr>
 <th class="function">nexttoward(long double)</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">12.3ns</div><div class="ratio">75.82x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">13.1ns</div><div class="ratio">20.91x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">9.31ns</div><div class="ratio">29.34x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">25.7ns</div><div class="ratio">40.11x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">23.8ns</div><div class="ratio">12.29x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">23.4ns</div><div class="ratio">12.30x</div></td>
+<td class="result" style="background:#009D4A;color:#000000"><div class="timer">13.2ns</div><div class="ratio">21.71x</div></td>
+<td class="result" style="background:#009D4A;color:#000000"><div class="timer">9.20ns</div><div class="ratio">28.74x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#00AA4E;color:#000000"><div class="timer">24.0ns</div><div class="ratio">12.45x</div></td>
+<td class="result" style="background:#00AA4E;color:#000000"><div class="timer">23.6ns</div><div class="ratio">12.29x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Roots &amp; powers</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Roots &amp; powers</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">sqrt</th>
-<td class="result" style="background:#5ACE70;color:#000000"><div class="timer">80.7ns</div><div class="ratio">3.83x</div></td>
-<td class="result" style="background:#B8EE91;color:#000000"><div class="timer">49.8ns</div><div class="ratio">1.42x</div></td>
-<td class="result" style="background:#B8EE91;color:#000000"><div class="timer">48.7ns</div><div class="ratio">1.41x</div></td>
-<td class="result type-start" style="background:#7FDB7D;color:#000000"><div class="timer">144ns</div><div class="ratio">2.59x</div></td>
-<td class="result" style="background:#DBE993;color:#000000"><div class="timer">140ns</div><div class="ratio">0.93x</div></td>
-<td class="result" style="background:#D9F69B;color:#000000"><div class="timer">128ns</div><div class="ratio">0.99x</div></td>
+<td class="result" style="background:#9BE37F;color:#000000"><div class="timer">49.8ns</div><div class="ratio">1.54x</div></td>
+<td class="result" style="background:#A3E681;color:#000000"><div class="timer">48.3ns</div><div class="ratio">1.41x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#E6CE7C;color:#000000"><div class="timer">140ns</div><div class="ratio">0.94x</div></td>
+<td class="result" style="background:#BEEF8A;color:#000000"><div class="timer">129ns</div><div class="ratio">1.01x</div></td>
 </tr>
 <tr>
 <th class="function">cbrt</th>
-<td class="result" style="background:#4CCA6B;color:#000000"><div class="timer">130ns</div><div class="ratio">4.44x</div></td>
-<td class="result" style="background:#48C86A;color:#000000"><div class="timer">60.9ns</div><div class="ratio">4.65x</div></td>
-<td class="result" style="background:#50CB6C;color:#000000"><div class="timer">63.1ns</div><div class="ratio">4.29x</div></td>
-<td class="result type-start" style="background:#A6E88B;color:#000000"><div class="timer">397ns</div><div class="ratio">1.72x</div></td>
-<td class="result" style="background:#CFF599;color:#000000"><div class="timer">337ns</div><div class="ratio">1.12x</div></td>
-<td class="result" style="background:#D1F69A;color:#000000"><div class="timer">345ns</div><div class="ratio">1.09x</div></td>
+<td class="result" style="background:#3FC563;color:#000000"><div class="timer">59.4ns</div><div class="ratio">4.70x</div></td>
+<td class="result" style="background:#46C765;color:#000000"><div class="timer">62.2ns</div><div class="ratio">4.30x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#B2EB86;color:#000000"><div class="timer">337ns</div><div class="ratio">1.16x</div></td>
+<td class="result" style="background:#BAED89;color:#000000"><div class="timer">347ns</div><div class="ratio">1.06x</div></td>
 </tr>
 <tr>
 <th class="function">hypot</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">39.7ns</div><div class="ratio">14.82x</div></td>
-<td class="result" style="background:#51CB6D;color:#000000"><div class="timer">35.8ns</div><div class="ratio">4.25x</div></td>
-<td class="result" style="background:#50CB6C;color:#000000"><div class="timer">34.9ns</div><div class="ratio">4.27x</div></td>
-<td class="result type-start" style="background:#76D87A;color:#000000"><div class="timer">181ns</div><div class="ratio">2.87x</div></td>
-<td class="result" style="background:#D5F89B;color:#000000"><div class="timer">171ns</div><div class="ratio">1.05x</div></td>
-<td class="result" style="background:#CAF498;color:#000000"><div class="timer">149ns</div><div class="ratio">1.18x</div></td>
+<td class="result" style="background:#3DC463;color:#000000"><div class="timer">35.2ns</div><div class="ratio">4.79x</div></td>
+<td class="result" style="background:#45C765;color:#000000"><div class="timer">34.3ns</div><div class="ratio">4.36x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#BBEE89;color:#000000"><div class="timer">171ns</div><div class="ratio">1.05x</div></td>
+<td class="result" style="background:#A7E783;color:#000000"><div class="timer">149ns</div><div class="ratio">1.34x</div></td>
 </tr>
 <tr>
 <th class="function">pow</th>
-<td class="result" style="background:#0AB354;color:#000000"><div class="timer">420ns</div><div class="ratio">8.97x</div></td>
-<td class="result" style="background:#48C869;color:#000000"><div class="timer">398ns</div><div class="ratio">4.67x</div></td>
-<td class="result" style="background:#47C869;color:#000000"><div class="timer">378ns</div><div class="ratio">4.71x</div></td>
-<td class="result type-start" style="background:#50CB6C;color:#000000"><div class="timer">1,162ns</div><div class="ratio">4.28x</div></td>
-<td class="result" style="background:#77D87A;color:#000000"><div class="timer">1,126ns</div><div class="ratio">2.82x</div></td>
-<td class="result" style="background:#76D87A;color:#000000"><div class="timer">1,117ns</div><div class="ratio">2.85x</div></td>
+<td class="result" style="background:#3FC563;color:#000000"><div class="timer">394ns</div><div class="ratio">4.66x</div></td>
+<td class="result" style="background:#41C564;color:#000000"><div class="timer">386ns</div><div class="ratio">4.59x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#67D26F;color:#000000"><div class="timer">1,132ns</div><div class="ratio">2.90x</div></td>
+<td class="result" style="background:#69D370;color:#000000"><div class="timer">1,125ns</div><div class="ratio">2.81x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Exponentials</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Exponentials</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">exp</th>
-<td class="result" style="background:#24BC5D;color:#000000"><div class="timer">170ns</div><div class="ratio">6.86x</div></td>
-<td class="result" style="background:#4ECA6C;color:#000000"><div class="timer">155ns</div><div class="ratio">4.37x</div></td>
-<td class="result" style="background:#4DCA6B;color:#000000"><div class="timer">146ns</div><div class="ratio">4.42x</div></td>
-<td class="result type-start" style="background:#78D87A;color:#000000"><div class="timer">599ns</div><div class="ratio">2.81x</div></td>
-<td class="result" style="background:#AAE98C;color:#000000"><div class="timer">606ns</div><div class="ratio">1.65x</div></td>
-<td class="result" style="background:#A7E88B;color:#000000"><div class="timer">582ns</div><div class="ratio">1.69x</div></td>
+<td class="result" style="background:#46C765;color:#000000"><div class="timer">155ns</div><div class="ratio">4.31x</div></td>
+<td class="result" style="background:#42C664;color:#000000"><div class="timer">146ns</div><div class="ratio">4.51x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#95E17D;color:#000000"><div class="timer">598ns</div><div class="ratio">1.67x</div></td>
+<td class="result" style="background:#91E07C;color:#000000"><div class="timer">585ns</div><div class="ratio">1.74x</div></td>
 </tr>
 <tr>
 <th class="function">exp2</th>
-<td class="result" style="background:#07B252;color:#000000"><div class="timer">163ns</div><div class="ratio">9.29x</div></td>
-<td class="result" style="background:#3DC566;color:#000000"><div class="timer">153ns</div><div class="ratio">5.24x</div></td>
-<td class="result" style="background:#3DC566;color:#000000"><div class="timer">149ns</div><div class="ratio">5.21x</div></td>
-<td class="result type-start" style="background:#6BD476;color:#000000"><div class="timer">577ns</div><div class="ratio">3.21x</div></td>
-<td class="result" style="background:#98E386;color:#000000"><div class="timer">575ns</div><div class="ratio">1.99x</div></td>
-<td class="result" style="background:#97E386;color:#000000"><div class="timer">564ns</div><div class="ratio">2.02x</div></td>
+<td class="result" style="background:#36C260;color:#000000"><div class="timer">151ns</div><div class="ratio">5.23x</div></td>
+<td class="result" style="background:#35C160;color:#000000"><div class="timer">146ns</div><div class="ratio">5.29x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#85DC78;color:#000000"><div class="timer">573ns</div><div class="ratio">2.01x</div></td>
+<td class="result" style="background:#87DC79;color:#000000"><div class="timer">564ns</div><div class="ratio">1.97x</div></td>
 </tr>
 <tr>
 <th class="function">expm1</th>
-<td class="result" style="background:#16B858;color:#000000"><div class="timer">171ns</div><div class="ratio">7.88x</div></td>
-<td class="result" style="background:#47C869;color:#000000"><div class="timer">165ns</div><div class="ratio">4.69x</div></td>
-<td class="result" style="background:#44C768;color:#000000"><div class="timer">155ns</div><div class="ratio">4.86x</div></td>
-<td class="result type-start" style="background:#93E184;color:#000000"><div class="timer">894ns</div><div class="ratio">2.10x</div></td>
-<td class="result" style="background:#C3F195;color:#000000"><div class="timer">894ns</div><div class="ratio">1.27x</div></td>
-<td class="result" style="background:#BEF094;color:#000000"><div class="timer">865ns</div><div class="ratio">1.33x</div></td>
+<td class="result" style="background:#3EC563;color:#000000"><div class="timer">162ns</div><div class="ratio">4.72x</div></td>
+<td class="result" style="background:#3CC462;color:#000000"><div class="timer">155ns</div><div class="ratio">4.86x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#ACE984;color:#000000"><div class="timer">895ns</div><div class="ratio">1.26x</div></td>
+<td class="result" style="background:#AAE884;color:#000000"><div class="timer">863ns</div><div class="ratio">1.28x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Logarithms</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Logarithms</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">log</th>
-<td class="result" style="background:#0BB454;color:#000000"><div class="timer">250ns</div><div class="ratio">8.89x</div></td>
-<td class="result" style="background:#58CE6F;color:#000000"><div class="timer">222ns</div><div class="ratio">3.94x</div></td>
-<td class="result" style="background:#53CC6D;color:#000000"><div class="timer">217ns</div><div class="ratio">4.14x</div></td>
-<td class="result type-start" style="background:#3CC465;color:#000000"><div class="timer">549ns</div><div class="ratio">5.28x</div></td>
-<td class="result" style="background:#67D375;color:#000000"><div class="timer">502ns</div><div class="ratio">3.34x</div></td>
-<td class="result" style="background:#67D375;color:#000000"><div class="timer">501ns</div><div class="ratio">3.34x</div></td>
+<td class="result" style="background:#4DC967;color:#000000"><div class="timer">224ns</div><div class="ratio">3.95x</div></td>
+<td class="result" style="background:#4CC967;color:#000000"><div class="timer">217ns</div><div class="ratio">4.00x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#54CC6A;color:#000000"><div class="timer">495ns</div><div class="ratio">3.62x</div></td>
+<td class="result" style="background:#5DCF6C;color:#000000"><div class="timer">506ns</div><div class="ratio">3.25x</div></td>
 </tr>
 <tr>
 <th class="function">log2</th>
-<td class="result" style="background:#01B051;color:#000000"><div class="timer">243ns</div><div class="ratio">9.85x</div></td>
-<td class="result" style="background:#46C869;color:#000000"><div class="timer">227ns</div><div class="ratio">4.74x</div></td>
-<td class="result" style="background:#3FC566;color:#000000"><div class="timer">221ns</div><div class="ratio">5.13x</div></td>
-<td class="result type-start" style="background:#34C162;color:#000000"><div class="timer">548ns</div><div class="ratio">5.77x</div></td>
-<td class="result" style="background:#63D173;color:#000000"><div class="timer">524ns</div><div class="ratio">3.51x</div></td>
-<td class="result" style="background:#62D173;color:#000000"><div class="timer">514ns</div><div class="ratio">3.55x</div></td>
+<td class="result" style="background:#40C563;color:#000000"><div class="timer">225ns</div><div class="ratio">4.65x</div></td>
+<td class="result" style="background:#3BC362;color:#000000"><div class="timer">219ns</div><div class="ratio">4.92x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#56CC6A;color:#000000"><div class="timer">519ns</div><div class="ratio">3.55x</div></td>
+<td class="result" style="background:#58CD6B;color:#000000"><div class="timer">520ns</div><div class="ratio">3.47x</div></td>
 </tr>
 <tr>
 <th class="function">log10</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">364ns</div><div class="ratio">12.63x</div></td>
-<td class="result" style="background:#35C263;color:#000000"><div class="timer">326ns</div><div class="ratio">5.70x</div></td>
-<td class="result" style="background:#2FC061;color:#000000"><div class="timer">322ns</div><div class="ratio">6.09x</div></td>
-<td class="result type-start" style="background:#0AB353;color:#000000"><div class="timer">620ns</div><div class="ratio">9.01x</div></td>
-<td class="result" style="background:#3AC465;color:#000000"><div class="timer">567ns</div><div class="ratio">5.40x</div></td>
-<td class="result" style="background:#3BC465;color:#000000"><div class="timer">571ns</div><div class="ratio">5.36x</div></td>
+<td class="result" style="background:#2FC05E;color:#000000"><div class="timer">326ns</div><div class="ratio">5.67x</div></td>
+<td class="result" style="background:#2CBE5D;color:#000000"><div class="timer">320ns</div><div class="ratio">5.89x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#2DBF5E;color:#000000"><div class="timer">567ns</div><div class="ratio">5.82x</div></td>
+<td class="result" style="background:#36C260;color:#000000"><div class="timer">575ns</div><div class="ratio">5.23x</div></td>
 </tr>
 <tr>
 <th class="function">log1p</th>
-<td class="result" style="background:#09B353;color:#000000"><div class="timer">232ns</div><div class="ratio">9.13x</div></td>
-<td class="result" style="background:#50CB6C;color:#000000"><div class="timer">215ns</div><div class="ratio">4.28x</div></td>
-<td class="result" style="background:#53CC6E;color:#000000"><div class="timer">226ns</div><div class="ratio">4.13x</div></td>
-<td class="result type-start" style="background:#52CB6D;color:#000000"><div class="timer">731ns</div><div class="ratio">4.21x</div></td>
-<td class="result" style="background:#85DD7F;color:#000000"><div class="timer">701ns</div><div class="ratio">2.44x</div></td>
-<td class="result" style="background:#83DC7F;color:#000000"><div class="timer">686ns</div><div class="ratio">2.48x</div></td>
+<td class="result" style="background:#44C665;color:#000000"><div class="timer">215ns</div><div class="ratio">4.41x</div></td>
+<td class="result" style="background:#4CC967;color:#000000"><div class="timer">226ns</div><div class="ratio">3.99x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#6FD572;color:#000000"><div class="timer">694ns</div><div class="ratio">2.62x</div></td>
+<td class="result" style="background:#75D774;color:#000000"><div class="timer">691ns</div><div class="ratio">2.43x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Trigonometric</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Trigonometric</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">sin</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">88.8ns</div><div class="ratio">22.42x</div></td>
-<td class="result" style="background:#02B151;color:#000000"><div class="timer">90.4ns</div><div class="ratio">9.78x</div></td>
-<td class="result" style="background:#0FB555;color:#000000"><div class="timer">95.9ns</div><div class="ratio">8.51x</div></td>
-<td class="result type-start" style="background:#6CD476;color:#000000"><div class="timer">793ns</div><div class="ratio">3.17x</div></td>
-<td class="result" style="background:#ADEA8D;color:#000000"><div class="timer">771ns</div><div class="ratio">1.59x</div></td>
-<td class="result" style="background:#AEEA8E;color:#000000"><div class="timer">766ns</div><div class="ratio">1.58x</div></td>
+<td class="result" style="background:#01B050;color:#000000"><div class="timer">89.5ns</div><div class="ratio">9.91x</div></td>
+<td class="result" style="background:#0FB554;color:#000000"><div class="timer">96.8ns</div><div class="ratio">8.38x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#9AE37F;color:#000000"><div class="timer">773ns</div><div class="ratio">1.57x</div></td>
+<td class="result" style="background:#99E27E;color:#000000"><div class="timer">768ns</div><div class="ratio">1.58x</div></td>
 </tr>
 <tr>
 <th class="function">cos</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">88.9ns</div><div class="ratio">17.24x</div></td>
-<td class="result" style="background:#22BC5C;color:#000000"><div class="timer">90.3ns</div><div class="ratio">6.94x</div></td>
-<td class="result" style="background:#24BC5D;color:#000000"><div class="timer">96.6ns</div><div class="ratio">6.81x</div></td>
-<td class="result type-start" style="background:#86DD80;color:#000000"><div class="timer">779ns</div><div class="ratio">2.42x</div></td>
-<td class="result" style="background:#C8F397;color:#000000"><div class="timer">780ns</div><div class="ratio">1.19x</div></td>
-<td class="result" style="background:#CAF498;color:#000000"><div class="timer">784ns</div><div class="ratio">1.17x</div></td>
+<td class="result" style="background:#19B858;color:#000000"><div class="timer">90.1ns</div><div class="ratio">7.37x</div></td>
+<td class="result" style="background:#20BB5A;color:#000000"><div class="timer">96.7ns</div><div class="ratio">6.80x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#B0EA85;color:#000000"><div class="timer">777ns</div><div class="ratio">1.20x</div></td>
+<td class="result" style="background:#AFEA85;color:#000000"><div class="timer">770ns</div><div class="ratio">1.21x</div></td>
 </tr>
 <tr>
 <th class="function">tan</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">106ns</div><div class="ratio">22.12x</div></td>
-<td class="result" style="background:#0BB454;color:#000000"><div class="timer">107ns</div><div class="ratio">8.95x</div></td>
-<td class="result" style="background:#0CB454;color:#000000"><div class="timer">110ns</div><div class="ratio">8.85x</div></td>
-<td class="result type-start" style="background:#7FDB7D;color:#000000"><div class="timer">985ns</div><div class="ratio">2.61x</div></td>
-<td class="result" style="background:#B8EE91;color:#000000"><div class="timer">975ns</div><div class="ratio">1.41x</div></td>
-<td class="result" style="background:#B3EC8F;color:#000000"><div class="timer">911ns</div><div class="ratio">1.50x</div></td>
+<td class="result" style="background:#06B252;color:#000000"><div class="timer">107ns</div><div class="ratio">9.26x</div></td>
+<td class="result" style="background:#0BB453;color:#000000"><div class="timer">109ns</div><div class="ratio">8.79x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#A2E581;color:#000000"><div class="timer">969ns</div><div class="ratio">1.42x</div></td>
+<td class="result" style="background:#9EE480;color:#000000"><div class="timer">917ns</div><div class="ratio">1.48x</div></td>
 </tr>
 <tr>
 <th class="function">asin</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">222ns</div><div class="ratio">20.57x</div></td>
-<td class="result" style="background:#0BB454;color:#000000"><div class="timer">212ns</div><div class="ratio">8.94x</div></td>
-<td class="result" style="background:#09B353;color:#000000"><div class="timer">197ns</div><div class="ratio">9.12x</div></td>
-<td class="result type-start" style="background:#1BB95A;color:#000000"><div class="timer">1,042ns</div><div class="ratio">7.50x</div></td>
-<td class="result" style="background:#5CCF71;color:#000000"><div class="timer">1,048ns</div><div class="ratio">3.76x</div></td>
-<td class="result" style="background:#5DCF71;color:#000000"><div class="timer">1,016ns</div><div class="ratio">3.72x</div></td>
+<td class="result" style="background:#07B252;color:#000000"><div class="timer">224ns</div><div class="ratio">9.22x</div></td>
+<td class="result" style="background:#08B252;color:#000000"><div class="timer">195ns</div><div class="ratio">9.13x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#51CB69;color:#000000"><div class="timer">1,032ns</div><div class="ratio">3.76x</div></td>
+<td class="result" style="background:#53CB69;color:#000000"><div class="timer">1,026ns</div><div class="ratio">3.67x</div></td>
 </tr>
 <tr>
 <th class="function">acos</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">226ns</div><div class="ratio">20.61x</div></td>
-<td class="result" style="background:#0DB455;color:#000000"><div class="timer">216ns</div><div class="ratio">8.72x</div></td>
-<td class="result" style="background:#06B252;color:#000000"><div class="timer">201ns</div><div class="ratio">9.36x</div></td>
-<td class="result type-start" style="background:#25BD5D;color:#000000"><div class="timer">1,065ns</div><div class="ratio">6.73x</div></td>
-<td class="result" style="background:#59CE6F;color:#000000"><div class="timer">1,059ns</div><div class="ratio">3.91x</div></td>
-<td class="result" style="background:#5CCF71;color:#000000"><div class="timer">1,067ns</div><div class="ratio">3.78x</div></td>
+<td class="result" style="background:#09B353;color:#000000"><div class="timer">217ns</div><div class="ratio">9.00x</div></td>
+<td class="result" style="background:#05B252;color:#000000"><div class="timer">201ns</div><div class="ratio">9.41x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#4ECA68;color:#000000"><div class="timer">1,053ns</div><div class="ratio">3.93x</div></td>
+<td class="result" style="background:#4FCA68;color:#000000"><div class="timer">1,043ns</div><div class="ratio">3.85x</div></td>
 </tr>
 <tr>
 <th class="function">atan</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">151ns</div><div class="ratio">22.75x</div></td>
-<td class="result" style="background:#0EB555;color:#000000"><div class="timer">149ns</div><div class="ratio">8.59x</div></td>
-<td class="result" style="background:#04B151;color:#000000"><div class="timer">137ns</div><div class="ratio">9.59x</div></td>
-<td class="result type-start" style="background:#0EB555;color:#000000"><div class="timer">823ns</div><div class="ratio">8.61x</div></td>
-<td class="result" style="background:#51CB6D;color:#000000"><div class="timer">827ns</div><div class="ratio">4.22x</div></td>
-<td class="result" style="background:#54CC6E;color:#000000"><div class="timer">823ns</div><div class="ratio">4.09x</div></td>
+<td class="result" style="background:#08B353;color:#000000"><div class="timer">150ns</div><div class="ratio">9.04x</div></td>
+<td class="result" style="background:#04B151;color:#000000"><div class="timer">136ns</div><div class="ratio">9.54x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#49C866;color:#000000"><div class="timer">830ns</div><div class="ratio">4.17x</div></td>
+<td class="result" style="background:#4BC967;color:#000000"><div class="timer">826ns</div><div class="ratio">4.03x</div></td>
 </tr>
 <tr>
 <th class="function">atan2</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">162ns</div><div class="ratio">29.00x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">163ns</div><div class="ratio">11.97x</div></td>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">159ns</div><div class="ratio">12.27x</div></td>
-<td class="result type-start" style="background:#0DB455;color:#000000"><div class="timer">932ns</div><div class="ratio">8.69x</div></td>
-<td class="result" style="background:#50CB6C;color:#000000"><div class="timer">903ns</div><div class="ratio">4.28x</div></td>
-<td class="result" style="background:#54CC6E;color:#000000"><div class="timer">904ns</div><div class="ratio">4.10x</div></td>
+<td class="result" style="background:#00AA4E;color:#000000"><div class="timer">159ns</div><div class="ratio">12.48x</div></td>
+<td class="result" style="background:#00AB4E;color:#000000"><div class="timer">160ns</div><div class="ratio">12.15x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#48C866;color:#000000"><div class="timer">906ns</div><div class="ratio">4.20x</div></td>
+<td class="result" style="background:#4AC866;color:#000000"><div class="timer">911ns</div><div class="ratio">4.10x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Hyperbolic</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Hyperbolic</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">sinh</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">182ns</div><div class="ratio">11.07x</div></td>
-<td class="result" style="background:#43C768;color:#000000"><div class="timer">170ns</div><div class="ratio">4.90x</div></td>
-<td class="result" style="background:#41C667;color:#000000"><div class="timer">163ns</div><div class="ratio">5.04x</div></td>
-<td class="result type-start" style="background:#A3E78A;color:#000000"><div class="timer">1,010ns</div><div class="ratio">1.77x</div></td>
-<td class="result" style="background:#CAF498;color:#000000"><div class="timer">1,018ns</div><div class="ratio">1.18x</div></td>
-<td class="result" style="background:#C7F397;color:#000000"><div class="timer">982ns</div><div class="ratio">1.21x</div></td>
+<td class="result" style="background:#3BC462;color:#000000"><div class="timer">169ns</div><div class="ratio">4.90x</div></td>
+<td class="result" style="background:#39C361;color:#000000"><div class="timer">162ns</div><div class="ratio">5.01x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#B1EA86;color:#000000"><div class="timer">1,010ns</div><div class="ratio">1.18x</div></td>
+<td class="result" style="background:#B1EA86;color:#000000"><div class="timer">989ns</div><div class="ratio">1.19x</div></td>
 </tr>
 <tr>
 <th class="function">cosh</th>
-<td class="result" style="background:#12B656;color:#000000"><div class="timer">180ns</div><div class="ratio">8.23x</div></td>
-<td class="result" style="background:#46C769;color:#000000"><div class="timer">170ns</div><div class="ratio">4.78x</div></td>
-<td class="result" style="background:#4CC96B;color:#000000"><div class="timer">163ns</div><div class="ratio">4.48x</div></td>
-<td class="result type-start" style="background:#77D87A;color:#000000"><div class="timer">721ns</div><div class="ratio">2.83x</div></td>
-<td class="result" style="background:#ABE98D;color:#000000"><div class="timer">698ns</div><div class="ratio">1.64x</div></td>
-<td class="result" style="background:#A9E98C;color:#000000"><div class="timer">686ns</div><div class="ratio">1.67x</div></td>
+<td class="result" style="background:#3EC463;color:#000000"><div class="timer">168ns</div><div class="ratio">4.76x</div></td>
+<td class="result" style="background:#40C563;color:#000000"><div class="timer">161ns</div><div class="ratio">4.63x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#96E17E;color:#000000"><div class="timer">700ns</div><div class="ratio">1.64x</div></td>
+<td class="result" style="background:#97E27E;color:#000000"><div class="timer">691ns</div><div class="ratio">1.62x</div></td>
 </tr>
 <tr>
 <th class="function">tanh</th>
-<td class="result" style="background:#13B757;color:#000000"><div class="timer">190ns</div><div class="ratio">8.14x</div></td>
-<td class="result" style="background:#48C869;color:#000000"><div class="timer">179ns</div><div class="ratio">4.68x</div></td>
-<td class="result" style="background:#43C768;color:#000000"><div class="timer">170ns</div><div class="ratio">4.89x</div></td>
-<td class="result type-start" style="background:#9EE588;color:#000000"><div class="timer">998ns</div><div class="ratio">1.86x</div></td>
-<td class="result" style="background:#C4F296;color:#000000"><div class="timer">993ns</div><div class="ratio">1.24x</div></td>
-<td class="result" style="background:#C0F194;color:#000000"><div class="timer">962ns</div><div class="ratio">1.30x</div></td>
+<td class="result" style="background:#3FC563;color:#000000"><div class="timer">178ns</div><div class="ratio">4.66x</div></td>
+<td class="result" style="background:#3CC462;color:#000000"><div class="timer">172ns</div><div class="ratio">4.87x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#ACE984;color:#000000"><div class="timer">996ns</div><div class="ratio">1.25x</div></td>
+<td class="result" style="background:#ABE884;color:#000000"><div class="timer">963ns</div><div class="ratio">1.27x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Inverse hyperbolic</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Inverse hyperbolic</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">asinh</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">325ns</div><div class="ratio">16.08x</div></td>
-<td class="result" style="background:#0DB455;color:#000000"><div class="timer">298ns</div><div class="ratio">8.68x</div></td>
-<td class="result" style="background:#09B353;color:#000000"><div class="timer">290ns</div><div class="ratio">9.09x</div></td>
-<td class="result type-start" style="background:#41C667;color:#000000"><div class="timer">707ns</div><div class="ratio">5.00x</div></td>
-<td class="result" style="background:#76D87A;color:#000000"><div class="timer">677ns</div><div class="ratio">2.87x</div></td>
-<td class="result" style="background:#72D678;color:#000000"><div class="timer">649ns</div><div class="ratio">2.99x</div></td>
+<td class="result" style="background:#0DB454;color:#000000"><div class="timer">296ns</div><div class="ratio">8.57x</div></td>
+<td class="result" style="background:#0BB353;color:#000000"><div class="timer">288ns</div><div class="ratio">8.81x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#65D16F;color:#000000"><div class="timer">672ns</div><div class="ratio">2.96x</div></td>
+<td class="result" style="background:#65D16F;color:#000000"><div class="timer">658ns</div><div class="ratio">2.96x</div></td>
 </tr>
 <tr>
 <th class="function">acosh</th>
-<td class="result" style="background:#17B858;color:#000000"><div class="timer">346ns</div><div class="ratio">7.82x</div></td>
-<td class="result" style="background:#5ED071;color:#000000"><div class="timer">298ns</div><div class="ratio">3.68x</div></td>
-<td class="result" style="background:#57CD6F;color:#000000"><div class="timer">294ns</div><div class="ratio">3.99x</div></td>
-<td class="result type-start" style="background:#40C567;color:#000000"><div class="timer">723ns</div><div class="ratio">5.08x</div></td>
-<td class="result" style="background:#79D97B;color:#000000"><div class="timer">681ns</div><div class="ratio">2.77x</div></td>
-<td class="result" style="background:#76D87A;color:#000000"><div class="timer">653ns</div><div class="ratio">2.87x</div></td>
+<td class="result" style="background:#53CB69;color:#000000"><div class="timer">302ns</div><div class="ratio">3.66x</div></td>
+<td class="result" style="background:#4ECA68;color:#000000"><div class="timer">291ns</div><div class="ratio">3.89x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#69D370;color:#000000"><div class="timer">674ns</div><div class="ratio">2.83x</div></td>
+<td class="result" style="background:#68D270;color:#000000"><div class="timer">658ns</div><div class="ratio">2.85x</div></td>
 </tr>
 <tr>
 <th class="function">atanh</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">247ns</div><div class="ratio">10.76x</div></td>
-<td class="result" style="background:#40C567;color:#000000"><div class="timer">229ns</div><div class="ratio">5.09x</div></td>
-<td class="result" style="background:#23BC5C;color:#000000"><div class="timer">216ns</div><div class="ratio">6.90x</div></td>
-<td class="result type-start" style="background:#4CC96B;color:#000000"><div class="timer">777ns</div><div class="ratio">4.48x</div></td>
-<td class="result" style="background:#79D97B;color:#000000"><div class="timer">720ns</div><div class="ratio">2.77x</div></td>
-<td class="result" style="background:#76D87A;color:#000000"><div class="timer">703ns</div><div class="ratio">2.85x</div></td>
+<td class="result" style="background:#38C261;color:#000000"><div class="timer">231ns</div><div class="ratio">5.09x</div></td>
+<td class="result" style="background:#22BB5A;color:#000000"><div class="timer">217ns</div><div class="ratio">6.65x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#64D16E;color:#000000"><div class="timer">707ns</div><div class="ratio">2.98x</div></td>
+<td class="result" style="background:#69D370;color:#000000"><div class="timer">706ns</div><div class="ratio">2.82x</div></td>
 </tr>
-<tr class="group-row"><th colspan="7">Special functions</th></tr>
+<tr class="group-row"><th class="group-label" colspan="3">Special functions</th><th class="type-gap" aria-hidden="true"></th><th class="group-fill" colspan="2"></th></tr>
 <tr>
 <th class="function">erfc</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">875ns</div><div class="ratio">16.94x</div></td>
-<td class="result" style="background:#18B858;color:#000000"><div class="timer">831ns</div><div class="ratio">7.78x</div></td>
-<td class="result" style="background:#03B151;color:#000000"><div class="timer">761ns</div><div class="ratio">9.72x</div></td>
-<td class="result type-start" style="background:#00B050;color:#000000"><div class="timer">3,285ns</div><div class="ratio">10.67x</div></td>
-<td class="result" style="background:#4DCA6B;color:#000000"><div class="timer">3,214ns</div><div class="ratio">4.40x</div></td>
-<td class="result" style="background:#4DCA6B;color:#000000"><div class="timer">3,218ns</div><div class="ratio">4.41x</div></td>
+<td class="result" style="background:#13B656;color:#000000"><div class="timer">796ns</div><div class="ratio">7.97x</div></td>
+<td class="result" style="background:#01B050;color:#000000"><div class="timer">742ns</div><div class="ratio">9.90x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#44C665;color:#000000"><div class="timer">3,237ns</div><div class="ratio">4.40x</div></td>
+<td class="result" style="background:#43C664;color:#000000"><div class="timer">3,249ns</div><div class="ratio">4.49x</div></td>
 </tr>
 <tr>
 <th class="function">erf</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">788ns</div><div class="ratio">13.10x</div></td>
-<td class="result" style="background:#4FCA6C;color:#000000"><div class="timer">827ns</div><div class="ratio">4.34x</div></td>
-<td class="result" style="background:#3FC566;color:#000000"><div class="timer">748ns</div><div class="ratio">5.13x</div></td>
-<td class="result type-start" style="background:#35C263;color:#000000"><div class="timer">3,223ns</div><div class="ratio">5.72x</div></td>
-<td class="result" style="background:#7CDA7C;color:#000000"><div class="timer">3,214ns</div><div class="ratio">2.69x</div></td>
-<td class="result" style="background:#7DDA7C;color:#000000"><div class="timer">3,236ns</div><div class="ratio">2.66x</div></td>
+<td class="result" style="background:#44C665;color:#000000"><div class="timer">813ns</div><div class="ratio">4.40x</div></td>
+<td class="result" style="background:#3AC361;color:#000000"><div class="timer">757ns</div><div class="ratio">5.00x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#6ED471;color:#000000"><div class="timer">3,219ns</div><div class="ratio">2.66x</div></td>
+<td class="result" style="background:#6BD371;color:#000000"><div class="timer">3,246ns</div><div class="ratio">2.74x</div></td>
 </tr>
 <tr>
 <th class="function">tgamma</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">666ns</div><div class="ratio">14.55x</div></td>
-<td class="result" style="background:#21BB5C;color:#000000"><div class="timer">635ns</div><div class="ratio">7.04x</div></td>
-<td class="result" style="background:#16B758;color:#000000"><div class="timer">597ns</div><div class="ratio">7.91x</div></td>
-<td class="result type-start" style="background:#7DDA7C;color:#000000"><div class="timer">7,065ns</div><div class="ratio">2.66x</div></td>
-<td class="result" style="background:#B3EC8F;color:#000000"><div class="timer">6,682ns</div><div class="ratio">1.50x</div></td>
-<td class="result" style="background:#B2EC8F;color:#000000"><div class="timer">6,460ns</div><div class="ratio">1.51x</div></td>
+<td class="result" style="background:#1CB958;color:#000000"><div class="timer">630ns</div><div class="ratio">7.15x</div></td>
+<td class="result" style="background:#12B656;color:#000000"><div class="timer">588ns</div><div class="ratio">8.02x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#9CE480;color:#000000"><div class="timer">6,537ns</div><div class="ratio">1.52x</div></td>
+<td class="result" style="background:#9BE37F;color:#000000"><div class="timer">6,562ns</div><div class="ratio">1.54x</div></td>
 </tr>
 <tr>
 <th class="function">lgamma</th>
-<td class="result" style="background:#00B050;color:#000000"><div class="timer">728ns</div><div class="ratio">17.62x</div></td>
-<td class="result" style="background:#20BB5B;color:#000000"><div class="timer">684ns</div><div class="ratio">7.13x</div></td>
-<td class="result" style="background:#13B657;color:#000000"><div class="timer">640ns</div><div class="ratio">8.20x</div></td>
-<td class="result type-start" style="background:#70D678;color:#000000"><div class="timer">6,558ns</div><div class="ratio">3.04x</div></td>
-<td class="result" style="background:#ABEA8D;color:#000000"><div class="timer">6,460ns</div><div class="ratio">1.62x</div></td>
-<td class="result" style="background:#ABEA8D;color:#000000"><div class="timer">6,313ns</div><div class="ratio">1.63x</div></td>
+<td class="result" style="background:#1CB958;color:#000000"><div class="timer">683ns</div><div class="ratio">7.15x</div></td>
+<td class="result" style="background:#12B655;color:#000000"><div class="timer">634ns</div><div class="ratio">8.09x</div></td>
+<td class="type-gap" aria-hidden="true"></td>
+<td class="result" style="background:#96E27E;color:#000000"><div class="timer">6,357ns</div><div class="ratio">1.64x</div></td>
+<td class="result" style="background:#96E17E;color:#000000"><div class="timer">6,388ns</div><div class="ratio">1.64x</div></td>
 </tr>
 </tbody>
 </table>
