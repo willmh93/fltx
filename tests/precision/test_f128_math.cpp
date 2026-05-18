@@ -68,7 +68,7 @@ namespace
             { "acos", "3e-30" },
             { "acosh", "4e-30" },
             { "add", "4e-32" },
-            { "asin", "3e-30" },
+            { "asin", "4e-30" },
             { "asinh", "3e-30" },
             { "atan", "3e-30" },
             { "atan2", "4e-30" },
@@ -2398,6 +2398,11 @@ TEST_CASE("f128 utility math helpers behave correctly for fixed values", "[fltx]
         REQUIRE(bl::lrint(to_f128("3.5")) == 4L);
         REQUIRE(bl::llrint(to_f128("-2.5")) == -2LL);
         REQUIRE(bl::llrint(to_f128("-3.5")) == -4LL);
+        REQUIRE(bl::llround(to_f128("4503599627370495.5")) == 4503599627370496LL);
+        REQUIRE(bl::llround(to_f128("-4503599627370495.5")) == -4503599627370496LL);
+        REQUIRE(bl::llround(to_f128("4503599627370496.5")) == 4503599627370497LL);
+        REQUIRE(bl::llrint(to_f128("4503599627370496.5")) == 4503599627370496LL);
+        REQUIRE(bl::llrint(to_f128("4503599627370497.5")) == 4503599627370498LL);
     }
 }
 

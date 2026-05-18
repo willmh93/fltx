@@ -402,10 +402,10 @@ BL_MSVC_NOINLINE constexpr f128_s& f128_s::operator=(int64_t v) noexcept
 }
 
 // Remaining public f128 core wrappers are defined together after the constexpr implementations.
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s floor(const f128_s& a);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s ceil(const f128_s& a);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s trunc(const f128_s& a);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s pow10_128(int k);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128 floor(const f128_s& a);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128 ceil(const f128_s& a);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128 trunc(const f128_s& a);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128 pow10_128(int k);
 
 /// ============= Comparisons =============
 
@@ -798,7 +798,7 @@ namespace detail::_f128
     BL_POP_PRECISE;
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s recip(f128_s b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 recip(f128_s b) noexcept
 {
     constexpr f128_s one = f128_s{ 1.0 };
     f128_s y = f128_s{ 1.0 / b.hi };
@@ -810,7 +810,7 @@ namespace detail::_f128
 
     return y;
 }
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s inv(const f128_s& a) { return recip(a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 inv(const f128_s& a) { return recip(a); }
 
 /// ============= Scalar =============
 
@@ -1033,28 +1033,28 @@ BL_FORCE_INLINE constexpr f128_s& detail::_f128_constexpr::assign(f128_s& out, i
 
 /// ============= f128 public core wrappers =============
 
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s floor(const f128_s& a)
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128 floor(const f128_s& a)
 {
     if (bl::use_constexpr_math())
         return detail::_f128_constexpr::floor(a);
 
     return detail::_f128_runtime::floor(a);
 }
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s ceil(const f128_s& a)
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128 ceil(const f128_s& a)
 {
     if (bl::use_constexpr_math())
         return detail::_f128_constexpr::ceil(a);
 
     return detail::_f128_runtime::ceil(a);
 }
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s trunc(const f128_s& a)
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128 trunc(const f128_s& a)
 {
     if (bl::use_constexpr_math())
         return detail::_f128_constexpr::trunc(a);
 
     return detail::_f128_runtime::trunc(a);
 }
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s pow10_128(int k)
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128 pow10_128(int k)
 {
     if (bl::use_constexpr_math())
         return detail::_f128_constexpr::pow10_128(k);

@@ -152,10 +152,15 @@ namespace bl
         // evaluation. FLTX_CONSTEXPR_PARITY itself is intentionally not part of
         // this decision; it requests bitwise-compatible results, not forced
         // constexpr-path execution.
+        if consteval
+        {
+            return true;
+        }
+
         #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
-        return std::is_constant_evaluated() ? true : _fltx_debug::simulate_consteval_path;
+        return _fltx_debug::simulate_consteval_path;
         #else
-        return std::is_constant_evaluated();
+        return false;
         #endif
     }
 
@@ -179,9 +184,9 @@ namespace bl
         // but it may choose constexpr-safe runtime algorithms when that is the
         // cleanest way to guarantee bitwise-identical results.
         #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
-        return is_constant_evaluated() || use_constexpr_parity();
+        return is_constant_evaluated() || _fltx_debug::simulate_consteval_path || use_constexpr_parity();
         #else
-        return std::is_constant_evaluated() || use_constexpr_parity();
+        return is_constant_evaluated() || use_constexpr_parity();
         #endif
     }
 }
@@ -242,16 +247,16 @@ struct std::numeric_limits<wrapper_type>                                        
 #endif
 #endif
 
-#ifndef BL_HAS_IF_CONSTEVAL
-#if (BL_CXX_LANGUAGE_VERSION > 202002L) && defined(__cpp_if_consteval) && (__cpp_if_consteval >= 202106L)
-#define BL_HAS_IF_CONSTEVAL 1
-#else
-#define BL_HAS_IF_CONSTEVAL 0
+#if BL_CXX_LANGUAGE_VERSION <= 202002L
+#error fltx requires C++23 or newer.
 #endif
+
+#if !defined(__cpp_if_consteval) || (__cpp_if_consteval < 202106L)
+#error fltx requires C++23 if consteval support.
 #endif
 
 #ifndef BL_CONSTEXPR_RUNTIME_DISPATCH
-#if !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE) && BL_HAS_IF_CONSTEVAL
+#if !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE)
 #define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 1
 #define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
     do                                                              \
@@ -264,15 +269,6 @@ struct std::numeric_limits<wrapper_type>                                        
         {                                                           \
             return (RUNTIME_EXPR);                                  \
         }                                                           \
-    } while (false)
-#elif !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE)
-#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
-#define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
-    do                                                              \
-    {                                                               \
-        if (std::is_constant_evaluated())                           \
-            return (CONSTEVAL_EXPR);                                \
-        return (RUNTIME_EXPR);                                      \
     } while (false)
 #else
 #define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0

@@ -66,7 +66,7 @@ function (addFltxTestLibrary _TARGET)
 
     add_library(${_TARGET} STATIC ${FLTX_LIBRARY_SOURCES})
     target_include_directories(${_TARGET} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
-    target_compile_features(${_TARGET} PUBLIC cxx_std_20)
+    target_compile_features(${_TARGET} PUBLIC cxx_std_23)
     target_compile_definitions(${_TARGET} PUBLIC ${FLTX_TEST_LIB_DEFINITIONS} ${FLTX_TEST_LIB_UNPARSED_ARGUMENTS})
 
     if(DEFINED FLTX_TEST_LIB_FAST_MATH_MODE)
@@ -82,7 +82,7 @@ function (addFltxTestMacroStatus _TARGET)
     set(_STATUS_TARGET "${_TARGET}_macro_status")
     add_library(${_STATUS_TARGET} OBJECT "${FLTX_TEST_MACRO_STATUS_SOURCE}")
     target_include_directories(${_STATUS_TARGET} PRIVATE "${FLTX_INCLUDE_DIR}")
-    target_compile_features(${_STATUS_TARGET} PRIVATE cxx_std_20)
+    target_compile_features(${_STATUS_TARGET} PRIVATE cxx_std_23)
     target_compile_definitions(${_STATUS_TARGET} PRIVATE
         FLTX_TEST_NAME=\"${_TARGET}\"
         ${FLTX_TEST_STATUS_DEFINITIONS}
@@ -170,7 +170,7 @@ function (prepareTarget _TARGET _FLTX_LIBRARY)
         )
     endif()
 
-    target_compile_features(${_TARGET} PRIVATE cxx_std_20)
+    target_compile_features(${_TARGET} PRIVATE cxx_std_23)
 
     if (MSVC)
         target_compile_options(${_TARGET} PRIVATE /Bt+)

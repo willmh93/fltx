@@ -29,7 +29,7 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 50;
+    constexpr int benchmark_scale = 1;
     constexpr bool only_bench_typical = true;
     constexpr std::size_t bucket_value_count = 64;
     constexpr std::size_t bucket_count = 3;
@@ -527,6 +527,52 @@ namespace
 
         for (value_spec& spec : out)
             spec = make_random_typical_value_spec(rng, domain);
+
+        return out;
+    }
+
+    [[nodiscard]] double sample_bounded_normal_weight(std::mt19937_64& rng)
+    {
+        std::normal_distribution<double> normal{ 0.0, 0.40 };
+        return std::clamp(std::abs(normal(rng)), 0.0, 1.0);
+    }
+
+    template<typename SignedInt>
+    [[nodiscard]] value_spec make_integer_rounding_typical_spec(std::mt19937_64& rng)
+    {
+        static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
+
+        constexpr int max_exp = std::min<int>(62, std::numeric_limits<SignedInt>::digits - 1);
+        constexpr int fast_exp_hi = std::min(51, max_exp);
+        constexpr bool has_fallback_range = max_exp >= 52;
+
+        const bool use_fallback_range = has_fallback_range && random_real(rng, 0.0, 1.0) >= 0.75;
+        const int exp_lo = use_fallback_range ? 52 : 0;
+        const int exp_hi = use_fallback_range ? max_exp : fast_exp_hi;
+        const double weight = sample_bounded_normal_weight(rng);
+        const int exp = exp_lo + std::min(exp_hi - exp_lo, static_cast<int>(std::floor(weight * static_cast<double>(exp_hi - exp_lo + 1))));
+
+        constexpr std::array<double, 6> fractions{{ 0.25, 0.499999999999, 0.5, 0.500000000001, 0.75, 0.9375 }};
+        const double fraction = fractions[static_cast<std::size_t>(random_int(rng, 0, static_cast<int>(fractions.size() - 1)))];
+        const double whole = std::floor(std::ldexp(random_real(rng, 0.5, 1.75), exp));
+        const double sign = random_sign(rng);
+
+        if (use_fallback_range)
+            return renorm_spec(sign * whole, sign * fraction);
+
+        const double value = sign * (whole + fraction);
+        const double tail = sign * random_real(rng, 0.05, 0.95) * ulp_of(value == 0.0 ? 1.0 : value);
+        return renorm_spec(value, tail);
+    }
+
+    template<typename SignedInt>
+    [[nodiscard]] std::array<value_spec, bucket_value_count> make_integer_rounding_typical_specs(const bucket_array_set<value_spec>& specs)
+    {
+        std::array<value_spec, bucket_value_count> out{};
+        std::mt19937_64 rng{make_typical_seed(specs, "integer-rounding")};
+
+        for (value_spec& spec : out)
+            spec = make_integer_rounding_typical_spec<SignedInt>(rng);
 
         return out;
     }
@@ -1750,26 +1796,27 @@ namespace
         return nexttoward(from, mpfr_ref(to));
     }
 
+    // Keep scalar operands non-degenerate so overload benchmarks exercise the advertised precision.
     constexpr std::array<double, 8> arithmetic_f64_scalars{
-        0.125,
-        -0.1875,
-        0.3125,
-        -0.4375,
-        0.5625,
-        -0.6875,
-        0.8125,
-        -0.9375
+        0x1.921fb54442d18p+1,
+        -0x1.5bf0a8b145769p+1,
+        0x1.6a09e667f3bcdp+0,
+        -0x1.279a74590331cp-1,
+        0x1.9e3779b97f4a8p+0,
+        -0x1.62e42fefa39efp-1,
+        0x1.26bb1bbb55516p+1,
+        -0x1.71547652b82fep+0
     };
 
     constexpr std::array<float, 8> arithmetic_f32_scalars{
-        0.125f,
-        -0.1875f,
-        0.3125f,
-        -0.4375f,
-        0.5625f,
-        -0.6875f,
-        0.8125f,
-        -0.9375f
+        0x1.921fb6p+1f,
+        -0x1.5bf0a8p+1f,
+        0x1.6a09e6p+0f,
+        -0x1.279a74p-1f,
+        0x1.9e377ap+0f,
+        -0x1.62e430p-1f,
+        0x1.26bb1cp+1f,
+        -0x1.715476p+0f
     };
 
     constexpr std::array<std::int64_t, 8> arithmetic_i64_scalars{
@@ -2393,6 +2440,31 @@ namespace
     }
 
     template<typename FltxResult, typename MpfrResult, typename Op>
+    [[nodiscard]] bucketed_comparison_result run_integer_rounding_benchmark_result(
+        const bucket_array_set<value_spec>& specs,
+        std::int64_t total_iterations,
+        Op&& op)
+    {
+        static_assert(std::is_integral_v<FltxResult> && std::is_signed_v<FltxResult>);
+
+        bucketed_comparison_result out{};
+        if constexpr (!only_bench_typical)
+        {
+            out.easy.f128 = benchmark_value_bucket_result<f128, FltxResult>(specs.easy, total_iterations, op);
+            out.easy.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(specs.easy, total_iterations, op);
+            out.medium.f128 = benchmark_value_bucket_result<f128, FltxResult>(specs.medium, total_iterations, op);
+            out.medium.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(specs.medium, total_iterations, op);
+            out.hard.f128 = benchmark_value_bucket_result<f128, FltxResult>(specs.hard, total_iterations, op);
+            out.hard.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(specs.hard, total_iterations, op);
+        }
+        const auto typical_specs = make_integer_rounding_typical_specs<FltxResult>(specs);
+        out.typical.f128 = benchmark_value_bucket_result<f128, FltxResult>(typical_specs, total_iterations, op, false);
+        out.typical.mpfr = benchmark_value_bucket_result<mpfr_ref, MpfrResult>(typical_specs, total_iterations, op, false);
+
+        return out;
+    }
+
+    template<typename FltxResult, typename MpfrResult, typename Op>
     [[nodiscard]] bucketed_comparison_result run_bucketed_binary_benchmark_result(
         const bucket_array_set<binary_value_spec>& specs,
         std::int64_t total_iterations,
@@ -2709,8 +2781,11 @@ namespace
         return result;
     }
 
+    template<typename SignedInt>
     [[nodiscard]] bucket_array_set<value_spec> integer_rounding_specs()
     {
+        static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
+
         constexpr std::array<value_spec, 8> easy_values{{
             { -8.75, 0.0 },
             { -4.5, 0.0 },
@@ -2744,12 +2819,26 @@ namespace
             { 2000000000.25, 0.0 }
         }};
 
+        constexpr std::array<value_spec, 8> large_hard_values{{
+            { -0x1.0p62, -0.75 },
+            { -0x1.0p56, -0.5 },
+            { -0x1.0p52, -0.25 },
+            { -1.75, 0.0 },
+            { 1.75, 0.0 },
+            { 0x1.0p52, 0.25 },
+            { 0x1.0p56, 0.5 },
+            { 0x1.0p62, 0.75 }
+        }};
+
         bucket_array_set<value_spec> out{};
         for (std::size_t i = 0; i < bucket_value_count; ++i)
         {
             out.easy[i] = easy_values[i % easy_values.size()];
             out.medium[i] = medium_values[i % medium_values.size()];
-            out.hard[i] = hard_values[i % hard_values.size()];
+            if constexpr (std::numeric_limits<SignedInt>::digits > 52)
+                out.hard[i] = large_hard_values[i % large_hard_values.size()];
+            else
+                out.hard[i] = hard_values[i % hard_values.size()];
         }
 
         return out;
@@ -2987,28 +3076,28 @@ TEST_CASE("f128 vs mpfr fabs performance", "[bench][fltx][f128][arithmetic][fabs
 TEST_CASE("f128 vs mpfr lround performance", "[bench][fltx][f128][rounding][lround]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<long, long>(integer_rounding_specs(), total_iterations, [](const auto& x) { return apply_lround(x); });
+    const auto results = run_integer_rounding_benchmark_result<long, long>(integer_rounding_specs<long>(), total_iterations, [](const auto& x) { return apply_lround(x); });
     print_bucketed_results("lround", results);
 }
 
 TEST_CASE("f128 vs mpfr llround performance", "[bench][fltx][f128][rounding][llround]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<long long, long long>(integer_rounding_specs(), total_iterations, [](const auto& x) { return apply_llround(x); });
+    const auto results = run_integer_rounding_benchmark_result<long long, long long>(integer_rounding_specs<long long>(), total_iterations, [](const auto& x) { return apply_llround(x); });
     print_bucketed_results("llround", results);
 }
 
 TEST_CASE("f128 vs mpfr lrint performance", "[bench][fltx][f128][rounding][lrint]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<long, long>(integer_rounding_specs(), total_iterations, [](const auto& x) { return apply_lrint(x); });
+    const auto results = run_integer_rounding_benchmark_result<long, long>(integer_rounding_specs<long>(), total_iterations, [](const auto& x) { return apply_lrint(x); });
     print_bucketed_results("lrint", results);
 }
 
 TEST_CASE("f128 vs mpfr llrint performance", "[bench][fltx][f128][rounding][llrint]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<long long, long long>(integer_rounding_specs(), total_iterations, [](const auto& x) { return apply_llrint(x); });
+    const auto results = run_integer_rounding_benchmark_result<long long, long long>(integer_rounding_specs<long long>(), total_iterations, [](const auto& x) { return apply_llrint(x); });
     print_bucketed_results("llrint", results);
 }
 

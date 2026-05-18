@@ -21,20 +21,18 @@ struct Vec2
 template<typename T, std::size_t C>
 consteval std::array<Vec2<T>, C> ellipse(T rx, T ry)
 {
-    static_assert(C > 0);
-
     std::array<Vec2<T>, C> points{};
-
-    constexpr T tau = std::numbers::pi_v<T> *T{ 2 };
+    T tau = std::numbers::pi_v<T> * 2;
 
     for (std::size_t i = 0; i < C; ++i)
     {
-        T ratio = T(static_cast<std::uint64_t>(i)) / T(static_cast<std::uint64_t>(C));
+        T ratio = T(i) / T(C);
         T angle = ratio * tau;
+        Vec2<T> sc = bl::sincos<T>(angle);
 
         points[i] = {
-            bl::cos(angle) * rx,
-            bl::sin(angle) * ry
+            sc.x * rx,
+            sc.y * ry
         };
     }
 

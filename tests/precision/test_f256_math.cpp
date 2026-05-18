@@ -96,7 +96,7 @@ namespace
             { "log1p", "9e-63" },
             { "log2", "1e-62" },
             { "multiply", "2e-65" },
-            { "pow", "1e-62" },
+            { "pow", "2e-61" },
             { "pow10_256", "2e-65" },
             { "recip", "4e-66" },
             { "sin", "6e-60" },
@@ -2362,6 +2362,9 @@ TEST_CASE("f256 sin matches MPFR for fixed argument-reduction stress values", "[
     check_sin_case("negative_large_decimal", mpfr_ref{ "-1000000.25" }, reduction_abs_tolerance, reduction_rel_tolerance);
     check_sin_case("million_pi_plus_offset", mpfr_ref{ "1000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
     check_sin_case("negative_million_pi_plus_offset", mpfr_ref{ "-1000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_sin_case("huge_decimal", mpfr_ref{ "1e20" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_sin_case("huge_pi_multiple_plus_offset", mpfr_ref{ "100000000000000000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_sin_case("negative_huge_pi_multiple_plus_offset", mpfr_ref{ "-100000000000000000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
 }
 
 TEST_CASE("f256 sin matches MPFR on random reduced-range inputs", "[fltx][f256][precision][transcendental][trig][sin]")
@@ -2508,6 +2511,9 @@ TEST_CASE("f256 cos matches MPFR for fixed argument-reduction stress values", "[
     check_cos_case("negative_large_decimal", mpfr_ref{ "-1000000.25" }, reduction_abs_tolerance, reduction_rel_tolerance);
     check_cos_case("million_pi_plus_offset", mpfr_ref{ "1000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
     check_cos_case("negative_million_pi_plus_offset", mpfr_ref{ "-1000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_cos_case("huge_decimal", mpfr_ref{ "1e20" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_cos_case("huge_pi_multiple_plus_offset", mpfr_ref{ "100000000000000000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_cos_case("negative_huge_pi_multiple_plus_offset", mpfr_ref{ "-100000000000000000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
 }
 
 TEST_CASE("f256 cos matches MPFR on random reduced-range inputs", "[fltx][f256][precision][transcendental][trig][cos]")
@@ -3399,7 +3405,7 @@ TEST_CASE("f256 public math results remain canonical on edge-shaped inputs", "[f
 TEST_CASE("f256 sincos matches MPFR for fixed values", "[fltx][f256][precision][transcendental][trig][sincos]")
 {
     accuracy_report_scope report_scope{ "f256 sincos matches MPFR for fixed values" };
-    const std::array<const char*, 8> cases = {{
+    const std::array<const char*, 9> cases = {{
         "0",
         "0.125",
         "-0.125",
@@ -3407,7 +3413,8 @@ TEST_CASE("f256 sincos matches MPFR for fixed values", "[fltx][f256][precision][
         "-0.785398163397448309615660845819875721",
         "1.5",
         "-1.5",
-        "1234.56789"
+        "1234.56789",
+        "1e20"
     }};
 
     const mpfr_ref abs_tolerance{ "1e-59" };

@@ -12,11 +12,13 @@ function(fltx_add_example example_name)
         $<$<CXX_COMPILER_ID:Clang,AppleClang>:-fconstexpr-backtrace-limit=100>
     )
 
-    target_compile_features(${example_name} PRIVATE cxx_std_20)
+    target_compile_features(${example_name} PRIVATE cxx_std_23)
     set_target_properties(${example_name} PROPERTIES FOLDER "fltx/examples")
 
-    target_compile_options(${example_name} PRIVATE /Bt+)
-    target_link_options(${example_name} PRIVATE /TIME)
+    if(MSVC)
+        target_compile_options(${example_name} PRIVATE /Bt+)
+        target_link_options(${example_name} PRIVATE /TIME)
+    endif()
 endfunction()
 
 fltx_add_example("1_example_basic"                  example_basic.cpp)

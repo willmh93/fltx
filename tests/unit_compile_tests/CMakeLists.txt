@@ -33,8 +33,8 @@ add_dependencies(isolated_f256_math fltx)
 target_include_directories(isolated_f128_math PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/f128")
 target_include_directories(isolated_f256_math PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/f256")
 
-target_compile_features(isolated_f128_math PRIVATE cxx_std_20)
-target_compile_features(isolated_f256_math PRIVATE cxx_std_20)
+target_compile_features(isolated_f128_math PRIVATE cxx_std_23)
+target_compile_features(isolated_f256_math PRIVATE cxx_std_23)
 
 set_target_properties(isolated_f128_math PROPERTIES FOLDER "fltx/isolated/f128")
 set_target_properties(isolated_f256_math PROPERTIES FOLDER "fltx/isolated/f256")

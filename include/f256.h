@@ -880,10 +880,10 @@ BL_MSVC_NOINLINE constexpr f256_s& f256_s::operator=(int64_t v) noexcept
 }
 
 // Remaining public f256 core wrappers are defined together after the constexpr implementations.
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s floor(const f256_s& a);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s ceil(const f256_s& a);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s trunc(const f256_s& a);
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s pow10_256(int k);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f256 floor(const f256_s& a);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f256 ceil(const f256_s& a);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f256 trunc(const f256_s& a);
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f256 pow10_256(int k);
 
 /// ============= Comparisons =============
 
@@ -1968,7 +1968,7 @@ namespace detail::_f256
     }
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s recip(f256_s b) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 recip(f256_s b) noexcept
 {
     using namespace detail::_f256;
 
@@ -1985,7 +1985,7 @@ namespace detail::_f256
 
     return renorm5(q0, q1, q2, q3, q4);
 }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s inv(const f256_s& a) { return recip(a); }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 inv(const f256_s& a) { return recip(a); }
 
 /// ============= Scalar =============
 
@@ -2214,19 +2214,19 @@ template<class T, std::enable_if_t<detail::fp::is_integer_scalar_v<T>, int> = 0>
     return detail::_f256::div_dd(detail::_f256::integer_to_double_double(a), b);
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s floor(const f256_s& a)
+[[nodiscard]] BL_FORCE_INLINE  constexpr f256 floor(const f256_s& a)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::floor(a), detail::_f256_runtime::floor(a));
 }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s ceil(const f256_s& a)
+[[nodiscard]] BL_FORCE_INLINE  constexpr f256 ceil(const f256_s& a)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::ceil(a), detail::_f256_runtime::ceil(a));
 }
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s trunc(const f256_s& a)
+[[nodiscard]] BL_FORCE_INLINE  constexpr f256 trunc(const f256_s& a)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::trunc(a), detail::_f256_runtime::trunc(a));
 }
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s pow10_256(int k)
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f256 pow10_256(int k)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(detail::_f256_constexpr::pow10_256(k), detail::_f256_runtime::pow10_256(k));
 }

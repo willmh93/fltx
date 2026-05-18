@@ -365,6 +365,12 @@ namespace detail::_f32
         return std::cos(x);
     return static_cast<float>(bl::cos(static_cast<double>(x)));
 }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool sincos(float x, float& s_out, float& c_out) noexcept
+{
+    s_out = bl::sin(x);
+    c_out = bl::cos(x);
+    return bl::isfinite(x);
+}
 [[nodiscard]] BL_FORCE_INLINE constexpr float tan(float x) noexcept
 {
     if (!bl::use_constexpr_math())
@@ -505,6 +511,26 @@ namespace detail::_f32
 [[nodiscard]] BL_FORCE_INLINE constexpr bool islessgreater(float a, float b) noexcept
 {
     return !isunordered(a, b) && a != b;
+}
+
+// convenience sincos overloads
+template<class Vec> requires detail::fp::sincos_vector_assignable<Vec, float>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool sincos(float x, Vec& out)
+{
+    float s_out{};
+    float c_out{};
+    const bool ok = bl::sincos(x, s_out, c_out);
+    detail::fp::assign_sincos_vector(out, s_out, c_out);
+    return ok;
+}
+
+template<class Value> requires std::same_as<std::remove_cvref_t<Value>, float>
+[[nodiscard]] BL_FORCE_INLINE constexpr detail::fp::sincos_vector_result<float> sincos(float x)
+{
+    float s_out{};
+    float c_out{};
+    const bool ok = bl::sincos(x, s_out, c_out);
+    return detail::fp::make_sincos_result(s_out, c_out, ok);
 }
 
 } // namespace bl
