@@ -28,6 +28,34 @@
       }
     },
     {
+      "name": "clang-debug",
+      "displayName": "Clang Debug",
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"},
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/clang-debug",
+      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "${sourceDir}/cmake/toolchains/fltx-clangxx",
+        "CMAKE_INSTALL_LIBDIR": "lib",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
+      }
+    },
+    {
+      "name": "clang-release",
+      "displayName": "Clang Release",
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"},
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/clang-release",
+      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "${sourceDir}/cmake/toolchains/fltx-clangxx",
+        "CMAKE_INSTALL_LIBDIR": "lib",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
+      }
+    },
+    {
       "name": "mingw-debug",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/mingw-debug",
@@ -92,6 +120,8 @@
     { "name": "03. mingw-debug",      "configurePreset": "mingw-debug" },
     { "name": "04. mingw-release",    "configurePreset": "mingw-release" },
     { "name": "05. wasm32-release",   "configurePreset": "wasm32-release" },
-    { "name": "06. macos-release",    "configurePreset": "macos-release" }
+    { "name": "06. macos-release",    "configurePreset": "macos-release" },
+    { "name": "clang-debug",          "configurePreset": "clang-debug" },
+    { "name": "clang-release",        "configurePreset": "clang-release" }
   ]
 }

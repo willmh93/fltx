@@ -33,7 +33,7 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 1;
+    constexpr int benchmark_scale = 10;
     constexpr bool only_bench_typical = true;
     constexpr std::size_t bucket_value_count = 8;
     constexpr std::size_t bucket_count = 3;

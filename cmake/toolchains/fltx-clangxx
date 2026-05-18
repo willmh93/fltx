@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+if [ -n "${FLTX_CLANGXX:-}" ]; then
+    exec "$FLTX_CLANGXX" "$@"
+fi
+
+if [ -f /.flatpak-info ] && command -v flatpak-spawn >/dev/null 2>&1; then
+    tmp_root="${FLTX_CLANGXX_TMPDIR:-${XDG_CACHE_HOME:-$HOME/.cache}/fltx-clangxx}"
+    mkdir -p "$tmp_root"
+
+    copy_tmp_file() {
+        local src="$1"
+        local dest
+        dest="$(mktemp "$tmp_root/$(basename "$src").XXXXXX")" || exit 1
+        cp "$src" "$dest" || exit 1
+        printf '%s\n' "$dest"
+    }
+
+    args=()
+    for arg in "$@"; do
+        if [[ "$arg" == /tmp/* && -f "$arg" ]]; then
+            args+=("$(copy_tmp_file "$arg")")
+        elif [[ "$arg" == @/tmp/* && -f "${arg#@}" ]]; then
+            response_src="${arg#@}"
+            response_dest="$(mktemp "$tmp_root/$(basename "$response_src").XXXXXX")" || exit 1
+            response_content="$(cat "$response_src")" || exit 1
+
+            while IFS= read -r tmp_path; do
+                if [[ -f "$tmp_path" ]]; then
+                    copied_path="$(copy_tmp_file "$tmp_path")"
+                    response_content="${response_content//"$tmp_path"/"$copied_path"}"
+                fi
+            done < <(printf '%s\n' "$response_content" | grep -aoE "/tmp/[^[:space:]\"']+" || true)
+
+            printf '%s' "$response_content" > "$response_dest" || exit 1
+            args+=("@$response_dest")
+        else
+            args+=("$arg")
+        fi
+    done
+
+    exec flatpak-spawn --host /usr/bin/clang++ "${args[@]}"
+fi
+
+for candidate in \
+    /usr/bin/clang++ \
+    /usr/local/bin/clang++ \
+    /usr/lib/llvm-20/bin/clang++ \
+    /usr/lib/llvm-19/bin/clang++ \
+    /usr/lib/llvm-18/bin/clang++ \
+    /usr/lib/llvm-17/bin/clang++ \
+    /usr/lib/sdk/llvm20/bin/clang++ \
+    /usr/lib/sdk/llvm19/bin/clang++ \
+    /usr/lib/sdk/llvm18/bin/clang++ \
+    /usr/lib/sdk/llvm17/bin/clang++ \
+    /var/run/host/usr/bin/clang++ \
+    /var/run/host/usr/local/bin/clang++
+do
+    if [ -x "$candidate" ]; then
+        exec "$candidate" "$@"
+    fi
+done
+
+if command -v clang++ >/dev/null 2>&1; then
+    exec clang++ "$@"
+fi
+
+printf '%s\n' "fltx-clangxx: could not find clang++; set FLTX_CLANGXX to the compiler path" >&2
+exit 127
