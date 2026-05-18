@@ -204,6 +204,7 @@ namespace detail::_f256
     using detail::fp::frexp_exponent_constexpr;
     using detail::fp::nearbyint_ties_even;
     using detail::fp::sqrt_seed_constexpr;
+    using detail::fp::trunc_constexpr;
 
     BL_FORCE_INLINE constexpr f256_s add_inline(const f256_s& a, const f256_s& b) noexcept;
     BL_FORCE_INLINE constexpr f256_s sub_inline(const f256_s& a, const f256_s& b) noexcept;
@@ -630,6 +631,22 @@ namespace detail::_f256
         double diff_exp[32]{};
         const int diff_count = fast_expansion_sum_zeroelim(r_count, r_exp, product_count, product_exp, diff_exp);
         return from_expansion_fast(diff_exp, diff_count);
+    }
+    BL_MSVC_NOINLINE constexpr bool    fmod_fast_small_quotient_abs(const f256_s& ax, const f256_s& ay, f256_s& out) noexcept
+    {
+        if (!(ay.x0 > 0.0) || !isfinite(ay) || !(ax >= ay))
+            return false;
+
+        const double q = trunc_constexpr(ax.x0 / ay.x0);
+        if (!(q > 0.0) || q >= 0x1p42)
+            return false;
+
+        f256_s r = fmod_sub_mul_scalar_expansion(ax, ay, q);
+        if (!fmod_normalize_remainder(r, ay))
+            return false;
+
+        out = r;
+        return true;
     }
     BL_MSVC_NOINLINE constexpr f256_s  fmod_runtime(const f256_s& x, const f256_s& y)
     {
@@ -2581,6 +2598,13 @@ namespace detail::_f256
 
     f256_s fast{};
     if (y.x1 == 0.0 && y.x2 == 0.0 && y.x3 == 0.0 && fmod_fast_double_divisor_abs(ax, ay.x0, fast))
+    {
+        if (iszero(fast))
+            return f256_s{ signbit_constexpr(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+        const f256_s out = ispositive(x) ? fast : -fast;
+        return canonicalize_math_result(out);
+    }
+    if (!bl::use_constexpr_math() && fmod_fast_small_quotient_abs(ax, ay, fast))
     {
         if (iszero(fast))
             return f256_s{ signbit_constexpr(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
