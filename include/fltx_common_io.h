@@ -10,7 +10,8 @@
 #ifndef FLTX_COMMON_IO_INCLUDED
 #define FLTX_COMMON_IO_INCLUDED
 
-#include "fltx_common_exact.h"
+#include "fltx_decimal.h"
+#include "fltx_fp.h"
 
 #include <algorithm>
 #include <array>

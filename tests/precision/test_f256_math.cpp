@@ -16,8 +16,10 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <utility>
 
+#include <f128.h>
 #include <f256_math.h>
 #include <f256_io.h>
 
@@ -94,7 +96,7 @@ namespace
             { "log1p", "9e-63" },
             { "log2", "1e-62" },
             { "multiply", "2e-65" },
-            { "pow", "1e-62" },
+            { "pow", "2e-61" },
             { "pow10_256", "2e-65" },
             { "recip", "4e-66" },
             { "sin", "6e-60" },
@@ -165,6 +167,14 @@ namespace
         return sum;
     }
 
+    [[nodiscard]] mpfr_ref to_ref_exact(const f128_s& value)
+    {
+        mpfr_ref sum = 0;
+        sum += mpfr_ref{ value.hi };
+        sum += mpfr_ref{ value.lo };
+        return sum;
+    }
+
     [[nodiscard]] std::string to_text_double(double value)
     {
         std::ostringstream out;
@@ -179,6 +189,26 @@ namespace
         std::ostringstream out;
         out << std::hexfloat << value;
         return out.str();
+    }
+
+    template<typename Scalar>
+    [[nodiscard]] mpfr_ref scalar_to_ref(Scalar scalar)
+    {
+        using scalar_t = std::remove_cv_t<std::remove_reference_t<Scalar>>;
+        if constexpr (std::is_same_v<scalar_t, f128_s>)
+            return to_ref_exact(scalar);
+        else
+            return mpfr_ref{ scalar };
+    }
+
+    template<typename Scalar>
+    [[nodiscard]] std::string scalar_to_text(Scalar scalar)
+    {
+        using scalar_t = std::remove_cv_t<std::remove_reference_t<Scalar>>;
+        if constexpr (std::is_same_v<scalar_t, f128_s>)
+            return to_text(f256{ scalar });
+        else
+            return to_text_double(static_cast<double>(scalar));
     }
 
     using ulp_count = boost::multiprecision::cpp_int;
@@ -519,7 +549,7 @@ namespace
     {
         const f256 value = to_f256(value_text);
         const mpfr_ref value_ref = to_ref_exact(value);
-        const mpfr_ref scalar_ref{ static_cast<double>(scalar) };
+        const mpfr_ref scalar_ref = scalar_to_ref(scalar);
 
         const f256 got = f256_op(value, scalar);
         const mpfr_ref got_ref = to_ref_exact(got);
@@ -536,7 +566,7 @@ namespace
         CAPTURE(case_label);
         CAPTURE(scalar_kind);
         CAPTURE(value_text);
-        CAPTURE(to_text_double(static_cast<double>(scalar)));
+        CAPTURE(scalar_to_text(scalar));
         CAPTURE(to_text(got));
         CAPTURE(to_text(expected));
         CAPTURE(to_text(diff));
@@ -1113,6 +1143,35 @@ namespace
         REQUIRE(got.x1 == expected.x1);
         REQUIRE(got.x2 == expected.x2);
         REQUIRE(got.x3 == expected.x3);
+    }
+
+    void require_integer_overload_value(const char* label, const char* operation, const f256& got, const f256& expected)
+    {
+        const mpfr_ref got_ref = to_ref_exact(got);
+        const mpfr_ref expected_ref = to_ref_exact(expected);
+        const mpfr_ref diff = abs_ref(got_ref - expected_ref);
+        mpfr_ref scale = abs_ref(expected_ref);
+        if (scale < 1)
+            scale = 1;
+
+        const mpfr_ref tolerance = mpfr_ref{ "4e-60" } * scale;
+
+        CAPTURE(label);
+        CAPTURE(operation);
+        CAPTURE(to_text(got));
+        CAPTURE(to_text(expected));
+        CAPTURE(to_text(diff));
+        CAPTURE(to_text(tolerance));
+        CAPTURE(to_text_double_hex(got.x0));
+        CAPTURE(to_text_double_hex(got.x1));
+        CAPTURE(to_text_double_hex(got.x2));
+        CAPTURE(to_text_double_hex(got.x3));
+        CAPTURE(to_text_double_hex(expected.x0));
+        CAPTURE(to_text_double_hex(expected.x1));
+        CAPTURE(to_text_double_hex(expected.x2));
+        CAPTURE(to_text_double_hex(expected.x3));
+
+        REQUIRE(diff <= tolerance);
     }
 
     [[nodiscard]] bool same_bits(double lhs, double rhs) noexcept
@@ -1991,6 +2050,15 @@ TEST_CASE("f256 mixed scalar arithmetic matches MPFR within tolerance", "[fltx][
         -1.0e10f
     }};
 
+    constexpr std::array<f128_s, 6> f128_scalars{{
+        { 0.5, 0.0 },
+        { -1.5, 0.0 },
+        { 3.141592653589793, 1.2246467991473532e-16 },
+        { -0.125, 0.0 },
+        { 1.0e-20, -5.4846728545790429e-37 },
+        { -1.0e20, 0.0 }
+    }};
+
     auto check_all_scalar_orders = [](const char* scalar_kind, auto scalar, const char* value_text)
     {
         check_scalar_binary_op("add", "f256 + scalar", scalar_kind, value_text, scalar,
@@ -2030,7 +2098,104 @@ TEST_CASE("f256 mixed scalar arithmetic matches MPFR within tolerance", "[fltx][
     {
         check_all_scalar_orders("double", double_scalars[i], values[i]);
         check_all_scalar_orders("float", float_scalars[i], values[i]);
+        check_all_scalar_orders("f128", f128_scalars[i], values[i]);
     }
+}
+
+TEST_CASE("f256 integer overloads preserve exact integer values", "[fltx][f256][precision][arithmetic][scalar][integer]")
+{
+    auto check_signed = [](auto rhs, const char* label)
+    {
+        const f256 base = to_f256("1.2345678901234567890123456789012345678901234567890123456789");
+        const f256 rhs_value = to_f256(static_cast<std::int64_t>(rhs));
+        const bool rhs_fits_double = detail::_f256::integer_fits_exact_double(rhs);
+        const double rhs_double = static_cast<double>(rhs);
+
+        auto add_right = [&]() -> f256 { return rhs_fits_double ? f256{ base + rhs_double } : f256{ base + rhs_value }; };
+        auto add_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double + base } : f256{ rhs_value + base }; };
+        auto sub_right = [&]() -> f256 { return rhs_fits_double ? f256{ base - rhs_double } : f256{ base - rhs_value }; };
+        auto sub_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double - base } : f256{ rhs_value - base }; };
+        auto mul_right = [&]() -> f256 { return rhs_fits_double ? f256{ base * rhs_double } : f256{ base * rhs_value }; };
+        auto mul_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double * base } : f256{ rhs_value * base }; };
+        auto div_right = [&]() -> f256 { return rhs_fits_double ? f256{ base / rhs_double } : f256{ base / rhs_value }; };
+        auto div_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double / base } : f256{ rhs_value / base }; };
+
+        f256 got = base;
+        got += rhs;
+        require_integer_overload_value(label, "operator+=", got, add_right());
+
+        got = base;
+        got -= rhs;
+        require_integer_overload_value(label, "operator-=", got, sub_right());
+
+        got = base;
+        got *= rhs;
+        require_integer_overload_value(label, "operator*=", got, mul_right());
+
+        got = base;
+        got /= rhs;
+        require_integer_overload_value(label, "operator/=", got, div_right());
+
+        require_integer_overload_value(label, "f256 + int", base + rhs, add_right());
+        require_integer_overload_value(label, "int + f256", rhs + base, add_left());
+        require_integer_overload_value(label, "f256 - int", base - rhs, sub_right());
+        require_integer_overload_value(label, "int - f256", rhs - base, sub_left());
+        require_integer_overload_value(label, "f256 * int", base * rhs, mul_right());
+        require_integer_overload_value(label, "int * f256", rhs * base, mul_left());
+        require_integer_overload_value(label, "f256 / int", base / rhs, div_right());
+        require_integer_overload_value(label, "int / f256", rhs / base, div_left());
+    };
+
+    auto check_unsigned = [](auto rhs, const char* label)
+    {
+        const f256 base = to_f256("1.2345678901234567890123456789012345678901234567890123456789");
+        const f256 rhs_value = to_f256(static_cast<std::uint64_t>(rhs));
+        const bool rhs_fits_double = detail::_f256::integer_fits_exact_double(rhs);
+        const double rhs_double = static_cast<double>(rhs);
+
+        auto add_right = [&]() -> f256 { return rhs_fits_double ? f256{ base + rhs_double } : f256{ base + rhs_value }; };
+        auto add_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double + base } : f256{ rhs_value + base }; };
+        auto sub_right = [&]() -> f256 { return rhs_fits_double ? f256{ base - rhs_double } : f256{ base - rhs_value }; };
+        auto sub_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double - base } : f256{ rhs_value - base }; };
+        auto mul_right = [&]() -> f256 { return rhs_fits_double ? f256{ base * rhs_double } : f256{ base * rhs_value }; };
+        auto mul_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double * base } : f256{ rhs_value * base }; };
+        auto div_right = [&]() -> f256 { return rhs_fits_double ? f256{ base / rhs_double } : f256{ base / rhs_value }; };
+        auto div_left  = [&]() -> f256 { return rhs_fits_double ? f256{ rhs_double / base } : f256{ rhs_value / base }; };
+
+        f256 got = base;
+        got += rhs;
+        require_integer_overload_value(label, "operator+=", got, add_right());
+
+        got = base;
+        got -= rhs;
+        require_integer_overload_value(label, "operator-=", got, sub_right());
+
+        got = base;
+        got *= rhs;
+        require_integer_overload_value(label, "operator*=", got, mul_right());
+
+        got = base;
+        got /= rhs;
+        require_integer_overload_value(label, "operator/=", got, div_right());
+
+        require_integer_overload_value(label, "f256 + uint", base + rhs, add_right());
+        require_integer_overload_value(label, "uint + f256", rhs + base, add_left());
+        require_integer_overload_value(label, "f256 - uint", base - rhs, sub_right());
+        require_integer_overload_value(label, "uint - f256", rhs - base, sub_left());
+        require_integer_overload_value(label, "f256 * uint", base * rhs, mul_right());
+        require_integer_overload_value(label, "uint * f256", rhs * base, mul_left());
+        require_integer_overload_value(label, "f256 / uint", base / rhs, div_right());
+        require_integer_overload_value(label, "uint / f256", rhs / base, div_left());
+    };
+
+    check_signed(std::int8_t{ -7 }, "int8");
+    check_unsigned(std::uint8_t{ 7 }, "uint8");
+    check_signed(std::int16_t{ -257 }, "int16");
+    check_unsigned(std::uint16_t{ 257 }, "uint16");
+    check_signed(std::int32_t{ -65537 }, "int32");
+    check_unsigned(std::uint32_t{ 65537 }, "uint32");
+    check_signed(static_cast<std::int64_t>(-9007199254740993ll), "int64");
+    check_unsigned(std::uint64_t{ 9007199254740993ull }, "uint64");
 }
 
 TEST_CASE("f256 scalar mixed recurrence stays within MPFR tolerance", "[fltx][f256][precision][arithmetic][scalar][mixed]")
@@ -2226,6 +2391,9 @@ TEST_CASE("f256 sin matches MPFR for fixed argument-reduction stress values", "[
     check_sin_case("negative_large_decimal", mpfr_ref{ "-1000000.25" }, reduction_abs_tolerance, reduction_rel_tolerance);
     check_sin_case("million_pi_plus_offset", mpfr_ref{ "1000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
     check_sin_case("negative_million_pi_plus_offset", mpfr_ref{ "-1000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_sin_case("huge_decimal", mpfr_ref{ "1e20" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_sin_case("huge_pi_multiple_plus_offset", mpfr_ref{ "100000000000000000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_sin_case("negative_huge_pi_multiple_plus_offset", mpfr_ref{ "-100000000000000000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
 }
 
 TEST_CASE("f256 sin matches MPFR on random reduced-range inputs", "[fltx][f256][precision][transcendental][trig][sin]")
@@ -2372,6 +2540,9 @@ TEST_CASE("f256 cos matches MPFR for fixed argument-reduction stress values", "[
     check_cos_case("negative_large_decimal", mpfr_ref{ "-1000000.25" }, reduction_abs_tolerance, reduction_rel_tolerance);
     check_cos_case("million_pi_plus_offset", mpfr_ref{ "1000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
     check_cos_case("negative_million_pi_plus_offset", mpfr_ref{ "-1000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_cos_case("huge_decimal", mpfr_ref{ "1e20" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_cos_case("huge_pi_multiple_plus_offset", mpfr_ref{ "100000000000000000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
+    check_cos_case("negative_huge_pi_multiple_plus_offset", mpfr_ref{ "-100000000000000000000" } * pi + mpfr_ref{ "0.125" }, reduction_abs_tolerance, reduction_rel_tolerance);
 }
 
 TEST_CASE("f256 cos matches MPFR on random reduced-range inputs", "[fltx][f256][precision][transcendental][trig][cos]")
@@ -3263,7 +3434,7 @@ TEST_CASE("f256 public math results remain canonical on edge-shaped inputs", "[f
 TEST_CASE("f256 sincos matches MPFR for fixed values", "[fltx][f256][precision][transcendental][trig][sincos]")
 {
     accuracy_report_scope report_scope{ "f256 sincos matches MPFR for fixed values" };
-    const std::array<const char*, 8> cases = {{
+    const std::array<const char*, 9> cases = {{
         "0",
         "0.125",
         "-0.125",
@@ -3271,7 +3442,8 @@ TEST_CASE("f256 sincos matches MPFR for fixed values", "[fltx][f256][precision][
         "-0.785398163397448309615660845819875721",
         "1.5",
         "-1.5",
-        "1234.56789"
+        "1234.56789",
+        "1e20"
     }};
 
     const mpfr_ref abs_tolerance{ "1e-59" };

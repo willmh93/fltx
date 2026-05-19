@@ -39,6 +39,13 @@ namespace
     constexpr int random_sample_count = 500;
     constexpr const char* type_label = "f64";
 
+    template<class T>
+    struct sincos_pair
+    {
+        T c;
+        T s;
+    };
+
     struct accuracy_stats_entry
     {
         int samples = 0;
@@ -1267,6 +1274,26 @@ TEST_CASE("f64 trig matches MPFR for fixed values", "[fltx][f64][precision][tran
             [](double a, double b) { return bl::atan2(a, b); },
             [](double a, double b) { return std::atan2(a, b); });
     }
+}
+
+TEST_CASE("f64 sincos overloads match sin and cos", "[fltx][f64][precision][transcendental][trig][sincos]")
+{
+    const double input = 0.625;
+
+    double s_out{};
+    double c_out{};
+    REQUIRE(bl::sincos(input, s_out, c_out));
+    REQUIRE(s_out == bl::sin(input));
+    REQUIRE(c_out == bl::cos(input));
+
+    sincos_pair<double> out{};
+    REQUIRE(bl::sincos(input, out));
+    REQUIRE(out.s == s_out);
+    REQUIRE(out.c == c_out);
+
+    const sincos_pair<double> returned = bl::sincos<double>(input);
+    REQUIRE(returned.s == s_out);
+    REQUIRE(returned.c == c_out);
 }
 
 TEST_CASE("f64 trig matches MPFR on random inputs", "[fltx][f64][precision][transcendental][trig]")

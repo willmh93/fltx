@@ -10,7 +10,7 @@
 #ifndef FLTX_MATH_UTILS
 #define FLTX_MATH_UTILS
 
-#include "fltx_common_base.h"
+#include "fltx_config.h"
 
 #include <concepts>
 #include <type_traits>
@@ -58,6 +58,47 @@ namespace bl::detail::fp
         }
 
         return result;
+    }
+
+    template<class Vector, class Value>
+    concept sincos_vector_constructible = requires(const Value& c, const Value& s)
+    {
+        Vector{ c, s };
+    };
+
+    template<class Vector, class Value>
+    concept sincos_vector_assignable = requires(Vector& out, const Value& c, const Value& s)
+    {
+        out = Vector{ c, s };
+    };
+
+    template<class Vector, class Value>
+    requires sincos_vector_assignable<Vector, Value>
+    BL_FORCE_INLINE constexpr void assign_sincos_vector(Vector& out, const Value& s_out, const Value& c_out)
+        noexcept(noexcept(out = Vector{ c_out, s_out }))
+    {
+        out = Vector{ c_out, s_out };
+    }
+
+    template<class Value>
+    struct sincos_vector_result
+    {
+        Value c;
+        Value s;
+        bool ok;
+
+        template<class Vector>
+        requires sincos_vector_constructible<Vector, Value>
+        [[nodiscard]] BL_FORCE_INLINE constexpr operator Vector() const noexcept(noexcept(Vector{ c, s }))
+        {
+            return Vector{ c, s };
+        }
+    };
+
+    template<class Value>
+    [[nodiscard]] BL_FORCE_INLINE constexpr sincos_vector_result<Value> make_sincos_result(const Value& s_out, const Value& c_out, bool ok)
+    {
+        return { c_out, s_out, ok };
     }
 }
 

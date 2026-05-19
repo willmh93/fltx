@@ -16,6 +16,35 @@ namespace bl::detail::_f128_runtime
     BL_NO_INLINE f128_s pow(const f128_s& x, const f128_s& y) { return detail::_f128_constexpr::pow(x, y); }
     BL_NO_INLINE f128_s pow(const f128_s& x, double y) { return detail::_f128_constexpr::pow(x, y); }
 
+    BL_NO_INLINE long lround(const f128_s& x)
+    {
+        long out = 0;
+        if (detail::_f128::try_round_to_signed_integer(x, false, out))
+            return out;
+        return detail::_f128::lround_impl(x);
+    }
+    BL_NO_INLINE long long llround(const f128_s& x)
+    {
+        long long out = 0;
+        if (detail::_f128::try_round_to_signed_integer(x, false, out))
+            return out;
+        return detail::_f128::llround_impl(x);
+    }
+    BL_NO_INLINE long lrint(const f128_s& x)
+    {
+        long out = 0;
+        if (detail::_f128::try_round_to_signed_integer(x, true, out))
+            return out;
+        return detail::_f128::lrint_impl(x);
+    }
+    BL_NO_INLINE long long llrint(const f128_s& x)
+    {
+        long long out = 0;
+        if (detail::_f128::try_round_to_signed_integer(x, true, out))
+            return out;
+        return detail::_f128::llrint_impl(x);
+    }
+
     BL_NO_INLINE bool   sincos(const f128_s& x, f128_s& s_out, f128_s& c_out) { return detail::_f128_constexpr::sincos(x, s_out, c_out); }
     BL_NO_INLINE f128_s sin(const f128_s& x) { return detail::_f128_constexpr::sin(x); }
     BL_NO_INLINE f128_s cos(const f128_s& x) { return detail::_f128_constexpr::cos(x); }

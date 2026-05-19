@@ -8,6 +8,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(cmake/fltxFastMath.cmake)
 
+#
 option(FLTX_BUILD_TESTS    "Build fltx tests"          ${PROJECT_IS_TOP_LEVEL})
 option(FLTX_BUILD_EXAMPLES "Build fltx examples"       ${PROJECT_IS_TOP_LEVEL})
 option(FLTX_BUILD_ISOLATED "Build fltx isolated units" ${PROJECT_IS_TOP_LEVEL})
@@ -42,11 +43,14 @@ if(MSVC)
     )
 endif()
 
-target_compile_features(fltx ${FLTX_PUBLIC_SCOPE} cxx_std_20)
+target_compile_features(fltx ${FLTX_PUBLIC_SCOPE} cxx_std_23)
 fltx_apply_fast_math_options(fltx)
 
 install(TARGETS fltx
     EXPORT fltxTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 

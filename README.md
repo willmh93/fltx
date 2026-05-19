@@ -21,6 +21,7 @@
 - Fixed-size extended-precision scalar types: [`bl::f128`](include/f128.h) and [`bl::f256`](include/f256.h)
 - `constexpr` arithmetic, comparisons, conversions, parsing, formatting, and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style math
 - Accuracy and performance validated against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at equivalent precision
+- [`bl::f256`](include/f256.h) has an expression node system which recognises and fuses common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations. This reduces intermediate rounding and temporary value materialisation, allowing those shapes to run through specialised fused evaluation paths.
 - No required runtime dependencies
 - Standard-library integration for streams, `std::numeric_limits`, `std::numbers`, and common stream manipulators
 - Runtime code favors native performance by default; define `FLTX_CONSTEXPR_PARITY` when you need bitwise-identical runtime and `constexpr` results
@@ -45,6 +46,22 @@ sizeof(bl::f256) == 32
 ```
 
 [`bl::f128`](include/f128.h) and [`bl::f256`](include/f256.h) are not IEEE [binary128](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#IEEE_754_quadruple-precision_binary_floating-point_format:_binary128) / [binary256](https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format#IEEE_754_octuple-precision_binary_floating-point_format:_binary256) types, and they are not arbitrary-precision numbers. They provide more precision than native `double` while preserving a fixed-width, scalar-friendly floating-point model. Values are still approximate, so conditioning, cancellation, argument reduction, and algorithm design still matter.
+
+## f256 Expression Fusion
+
+[`bl::f256`](include/f256.h) has an expression node system which recognises common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations.
+
+For example:
+
+```cpp
+f256 r = a * b + c * d + e;
+```
+
+is kept as a small compile-time expression and lowered to the existing fused product-sum body. This avoids materialising and normalising each intermediate quad-double result before the final value is needed.
+
+The matcher also accepts selected equivalent spellings, such as reordered product/value terms and scaled linear forms. That gives common kernels like affine transforms, small matrix-vector operations, polynomial-style updates, and recurrence relations a faster path without requiring users to call specialised helpers or the implementation to maintain a full symbolic optimiser.
+
+The fused bodies remain explicit and bounded, which keeps compile-time and code-size costs under control.
 
 ## Quick Start
 
@@ -427,14 +444,46 @@ Other distributions should use equivalent packages for a C++20 compiler, CMake, 
 
 ## Benchmarks
 
+<img src="res/bench/benchmark_table.svg" alt="fltx benchmark table" width="100%">
+
 `fltx` is tested and benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision levels.
 
-<table>
-<tr>
-<td><img src="res/f128_typical_ratios.svg" alt="f128 benchmark ratio"></td>
-<td><img src="res/f256_typical_ratios.svg" alt="f256 benchmark ratio"></td>
-</tr>
-</table>
+<details>
+<summary>Windows benchmark charts</summary>
+
+<img src="res/bench/windows/MSVC_f128_typical_ratios.svg" alt="Windows MSVC f128 benchmark ratios" width="100%">
+
+<img src="res/bench/windows/MSVC_f256_typical_ratios.svg" alt="Windows MSVC f256 benchmark ratios" width="100%">
+
+<img src="res/bench/windows/MinGW_f128_typical_ratios.svg" alt="Windows MinGW f128 benchmark ratios" width="100%">
+
+<img src="res/bench/windows/MinGW_f256_typical_ratios.svg" alt="Windows MinGW f256 benchmark ratios" width="100%">
+
+</details>
+
+<details>
+<summary>Linux benchmark charts</summary>
+
+<img src="res/bench/linux/GCC_f128_typical_ratios.svg" alt="Linux GCC f128 benchmark ratios" width="100%">
+
+<img src="res/bench/linux/GCC_f256_typical_ratios.svg" alt="Linux GCC f256 benchmark ratios" width="100%">
+
+<img src="res/bench/linux/Clang_f128_typical_ratios.svg" alt="Linux Clang f128 benchmark ratios" width="100%">
+
+<img src="res/bench/linux/Clang_f256_typical_ratios.svg" alt="Linux Clang f256 benchmark ratios" width="100%">
+
+</details>
+
+<details>
+<summary>WebAssembly benchmark charts</summary>
+
+<img src="res/bench/wasm32/Nodejs_f128_typical_ratios.svg" alt="WebAssembly Node.js f128 benchmark ratios" width="100%">
+
+<img src="res/bench/wasm32/Chrome_f128_typical_ratios.svg" alt="WebAssembly Chrome f128 benchmark ratios" width="100%">
+
+<img src="res/bench/wasm32/Chrome_f256_typical_ratios.svg" alt="WebAssembly Chrome f256 benchmark ratios" width="100%">
+
+</details>
 
 ## License
 

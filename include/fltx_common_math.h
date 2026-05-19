@@ -1,5 +1,5 @@
 /**
- * fltx_common_math.h - Shared constexpr math helpers used by FLTX types.
+ * fltx_common_math.h - Shared constexpr scalar math helpers used by FLTX math headers.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -10,251 +10,17 @@
 #ifndef FLTX_COMMON_MATH_INCLUDED
 #define FLTX_COMMON_MATH_INCLUDED
 
-#include "fltx_common_base.h"
+#include "fltx_fp.h"
 
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <type_traits>
-#include <utility>
-
-#ifndef BL_CXX_LANGUAGE_VERSION
-#if defined(_MSVC_LANG) && (!defined(__cplusplus) || (_MSVC_LANG > __cplusplus))
-#define BL_CXX_LANGUAGE_VERSION _MSVC_LANG
-#else
-#define BL_CXX_LANGUAGE_VERSION __cplusplus
-#endif
-#endif
-
-#ifndef BL_HAS_IF_CONSTEVAL
-#if (BL_CXX_LANGUAGE_VERSION > 202002L) && defined(__cpp_if_consteval) && (__cpp_if_consteval >= 202106L)
-#define BL_HAS_IF_CONSTEVAL 1
-#else
-#define BL_HAS_IF_CONSTEVAL 0
-#endif
-#endif
-
-#ifndef BL_CONSTEXPR_RUNTIME_DISPATCH
-#if !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE) && BL_HAS_IF_CONSTEVAL
-#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 1
-#define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
-    do                                                              \
-    {                                                               \
-        if consteval                                                \
-        {                                                           \
-            return (CONSTEVAL_EXPR);                                \
-        }                                                           \
-        else                                                        \
-        {                                                           \
-            return (RUNTIME_EXPR);                                  \
-        }                                                           \
-    } while (false)
-#elif !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE)
-#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
-#define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
-    do                                                              \
-    {                                                               \
-        if (std::is_constant_evaluated())                           \
-            return (CONSTEVAL_EXPR);                                \
-        return (RUNTIME_EXPR);                                      \
-    } while (false)
-#else
-#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
-#define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
-    do                                                              \
-    {                                                               \
-        if (bl::use_constexpr_math())                               \
-            return (CONSTEVAL_EXPR);                                \
-        return (RUNTIME_EXPR);                                      \
-    } while (false)
-#endif
-#endif
-#ifndef BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL
-#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
-#endif
 
 namespace bl::detail::fp
 {
-        
-BL_FORCE_INLINE constexpr bool isinf(double value) noexcept
-{
-    static_assert(std::numeric_limits<double>::is_iec559,
-        "is_inf bit-pattern check requires IEEE 754 / IEC 559 double");
 
-    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
-    return (bits & 0x7fffffffffffffffULL) == 0x7ff0000000000000ULL;
-}
-BL_FORCE_INLINE constexpr bool isinf(float value) noexcept
-{
-    static_assert(std::numeric_limits<float>::is_iec559,
-        "is_inf bit-pattern check requires IEEE 754 / IEC 559 float");
-
-    const std::uint32_t bits = std::bit_cast<std::uint32_t>(value);
-    return (bits & 0x7fffffffu) == 0x7f800000u;
-}
-BL_FORCE_INLINE constexpr bool isfinite(double value) noexcept
-{
-    static_assert(std::numeric_limits<double>::is_iec559,
-        "isfinite bit-pattern check requires IEEE 754 / IEC 559 double");
-
-    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
-    return (bits & 0x7ff0000000000000ULL) != 0x7ff0000000000000ULL;
-}
-BL_FORCE_INLINE constexpr bool isfinite(float value) noexcept
-{
-    static_assert(std::numeric_limits<float>::is_iec559,
-        "isfinite bit-pattern check requires IEEE 754 / IEC 559 float");
-
-    const std::uint32_t bits = std::bit_cast<std::uint32_t>(value);
-    return (bits & 0x7f800000u) != 0x7f800000u;
-}
-
-template<int bits_to_clear>
-BL_FORCE_INLINE constexpr double zero_low_fraction_bits_finite(double value) noexcept
-{
-    static_assert(bits_to_clear >= 0 && bits_to_clear <= 52);
-
-    if constexpr (bits_to_clear == 0)
-        return value;
-
-    if (!isfinite(value) || value == 0.0)
-        return value;
-
-    constexpr std::uint64_t fraction_mask = (std::uint64_t{ 1 } << 52) - 1ULL;
-    constexpr std::uint64_t clear_mask = ~((std::uint64_t{ 1 } << bits_to_clear) - 1ULL);
-
-    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
-    const std::uint64_t sign_and_exponent = bits & ~fraction_mask;
-    const std::uint64_t fraction = bits & fraction_mask;
-    return std::bit_cast<double>(sign_and_exponent | (fraction & clear_mask));
-}
-BL_FORCE_INLINE constexpr bool isnan(double value) noexcept
-{
-    static_assert(std::numeric_limits<double>::is_iec559,
-        "is_nan bit-pattern check requires IEEE 754 / IEC 559 double");
-
-    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
-    const std::uint64_t abs_bits = bits & 0x7fffffffffffffffULL;
-    return abs_bits > 0x7ff0000000000000ULL;
-}
-BL_FORCE_INLINE constexpr bool isnan(float value) noexcept
-{
-    static_assert(std::numeric_limits<float>::is_iec559,
-        "is_nan bit-pattern check requires IEEE 754 / IEC 559 float");
-
-    const std::uint32_t bits = std::bit_cast<std::uint32_t>(value);
-    return (bits & 0x7fffffffu) > 0x7f800000u;
-}
-BL_FORCE_INLINE constexpr double absd(double x) noexcept { return (x < 0.0) ? -x : x; }
-
-BL_FORCE_INLINE constexpr int    frexp_exponent_constexpr(double x) noexcept
-{
-    if (x == 0.0 || !isfinite(x))
-        return 0;
-
-    const std::uint64_t bits = std::bit_cast<std::uint64_t>(x);
-    const std::uint32_t exp_bits = static_cast<std::uint32_t>((bits >> 52) & 0x7ffu);
-    if (exp_bits != 0)
-        return static_cast<int>(exp_bits) - 1022;
-
-    std::uint64_t frac = bits & ((std::uint64_t{ 1 } << 52) - 1);
-    int e = -1022;
-    while ((frac & (std::uint64_t{ 1 } << 52)) == 0)
-    {
-        frac <<= 1;
-        --e;
-    }
-    return e + 1;
-}
-BL_FORCE_INLINE constexpr int    highest_bit_index_constexpr(std::uint64_t value) noexcept
-{
-    int index = -1;
-    while (value != 0)
-    {
-        value >>= 1;
-        ++index;
-    }
-    return index;
-}
-BL_FORCE_INLINE constexpr double scalbn_constexpr2(double value, int exp) noexcept
-{
-    if (value == 0.0 || isnan(value) || isinf(value) || exp == 0)
-        return value;
-
-    constexpr std::uint64_t sign_mask = 0x8000000000000000ull;
-    constexpr std::uint64_t exponent_mask = 0x7ff0000000000000ull;
-    constexpr std::uint64_t fraction_mask = 0x000fffffffffffffull;
-    constexpr std::uint64_t hidden_bit = 0x0010000000000000ull;
-
-    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
-    const std::uint64_t sign = bits & sign_mask;
-    const std::uint64_t fraction = bits & fraction_mask;
-    const std::uint32_t exponent_bits = static_cast<std::uint32_t>((bits & exponent_mask) >> 52);
-
-    std::uint64_t significand = 0;
-    long long unbiased_exponent = 0;
-
-    if (exponent_bits != 0)
-    {
-        significand = hidden_bit | fraction;
-        unbiased_exponent = static_cast<int>(exponent_bits) - 1023;
-    }
-    else
-    {
-        const int msb_index = highest_bit_index_constexpr(fraction);
-        significand = fraction << (52 - msb_index);
-        unbiased_exponent = static_cast<long long>(msb_index) - 1074ll;
-    }
-
-    const long long new_unbiased_exponent = unbiased_exponent + static_cast<long long>(exp);
-
-    if (new_unbiased_exponent > 1023)
-        return std::bit_cast<double>(sign | exponent_mask);
-
-    if (new_unbiased_exponent >= -1022)
-    {
-        const std::uint64_t new_exponent_bits =
-            static_cast<std::uint64_t>(new_unbiased_exponent + 1023) << 52;
-        const std::uint64_t new_fraction = significand & fraction_mask;
-        return std::bit_cast<double>(sign | new_exponent_bits | new_fraction);
-    }
-
-    const long long shift = -1022ll - new_unbiased_exponent;
-    if (shift >= 64)
-        return std::bit_cast<double>(sign);
-
-    const unsigned shift_u = static_cast<unsigned>(shift);
-
-    std::uint64_t subnormal_fraction = 0;
-    if (shift_u == 0)
-    {
-        subnormal_fraction = significand;
-    }
-    else
-    {
-        const std::uint64_t truncated = significand >> shift_u;
-        const std::uint64_t remainder_mask = (std::uint64_t{ 1 } << shift_u) - 1;
-        const std::uint64_t remainder = significand & remainder_mask;
-        const std::uint64_t halfway = std::uint64_t{ 1 } << (shift_u - 1);
-        const bool round_up =
-            (remainder > halfway) ||
-            (remainder == halfway && (truncated & 1u) != 0);
-
-        subnormal_fraction = truncated + static_cast<std::uint64_t>(round_up);
-    }
-
-    if (subnormal_fraction >= hidden_bit)
-        return std::bit_cast<double>(sign | (std::uint64_t{ 1 } << 52));
-
-    if (subnormal_fraction == 0)
-        return std::bit_cast<double>(sign);
-
-    return std::bit_cast<double>(sign | subnormal_fraction);
-}
-BL_FORCE_INLINE constexpr double ldexp_constexpr2(double value, int exp) noexcept
-{
-    return scalbn_constexpr2(value, exp);
-}
 BL_FORCE_INLINE constexpr double log_series_reduced_constexpr(double z) noexcept
 {
     const double z2 = z * z;
@@ -315,77 +81,12 @@ BL_FORCE_INLINE constexpr double log1p_constexpr(double x) noexcept
 }
 
 
-BL_FORCE_INLINE constexpr bool   signbit_constexpr(double x) noexcept
-{
-    const std::uint64_t bits = std::bit_cast<std::uint64_t>(x);
-    return (bits >> 63) != 0;
-}
-BL_FORCE_INLINE constexpr bool signbit_constexpr(float x) noexcept
-{
-    return (std::bit_cast<std::uint32_t>(x) & 0x80000000u) != 0u;
-}
-BL_FORCE_INLINE constexpr double fabs_constexpr(double x) noexcept
-{
-    return absd(x);
-}
-BL_FORCE_INLINE constexpr float fabs_constexpr(float x) noexcept
-{
-    return std::bit_cast<float>(std::bit_cast<std::uint32_t>(x) & 0x7fffffffu);
-}
-BL_FORCE_INLINE constexpr double copysign_constexpr(double magnitude, double sign_source) noexcept
-{
-    const std::uint64_t magnitude_bits = std::bit_cast<std::uint64_t>(magnitude) & 0x7fffffffffffffffULL;
-    const std::uint64_t sign_bits = std::bit_cast<std::uint64_t>(sign_source) & 0x8000000000000000ULL;
-    return std::bit_cast<double>(magnitude_bits | sign_bits);
-}
-BL_FORCE_INLINE constexpr float copysign_constexpr(float magnitude, float sign_source) noexcept
-{
-    const std::uint32_t magnitude_bits = std::bit_cast<std::uint32_t>(magnitude) & 0x7fffffffu;
-    const std::uint32_t sign_bits = std::bit_cast<std::uint32_t>(sign_source) & 0x80000000u;
-    return std::bit_cast<float>(magnitude_bits | sign_bits);
-}
-BL_FORCE_INLINE constexpr double floor_constexpr(double x) noexcept
-{
-    if (isnan(x) || isinf(x) || x == 0.0)
-        return x;
-
-    const double ax = absd(x);
-    if (ax >= 4503599627370496.0)
-        return x;
-
-    const long long i = static_cast<long long>(x);
-    double di = static_cast<double>(i);
-    if (di > x) di -= 1.0;
-    if (di == 0.0) return signbit_constexpr(x) ? -0.0 : 0.0;
-    return di;
-}
-BL_FORCE_INLINE constexpr double ceil_constexpr(double x) noexcept
-{
-    if (isnan(x) || isinf(x) || x == 0.0)
-        return x;
-
-    const double ax = absd(x);
-    if (ax >= 4503599627370496.0)
-        return x;
-
-    const long long i = static_cast<long long>(x);
-    double di = static_cast<double>(i);
-    if (di < x)
-        di += 1.0;
-    if (di == 0.0)
-        return signbit_constexpr(x) ? -0.0 : 0.0;
-    return di;
-}
-BL_FORCE_INLINE constexpr double trunc_constexpr(double x) noexcept
-{
-    return signbit_constexpr(x) ? ceil_constexpr(x) : floor_constexpr(x);
-}
 BL_FORCE_INLINE constexpr double round_half_away_zero(double x) noexcept
 {
     if (isnan(x) || isinf(x) || x == 0.0)
         return x;
 
-    constexpr double integer_threshold = 4503599627370496.0;
+    constexpr double integer_threshold = double_integer_threshold;
     const double ax = signbit_constexpr(x) ? -x : x;
     if (ax >= integer_threshold)
         return x;
@@ -398,7 +99,7 @@ BL_FORCE_INLINE constexpr double round_half_away_zero(double x) noexcept
 
     return floor_constexpr(x + 0.5);
 }
-BL_FORCE_INLINE constexpr float round_half_away_zero(float x) noexcept
+BL_FORCE_INLINE constexpr float  round_half_away_zero(float x) noexcept
 {
     if (isnan(x) || isinf(x) || x == 0.0f)
         return x;
@@ -441,14 +142,6 @@ BL_FORCE_INLINE constexpr double fmod_constexpr(double x, double y) noexcept
     const double q = trunc_constexpr(x / y);
     return x - q * y;
 }
-BL_FORCE_INLINE constexpr bool   double_integer_is_odd(double x) noexcept
-{
-    const double ax = absd(x);
-    if (!isfinite(x) || ax < 1.0 || ax >= 9007199254740992.0)
-        return false;
-    const long long i = static_cast<long long>(x);
-    return (i & 1ll) != 0;
-}
 BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double to) noexcept
 {
     if (isnan(from) || isnan(to))
@@ -470,7 +163,7 @@ BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double 
 
     return std::bit_cast<double>(bits);
 }
-BL_FORCE_INLINE constexpr float nextafter_float_constexpr(float from, float to) noexcept
+BL_FORCE_INLINE constexpr float  nextafter_float_constexpr(float from, float to) noexcept
 {
     if (isnan(from) || isnan(to))
         return std::numeric_limits<float>::quiet_NaN();
@@ -514,7 +207,7 @@ BL_FORCE_INLINE constexpr double nearbyint_constexpr(double x) noexcept
         return signbit_constexpr(x) ? -0.0 : 0.0;
     return y;
 }
-BL_FORCE_INLINE constexpr float nearbyint_constexpr(float x) noexcept
+BL_FORCE_INLINE constexpr float  nearbyint_constexpr(float x) noexcept
 {
     const double y = nearbyint_ties_even(static_cast<double>(x));
     const float out = static_cast<float>(y);
@@ -523,8 +216,7 @@ BL_FORCE_INLINE constexpr float nearbyint_constexpr(float x) noexcept
     return out;
 }
 
-template<typename SignedInt>
-BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(float x) noexcept
+template<typename SignedInt> BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(float x) noexcept
 {
     static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
 
@@ -539,8 +231,7 @@ BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(float x) noexcept
 
     return static_cast<SignedInt>(x);
 }
-template<typename SignedInt>
-BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(double x) noexcept
+template<typename SignedInt> BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(double x) noexcept
 {
     static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
 
@@ -555,10 +246,7 @@ BL_FORCE_INLINE constexpr SignedInt to_signed_integer_or_zero(double x) noexcept
     return static_cast<SignedInt>(x);
 }
 
-BL_FORCE_INLINE constexpr std::uint64_t magnitude_u64(std::int64_t value) noexcept;
-
-template<class Value>
-BL_FORCE_INLINE constexpr Value powi_by_squaring(Value base, std::int64_t exp)
+template<class Value>   BL_FORCE_INLINE constexpr Value powi_by_squaring(Value base, std::int64_t exp)
 {
     if (exp == 0)
         return Value{ 1.0 };
@@ -579,9 +267,7 @@ BL_FORCE_INLINE constexpr Value powi_by_squaring(Value base, std::int64_t exp)
 
     return invert ? (Value{ 1.0 } / result) : result;
 }
-
-template<class BigUInt>
-BL_FORCE_INLINE constexpr BigUInt append_decimal_digits(BigUInt coeff, const char* digits, int digit_count) noexcept
+template<class BigUInt> BL_FORCE_INLINE constexpr BigUInt append_decimal_digits(BigUInt coeff, const char* digits, int digit_count) noexcept
 {
     for (int i = 0; i < digit_count; ++i)
     {
@@ -618,7 +304,7 @@ BL_FORCE_INLINE constexpr double atan_unit_constexpr(double x) noexcept
     return atan_series_constexpr(x);
 }
 
-BL_FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
+BL_FORCE_INLINE  constexpr double atan_constexpr(double x) noexcept
 {
     constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
 
@@ -657,7 +343,7 @@ BL_MSVC_NOINLINE constexpr double atan2_constexpr(double y, double x) noexcept
         return signbit_constexpr(y) ? (a - pi) : (a + pi);
     return a;
 }
-BL_FORCE_INLINE constexpr void   reduce_pi_over_2_constexpr(double x, int& quadrant, double& r) noexcept
+BL_FORCE_INLINE  constexpr void   reduce_pi_over_2_constexpr(double x, int& quadrant, double& r) noexcept
 {
     constexpr double pi_2_hi = 0x1.921fb54442d18p+0;
     constexpr double pi_2_lo = 0x1.1a62633145c07p-54;
@@ -683,7 +369,7 @@ BL_FORCE_INLINE constexpr void   reduce_pi_over_2_constexpr(double x, int& quadr
         quadrant = q0;
     }
 }
-BL_FORCE_INLINE constexpr double sin_poly_reduced_constexpr(double r) noexcept
+BL_FORCE_INLINE  constexpr double sin_poly_reduced_constexpr(double r) noexcept
 {
     const double t = r * r;
 
@@ -699,7 +385,7 @@ BL_FORCE_INLINE constexpr double sin_poly_reduced_constexpr(double r) noexcept
     return r + r * t * p;
 }
 
-BL_FORCE_INLINE constexpr double cos_poly_reduced_constexpr(double r) noexcept
+BL_FORCE_INLINE  constexpr double cos_poly_reduced_constexpr(double r) noexcept
 {
     const double t = r * r;
 
@@ -744,7 +430,7 @@ BL_MSVC_NOINLINE constexpr void   sincos_constexpr(double x, double& s, double& 
     default: s = -cr; c = sr; break;
     }
 }
-BL_FORCE_INLINE constexpr double sin_constexpr(double x) noexcept
+BL_FORCE_INLINE  constexpr double sin_constexpr(double x) noexcept
 {
     if (isnan(x) || isinf(x))
         return std::numeric_limits<double>::quiet_NaN();
@@ -763,7 +449,7 @@ BL_FORCE_INLINE constexpr double sin_constexpr(double x) noexcept
     default: return -cos_poly_reduced_constexpr(r);
     }
 }
-BL_FORCE_INLINE constexpr double cos_constexpr(double x) noexcept
+BL_FORCE_INLINE  constexpr double cos_constexpr(double x) noexcept
 {
     if (isnan(x) || isinf(x))
         return std::numeric_limits<double>::quiet_NaN();
@@ -812,72 +498,8 @@ BL_FORCE_INLINE constexpr double sqrt_seed_constexpr(double x) noexcept
     return ldexp_constexpr2(y, exp2 / 2);
 }
 
-BL_PUSH_PRECISE
-BL_FORCE_INLINE constexpr void two_sum_precise(double a, double b, double& s, double& e) noexcept
-{
-    s = a + b;
-    double bv = s - a;
-    e = (a - (s - bv)) + (b - bv);
-}
-BL_FORCE_INLINE constexpr void quick_two_sum_precise(double a, double b, double& s, double& e) noexcept
-{
-    s = a + b;
-    e = b - (s - a);
-}
-BL_FORCE_INLINE constexpr void two_prod_precise_dekker(double a, double b, double& p, double& err) noexcept
-{
-    constexpr double split = 134217729.0;
 
-    double a_c = a * split;
-    double a_hi = a_c - (a_c - a);
-    double a_lo = a - a_hi;
 
-    double b_c = b * split;
-    double b_hi = b_c - (b_c - b);
-    double b_lo = b - b_hi;
-
-    p = a * b;
-    err = ((a_hi * b_hi - p) + a_hi * b_lo + a_lo * b_hi) + a_lo * b_lo;
-}
-BL_POP_PRECISE
-
-BL_FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, double& err) noexcept
-{
-    #ifdef FMA_AVAILABLE
-    if (bl::is_constant_evaluated() || bl::use_constexpr_parity())
-    {
-        two_prod_precise_dekker(a, b, p, err);
-    }
-    else
-    {
-        p = a * b;
-        #if defined(__clang__) || defined(__GNUC__)
-        err = __builtin_fma(a, b, -p);
-        #else
-        err = std::fma(a, b, -p);
-        #endif
-    }
-    #else
-    two_prod_precise_dekker(a, b, p, err);
-    #endif
-}
-
-BL_FORCE_INLINE constexpr void split_uint64_to_doubles(std::uint64_t value, double& hi, double& lo) noexcept
-{
-    hi = static_cast<double>(value >> 32) * 4294967296.0;
-    lo = static_cast<double>(value & 0xFFFFFFFFull);
-}
-BL_FORCE_INLINE constexpr std::uint64_t magnitude_u64(std::int64_t value) noexcept
-{
-    return (value < 0) ? (std::uint64_t{0} - static_cast<std::uint64_t>(value)) : static_cast<std::uint64_t>(value);
-}
-BL_FORCE_INLINE constexpr void uint64_to_exact_double_pair(std::uint64_t value, double& sum, double& err) noexcept
-{
-    double hi{}, lo{};
-    split_uint64_to_doubles(value, hi, lo);
-    two_sum_precise(hi, lo, sum, err);
-}
-
-}
+} // namespace bl::detail::fp
 
 #endif

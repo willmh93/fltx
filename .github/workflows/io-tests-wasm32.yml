@@ -1,0 +1,14 @@
+name: IO Tests wasm32
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  io-tests-wasm32:
+    uses: ./.github/workflows/wasm32_test_base.yml
+    with:
+      test_name: IO
+      target: io_tests
+      test_command: node build/wasm32-release/tests/io_tests.js

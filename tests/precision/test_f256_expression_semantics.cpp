@@ -27,8 +27,25 @@ static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::decl
 static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256>() / std::declval<f256>())>>::value);
 static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(std::declval<f256>() + 0.5)>>::value);
 static_assert(detail::_f256_expr::is_expr<std::remove_cvref_t<decltype(0.5 + std::declval<f256>())>>::value);
-static_assert(std::is_convertible_v<decltype(std::declval<f256>() * std::declval<f256>() + 0.5), f256_s>);
-static_assert(std::is_convertible_v<decltype(std::declval<f256>() * std::declval<f256>() + 0.5), f256>);
+
+using f256_prod_expr = std::remove_cvref_t<decltype(std::declval<f256>() * std::declval<f256>())>;
+static_assert(std::is_convertible_v<f256_prod_expr, f256>);
+static_assert(!std::is_convertible_v<f256_prod_expr&, f256>);
+static_assert(!std::is_constructible_v<f256, f256_prod_expr&>);
+static_assert(!std::is_constructible_v<f256, const f256_prod_expr&&>);
+static_assert(std::is_constructible_v<f256, f256_prod_expr&&>);
+using f256_prod_plus_value_sub_prod_expr = std::remove_cvref_t<decltype(
+    (std::declval<f256>() * std::declval<f256>()) +
+    (std::declval<f256>() - (std::declval<f256>() * std::declval<f256>())))>;
+using f256_value_sub_prod_plus_prod_expr = std::remove_cvref_t<decltype(
+    (std::declval<f256>() - (std::declval<f256>() * std::declval<f256>())) +
+    (std::declval<f256>() * std::declval<f256>()))>;
+using f256_prod_minus_value_sub_prod_expr = std::remove_cvref_t<decltype(
+    (std::declval<f256>() * std::declval<f256>()) -
+    (std::declval<f256>() - (std::declval<f256>() * std::declval<f256>())))>;
+static_assert(detail::_f256_expr::is_prod_pair_value_v<f256_prod_plus_value_sub_prod_expr>);
+static_assert(detail::_f256_expr::is_prod_pair_value_v<f256_value_sub_prod_plus_prod_expr>);
+static_assert(detail::_f256_expr::is_prod_pair_value_v<f256_prod_minus_value_sub_prod_expr>);
 
 namespace
 {
@@ -219,10 +236,10 @@ namespace
 
 TEST_CASE("f256 delayed fused expressions preserve normal value semantics", "[fltx][f256][precision][arithmetic][expressions][semantics]")
 {
-    const auto expression = make_returned_basic_expression();
+    auto expression = make_returned_basic_expression();
     clobber_stack_between_expression_creation_and_evaluation();
 
-    const f256 delayed = expression;
+    const f256 delayed = std::move(expression);
     const f256 immediate = make_materialized_basic_expression();
 
     require_same_value_bits(delayed, immediate);
@@ -230,10 +247,10 @@ TEST_CASE("f256 delayed fused expressions preserve normal value semantics", "[fl
 
 TEST_CASE("f256 delayed expressions preserve math temporary semantics", "[fltx][f256][precision][arithmetic][expressions][semantics]")
 {
-    const auto expression = make_returned_log_minus_input_expression();
+    auto expression = make_returned_log_minus_input_expression();
     clobber_stack_between_expression_creation_and_evaluation();
 
-    const f256 delayed = expression;
+    const f256 delayed = std::move(expression);
     const f256 immediate = make_materialized_log_minus_input_expression();
 
     require_same_value_bits(delayed, immediate);
@@ -249,16 +266,47 @@ TEST_CASE("f256 delayed product expressions preserve simple multi-line value sem
     const mpfr_ref y_ref = to_ref_exact(y);
     const mpfr_ref a_ref = to_ref_exact(a);
 
-    const auto xy = x * y;
-    const auto xx = x * x;
-    const auto yy = y * y;
+    auto xy0 = x * y;
+    auto xy1 = x * y;
+    const f256 doubled = std::move(xy0) + std::move(xy1);
 
-    const f256 doubled = xy + xy;
-    const f256 doubled_plus = a + (xy + xy);
-    const f256 associated_plus = (xy + a) + xy;
-    const f256 associated_minus = (xy - a) + xy;
-    const f256 commuted_difference = a + (xx - yy);
-    const f256 product_reassociated = xy + (xx + yy);
+    auto xy2 = x * y;
+    auto xy3 = x * y;
+    const f256 doubled_plus = a + (std::move(xy2) + std::move(xy3));
+
+    auto xy4 = x * y;
+    auto xy5 = x * y;
+    const f256 associated_plus = (std::move(xy4) + a) + std::move(xy5);
+
+    auto xy6 = x * y;
+    auto xy7 = x * y;
+    const f256 associated_minus = (std::move(xy6) - a) + std::move(xy7);
+
+    auto xx0 = x * x;
+    auto yy0 = y * y;
+    const f256 commuted_difference = a + (std::move(xx0) - std::move(yy0));
+
+    auto xy8 = x * y;
+    auto xx1 = x * x;
+    auto yy1 = y * y;
+    const f256 product_reassociated = std::move(xy8) + (std::move(xx1) + std::move(yy1));
+
+    auto xx2 = x * x;
+    auto yy2 = y * y;
+    const f256 product_plus_value_sub_product = std::move(xx2) + (a - std::move(yy2));
+
+    auto xx3 = x * x;
+    auto yy3 = y * y;
+    const f256 value_sub_product_plus_product = (a - std::move(xx3)) + std::move(yy3);
+
+    auto xx4 = x * x;
+    auto yy4 = y * y;
+    const f256 product_minus_value_sub_product = std::move(xx4) - (a - std::move(yy4));
+
+    const f256 scaled_right_associated = (x * 1.25) + (a + y * -0.75);
+    const f256 scaled_value_sub_product = (x * 1.25) + (a - y * 0.75);
+    const f256 scaled_sub_associated = (x * 1.25) - (a + y * 0.75);
+    const f256 scaled_left_associated = (a + x * 1.25) - (y * 0.75);
 
     require_close_to_reference(doubled, x_ref * y_ref + x_ref * y_ref);
     require_close_to_reference(doubled_plus, a_ref + (x_ref * y_ref + x_ref * y_ref));
@@ -266,15 +314,37 @@ TEST_CASE("f256 delayed product expressions preserve simple multi-line value sem
     require_close_to_reference(associated_minus, (x_ref * y_ref - a_ref) + x_ref * y_ref);
     require_close_to_reference(commuted_difference, a_ref + (x_ref * x_ref - y_ref * y_ref));
     require_close_to_reference(product_reassociated, x_ref * y_ref + (x_ref * x_ref + y_ref * y_ref));
+    require_close_to_reference(product_plus_value_sub_product, x_ref * x_ref + (a_ref - y_ref * y_ref));
+    require_close_to_reference(value_sub_product_plus_product, (a_ref - x_ref * x_ref) + y_ref * y_ref);
+    require_close_to_reference(product_minus_value_sub_product, x_ref * x_ref - (a_ref - y_ref * y_ref));
+    require_close_to_reference(scaled_right_associated, x_ref * mpfr_ref{ 1.25 } + (a_ref + y_ref * mpfr_ref{ -0.75 }));
+    require_close_to_reference(scaled_value_sub_product, x_ref * mpfr_ref{ 1.25 } + (a_ref - y_ref * mpfr_ref{ 0.75 }));
+    require_close_to_reference(scaled_sub_associated, x_ref * mpfr_ref{ 1.25 } - (a_ref + y_ref * mpfr_ref{ 0.75 }));
+    require_close_to_reference(scaled_left_associated, (a_ref + x_ref * mpfr_ref{ 1.25 }) - y_ref * mpfr_ref{ 0.75 });
+}
+
+TEST_CASE("f256 named expressions require explicit consumption", "[fltx][f256][precision][arithmetic][expressions][semantics][fusion]")
+{
+    const f256 x = make_f256("1.1250000000000000000000000000000001");
+    const f256 y = make_f256("-0.8750000000000000000000000000000001");
+    const f256 cx = make_f256("0.3333333333333333333333333333333333");
+
+    auto xx = x * x - y * y + cx;
+    const f256 assigned = std::move(xx);
+    const f256 direct = x * x - y * y + cx;
+
+    require_same_value_bits(assigned, direct);
 }
 
 TEST_CASE("f256_s storage member arithmetic preserves normal value semantics", "[fltx][f256][precision][arithmetic][expressions][semantics][storage]")
 {
-    const auto value = make_returned_storage_member_expression();
+    auto value_for_f256 = make_returned_storage_member_expression();
+    auto value_for_storage = make_returned_storage_member_expression();
     clobber_stack_between_expression_creation_and_evaluation();
 
-    const f256 delayed_value = value;
-    const f256_s delayed_storage = value;
+    const f256 delayed_value = std::move(value_for_f256);
+    const f256 delayed_storage_value = std::move(value_for_storage);
+    const f256_s delayed_storage = delayed_storage_value;
     const f256 immediate = make_materialized_storage_member_expression();
 
     require_same_value_bits(delayed_value, immediate);

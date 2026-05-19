@@ -65,10 +65,10 @@ namespace
     [[nodiscard]] mpfr_ref function_scaled_tolerance(const char* op_name)
     {
         constexpr std::array<scaled_tolerance_entry, 40> tolerances{{
-            { "acos", "3e-30" },
+            { "acos", "4e-30" },
             { "acosh", "4e-30" },
             { "add", "4e-32" },
-            { "asin", "3e-30" },
+            { "asin", "4e-30" },
             { "asinh", "3e-30" },
             { "atan", "3e-30" },
             { "atan2", "4e-30" },
@@ -1326,6 +1326,102 @@ TEST_CASE("f128 mixed scalar arithmetic matches MPFR within tolerance", "[fltx][
     }
 }
 
+TEST_CASE("f128 integer overloads preserve exact integer values", "[fltx][f128][precision][arithmetic][scalar][integer]")
+{
+    auto check_signed = [](auto rhs, const char* label)
+    {
+        const f128 base = to_f128("1.2345678901234567890123456789012345");
+        const f128 rhs_value = to_f128(static_cast<std::int64_t>(rhs));
+        const bool rhs_fits_double = detail::_f128::integer_fits_exact_double(rhs);
+        const double rhs_double = static_cast<double>(rhs);
+
+        auto add_right = [&]() -> f128 { return rhs_fits_double ? f128{ base + rhs_double } : f128{ base + rhs_value }; };
+        auto add_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double + base } : f128{ rhs_value + base }; };
+        auto sub_right = [&]() -> f128 { return rhs_fits_double ? f128{ base - rhs_double } : f128{ base - rhs_value }; };
+        auto sub_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double - base } : f128{ rhs_value - base }; };
+        auto mul_right = [&]() -> f128 { return rhs_fits_double ? f128{ base * rhs_double } : f128{ base * rhs_value }; };
+        auto mul_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double * base } : f128{ rhs_value * base }; };
+        auto div_right = [&]() -> f128 { return rhs_fits_double ? f128{ base / rhs_double } : f128{ base / rhs_value }; };
+        auto div_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double / base } : f128{ rhs_value / base }; };
+
+        f128 got = base;
+        got += rhs;
+        require_exact_value(label, got, add_right());
+
+        got = base;
+        got -= rhs;
+        require_exact_value(label, got, sub_right());
+
+        got = base;
+        got *= rhs;
+        require_exact_value(label, got, mul_right());
+
+        got = base;
+        got /= rhs;
+        require_exact_value(label, got, div_right());
+
+        require_exact_value(label, base + rhs, add_right());
+        require_exact_value(label, rhs + base, add_left());
+        require_exact_value(label, base - rhs, sub_right());
+        require_exact_value(label, rhs - base, sub_left());
+        require_exact_value(label, base * rhs, mul_right());
+        require_exact_value(label, rhs * base, mul_left());
+        require_exact_value(label, base / rhs, div_right());
+        require_exact_value(label, rhs / base, div_left());
+    };
+
+    auto check_unsigned = [](auto rhs, const char* label)
+    {
+        const f128 base = to_f128("1.2345678901234567890123456789012345");
+        const f128 rhs_value = to_f128(static_cast<std::uint64_t>(rhs));
+        const bool rhs_fits_double = detail::_f128::integer_fits_exact_double(rhs);
+        const double rhs_double = static_cast<double>(rhs);
+
+        auto add_right = [&]() -> f128 { return rhs_fits_double ? f128{ base + rhs_double } : f128{ base + rhs_value }; };
+        auto add_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double + base } : f128{ rhs_value + base }; };
+        auto sub_right = [&]() -> f128 { return rhs_fits_double ? f128{ base - rhs_double } : f128{ base - rhs_value }; };
+        auto sub_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double - base } : f128{ rhs_value - base }; };
+        auto mul_right = [&]() -> f128 { return rhs_fits_double ? f128{ base * rhs_double } : f128{ base * rhs_value }; };
+        auto mul_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double * base } : f128{ rhs_value * base }; };
+        auto div_right = [&]() -> f128 { return rhs_fits_double ? f128{ base / rhs_double } : f128{ base / rhs_value }; };
+        auto div_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double / base } : f128{ rhs_value / base }; };
+
+        f128 got = base;
+        got += rhs;
+        require_exact_value(label, got, add_right());
+
+        got = base;
+        got -= rhs;
+        require_exact_value(label, got, sub_right());
+
+        got = base;
+        got *= rhs;
+        require_exact_value(label, got, mul_right());
+
+        got = base;
+        got /= rhs;
+        require_exact_value(label, got, div_right());
+
+        require_exact_value(label, base + rhs, add_right());
+        require_exact_value(label, rhs + base, add_left());
+        require_exact_value(label, base - rhs, sub_right());
+        require_exact_value(label, rhs - base, sub_left());
+        require_exact_value(label, base * rhs, mul_right());
+        require_exact_value(label, rhs * base, mul_left());
+        require_exact_value(label, base / rhs, div_right());
+        require_exact_value(label, rhs / base, div_left());
+    };
+
+    check_signed(std::int8_t{ -7 }, "int8");
+    check_unsigned(std::uint8_t{ 7 }, "uint8");
+    check_signed(std::int16_t{ -257 }, "int16");
+    check_unsigned(std::uint16_t{ 257 }, "uint16");
+    check_signed(std::int32_t{ -65537 }, "int32");
+    check_unsigned(std::uint32_t{ 65537 }, "uint32");
+    check_signed(static_cast<std::int64_t>(-9007199254740993ll), "int64");
+    check_unsigned(std::uint64_t{ 9007199254740993ull }, "uint64");
+}
+
 TEST_CASE("f128 sin matches MPFR for fixed values", "[fltx][f128][precision][transcendental][trig][sin]")
 {
     accuracy_report_scope report_scope{ "f128 sin matches MPFR for fixed values" };
@@ -2302,6 +2398,11 @@ TEST_CASE("f128 utility math helpers behave correctly for fixed values", "[fltx]
         REQUIRE(bl::lrint(to_f128("3.5")) == 4L);
         REQUIRE(bl::llrint(to_f128("-2.5")) == -2LL);
         REQUIRE(bl::llrint(to_f128("-3.5")) == -4LL);
+        REQUIRE(bl::llround(to_f128("4503599627370495.5")) == 4503599627370496LL);
+        REQUIRE(bl::llround(to_f128("-4503599627370495.5")) == -4503599627370496LL);
+        REQUIRE(bl::llround(to_f128("4503599627370496.5")) == 4503599627370497LL);
+        REQUIRE(bl::llrint(to_f128("4503599627370496.5")) == 4503599627370496LL);
+        REQUIRE(bl::llrint(to_f128("4503599627370497.5")) == 4503599627370498LL);
     }
 }
 

@@ -13,9 +13,22 @@
 
 namespace bl::bench
 {
+    inline constexpr const char* mixed_workloads_group_name        = "Mixed Workloads";
+    inline constexpr const char* mixed_arithmetic_label            = "mixed arithmetic";
+    inline constexpr const char* mixed_affine_trig_transform_label = "affine trig transform";
+    inline constexpr const char* mixed_mandelbrot_kernel_label     = "mandelbrot kernel";
+
     [[nodiscard]] inline std::string_view benchmark_compiler_name()
     {
-        #if defined(__MINGW32__) || defined(__MINGW64__)
+        #if defined(__EMSCRIPTEN__) && defined(FLTX_BENCH_RUNTIME_CHROME)
+        return "Chrome";
+        #elif defined(__EMSCRIPTEN__) && defined(FLTX_BENCH_RUNTIME_BROWSER)
+        return "Chrome";
+        #elif defined(__EMSCRIPTEN__) && defined(FLTX_BENCH_RUNTIME_NODE)
+        return "Nodejs";
+        #elif defined(__EMSCRIPTEN__)
+        return "Wasm32";
+        #elif defined(__MINGW32__) || defined(__MINGW64__)
         return "MinGW";
         #elif defined(__clang__) && defined(__apple_build_version__)
         return "AppleClang";
@@ -32,7 +45,9 @@ namespace bl::bench
 
     [[nodiscard]] inline std::string_view benchmark_os_name()
     {
-        #if defined(_WIN32)
+        #if defined(__EMSCRIPTEN__)
+        return "wasm32";
+        #elif defined(_WIN32)
         return "windows";
         #elif defined(__APPLE__) && defined(__MACH__)
         return "macOS";
@@ -50,7 +65,12 @@ namespace bl::bench
         std::string_view suffix,
         std::string_view extension)
     {
-        std::filesystem::path output_path = std::filesystem::path("res") / "bench" / std::string(benchmark_os_name());
+        #ifdef FLTX_BENCH_OUTPUT_ROOT
+        std::filesystem::path output_path = std::filesystem::path(FLTX_BENCH_OUTPUT_ROOT);
+        #else
+        std::filesystem::path output_path = std::filesystem::path("res") / "bench";
+        #endif
+        output_path /= std::string(benchmark_os_name());
 
         std::string filename = std::string(benchmark_compiler_name()) + "_" + std::string(type_name);
         if (!suffix.empty())
@@ -154,28 +174,42 @@ namespace bl::bench
 
     [[nodiscard]] inline int benchmark_group_rank(std::string_view group)
     {
-        if (group == "Arithmetic")
+        if (group == "f128 <-> f128" || group == "f256 <-> f256")
             return 0;
-        if (group == "Rounding")
+        if (group == "f256 <-> f128")
             return 1;
-        if (group == "Remainders")
+        if (group == "f128 <-> f64" || group == "f256 <-> f64")
             return 2;
-        if (group == "Floating-point utilities")
+        if (group == "f128 <-> f32" || group == "f256 <-> f32")
             return 3;
-        if (group == "Roots & powers")
+        if (group == "f128 <-> i64" || group == "f256 <-> i64")
             return 4;
-        if (group == "Exponentials")
+        if (group == "f128 <-> i32" || group == "f256 <-> i32")
             return 5;
-        if (group == "Logarithms")
+        if (group == "Arithmetic")
             return 6;
-        if (group == "Trigonometric")
+        if (group == mixed_workloads_group_name)
             return 7;
-        if (group == "Hyperbolic")
-            return 8;
-        if (group == "Inverse hyperbolic")
-            return 9;
-        if (group == "Special functions")
+        if (group == "Rounding")
             return 10;
+        if (group == "Remainders")
+            return 11;
+        if (group == "Floating-point utilities")
+            return 12;
+        if (group == "Roots & powers")
+            return 13;
+        if (group == "Exponentials")
+            return 14;
+        if (group == "Logarithms")
+            return 15;
+        if (group == "Trigonometric")
+            return 16;
+        if (group == "Hyperbolic")
+            return 17;
+        if (group == "Inverse hyperbolic")
+            return 18;
+        if (group == "Special functions")
+            return 19;
         return 100;
     }
 
@@ -195,7 +229,16 @@ namespace bl::bench
         if (label == "subtract") return 1;
         if (label == "multiply") return 2;
         if (label == "divide") return 3;
-        if (label == "mixed recurrence") return 4;
+        if (label == mixed_affine_trig_transform_label) return 1;
+        if (label == mixed_mandelbrot_kernel_label) return 2;
+        if (label == mixed_arithmetic_label) return 3;
+        if (label == "((x*x - y*y) + a) / (c + scalar)") return 3;
+        if (label == "((x*a + y*b) + c) / (c + scalar)") return 4;
+        if (label == "((x*sa + y*sb) + a) / (c + scalar)") return 5;
+        if (label == "((x + a) + b) / ((c + d) + scalar)") return 6;
+        if (label == "((x*a + y*b) + c*d) / ((c + d) + scalar)") return 7;
+        if (label == "((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)") return 8;
+        if (label == "((x*y + a*b) + c) / (c*c + scalar)") return 9;
 
         if (label == "floor") return 10;
         if (label == "ceil") return 11;
@@ -279,14 +322,16 @@ namespace bl::bench
             std::string title_value,
             std::string csv_output_path_value,
             std::string svg_output_path_value,
-            double visible_ratio_cap_value=10.0
+            double visible_ratio_cap_value=10.0,
+            bool generate_compact_report_value=false
         )
             : candidate_name(std::move(candidate_name_value)),
               reference_name(std::move(reference_name_value)),
               title(std::move(title_value)),
               csv_output_path(std::move(csv_output_path_value)),
               svg_output_path(std::move(svg_output_path_value)),
-            visible_ratio_cap(visible_ratio_cap_value)
+              visible_ratio_cap(visible_ratio_cap_value),
+              generate_compact_report(generate_compact_report_value)
         {
         }
 
@@ -326,6 +371,16 @@ namespace bl::bench
                 *found = std::move(entry);
             else
                 entries.push_back(std::move(entry));
+
+            #if defined(__EMSCRIPTEN__)
+            try
+            {
+                write_outputs();
+            }
+            catch (...)
+            {
+            }
+            #endif
         }
 
         void write_outputs() const
@@ -358,10 +413,13 @@ namespace bl::bench
         std::string svg_output_path{};
         std::vector<benchmark_chart_entry> entries{};
         double visible_ratio_cap = 10.0;
+        bool generate_compact_report = false;
 
         [[nodiscard]] std::vector<benchmark_chart_entry> make_sorted_entries() const
         {
-            std::vector<benchmark_chart_entry> sorted = entries;
+            std::vector<benchmark_chart_entry> sorted = generate_compact_report
+                ? make_compact_entries()
+                : entries;
             std::sort(sorted.begin(), sorted.end(), [](const benchmark_chart_entry& lhs, const benchmark_chart_entry& rhs)
             {
                 const int lhs_group_rank = benchmark_group_rank(lhs.group);
@@ -377,6 +435,51 @@ namespace bl::bench
                 return lhs.label < rhs.label;
             });
             return sorted;
+        }
+
+        [[nodiscard]] std::vector<benchmark_chart_entry> make_compact_entries() const
+        {
+            std::vector<benchmark_chart_entry> compact;
+            compact.reserve(entries.size());
+
+            double mixed_candidate_total = 0.0;
+            double mixed_reference_total = 0.0;
+            double mixed_ratio_total = 0.0;
+            std::size_t mixed_count = 0;
+
+            for (const auto& entry : entries)
+            {
+                if (entry.group != mixed_workloads_group_name)
+                {
+                    compact.push_back(entry);
+                    continue;
+                }
+
+                if (entry.label == mixed_affine_trig_transform_label ||
+                    entry.label == mixed_mandelbrot_kernel_label)
+                {
+                    compact.push_back(entry);
+                    continue;
+                }
+
+                mixed_candidate_total += entry.candidate_ns_per_iter;
+                mixed_reference_total += entry.reference_ns_per_iter;
+                mixed_ratio_total += entry.ratio;
+                ++mixed_count;
+            }
+
+            if (mixed_count != 0)
+            {
+                benchmark_chart_entry mixed_average{};
+                mixed_average.group = mixed_workloads_group_name;
+                mixed_average.label = mixed_arithmetic_label;
+                mixed_average.candidate_ns_per_iter = mixed_candidate_total / static_cast<double>(mixed_count);
+                mixed_average.reference_ns_per_iter = mixed_reference_total / static_cast<double>(mixed_count);
+                mixed_average.ratio = mixed_ratio_total / static_cast<double>(mixed_count);
+                compact.push_back(std::move(mixed_average));
+            }
+
+            return compact;
         }
 
         [[nodiscard]] std::vector<grouped_layout_entry> make_layout_entries(const std::vector<benchmark_chart_entry>& sorted_entries) const
