@@ -18,7 +18,15 @@ namespace bl::bench
 
     [[nodiscard]] inline std::string_view benchmark_compiler_name()
     {
-        #if defined(__MINGW32__) || defined(__MINGW64__)
+        #if defined(__EMSCRIPTEN__) && defined(FLTX_BENCH_RUNTIME_CHROME)
+        return "Chrome";
+        #elif defined(__EMSCRIPTEN__) && defined(FLTX_BENCH_RUNTIME_BROWSER)
+        return "Chrome";
+        #elif defined(__EMSCRIPTEN__) && defined(FLTX_BENCH_RUNTIME_NODE)
+        return "Nodejs";
+        #elif defined(__EMSCRIPTEN__)
+        return "Wasm32";
+        #elif defined(__MINGW32__) || defined(__MINGW64__)
         return "MinGW";
         #elif defined(__clang__) && defined(__apple_build_version__)
         return "AppleClang";
@@ -35,7 +43,9 @@ namespace bl::bench
 
     [[nodiscard]] inline std::string_view benchmark_os_name()
     {
-        #if defined(_WIN32)
+        #if defined(__EMSCRIPTEN__)
+        return "wasm32";
+        #elif defined(_WIN32)
         return "windows";
         #elif defined(__APPLE__) && defined(__MACH__)
         return "macOS";
@@ -352,6 +362,16 @@ namespace bl::bench
                 *found = std::move(entry);
             else
                 entries.push_back(std::move(entry));
+
+            #if defined(__EMSCRIPTEN__)
+            try
+            {
+                write_outputs();
+            }
+            catch (...)
+            {
+            }
+            #endif
         }
 
         void write_outputs() const

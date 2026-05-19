@@ -444,14 +444,46 @@ Other distributions should use equivalent packages for a C++20 compiler, CMake, 
 
 ## Benchmarks
 
+<img src="res/bench/benchmark_table.svg" alt="fltx benchmark table" width="100%">
+
 `fltx` is tested and benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision levels.
 
-<table>
-<tr>
-<td><img src="res/f128_typical_ratios.svg" alt="f128 benchmark ratio"></td>
-<td><img src="res/f256_typical_ratios.svg" alt="f256 benchmark ratio"></td>
-</tr>
-</table>
+<details>
+<summary>Windows benchmark charts</summary>
+
+<img src="res/bench/windows/MSVC_f128_typical_ratios.svg" alt="Windows MSVC f128 benchmark ratios" width="100%">
+
+<img src="res/bench/windows/MSVC_f256_typical_ratios.svg" alt="Windows MSVC f256 benchmark ratios" width="100%">
+
+<img src="res/bench/windows/MinGW_f128_typical_ratios.svg" alt="Windows MinGW f128 benchmark ratios" width="100%">
+
+<img src="res/bench/windows/MinGW_f256_typical_ratios.svg" alt="Windows MinGW f256 benchmark ratios" width="100%">
+
+</details>
+
+<details>
+<summary>Linux benchmark charts</summary>
+
+<img src="res/bench/linux/GCC_f128_typical_ratios.svg" alt="Linux GCC f128 benchmark ratios" width="100%">
+
+<img src="res/bench/linux/GCC_f256_typical_ratios.svg" alt="Linux GCC f256 benchmark ratios" width="100%">
+
+<img src="res/bench/linux/Clang_f128_typical_ratios.svg" alt="Linux Clang f128 benchmark ratios" width="100%">
+
+<img src="res/bench/linux/Clang_f256_typical_ratios.svg" alt="Linux Clang f256 benchmark ratios" width="100%">
+
+</details>
+
+<details>
+<summary>WebAssembly benchmark charts</summary>
+
+<img src="res/bench/wasm32/Nodejs_f128_typical_ratios.svg" alt="WebAssembly Node.js f128 benchmark ratios" width="100%">
+
+<img src="res/bench/wasm32/Chrome_f128_typical_ratios.svg" alt="WebAssembly Chrome f128 benchmark ratios" width="100%">
+
+<img src="res/bench/wasm32/Chrome_f256_typical_ratios.svg" alt="WebAssembly Chrome f256 benchmark ratios" width="100%">
+
+</details>
 
 ## License
 

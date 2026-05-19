@@ -3,17 +3,8 @@
   "name": "fltx",
   "version-string": "0.1.0",
   "dependencies": [
-    {
-      "name": "boost-multiprecision",
-      "platform": "!emscripten"
-    },
-    {
-      "name": "mpfr",
-      "platform": "!emscripten"
-    },
-    {
-      "name": "catch2",
-      "platform": "!emscripten"
-    }
+    "boost-multiprecision",
+    "mpfr",
+    "catch2"
   ]
 }

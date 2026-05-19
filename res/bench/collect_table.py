@@ -21,8 +21,18 @@ TABLE_SUBTITLE = "Nanoseconds per iteration over deterministic representative in
 FP_TYPE_ORDER = {"f128": 0, "f256": 1}
 FP_TYPE_LABELS = {"f128": "f128", "f256": "f256"}
 
-PLATFORM_ORDER = {"windows": 0, "linux": 1, "macos": 2, "web": 3}
-PLATFORM_LABELS = {"windows": "Windows", "linux": "Linux", "macos": "MacOS", "web": "Web"}
+PLATFORM_ORDER = {
+    "windows": 0,
+    "linux": 1,
+    "macos": 2,
+    "wasm32": 3,
+}
+PLATFORM_LABELS = {
+    "windows": "Windows",
+    "linux": "Linux",
+    "macos": "MacOS",
+    "wasm32": "WebAssembly",
+}
 
 COMPILER_ORDER = {
     "msvc": 0,
@@ -30,8 +40,11 @@ COMPILER_ORDER = {
     "gcc": 2,
     "clang": 3,
     "appleclang": 4,
-    "emscripten": 5,
-    "emcc": 5,
+    "nodejs": 5,
+    "node": 5,
+    "chrome": 6,
+    "browser": 6,
+    "wasm32": 7,
 }
 COMPILER_LABELS = {
     "msvc": "MSVC",
@@ -39,8 +52,11 @@ COMPILER_LABELS = {
     "gcc": "GCC",
     "clang": "Clang",
     "appleclang": "AppleClang",
-    "emscripten": "Emscripten",
-    "emcc": "Emscripten",
+    "nodejs": "Node.js",
+    "node": "Node.js",
+    "chrome": "Chrome",
+    "browser": "Chrome",
+    "wasm32": "Wasm32",
 }
 
 HEADER_BG = "#3B4B63"
@@ -102,15 +118,41 @@ class BenchmarkTable:
 
 
 def normalize_key(value: str) -> str:
-    return value.strip().replace("-", "").replace("_", "").lower()
+    return (
+        value.strip()
+        .replace("-", "")
+        .replace("_", "")
+        .replace(".", "")
+        .replace("(", "")
+        .replace(")", "")
+        .replace(" ", "")
+        .lower()
+    )
 
 
-def platform_key(path: Path) -> str:
+def platform_key(path: Path, compiler: str = "") -> str:
     key = normalize_key(path.parent.name)
     if key in {"mac", "darwin", "osx"}:
         return "macos"
-    if key in {"emscripten", "wasm"}:
-        return "web"
+    if key in {
+        "browser",
+        "chrome",
+        "emscripten",
+        "node",
+        "nodejs",
+        "wasm",
+        "wasm32",
+        "wasm32browser",
+        "wasm32chrome",
+        "wasm32node",
+        "wasm32nodejs",
+        "wasmbrowser",
+        "wasmchrome",
+        "wasmnode",
+        "wasmnodejs",
+        "web",
+    }:
+        return "wasm32"
     return key
 
 
@@ -118,8 +160,16 @@ def platform_label(key: str) -> str:
     return PLATFORM_LABELS.get(key, key[:1].upper() + key[1:])
 
 
-def compiler_key(value: str) -> str:
-    return normalize_key(value)
+def compiler_key(value: str, platform: str = "") -> str:
+    key = normalize_key(value)
+    if platform == "wasm32":
+        if key in {"clang", "emcc", "emscripten", "emscriptennode", "emscriptennodejs", "node", "nodejs"}:
+            return "nodejs"
+        if key in {"browser", "chrome", "emscriptenbrowser", "emscriptenchrome"}:
+            return "chrome"
+        if key in {"wasm", "wasm32"}:
+            return "wasm32"
+    return key
 
 
 def fp_type_label(key: str) -> str:
@@ -267,7 +317,8 @@ def discover_table(bench_root: Path) -> BenchmarkTable:
             continue
 
         fp_type = match.group("type").lower()
-        column = ColumnKey(fp_type, platform_key(path), compiler_key(match.group("compiler")))
+        platform = platform_key(path, match.group("compiler"))
+        column = ColumnKey(fp_type, platform, compiler_key(match.group("compiler"), platform))
         entries = read_csv(path, fp_type)
         has_visible_entries = False
         for group, label, cell in entries:
