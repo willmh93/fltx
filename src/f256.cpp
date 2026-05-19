@@ -18,37 +18,8 @@ namespace bl::detail::_f256_runtime
             return detail::_f256::div_inline(numerator, detail::_f256::add_double_inline(base_denominator, scalar));
         }
 
-        // double-double division residuals
-        [[nodiscard]] BL_FORCE_INLINE f256_s sub_mul_scalar_fast_dd(const f256_s& r, detail::_f256::dd_scalar b, double q) noexcept
-        {
-            using namespace detail::_f256;
-
-            double p0{}, e0{};
-            double p1{}, e1{};
-            double p2 = 0.0, e2 = 0.0;
-            double p3 = 0.0, e3 = 0.0;
-
-            two_prod_precise(b.hi, q, p0, e0);
-            two_prod_precise(b.lo, q, p1, e1);
-
-            double s0 = r.x0 - p0; double v0 = s0 - r.x0; double u0 = s0 - v0; double w0 = r.x0 - u0;  u0 = -p0 - v0;
-            double s1 = r.x1 - p1; double v1 = s1 - r.x1; double u1 = s1 - v1; double w1 = r.x1 - u1;  u1 = -p1 - v1;
-            double s2 = r.x2 - p2; double v2 = s2 - r.x2; double u2 = s2 - v2; double w2 = r.x2 - u2;  u2 = -p2 - v2;
-            double s3 = r.x3 - p3; double v3 = s3 - r.x3; double u3 = s3 - v3; double w3 = r.x3 - u3;  u3 = -p3 - v3;
-
-            double t0 = w0 + u0;
-            double t1 = w1 + u1;
-            double t2 = w2 + u2;
-            double t3 = w3 + u3;
-
-            double tail0 = t0 - e0; two_sum_precise(s1, tail0, s1, t0);
-            double tail1 = t1 - e1; three_sum(s2, t0, tail1);
-            double tail2 = t2 - e2; three_sum2(s3, t0, tail2);
-
-            t0 = t0 + tail1 + t3 - e3;
-
-            return renorm5(s0, s1, s2, s3, t0);
-        }
+        // Exact residual for long division by a double-double denominator.
+        BL_PUSH_PRECISE
         [[nodiscard]] BL_FORCE_INLINE f256_s sub_mul_scalar_exact_dd(const f256_s& r, detail::_f256::dd_scalar b, double q) noexcept
         {
             using namespace detail::_f256;
@@ -85,6 +56,7 @@ namespace bl::detail::_f256_runtime
 
             return renorm5(c0, c1, c2, c3, e0);
         }
+        BL_POP_PRECISE
 
         // double-double arithmetic helpers
         [[nodiscard]] BL_FORCE_INLINE f256_s add_dd_impl(const f256_s& a, detail::_f256::dd_scalar b) noexcept
@@ -210,18 +182,18 @@ namespace bl::detail::_f256_runtime
                 return div_inline(a, f256_s{ b.hi, b.lo });
 
             const double inv_b0 = 1.0 / b.hi;
-            const double q0 = a.x0 * inv_b0;
 
+            const double q0 = a.x0 * inv_b0;
             f256_s r = sub_mul_scalar_exact_dd(a, b, q0);
 
             const double q1 = r.x0 * inv_b0;
-            r = sub_mul_scalar_fast_dd(r, b, q1);
+            r = sub_mul_scalar_exact_dd(r, b, q1);
 
             const double q2 = r.x0 * inv_b0;
-            r = sub_mul_scalar_fast_dd(r, b, q2);
+            r = sub_mul_scalar_exact_dd(r, b, q2);
 
             const double q3 = r.x0 * inv_b0;
-            r = sub_mul_scalar_fast_dd(r, b, q3);
+            r = sub_mul_scalar_exact_dd(r, b, q3);
 
             const double q4 = r.x0 * inv_b0;
 

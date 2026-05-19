@@ -1087,7 +1087,7 @@ namespace
 
     [[nodiscard]] tolerance_spec default_mpfr_tolerance_for_op(const char* op_name)
     {
-        constexpr std::array<default_tolerance_entry, 26> tolerances{{
+        constexpr std::array<default_tolerance_entry, 27> tolerances{{
             { "acos", 1, 2e-7f },
             { "acosh", 1, 2e-7f },
             { "asin", 1, 2e-7f },
@@ -1104,6 +1104,7 @@ namespace
             { "exp", 1, 2e-7f },
             { "exp2", 1, 1e-7f },
             { "expm1", 1, 2e-7f },
+            { "hypot", 1, 1e-7f },
             { "lgamma", 2, 2e-7f },
             { "log", 1, 2e-7f },
             { "log10", 1, 2e-7f },
