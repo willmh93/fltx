@@ -82,6 +82,8 @@ endif()
 
 set(FLTX_TEST_MACRO_STATUS_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/test_macro_status.cpp")
 set(FLTX_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/../include")
+get_filename_component(FLTX_BENCH_OUTPUT_ROOT_NATIVE "${CMAKE_CURRENT_SOURCE_DIR}/../res/bench" REALPATH)
+file(TO_CMAKE_PATH "${FLTX_BENCH_OUTPUT_ROOT_NATIVE}" FLTX_BENCH_OUTPUT_ROOT)
 
 set(FLTX_LIBRARY_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../src/f128.cpp"
@@ -235,6 +237,7 @@ function (prepareTarget _TARGET _FLTX_LIBRARY)
 
     if(EMSCRIPTEN AND _TARGET STREQUAL "bench_tests")
         target_compile_definitions(${_TARGET} PRIVATE FLTX_BENCH_RUNTIME_NODE)
+        target_compile_definitions(${_TARGET} PRIVATE "FLTX_BENCH_OUTPUT_ROOT=\"${FLTX_BENCH_OUTPUT_ROOT}\"")
         # f256 atan/atan2 benchmarks build large generated sample arrays; the
         # Emscripten default 64 KiB C++ stack is too small for those tests.
         target_link_options(${_TARGET} PRIVATE
@@ -243,11 +246,14 @@ function (prepareTarget _TARGET _FLTX_LIBRARY)
         )
     elseif(EMSCRIPTEN AND _TARGET STREQUAL "bench_tests_browser")
         target_compile_definitions(${_TARGET} PRIVATE FLTX_BENCH_RUNTIME_CHROME)
+        target_compile_definitions(${_TARGET} PRIVATE "FLTX_BENCH_OUTPUT_ROOT=\"/res/bench\"")
         target_link_options(${_TARGET} PRIVATE
             -sSTACK_SIZE=1048576
             -sENVIRONMENT=web
             -sEXPORTED_RUNTIME_METHODS=FS
         )
+    elseif(_TARGET STREQUAL "bench_tests")
+        target_compile_definitions(${_TARGET} PRIVATE "FLTX_BENCH_OUTPUT_ROOT=\"${FLTX_BENCH_OUTPUT_ROOT}\"")
     endif()
 
     if (MSVC)

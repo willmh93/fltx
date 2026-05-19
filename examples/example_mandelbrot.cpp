@@ -1,30 +1,32 @@
 #include <atomic>
-#include <chrono>
 #include <cmath>
-#include <fstream>
-#include <iostream>
 #include <thread>
 #include <utility>
 #include <vector>
+
+#include <chrono>
+#include <fstream>
+#include <iostream>
 #include <filesystem>
 
-#include <fltx>
+#include <fltx_core.h>
+#include <fltx_io.h>
 using namespace bl;
 using namespace bl::literals;
 
-static void write_u16(std::ofstream& out, u16 value)
+static void write_u16(std::ofstream& out, std::uint16_t value)
 {
     out.put((unsigned char)(value & 0xff));
     out.put((unsigned char)((value >> 8) & 0xff));
 }
 
-static void write_u32(std::ofstream& out, u32 value)
+static void write_u32(std::ofstream& out, std::uint32_t value)
 {
-    write_u16(out, (u16)(value));
-    write_u16(out, (u16)(value >> 16));
+    write_u16(out, (std::uint16_t)(value));
+    write_u16(out, (std::uint16_t)(value >> 16));
 }
 
-static unsigned char to_byte(f64 x)
+static unsigned char to_byte(double x)
 {
     if (x < 0.0) x = 0.0;
     if (x > 255.0) x = 255.0;
@@ -79,12 +81,17 @@ int main()
 
                 // determine iterations until escape
                 int iter = 0;
-                while (iter < max_iter && bl::sq((f64)x) + bl::sq((f64)y) <= 4.0)
+                while (iter < max_iter)
                 {
                     flt xx = x * x - y * y + cx;
                     y = 2.0 * x * y + cy;
                     x = xx;
                     ++iter;
+
+                    f64 _x = (f64)x;
+                    f64 _y = (f64)y;
+                    if (_x*_x + _y*_y > 4.0)
+                        break;
                 }
 
                 // determine pixel color

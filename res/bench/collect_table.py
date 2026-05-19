@@ -88,11 +88,9 @@ VERY_FAST_RATIO = 20.0
 NATIVE_ARITHMETIC_GROUP = "Arithmetic"
 NATIVE_ARITHMETIC_LABELS = {"add", "subtract", "multiply", "divide"}
 MIXED_WORKLOADS_GROUP = "Mixed Workloads"
-MIXED_WORKLOADS_AVERAGE_LABEL = "mixed workload average"
 LEGACY_MIXED_WORKLOADS_GROUPS = {"Mixed workloads"}
 LEGACY_HIDDEN_GROUPS = {"Mandelbrot"}
 ARITHMETIC_GROUP_RE = re.compile(r"^f(?P<bits>128|256) <-> (?P<rhs>f128|f256|f64|f32|i64|i32)$")
-HIDDEN_ROWS: set[tuple[str, str]] = set()
 
 
 @dataclass(frozen=True)
@@ -279,9 +277,6 @@ def visible_table_entry(fp_type: str, group: str, label: str) -> tuple[str, str]
 
     if group == MIXED_WORKLOADS_GROUP or group in LEGACY_MIXED_WORKLOADS_GROUPS:
         return MIXED_WORKLOADS_GROUP, label
-
-    if (group, label) in HIDDEN_ROWS:
-        return None
 
     return group, label
 

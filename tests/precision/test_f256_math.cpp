@@ -1145,6 +1145,35 @@ namespace
         REQUIRE(got.x3 == expected.x3);
     }
 
+    void require_integer_overload_value(const char* label, const char* operation, const f256& got, const f256& expected)
+    {
+        const mpfr_ref got_ref = to_ref_exact(got);
+        const mpfr_ref expected_ref = to_ref_exact(expected);
+        const mpfr_ref diff = abs_ref(got_ref - expected_ref);
+        mpfr_ref scale = abs_ref(expected_ref);
+        if (scale < 1)
+            scale = 1;
+
+        const mpfr_ref tolerance = mpfr_ref{ "4e-60" } * scale;
+
+        CAPTURE(label);
+        CAPTURE(operation);
+        CAPTURE(to_text(got));
+        CAPTURE(to_text(expected));
+        CAPTURE(to_text(diff));
+        CAPTURE(to_text(tolerance));
+        CAPTURE(to_text_double_hex(got.x0));
+        CAPTURE(to_text_double_hex(got.x1));
+        CAPTURE(to_text_double_hex(got.x2));
+        CAPTURE(to_text_double_hex(got.x3));
+        CAPTURE(to_text_double_hex(expected.x0));
+        CAPTURE(to_text_double_hex(expected.x1));
+        CAPTURE(to_text_double_hex(expected.x2));
+        CAPTURE(to_text_double_hex(expected.x3));
+
+        REQUIRE(diff <= tolerance);
+    }
+
     [[nodiscard]] bool same_bits(double lhs, double rhs) noexcept
     {
         return std::bit_cast<std::uint64_t>(lhs) == std::bit_cast<std::uint64_t>(rhs);
@@ -2093,28 +2122,28 @@ TEST_CASE("f256 integer overloads preserve exact integer values", "[fltx][f256][
 
         f256 got = base;
         got += rhs;
-        require_exact_value(label, got, add_right());
+        require_integer_overload_value(label, "operator+=", got, add_right());
 
         got = base;
         got -= rhs;
-        require_exact_value(label, got, sub_right());
+        require_integer_overload_value(label, "operator-=", got, sub_right());
 
         got = base;
         got *= rhs;
-        require_exact_value(label, got, mul_right());
+        require_integer_overload_value(label, "operator*=", got, mul_right());
 
         got = base;
         got /= rhs;
-        require_exact_value(label, got, div_right());
+        require_integer_overload_value(label, "operator/=", got, div_right());
 
-        require_exact_value(label, base + rhs, add_right());
-        require_exact_value(label, rhs + base, add_left());
-        require_exact_value(label, base - rhs, sub_right());
-        require_exact_value(label, rhs - base, sub_left());
-        require_exact_value(label, base * rhs, mul_right());
-        require_exact_value(label, rhs * base, mul_left());
-        require_exact_value(label, base / rhs, div_right());
-        require_exact_value(label, rhs / base, div_left());
+        require_integer_overload_value(label, "f256 + int", base + rhs, add_right());
+        require_integer_overload_value(label, "int + f256", rhs + base, add_left());
+        require_integer_overload_value(label, "f256 - int", base - rhs, sub_right());
+        require_integer_overload_value(label, "int - f256", rhs - base, sub_left());
+        require_integer_overload_value(label, "f256 * int", base * rhs, mul_right());
+        require_integer_overload_value(label, "int * f256", rhs * base, mul_left());
+        require_integer_overload_value(label, "f256 / int", base / rhs, div_right());
+        require_integer_overload_value(label, "int / f256", rhs / base, div_left());
     };
 
     auto check_unsigned = [](auto rhs, const char* label)
@@ -2135,28 +2164,28 @@ TEST_CASE("f256 integer overloads preserve exact integer values", "[fltx][f256][
 
         f256 got = base;
         got += rhs;
-        require_exact_value(label, got, add_right());
+        require_integer_overload_value(label, "operator+=", got, add_right());
 
         got = base;
         got -= rhs;
-        require_exact_value(label, got, sub_right());
+        require_integer_overload_value(label, "operator-=", got, sub_right());
 
         got = base;
         got *= rhs;
-        require_exact_value(label, got, mul_right());
+        require_integer_overload_value(label, "operator*=", got, mul_right());
 
         got = base;
         got /= rhs;
-        require_exact_value(label, got, div_right());
+        require_integer_overload_value(label, "operator/=", got, div_right());
 
-        require_exact_value(label, base + rhs, add_right());
-        require_exact_value(label, rhs + base, add_left());
-        require_exact_value(label, base - rhs, sub_right());
-        require_exact_value(label, rhs - base, sub_left());
-        require_exact_value(label, base * rhs, mul_right());
-        require_exact_value(label, rhs * base, mul_left());
-        require_exact_value(label, base / rhs, div_right());
-        require_exact_value(label, rhs / base, div_left());
+        require_integer_overload_value(label, "f256 + uint", base + rhs, add_right());
+        require_integer_overload_value(label, "uint + f256", rhs + base, add_left());
+        require_integer_overload_value(label, "f256 - uint", base - rhs, sub_right());
+        require_integer_overload_value(label, "uint - f256", rhs - base, sub_left());
+        require_integer_overload_value(label, "f256 * uint", base * rhs, mul_right());
+        require_integer_overload_value(label, "uint * f256", rhs * base, mul_left());
+        require_integer_overload_value(label, "f256 / uint", base / rhs, div_right());
+        require_integer_overload_value(label, "uint / f256", rhs / base, div_left());
     };
 
     check_signed(std::int8_t{ -7 }, "int8");

@@ -21,7 +21,8 @@ namespace
 {
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 100;
+    constexpr int benchmark_scale = 10;
+    [[maybe_unused]] constexpr bool generate_compact_report = true;
     constexpr std::size_t value_count = 64;
     constexpr std::size_t atan_typical_value_count = 4096;
     constexpr float benchmark_pi = 3.141592653589793238462643383279502884f;

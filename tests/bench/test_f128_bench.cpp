@@ -29,8 +29,9 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 20;
+    constexpr int benchmark_scale = 10;
     constexpr bool only_bench_typical = true;
+    constexpr bool generate_compact_report = true;
     constexpr std::size_t bucket_value_count = 64;
     constexpr std::size_t bucket_count = 3;
     constexpr std::size_t atan_typical_value_count = 4096;
@@ -44,8 +45,8 @@ namespace
     constexpr const char* mixed_recurrence_three_product_sum_label = "((x*a + y*b) + c*d) / ((c + d) + scalar)";
     constexpr const char* scalar_mixed_recurrence_label = "((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)";
     constexpr const char* fused_mixed_expression_label = "((x*y + a*b) + c) / (c*c + scalar)";
-    constexpr const char* affine_trig_transform_label = "affine trig transform";
-    constexpr const char* mandelbrot_kernel_label = "mandelbrot kernel";
+    constexpr const char* affine_trig_transform_label = bl::bench::mixed_affine_trig_transform_label;
+    constexpr const char* mandelbrot_kernel_label = bl::bench::mixed_mandelbrot_kernel_label;
 
     bl::bench::benchmark_chart_writer chart_writer{
         "f128",
@@ -53,7 +54,8 @@ namespace
         "f128 vs MPFR typical benchmark ratios",
         bl::bench::benchmark_output_path("f128", "typical_ratios", "csv"),
         bl::bench::benchmark_output_path("f128", "typical_ratios", "svg"),
-        8.0
+        8.0,
+        generate_compact_report
     };
 
     struct bench_result
@@ -3329,6 +3331,9 @@ namespace
         std::int64_t total_iterations,
         Op&& op)
     {
+        if constexpr (generate_compact_report)
+            return;
+
         const auto specs = generic_unary_specs();
         print_bucketed_results("f128 <-> f64", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_f64_scalars, total_iterations, op));
         print_bucketed_results("f128 <-> f32", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_f32_scalars, total_iterations, op));

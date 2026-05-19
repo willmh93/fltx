@@ -1,0 +1,106 @@
+name: Wasm32 Test Base
+
+on:
+  workflow_call:
+    inputs:
+      test_name:
+        required: true
+        type: string
+      target:
+        required: true
+        type: string
+      test_command:
+        required: true
+        type: string
+
+jobs:
+  wasm32-tests:
+    name: ${{ inputs.test_name }} wasm32
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      EMSCRIPTEN_VERSION: 4.0.10
+      EMSDK_CACHE_FOLDER: emsdk-cache
+      VCPKG_CACHE_EPOCH: v1
+      VCPKG_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-binary-cache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite
+      VCPKG_MAX_CONCURRENCY: 4
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up build tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake build-essential libtool ninja-build pkg-config
+
+      - name: Set up Emscripten
+        uses: emscripten-core/setup-emsdk@v16
+        with:
+          version: ${{ env.EMSCRIPTEN_VERSION }}
+          actions-cache-folder: ${{ env.EMSDK_CACHE_FOLDER }}
+
+      - name: Fetch vcpkg registry baseline
+        shell: bash
+        run: |
+          baseline="$(python3 -c "import json; print(json.load(open('vcpkg-configuration.json'))['default-registry']['baseline'])")"
+          git -C vcpkg fetch --depth=1 --no-tags origin "$baseline"
+          git -C vcpkg show "$baseline:versions/baseline.json" > /dev/null
+
+      - name: Read vcpkg commit
+        id: vcpkg
+        shell: bash
+        run: echo "commit=$(git -C vcpkg rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Read Emscripten cache key
+        id: emscripten
+        shell: bash
+        run: |
+          compiler="$(emcc --version | sed -n '1p')"
+          hash="$(COMPILER="$compiler" python3 -c "import hashlib, os; print(hashlib.sha256(os.environ['COMPILER'].encode()).hexdigest()[:16])")"
+          echo "Emscripten cache key input: $compiler"
+          echo "id=$hash" >> "$GITHUB_OUTPUT"
+
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VCPKG_BINARY_CACHE }}
+          key: vcpkg-${{ env.VCPKG_CACHE_EPOCH }}-wasm32-emscripten-${{ runner.os }}-${{ runner.arch }}-${{ steps.emscripten.outputs.id }}-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'CMakePresets.json', 'cmake/vcpkg-ports/**', 'cmake/vcpkg-triplets/**') }}
+          restore-keys: |
+            vcpkg-${{ env.VCPKG_CACHE_EPOCH }}-wasm32-emscripten-${{ runner.os }}-${{ runner.arch }}-${{ steps.emscripten.outputs.id }}-${{ steps.vcpkg.outputs.commit }}-
+            vcpkg-${{ env.VCPKG_CACHE_EPOCH }}-wasm32-emscripten-${{ runner.os }}-${{ runner.arch }}-${{ steps.emscripten.outputs.id }}-
+            vcpkg-${{ env.VCPKG_CACHE_EPOCH }}-wasm32-emscripten-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake --preset wasm32-release \
+            -DFLTX_EXAMPLE_VIEWER=OFF \
+            -DFLTX_BUILD_MPFR_TESTS=ON \
+            -DVCPKG_OVERLAY_PORTS="${GITHUB_WORKSPACE}/cmake/vcpkg-ports" \
+            -DVCPKG_OVERLAY_TRIPLETS="${GITHUB_WORKSPACE}/cmake/vcpkg-triplets" \
+            -DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON
+
+      - name: Save vcpkg binary cache
+        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: ${{ env.VCPKG_BINARY_CACHE }}
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
+
+      - name: Build ${{ inputs.test_name }} tests
+        run: cmake --build build/wasm32-release --target ${{ inputs.target }} --parallel
+
+      - name: Run ${{ inputs.test_name }} tests
+        run: ${{ inputs.test_command }}

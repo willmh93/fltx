@@ -13,8 +13,10 @@
 
 namespace bl::bench
 {
-    inline constexpr const char* mixed_workloads_group_name = "Mixed Workloads";
-    inline constexpr const char* mixed_workloads_average_label = "mixed workload average";
+    inline constexpr const char* mixed_workloads_group_name        = "Mixed Workloads";
+    inline constexpr const char* mixed_arithmetic_label            = "mixed arithmetic";
+    inline constexpr const char* mixed_affine_trig_transform_label = "affine trig transform";
+    inline constexpr const char* mixed_mandelbrot_kernel_label     = "mandelbrot kernel";
 
     [[nodiscard]] inline std::string_view benchmark_compiler_name()
     {
@@ -63,7 +65,12 @@ namespace bl::bench
         std::string_view suffix,
         std::string_view extension)
     {
-        std::filesystem::path output_path = std::filesystem::path("res") / "bench" / std::string(benchmark_os_name());
+        #ifdef FLTX_BENCH_OUTPUT_ROOT
+        std::filesystem::path output_path = std::filesystem::path(FLTX_BENCH_OUTPUT_ROOT);
+        #else
+        std::filesystem::path output_path = std::filesystem::path("res") / "bench";
+        #endif
+        output_path /= std::string(benchmark_os_name());
 
         std::string filename = std::string(benchmark_compiler_name()) + "_" + std::string(type_name);
         if (!suffix.empty())
@@ -222,8 +229,9 @@ namespace bl::bench
         if (label == "subtract") return 1;
         if (label == "multiply") return 2;
         if (label == "divide") return 3;
-        if (label == "affine trig transform") return 1;
-        if (label == "mandelbrot kernel") return 2;
+        if (label == mixed_affine_trig_transform_label) return 1;
+        if (label == mixed_mandelbrot_kernel_label) return 2;
+        if (label == mixed_arithmetic_label) return 3;
         if (label == "((x*x - y*y) + a) / (c + scalar)") return 3;
         if (label == "((x*a + y*b) + c) / (c + scalar)") return 4;
         if (label == "((x*sa + y*sb) + a) / (c + scalar)") return 5;
@@ -231,7 +239,6 @@ namespace bl::bench
         if (label == "((x*a + y*b) + c*d) / ((c + d) + scalar)") return 7;
         if (label == "((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)") return 8;
         if (label == "((x*y + a*b) + c) / (c*c + scalar)") return 9;
-        if (label == mixed_workloads_average_label) return 10;
 
         if (label == "floor") return 10;
         if (label == "ceil") return 11;
@@ -315,14 +322,16 @@ namespace bl::bench
             std::string title_value,
             std::string csv_output_path_value,
             std::string svg_output_path_value,
-            double visible_ratio_cap_value=10.0
+            double visible_ratio_cap_value=10.0,
+            bool generate_compact_report_value=false
         )
             : candidate_name(std::move(candidate_name_value)),
               reference_name(std::move(reference_name_value)),
               title(std::move(title_value)),
               csv_output_path(std::move(csv_output_path_value)),
               svg_output_path(std::move(svg_output_path_value)),
-            visible_ratio_cap(visible_ratio_cap_value)
+              visible_ratio_cap(visible_ratio_cap_value),
+              generate_compact_report(generate_compact_report_value)
         {
         }
 
@@ -404,11 +413,13 @@ namespace bl::bench
         std::string svg_output_path{};
         std::vector<benchmark_chart_entry> entries{};
         double visible_ratio_cap = 10.0;
+        bool generate_compact_report = false;
 
         [[nodiscard]] std::vector<benchmark_chart_entry> make_sorted_entries() const
         {
-            std::vector<benchmark_chart_entry> sorted = entries;
-            append_mixed_workloads_average(sorted);
+            std::vector<benchmark_chart_entry> sorted = generate_compact_report
+                ? make_compact_entries()
+                : entries;
             std::sort(sorted.begin(), sorted.end(), [](const benchmark_chart_entry& lhs, const benchmark_chart_entry& rhs)
             {
                 const int lhs_group_rank = benchmark_group_rank(lhs.group);
@@ -426,43 +437,49 @@ namespace bl::bench
             return sorted;
         }
 
-        void append_mixed_workloads_average(std::vector<benchmark_chart_entry>& output_entries) const
+        [[nodiscard]] std::vector<benchmark_chart_entry> make_compact_entries() const
         {
-            double candidate_total = 0.0;
-            double reference_total = 0.0;
-            double ratio_total = 0.0;
-            std::size_t count = 0;
+            std::vector<benchmark_chart_entry> compact;
+            compact.reserve(entries.size());
+
+            double mixed_candidate_total = 0.0;
+            double mixed_reference_total = 0.0;
+            double mixed_ratio_total = 0.0;
+            std::size_t mixed_count = 0;
 
             for (const auto& entry : entries)
             {
-                if (entry.group != mixed_workloads_group_name || entry.label == mixed_workloads_average_label)
+                if (entry.group != mixed_workloads_group_name)
+                {
+                    compact.push_back(entry);
                     continue;
+                }
 
-                candidate_total += entry.candidate_ns_per_iter;
-                reference_total += entry.reference_ns_per_iter;
-                ratio_total += entry.ratio;
-                ++count;
+                if (entry.label == mixed_affine_trig_transform_label ||
+                    entry.label == mixed_mandelbrot_kernel_label)
+                {
+                    compact.push_back(entry);
+                    continue;
+                }
+
+                mixed_candidate_total += entry.candidate_ns_per_iter;
+                mixed_reference_total += entry.reference_ns_per_iter;
+                mixed_ratio_total += entry.ratio;
+                ++mixed_count;
             }
 
-            if (count == 0)
-                return;
-
-            benchmark_chart_entry average{};
-            average.group = mixed_workloads_group_name;
-            average.label = mixed_workloads_average_label;
-            average.candidate_ns_per_iter = candidate_total / static_cast<double>(count);
-            average.reference_ns_per_iter = reference_total / static_cast<double>(count);
-            average.ratio = ratio_total / static_cast<double>(count);
-
-            const auto found = std::find_if(output_entries.begin(), output_entries.end(), [&](const benchmark_chart_entry& entry)
+            if (mixed_count != 0)
             {
-                return entry.group == average.group && entry.label == average.label;
-            });
+                benchmark_chart_entry mixed_average{};
+                mixed_average.group = mixed_workloads_group_name;
+                mixed_average.label = mixed_arithmetic_label;
+                mixed_average.candidate_ns_per_iter = mixed_candidate_total / static_cast<double>(mixed_count);
+                mixed_average.reference_ns_per_iter = mixed_reference_total / static_cast<double>(mixed_count);
+                mixed_average.ratio = mixed_ratio_total / static_cast<double>(mixed_count);
+                compact.push_back(std::move(mixed_average));
+            }
 
-            if (found != output_entries.end())
-                *found = std::move(average);
-            else
-                output_entries.push_back(std::move(average));
+            return compact;
         }
 
         [[nodiscard]] std::vector<grouped_layout_entry> make_layout_entries(const std::vector<benchmark_chart_entry>& sorted_entries) const

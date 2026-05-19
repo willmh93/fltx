@@ -1,0 +1,14 @@
+name: Precision Tests wasm32
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  precision-tests-wasm32:
+    uses: ./.github/workflows/wasm32_test_base.yml
+    with:
+      test_name: Precision
+      target: precision_tests
+      test_command: node build/wasm32-release/tests/precision_tests.js

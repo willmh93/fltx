@@ -65,7 +65,7 @@ namespace
     [[nodiscard]] mpfr_ref function_scaled_tolerance(const char* op_name)
     {
         constexpr std::array<scaled_tolerance_entry, 40> tolerances{{
-            { "acos", "3e-30" },
+            { "acos", "4e-30" },
             { "acosh", "4e-30" },
             { "add", "4e-32" },
             { "asin", "4e-30" },

@@ -709,6 +709,8 @@ namespace detail::_f256
 
         return { s0, s1, s2, s3 };
     }
+    // Error-free residuals here are association-sensitive; fast-math can fold away low limbs.
+    BL_PUSH_PRECISE
     BL_FORCE_INLINE constexpr f256_s renorm4(double c0, double c1, double c2, double c3) noexcept
     {
         double s, e;
@@ -809,6 +811,7 @@ namespace detail::_f256
 
         return { s0, s1, s2, s3 };
     }
+    BL_POP_PRECISE
 
     // canonicalization helper
     BL_FORCE_INLINE constexpr f256_s canonicalize_math_result(f256_s value) noexcept

@@ -33,8 +33,9 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 20;
+    constexpr int benchmark_scale = 10;
     constexpr bool only_bench_typical = true;
+    constexpr bool generate_compact_report = true;
     constexpr std::size_t bucket_value_count = 8;
     constexpr std::size_t bucket_count = 3;
     constexpr std::size_t typical_value_count = 64;
@@ -50,8 +51,8 @@ namespace
     constexpr const char* mixed_recurrence_three_product_sum_label = "((x*a + y*b) + c*d) / ((c + d) + scalar)";
     constexpr const char* scalar_mixed_recurrence_label = "((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)";
     constexpr const char* fused_mixed_expression_label = "((x*y + a*b) + c) / (c*c + scalar)";
-    constexpr const char* affine_trig_transform_label = "affine trig transform";
-    constexpr const char* mandelbrot_kernel_label = "mandelbrot kernel";
+    constexpr const char* affine_trig_transform_label = bl::bench::mixed_affine_trig_transform_label;
+    constexpr const char* mandelbrot_kernel_label = bl::bench::mixed_mandelbrot_kernel_label;
 
     struct bench_result
     {
@@ -80,7 +81,8 @@ namespace
         "f256 vs MPFR typical benchmark ratios",
         bl::bench::benchmark_output_path("f256", "typical_ratios", "csv"),
         bl::bench::benchmark_output_path("f256", "typical_ratios", "svg"),
-        4.0
+        4.0,
+        generate_compact_report
     };
 
     template<typename Spec>
@@ -2670,6 +2672,9 @@ namespace
         std::int64_t total_iterations,
         Op&& op)
     {
+        if constexpr (generate_compact_report)
+            return;
+
         const auto specs = generic_value_buckets();
         print_bucketed_results("f256 <-> f128", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_f128_scalars, total_iterations, op));
         print_bucketed_results("f256 <-> f64", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_f64_scalars, total_iterations, op));
