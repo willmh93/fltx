@@ -29,7 +29,7 @@ namespace
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 10;
+    constexpr int benchmark_scale = 20;
     constexpr bool only_bench_typical = true;
     constexpr bool generate_compact_report = true;
     constexpr std::size_t bucket_value_count = 64;
@@ -45,6 +45,8 @@ namespace
     constexpr const char* mixed_recurrence_three_product_sum_label = "((x*a + y*b) + c*d) / ((c + d) + scalar)";
     constexpr const char* scalar_mixed_recurrence_label = "((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)";
     constexpr const char* fused_mixed_expression_label = "((x*y + a*b) + c) / (c*c + scalar)";
+    constexpr const char* sum_products_helper_label = "sum_products_inline(x*a, y*b)";
+    constexpr const char* diff_products_helper_label = "diff_products_inline(x*a, y*b)";
     constexpr const char* affine_trig_transform_label = bl::bench::mixed_affine_trig_transform_label;
     constexpr const char* mandelbrot_kernel_label = bl::bench::mixed_mandelbrot_kernel_label;
 
@@ -1526,7 +1528,7 @@ namespace
         if (label == "log" || label == "log2" || label == "log10" || label == "log1p")
             return "Logarithms";
 
-        if (label == "sin" || label == "cos" || label == "tan" || label == "atan" ||
+        if (label == "sin" || label == "cos" || label == "sincos" || label == "tan" || label == "atan" ||
             label == "atan2" || label == "asin" || label == "acos")
             return "Trigonometric";
 
@@ -1731,6 +1733,24 @@ namespace
     {
         using std::cos;
         return cos(x);
+    }
+
+    template<typename T>
+    [[nodiscard]] std::pair<T, T> apply_sincos_pair(const T& x)
+    {
+        using std::cos;
+        using std::sin;
+        return { sin(x), cos(x) };
+    }
+
+    template<>
+    [[nodiscard]] std::pair<f128, f128> apply_sincos_pair(const f128& x)
+    {
+        f128_s s{};
+        f128_s c{};
+        const bool ok = bl::sincos(x, s, c);
+        return ok ? std::pair<f128, f128>{ f128{ s }, f128{ c } }
+                  : std::pair<f128, f128>{ std::numeric_limits<f128>::quiet_NaN(), std::numeric_limits<f128>::quiet_NaN() };
     }
 
     template<typename T>
@@ -2128,6 +2148,35 @@ namespace
             {
                 for (std::size_t i = 0; i < ValueCount; ++i)
                     acc = blend_result(op(values[i]), acc);
+            }
+
+            return acc;
+        });
+    }
+
+    template<typename T, std::size_t ValueCount>
+    [[nodiscard]] bench_result benchmark_sincos_bucket(
+        const std::array<value_spec, ValueCount>& specs,
+        std::int64_t total_iterations,
+        bool scale_to_bucket = true)
+    {
+        std::array<T, ValueCount> values{};
+        for (std::size_t i = 0; i < ValueCount; ++i)
+            values[i] = make_value<T>(specs[i]);
+
+        const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+
+        return run_benchmark<std::pair<T, T>>(iteration_count, [&]()
+        {
+            std::pair<T, T> acc{ values.front(), values.front() };
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < ValueCount; ++i)
+                    acc = blend_result(apply_sincos_pair(values[i]), acc);
             }
 
             return acc;
@@ -2549,6 +2598,71 @@ namespace
         });
     }
 
+    template<bool Difference, typename T>
+    [[nodiscard]] BL_FORCE_INLINE T apply_product_pair_helper(const T& a, const T& b, const T& c, const T& d)
+    {
+        if constexpr (std::is_same_v<std::remove_cvref_t<T>, f128>)
+        {
+            if constexpr (Difference)
+                return f128{ detail::_f128::diff_products_inline(a, b, c, d) };
+            else
+                return f128{ detail::_f128::sum_products_inline(a, b, c, d) };
+        }
+        else
+        {
+            if constexpr (Difference)
+                return a * b - c * d;
+            else
+                return a * b + c * d;
+        }
+    }
+
+    template<bool Difference, typename T, typename Spec, std::size_t ValueCount>
+    [[nodiscard]] bench_result benchmark_product_pair_helper_bucket(
+        const std::array<Spec, ValueCount>& specs,
+        std::int64_t total_iterations,
+        bool scale_to_bucket = true)
+    {
+        struct product_pair_case
+        {
+            T a{};
+            T b{};
+            T c{};
+            T d{};
+        };
+
+        std::array<product_pair_case, ValueCount> values{};
+        for (std::size_t i = 0; i < ValueCount; ++i)
+        {
+            values[i].a = make_value<T>(specs[i].x);
+            values[i].b = make_value<T>(specs[i].a);
+            values[i].c = make_value<T>(specs[i].y);
+            values[i].d = make_value<T>(specs[i].b);
+        }
+
+        const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
+        const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
+        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+
+        return run_benchmark<T>(iteration_count, [&]()
+        {
+            T acc = values.front().a;
+
+            for (std::int64_t outer = 0; outer < outer_loops; ++outer)
+            {
+                for (std::size_t i = 0; i < ValueCount; ++i)
+                {
+                    const auto& item = values[i];
+                    const T value = apply_product_pair_helper<Difference>(item.a, item.b, item.c, item.d);
+                    acc = blend_result(value, acc);
+                }
+            }
+
+            return acc;
+        });
+    }
+
     template<typename T, typename Result, typename Op>
     [[nodiscard]] bench_result benchmark_value_bucket_result(
         const std::array<value_spec, bucket_value_count>& specs,
@@ -2894,6 +3008,26 @@ namespace
         return out;
     }
 
+    [[nodiscard]] bucketed_comparison_result run_bucketed_sincos_benchmark(
+        const bucket_array_set<value_spec>& specs,
+        std::int64_t total_iterations)
+    {
+        bucketed_comparison_result out{};
+        if constexpr (!only_bench_typical)
+        {
+            out.easy.f128 = benchmark_sincos_bucket<f128>(specs.easy, total_iterations);
+            out.easy.mpfr = benchmark_sincos_bucket<mpfr_ref>(specs.easy, total_iterations);
+            out.medium.f128 = benchmark_sincos_bucket<f128>(specs.medium, total_iterations);
+            out.medium.mpfr = benchmark_sincos_bucket<mpfr_ref>(specs.medium, total_iterations);
+            out.hard.f128 = benchmark_sincos_bucket<f128>(specs.hard, total_iterations);
+            out.hard.mpfr = benchmark_sincos_bucket<mpfr_ref>(specs.hard, total_iterations);
+        }
+        const auto typical_specs = make_typical_value_specs(specs);
+        out.typical.f128 = benchmark_sincos_bucket<f128>(typical_specs, total_iterations, false);
+        out.typical.mpfr = benchmark_sincos_bucket<mpfr_ref>(typical_specs, total_iterations, false);
+        return out;
+    }
+
     template<typename Scalar, std::size_t ScalarCount, typename Op>
     [[nodiscard]] bucketed_comparison_result run_bucketed_scalar_overload_value_benchmark(
         const bucket_array_set<value_spec>& specs,
@@ -3038,6 +3172,28 @@ namespace
         const auto typical_specs = make_typical_recurrence_specs(specs);
         out.typical.f128 = benchmark_fused_mixed_expression_bucket<f128>(typical_specs, total_iterations, false);
         out.typical.mpfr = benchmark_fused_mixed_expression_bucket<mpfr_ref>(typical_specs, total_iterations, false);
+
+        return out;
+    }
+
+    template<bool Difference>
+    [[nodiscard]] bucketed_comparison_result run_bucketed_product_pair_helper_benchmark(
+        const bucket_array_set<recurrence_value_spec>& specs,
+        std::int64_t total_iterations)
+    {
+        bucketed_comparison_result out{};
+        if constexpr (!only_bench_typical)
+        {
+            out.easy.f128 = benchmark_product_pair_helper_bucket<Difference, f128>(specs.easy, total_iterations);
+            out.easy.mpfr = benchmark_product_pair_helper_bucket<Difference, mpfr_ref>(specs.easy, total_iterations);
+            out.medium.f128 = benchmark_product_pair_helper_bucket<Difference, f128>(specs.medium, total_iterations);
+            out.medium.mpfr = benchmark_product_pair_helper_bucket<Difference, mpfr_ref>(specs.medium, total_iterations);
+            out.hard.f128 = benchmark_product_pair_helper_bucket<Difference, f128>(specs.hard, total_iterations);
+            out.hard.mpfr = benchmark_product_pair_helper_bucket<Difference, mpfr_ref>(specs.hard, total_iterations);
+        }
+        const auto typical_specs = make_typical_recurrence_specs(specs);
+        out.typical.f128 = benchmark_product_pair_helper_bucket<Difference, f128>(typical_specs, total_iterations, false);
+        out.typical.mpfr = benchmark_product_pair_helper_bucket<Difference, mpfr_ref>(typical_specs, total_iterations, false);
 
         return out;
     }
@@ -3464,6 +3620,20 @@ TEST_CASE("f128 vs mpfr fused mixed expression performance", "[bench][fltx][f128
     print_bucketed_results(bl::bench::mixed_workloads_group_name, fused_mixed_expression_label, results);
 }
 
+TEST_CASE("f128 sum-products helper performance", "[bench][fltx][f128][internal][sum-products]")
+{
+    const std::int64_t total_iterations = 12000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_product_pair_helper_benchmark<false>(scalar_mixed_recurrence_specs(), total_iterations);
+    print_bucketed_results("f128 internals", sum_products_helper_label, results);
+}
+
+TEST_CASE("f128 diff-products helper performance", "[bench][fltx][f128][internal][diff-products]")
+{
+    const std::int64_t total_iterations = 12000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_product_pair_helper_benchmark<true>(scalar_mixed_recurrence_specs(), total_iterations);
+    print_bucketed_results("f128 internals", diff_products_helper_label, results);
+}
+
 
 TEST_CASE("f128 vs mpfr abs performance", "[bench][fltx][f128][arithmetic][abs]")
 {
@@ -3722,6 +3892,13 @@ TEST_CASE("f128 vs mpfr cos performance", "[bench][fltx][f128][transcendental][t
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
     const auto results = run_bucketed_unary_benchmark(trig_specs(), total_iterations, [](const auto& x) { return apply_cos(x); });
     print_bucketed_results("cos", results);
+}
+
+TEST_CASE("f128 vs mpfr sincos performance", "[bench][fltx][f128][transcendental][trig][sincos]")
+{
+    const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
+    const auto results = run_bucketed_sincos_benchmark(trig_specs(), total_iterations);
+    print_bucketed_results("sincos", results);
 }
 
 TEST_CASE("f128 vs mpfr tan performance", "[bench][fltx][f128][transcendental][trig][tan]")

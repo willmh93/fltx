@@ -11,28 +11,13 @@
 #define F256_INCLUDED
 
 #include "fltx_fp.h"
+#include "fltx_simd.h"
 #include <numbers>
-
-#if !defined(BL_F256_HAS_SSE2)
-#  if !defined(__EMSCRIPTEN__) && (defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && (_M_IX86_FP >= 2)))
-#    define BL_F256_HAS_SSE2 1
-#  else
-#    define BL_F256_HAS_SSE2 0
-#  endif
-#endif
-
-#if !defined(BL_F256_HAS_NEON)
-#  if !defined(__EMSCRIPTEN__) && defined(__aarch64__) && (defined(__ARM_NEON) || defined(__ARM_NEON__))
-#    define BL_F256_HAS_NEON 1
-#  else
-#    define BL_F256_HAS_NEON 0
-#  endif
-#endif
 
 #if !defined(BL_F256_ENABLE_SIMD)
 #  if defined(BL_F256_ENABLE_TRIG_SIMD)
 #    define BL_F256_ENABLE_SIMD BL_F256_ENABLE_TRIG_SIMD
-#  elif BL_F256_HAS_SSE2 || BL_F256_HAS_NEON
+#  elif BL_FLTX_HAS_SSE2 || BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD
 #    define BL_F256_ENABLE_SIMD 1
 #  else
 #    define BL_F256_ENABLE_SIMD 0
@@ -43,41 +28,8 @@
 #  define BL_F256_ENABLE_TRIG_SIMD BL_F256_ENABLE_SIMD
 #endif
 
-#if !defined(BL_F256_USE_FMA_TWO_PROD)
-#  if defined(FMA_AVAILABLE)
-#    define BL_F256_USE_FMA_TWO_PROD 1
-#  else
-#    define BL_F256_USE_FMA_TWO_PROD 0
-#  endif
-#endif
-
-#ifndef BL_F256_EXPR_EVAL_INLINE
-#  define BL_F256_EXPR_EVAL_INLINE BL_FORCE_INLINE
-#endif
-
-#if BL_F256_ENABLE_SIMD
-#  if BL_F256_HAS_SSE2
-#    include <emmintrin.h>
-#    if !defined(BL_F256_HAS_X86_FMA)
-#      if defined(__FMA__) || (defined(_MSC_VER) && (defined(__AVX2__) || defined(__AVX512F__)))
-#        define BL_F256_HAS_X86_FMA 1
-#      else
-#        define BL_F256_HAS_X86_FMA 0
-#      endif
-#    endif
-#    if BL_F256_HAS_X86_FMA
-#      include <immintrin.h>
-#    endif
-#  elif BL_F256_HAS_NEON
-#    include <arm_neon.h>
-#    if !defined(BL_F256_HAS_X86_FMA)
-#      define BL_F256_HAS_X86_FMA 0
-#    endif
-#  else
-#    error "BL_F256_ENABLE_SIMD requires SSE2 or AArch64 NEON support."
-#  endif
-#elif !defined(BL_F256_HAS_X86_FMA)
-#  define BL_F256_HAS_X86_FMA 0
+#if BL_F256_ENABLE_SIMD && !(BL_FLTX_HAS_SSE2 || BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
+#  error "BL_F256_ENABLE_SIMD requires SSE2, AArch64 NEON, or wasm128 SIMD support."
 #endif
 
 namespace bl {
@@ -108,7 +60,15 @@ namespace detail::_f256
 
     BL_FORCE_INLINE constexpr bool f256_runtime_simd_enabled() noexcept
     {
-        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        #if BL_F256_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
+        return !bl::use_constexpr_math();
+        #else
+        return false;
+        #endif
+    }
+    BL_FORCE_INLINE constexpr bool f256_runtime_addsub_simd_enabled() noexcept
+    {
+        #if BL_F256_ENABLE_SIMD && BL_FLTX_HAS_NEON
         return !bl::use_constexpr_math();
         #else
         return false;
@@ -124,9 +84,11 @@ namespace detail::_f256
     }
     BL_FORCE_INLINE constexpr bool f256_runtime_product_simd_enabled() noexcept
     {
-        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        #if BL_F256_ENABLE_SIMD && BL_FLTX_HAS_NEON
         return !bl::use_constexpr_math();
-        #elif BL_F256_ENABLE_SIMD && BL_F256_HAS_SSE2 && (!BL_F256_USE_FMA_TWO_PROD || BL_F256_HAS_X86_FMA)
+        #elif BL_F256_ENABLE_SIMD && BL_FLTX_HAS_WASM_SIMD
+        return !bl::use_constexpr_math();
+        #elif BL_F256_ENABLE_SIMD && BL_FLTX_HAS_SSE2 && (!BL_FLTX_SIMD_USE_FMA_TWO_PROD || BL_FLTX_HAS_X86_FMA)
         return !bl::use_constexpr_math();
         #else
         return false;
@@ -159,101 +121,7 @@ namespace detail::_f256
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s div_dd(dd_scalar a, const f256_s& b) noexcept;
 
 #if BL_F256_ENABLE_SIMD
-    #if BL_F256_HAS_SSE2
-    using f256_simd2d = __m128d;
-    #elif BL_F256_HAS_NEON
-    using f256_simd2d = float64x2_t;
-    #endif
-
-    BL_FORCE_INLINE f256_simd2d f256_simd_set(double lane0, double lane1) noexcept
-    {
-        #if BL_F256_HAS_SSE2
-        return _mm_set_pd(lane1, lane0);
-        #else
-        return vsetq_lane_f64(lane1, vdupq_n_f64(lane0), 1);
-        #endif
-    }
-    BL_FORCE_INLINE f256_simd2d f256_simd_splat(double value) noexcept
-    {
-        #if BL_F256_HAS_SSE2
-        return _mm_set1_pd(value);
-        #else
-        return vdupq_n_f64(value);
-        #endif
-    }
-    BL_FORCE_INLINE void f256_simd_store(f256_simd2d value, double& lane0, double& lane1) noexcept
-    {
-        alignas(16) double lanes[2];
-        #if BL_F256_HAS_SSE2
-        _mm_storeu_pd(lanes, value);
-        #else
-        vst1q_f64(lanes, value);
-        #endif
-        lane0 = lanes[0];
-        lane1 = lanes[1];
-    }
-    BL_FORCE_INLINE f256_simd2d f256_simd_add(f256_simd2d a, f256_simd2d b) noexcept
-    {
-        #if BL_F256_HAS_SSE2
-        return _mm_add_pd(a, b);
-        #else
-        return vaddq_f64(a, b);
-        #endif
-    }
-    BL_FORCE_INLINE f256_simd2d f256_simd_sub(f256_simd2d a, f256_simd2d b) noexcept
-    {
-        #if BL_F256_HAS_SSE2
-        return _mm_sub_pd(a, b);
-        #else
-        return vsubq_f64(a, b);
-        #endif
-    }
-    BL_FORCE_INLINE f256_simd2d f256_simd_mul(f256_simd2d a, f256_simd2d b) noexcept
-    {
-        #if BL_F256_HAS_SSE2
-        return _mm_mul_pd(a, b);
-        #else
-        return vmulq_f64(a, b);
-        #endif
-    }
-    BL_FORCE_INLINE void f256_simd_two_prod_precise(f256_simd2d a, f256_simd2d b, f256_simd2d& p, f256_simd2d& e) noexcept
-    {
-        p = f256_simd_mul(a, b);
-
-        #if BL_F256_HAS_X86_FMA && BL_F256_USE_FMA_TWO_PROD
-        e = _mm_fmsub_pd(a, b, p);
-        #elif BL_F256_HAS_NEON
-        e = vfmaq_f64(f256_simd_sub(f256_simd_splat(0.0), p), a, b);
-        #else
-        const f256_simd2d split = f256_simd_splat(134217729.0);
-        const f256_simd2d a_scaled = f256_simd_mul(a, split);
-        const f256_simd2d b_scaled = f256_simd_mul(b, split);
-
-        const f256_simd2d a_hi = f256_simd_sub(a_scaled, f256_simd_sub(a_scaled, a));
-        const f256_simd2d b_hi = f256_simd_sub(b_scaled, f256_simd_sub(b_scaled, b));
-        const f256_simd2d a_lo = f256_simd_sub(a, a_hi);
-        const f256_simd2d b_lo = f256_simd_sub(b, b_hi);
-
-        e = f256_simd_add(f256_simd_sub(f256_simd_mul(a_hi, b_hi), p), f256_simd_mul(a_hi, b_lo));
-        e = f256_simd_add(e, f256_simd_mul(a_lo, b_hi));
-        e = f256_simd_add(e, f256_simd_mul(a_lo, b_lo));
-        #endif
-    }
-    BL_FORCE_INLINE void f256_simd_store_array(f256_simd2d value, double* lanes) noexcept
-    {
-        #if BL_F256_HAS_SSE2
-        _mm_storeu_pd(lanes, value);
-        #else
-        vst1q_f64(lanes, value);
-        #endif
-    }
-    BL_FORCE_INLINE void f256_simd_two_sum(f256_simd2d a, f256_simd2d b, f256_simd2d& s, f256_simd2d& e) noexcept
-    {
-        s = f256_simd_add(a, b);
-        const f256_simd2d bb = f256_simd_sub(s, a);
-        e = f256_simd_add(f256_simd_sub(a, f256_simd_sub(s, bb)), f256_simd_sub(b, bb));
-    }
-
+    namespace simd = ::bl::detail::simd;
 #endif
 
     // Shewchuk-style expansion sum, expansions sorted by increasing magnitude (small -> large)
@@ -529,7 +397,7 @@ namespace detail::_f256_expr
     struct is_expr : std::false_type {};
 
     template<class Expr>
-    [[nodiscard]] BL_F256_EXPR_EVAL_INLINE constexpr f256_s eval_to_f256_s(const Expr& expr) noexcept;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s eval_to_f256_s(const Expr& expr) noexcept;
 }
 
 // complete value type
@@ -1359,19 +1227,19 @@ namespace detail::_f256
         double s3{}, e3{};
 
 		#if BL_F256_ENABLE_SIMD
-        if (f256_runtime_simd_enabled())
+        if (f256_runtime_addsub_simd_enabled())
         {
-            const f256_simd2d a01 = f256_simd_set(a.x0, a.x1);
-            const f256_simd2d b01 = f256_simd_set(b.x0, b.x1);
-            const f256_simd2d a23 = f256_simd_set(a.x2, a.x3);
-            const f256_simd2d b23 = f256_simd_set(b.x2, b.x3);
-            f256_simd2d s01{}, e01{}, s23{}, e23{};
-            f256_simd_two_sum(a01, b01, s01, e01);
-            f256_simd_two_sum(a23, b23, s23, e23);
-            f256_simd_store(s01, s0, s1);
-            f256_simd_store(e01, e0, e1);
-            f256_simd_store(s23, s2, s3);
-            f256_simd_store(e23, e2, e3);
+            const simd::f64x2 a01 = simd::f64x2_set(a.x0, a.x1);
+            const simd::f64x2 b01 = simd::f64x2_set(b.x0, b.x1);
+            const simd::f64x2 a23 = simd::f64x2_set(a.x2, a.x3);
+            const simd::f64x2 b23 = simd::f64x2_set(b.x2, b.x3);
+            simd::f64x2 s01{}, e01{}, s23{}, e23{};
+            simd::f64x2_two_sum(a01, b01, s01, e01);
+            simd::f64x2_two_sum(a23, b23, s23, e23);
+            simd::f64x2_store(s01, s0, s1);
+            simd::f64x2_store(e01, e0, e1);
+            simd::f64x2_store(s23, s2, s3);
+            simd::f64x2_store(e23, e2, e3);
         }
         else
 		#endif
@@ -1400,19 +1268,19 @@ namespace detail::_f256
         double s3{}, e3{};
 
         #if BL_F256_ENABLE_SIMD
-        if (f256_runtime_simd_enabled())
+        if (f256_runtime_addsub_simd_enabled())
         {
-            const f256_simd2d a01 = f256_simd_set(a.x0, a.x1);
-            const f256_simd2d b01 = f256_simd_set(-b.x0, -b.x1);
-            const f256_simd2d a23 = f256_simd_set(a.x2, a.x3);
-            const f256_simd2d b23 = f256_simd_set(-b.x2, -b.x3);
-            f256_simd2d s01{}, e01{}, s23{}, e23{};
-            f256_simd_two_sum(a01, b01, s01, e01);
-            f256_simd_two_sum(a23, b23, s23, e23);
-            f256_simd_store(s01, s0, s1);
-            f256_simd_store(e01, e0, e1);
-            f256_simd_store(s23, s2, s3);
-            f256_simd_store(e23, e2, e3);
+            const simd::f64x2 a01 = simd::f64x2_set(a.x0, a.x1);
+            const simd::f64x2 b01 = simd::f64x2_set(-b.x0, -b.x1);
+            const simd::f64x2 a23 = simd::f64x2_set(a.x2, a.x3);
+            const simd::f64x2 b23 = simd::f64x2_set(-b.x2, -b.x3);
+            simd::f64x2 s01{}, e01{}, s23{}, e23{};
+            simd::f64x2_two_sum(a01, b01, s01, e01);
+            simd::f64x2_two_sum(a23, b23, s23, e23);
+            simd::f64x2_store(s01, s0, s1);
+            simd::f64x2_store(e01, e0, e1);
+            simd::f64x2_store(s23, s2, s3);
+            simd::f64x2_store(e23, e2, e3);
         }
         else
 		#endif
@@ -1445,31 +1313,31 @@ namespace detail::_f256
         double t0{}, t1{};
         double s0{}, s1{}, s2{};
 
-        #if BL_F256_ENABLE_SIMD && (BL_F256_HAS_SSE2 || BL_F256_HAS_NEON)
+        #if BL_F256_ENABLE_SIMD && (BL_FLTX_HAS_SSE2 || BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
         if (f256_runtime_product_simd_enabled())
         {
-            f256_simd2d p01{}, q01{};
-            f256_simd2d p23{}, q23{};
-            f256_simd2d p45{}, q45{};
-            f256_simd2d p67{}, q67{};
-            f256_simd2d p89{}, q89{};
+            simd::f64x2 p01{}, q01{};
+            simd::f64x2 p23{}, q23{};
+            simd::f64x2 p45{}, q45{};
+            simd::f64x2 p67{}, q67{};
+            simd::f64x2 p89{}, q89{};
 
-            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x0), f256_simd_set(b.x0, b.x1), p01, q01);
-            f256_simd_two_prod_precise(f256_simd_set(a.x1, a.x0), f256_simd_set(b.x0, b.x2), p23, q23);
-            f256_simd_two_prod_precise(f256_simd_set(a.x1, a.x2), f256_simd_set(b.x1, b.x0), p45, q45);
-            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x1), f256_simd_set(b.x3, b.x2), p67, q67);
-            f256_simd_two_prod_precise(f256_simd_set(a.x2, a.x3), f256_simd_set(b.x1, b.x0), p89, q89);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x0, a.x0), simd::f64x2_set(b.x0, b.x1), p01, q01);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x1, a.x0), simd::f64x2_set(b.x0, b.x2), p23, q23);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x1, a.x2), simd::f64x2_set(b.x1, b.x0), p45, q45);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x0, a.x1), simd::f64x2_set(b.x3, b.x2), p67, q67);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x2, a.x3), simd::f64x2_set(b.x1, b.x0), p89, q89);
 
-            f256_simd_store(p01, p0, p1);
-            f256_simd_store(q01, q0, q1);
-            f256_simd_store(p23, p2, p3);
-            f256_simd_store(q23, q2, q3);
-            f256_simd_store(p45, p4, p5);
-            f256_simd_store(q45, q4, q5);
-            f256_simd_store(p67, p6, p7);
-            f256_simd_store(q67, q6, q7);
-            f256_simd_store(p89, p8, p9);
-            f256_simd_store(q89, q8, q9);
+            simd::f64x2_store(p01, p0, p1);
+            simd::f64x2_store(q01, q0, q1);
+            simd::f64x2_store(p23, p2, p3);
+            simd::f64x2_store(q23, q2, q3);
+            simd::f64x2_store(p45, p4, p5);
+            simd::f64x2_store(q45, q4, q5);
+            simd::f64x2_store(p67, p6, p7);
+            simd::f64x2_store(q67, q6, q7);
+            simd::f64x2_store(p89, p8, p9);
+            simd::f64x2_store(q89, q8, q9);
         }
         else
         #endif
@@ -1549,23 +1417,23 @@ namespace detail::_f256
         double t0{}, t1{};
         double s0{}, s1{}, s2{};
 
-        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        #if BL_F256_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
         if (f256_runtime_simd_enabled())
         {
-            f256_simd2d p01{}, q01{};
-            f256_simd2d p34{}, q34{};
-            f256_simd2d p67{}, q67{};
+            simd::f64x2 p01{}, q01{};
+            simd::f64x2 p34{}, q34{};
+            simd::f64x2 p67{}, q67{};
 
-            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x0), f256_simd_set(a.x0, a.x1), p01, q01);
-            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x1), f256_simd_set(a.x2, a.x1), p34, q34);
-            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x1), f256_simd_set(a.x3, a.x2), p67, q67);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x0, a.x0), simd::f64x2_set(a.x0, a.x1), p01, q01);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x0, a.x1), simd::f64x2_set(a.x2, a.x1), p34, q34);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x0, a.x1), simd::f64x2_set(a.x3, a.x2), p67, q67);
 
-            f256_simd_store(p01, p0, p1);
-            f256_simd_store(q01, q0, q1);
-            f256_simd_store(p34, p3, p4);
-            f256_simd_store(q34, q3, q4);
-            f256_simd_store(p67, p6, p7);
-            f256_simd_store(q67, q6, q7);
+            simd::f64x2_store(p01, p0, p1);
+            simd::f64x2_store(q01, q0, q1);
+            simd::f64x2_store(p34, p3, p4);
+            simd::f64x2_store(q34, q3, q4);
+            simd::f64x2_store(p67, p6, p7);
+            simd::f64x2_store(q67, q6, q7);
         }
         else
             #endif
@@ -1654,19 +1522,19 @@ namespace detail::_f256
         double q0{}, q1{}, q2{};
         double s0{}, s1{}, s2{}, s3{}, s4{};
 
-        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        #if BL_F256_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
         if (f256_runtime_simd_enabled())
         {
-            f256_simd2d p01{}, q01{};
-            f256_simd2d p23{}, q23{};
-            const f256_simd2d bv = f256_simd_splat(b);
-            f256_simd_two_prod_precise(f256_simd_set(a.x0, a.x1), bv, p01, q01);
-            f256_simd_two_prod_precise(f256_simd_set(a.x2, a.x3), bv, p23, q23);
+            simd::f64x2 p01{}, q01{};
+            simd::f64x2 p23{}, q23{};
+            const simd::f64x2 bv = simd::f64x2_splat(b);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x0, a.x1), bv, p01, q01);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(a.x2, a.x3), bv, p23, q23);
             double ignored{};
-            f256_simd_store(p01, p0, p1);
-            f256_simd_store(q01, q0, q1);
-            f256_simd_store(p23, p2, p3);
-            f256_simd_store(q23, q2, ignored);
+            simd::f64x2_store(p01, p0, p1);
+            simd::f64x2_store(q01, q0, q1);
+            simd::f64x2_store(p23, p2, p3);
+            simd::f64x2_store(q23, q2, ignored);
         }
         else
             #endif
@@ -1829,18 +1697,18 @@ namespace detail::_f256
         double p2{}, e2{};
         double p3{}, e3{};
 
-        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        #if BL_F256_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
         if (f256_runtime_simd_enabled())
         {
-            f256_simd2d p01{}, e01{};
-            f256_simd2d p23{}, e23{};
-            const f256_simd2d qv = f256_simd_splat(q);
-            f256_simd_two_prod_precise(f256_simd_set(b.x0, b.x1), qv, p01, e01);
-            f256_simd_two_prod_precise(f256_simd_set(b.x2, b.x3), qv, p23, e23);
-            f256_simd_store(p01, p0, p1);
-            f256_simd_store(e01, e0, e1);
-            f256_simd_store(p23, p2, p3);
-            f256_simd_store(e23, e2, e3);
+            simd::f64x2 p01{}, e01{};
+            simd::f64x2 p23{}, e23{};
+            const simd::f64x2 qv = simd::f64x2_splat(q);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(b.x0, b.x1), qv, p01, e01);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(b.x2, b.x3), qv, p23, e23);
+            simd::f64x2_store(p01, p0, p1);
+            simd::f64x2_store(e01, e0, e1);
+            simd::f64x2_store(p23, p2, p3);
+            simd::f64x2_store(e23, e2, e3);
         }
         else
         #endif
@@ -1875,19 +1743,19 @@ namespace detail::_f256
         double q0{}, q1{}, q2{};
         double s0{}, s1{}, s2{}, s3{}, s4{};
 
-        #if BL_F256_ENABLE_SIMD && BL_F256_HAS_NEON
+        #if BL_F256_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
         if (f256_runtime_simd_enabled())
         {
-            f256_simd2d p01{}, q01{};
-            f256_simd2d p23{}, q23{};
-            const f256_simd2d qv = f256_simd_splat(q);
-            f256_simd_two_prod_precise(f256_simd_set(b.x0, b.x1), qv, p01, q01);
-            f256_simd_two_prod_precise(f256_simd_set(b.x2, b.x3), qv, p23, q23);
+            simd::f64x2 p01{}, q01{};
+            simd::f64x2 p23{}, q23{};
+            const simd::f64x2 qv = simd::f64x2_splat(q);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(b.x0, b.x1), qv, p01, q01);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(b.x2, b.x3), qv, p23, q23);
             double ignored{};
-            f256_simd_store(p01, p0, p1);
-            f256_simd_store(q01, q0, q1);
-            f256_simd_store(p23, p2, p3);
-            f256_simd_store(q23, q2, ignored);
+            simd::f64x2_store(p01, p0, p1);
+            simd::f64x2_store(q01, q0, q1);
+            simd::f64x2_store(p23, p2, p3);
+            simd::f64x2_store(q23, q2, ignored);
         }
         else
         #endif

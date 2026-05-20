@@ -29,6 +29,12 @@
 #define FLTX_ARCH_SSE2_STATUS "not defined"
 #endif
 
+#if defined(__wasm_simd128__)
+#define FLTX_ARCH_WASM_SIMD128_STATUS "defined"
+#else
+#define FLTX_ARCH_WASM_SIMD128_STATUS "not defined"
+#endif
+
 namespace
 {
     [[nodiscard]] bool env_requests_simulated_consteval(bool fallback) noexcept
@@ -106,11 +112,14 @@ namespace
             std::fputs("unavailable", stderr);
             #endif
 
-            std::fputs(", BL_F256_HAS_SSE2=", stderr);
-            std::fputs(FLTX_STRINGIZE(BL_F256_HAS_SSE2), stderr);
+            std::fputs(", BL_FLTX_HAS_SSE2=", stderr);
+            std::fputs(FLTX_STRINGIZE(BL_FLTX_HAS_SSE2), stderr);
 
-            std::fputs(", BL_F256_HAS_NEON=", stderr);
-            std::fputs(FLTX_STRINGIZE(BL_F256_HAS_NEON), stderr);
+            std::fputs(", BL_FLTX_HAS_NEON=", stderr);
+            std::fputs(FLTX_STRINGIZE(BL_FLTX_HAS_NEON), stderr);
+
+            std::fputs(", BL_FLTX_HAS_WASM_SIMD=", stderr);
+            std::fputs(FLTX_STRINGIZE(BL_FLTX_HAS_WASM_SIMD), stderr);
 
             std::fputs(", BL_F256_ENABLE_SIMD=", stderr);
             std::fputs(FLTX_STRINGIZE(BL_F256_ENABLE_SIMD), stderr);
@@ -118,8 +127,8 @@ namespace
             std::fputs(", BL_F256_ENABLE_TRIG_SIMD=", stderr);
             std::fputs(FLTX_STRINGIZE(BL_F256_ENABLE_TRIG_SIMD), stderr);
 
-            std::fputs(", BL_F256_USE_FMA_TWO_PROD=", stderr);
-            std::fputs(FLTX_STRINGIZE(BL_F256_USE_FMA_TWO_PROD), stderr);
+            std::fputs(", BL_FLTX_SIMD_USE_FMA_TWO_PROD=", stderr);
+            std::fputs(FLTX_STRINGIZE(BL_FLTX_SIMD_USE_FMA_TWO_PROD), stderr);
 
             std::fputs(", arm64=", stderr);
             std::fputs(FLTX_ARCH_ARM64_STATUS, stderr);
@@ -129,6 +138,9 @@ namespace
 
             std::fputs(", sse2=", stderr);
             std::fputs(FLTX_ARCH_SSE2_STATUS, stderr);
+
+            std::fputs(", wasm_simd128=", stderr);
+            std::fputs(FLTX_ARCH_WASM_SIMD128_STATUS, stderr);
 
             std::fputc('\n', stderr);
             std::fflush(stderr);

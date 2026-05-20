@@ -1,5 +1,6 @@
-option(FLTX_MSVC_TIMING_REPORTS "Emit MSVC compiler and linker timing reports for fltx targets" ON)
-option(FLTX_MSVC_DETAILED_TIMING_REPORTS "Emit detailed MSVC frontend and codegen timing reports for fltx targets" OFF)
+if(NOT DEFINED FLTX_OPTIONS_INCLUDED)
+    include("${CMAKE_CURRENT_LIST_DIR}/fltxOptions.cmake")
+endif()
 
 function(fltx_msvc_target_link_options_if_supported _TARGET)
     get_target_property(_TARGET_TYPE ${_TARGET} TYPE)

@@ -112,7 +112,7 @@ function(fltx_f256_sanitize out_var text)
     set(${out_var} "${sanitized}" PARENT_SCOPE)
 endfunction()
 
-function(fltx_f256_append_common_compile_args out_var variant)
+function(fltx_f256_append_common_compile_args out_var)
     set(args)
 
     if(FLTX_F256_EXPR_BENCH_COMPILER_ID STREQUAL "MSVC")
@@ -124,24 +124,12 @@ function(fltx_f256_append_common_compile_args out_var variant)
             /I "${FLTX_F256_EXPR_BENCH_INCLUDE_DIR}"
             /D_CRT_SECURE_NO_WARNINGS
         )
-
-        if(variant STREQUAL "eval noinline")
-            list(APPEND args "/DBL_F256_EXPR_EVAL_INLINE=BL_NO_INLINE")
-        elseif(variant STREQUAL "eval inline")
-            list(APPEND args "/DBL_F256_EXPR_EVAL_INLINE=inline")
-        endif()
     else()
         list(APPEND args
             -std=c++23
             -I "${FLTX_F256_EXPR_BENCH_INCLUDE_DIR}"
             -D_CRT_SECURE_NO_WARNINGS
         )
-
-        if(variant STREQUAL "eval noinline")
-            list(APPEND args "-DBL_F256_EXPR_EVAL_INLINE=BL_NO_INLINE")
-        elseif(variant STREQUAL "eval inline")
-            list(APPEND args "-DBL_F256_EXPR_EVAL_INLINE=inline")
-        endif()
     endif()
 
     set(${out_var} "${args}" PARENT_SCOPE)
@@ -154,7 +142,7 @@ function(fltx_f256_compile_args out_var case_name source_file mode variant repea
     set(object_path "${FLTX_F256_EXPR_BENCH_OBJECT_DIR}/${safe_case}_${safe_mode}_${safe_variant}_${repeat_index}.obj")
     set(source_path "${FLTX_F256_EXPR_BENCH_SOURCE_DIR}/${source_file}")
 
-    fltx_f256_append_common_compile_args(args "${variant}")
+    fltx_f256_append_common_compile_args(args)
 
     if(FLTX_F256_EXPR_BENCH_COMPILER_ID STREQUAL "MSVC")
         if(mode STREQUAL "syntax")
@@ -323,8 +311,6 @@ foreach(case_index RANGE 0 ${variant_case_last})
     list(GET variant_case_names "${case_index}" case_name)
     list(GET variant_case_sources "${case_index}" source_file)
     fltx_f256_measure_case("${case_name}" "${source_file}" "O2" "Ob0")
-    fltx_f256_measure_case("${case_name}" "${source_file}" "O2" "eval inline")
-    fltx_f256_measure_case("${case_name}" "${source_file}" "O2" "eval noinline")
 endforeach()
 
 set(csv_path "${FLTX_F256_EXPR_BENCH_BINARY_DIR}/f256_expression_compile_bench.csv")

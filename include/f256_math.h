@@ -975,20 +975,20 @@ namespace detail::_f256
         #if BL_F256_ENABLE_SIMD
         if (f256_runtime_simd_enabled())
         {
-            f256_simd2d p00p12{}, q00q12{};
-            f256_simd2d p01p02{}, q01q02{};
-            f256_simd2d p03p11{}, q03q11{};
+            simd::f64x2 p00p12{}, q00q12{};
+            simd::f64x2 p01p02{}, q01q02{};
+            simd::f64x2 p03p11{}, q03q11{};
 
-            f256_simd_two_prod_precise(f256_simd_set(y.x0, y.x1), f256_simd_set(y.x0, y.x2), p00p12, q00q12);
-            f256_simd_two_prod_precise(f256_simd_set(y.x0, y.x0), f256_simd_set(y.x1, y.x2), p01p02, q01q02);
-            f256_simd_two_prod_precise(f256_simd_set(y.x0, y.x1), f256_simd_set(y.x3, y.x1), p03p11, q03q11);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(y.x0, y.x1), simd::f64x2_set(y.x0, y.x2), p00p12, q00q12);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(y.x0, y.x0), simd::f64x2_set(y.x1, y.x2), p01p02, q01q02);
+            simd::f64x2_two_prod_precise(simd::f64x2_set(y.x0, y.x1), simd::f64x2_set(y.x3, y.x1), p03p11, q03q11);
 
-            f256_simd_store(p00p12, p00, p12);
-            f256_simd_store(q00q12, q00, q12);
-            f256_simd_store(p01p02, p01, p02);
-            f256_simd_store(q01q02, q01, q02);
-            f256_simd_store(p03p11, p03, p11);
-            f256_simd_store(q03q11, q03, q11);
+            simd::f64x2_store(p00p12, p00, p12);
+            simd::f64x2_store(q00q12, q00, q12);
+            simd::f64x2_store(p01p02, p01, p02);
+            simd::f64x2_store(q01q02, q01, q02);
+            simd::f64x2_store(p03p11, p03, p11);
+            simd::f64x2_store(q03q11, q03, q11);
         }
         else
         #endif
@@ -1372,35 +1372,35 @@ namespace detail::_f256
         two_prod_precise(a1.x1, b1.x1, p41, q41);
         two_prod_precise(a1.x2, b1.x0, p51, q51);
 
-        const f256_simd2d ax0 = f256_simd_set(a0.x0, a1.x0);
-        const f256_simd2d ax1 = f256_simd_set(a0.x1, a1.x1);
-        const f256_simd2d ax2 = f256_simd_set(a0.x2, a1.x2);
-        const f256_simd2d ax3 = f256_simd_set(a0.x3, a1.x3);
+        const simd::f64x2 ax0 = simd::f64x2_set(a0.x0, a1.x0);
+        const simd::f64x2 ax1 = simd::f64x2_set(a0.x1, a1.x1);
+        const simd::f64x2 ax2 = simd::f64x2_set(a0.x2, a1.x2);
+        const simd::f64x2 ax3 = simd::f64x2_set(a0.x3, a1.x3);
 
-        const f256_simd2d bx0 = f256_simd_set(b0.x0, b1.x0);
-        const f256_simd2d bx1 = f256_simd_set(b0.x1, b1.x1);
-        const f256_simd2d bx2 = f256_simd_set(b0.x2, b1.x2);
-        const f256_simd2d bx3 = f256_simd_set(b0.x3, b1.x3);
+        const simd::f64x2 bx0 = simd::f64x2_set(b0.x0, b1.x0);
+        const simd::f64x2 bx1 = simd::f64x2_set(b0.x1, b1.x1);
+        const simd::f64x2 bx2 = simd::f64x2_set(b0.x2, b1.x2);
+        const simd::f64x2 bx3 = simd::f64x2_set(b0.x3, b1.x3);
 
-        f256_simd2d p6{}, p7{}, p8{}, p9{};
-        f256_simd2d q6{}, q7{}, q8{}, q9{};
+        simd::f64x2 p6{}, p7{}, p8{}, p9{};
+        simd::f64x2 q6{}, q7{}, q8{}, q9{};
 
-        f256_simd_two_prod_precise(ax0, bx3, p6, q6);
-        f256_simd_two_prod_precise(ax1, bx2, p7, q7);
-        f256_simd_two_prod_precise(ax2, bx1, p8, q8);
-        f256_simd_two_prod_precise(ax3, bx0, p9, q9);
+        simd::f64x2_two_prod_precise(ax0, bx3, p6, q6);
+        simd::f64x2_two_prod_precise(ax1, bx2, p7, q7);
+        simd::f64x2_two_prod_precise(ax2, bx1, p8, q8);
+        simd::f64x2_two_prod_precise(ax3, bx0, p9, q9);
 
         alignas(16) double p6v[2], p7v[2], p8v[2], p9v[2];
         alignas(16) double q6v[2], q7v[2], q8v[2], q9v[2];
 
-        f256_simd_store_array(p6, p6v);
-        f256_simd_store_array(p7, p7v);
-        f256_simd_store_array(p8, p8v);
-        f256_simd_store_array(p9, p9v);
-        f256_simd_store_array(q6, q6v);
-        f256_simd_store_array(q7, q7v);
-        f256_simd_store_array(q8, q8v);
-        f256_simd_store_array(q9, q9v);
+        simd::f64x2_store_array(p6, p6v);
+        simd::f64x2_store_array(p7, p7v);
+        simd::f64x2_store_array(p8, p8v);
+        simd::f64x2_store_array(p9, p9v);
+        simd::f64x2_store_array(q6, q6v);
+        simd::f64x2_store_array(q7, q7v);
+        simd::f64x2_store_array(q8, q8v);
+        simd::f64x2_store_array(q9, q9v);
 
         out0 = mul_from_two_prod_terms(
             p00, p10, p20, p30, p40, p50,
@@ -1615,12 +1615,12 @@ namespace detail::_f256
             #if BL_F256_ENABLE_SIMD
             if (f256_runtime_simd_enabled())
             {
-                const f256_simd2d scale = f256_simd_splat(s);
-                f256_simd2d lo = f256_simd_mul(f256_simd_set(a.x0, a.x1), scale);
-                f256_simd2d hi = f256_simd_mul(f256_simd_set(a.x2, a.x3), scale);
+                const simd::f64x2 scale = simd::f64x2_splat(s);
+                simd::f64x2 lo = simd::f64x2_mul(simd::f64x2_set(a.x0, a.x1), scale);
+                simd::f64x2 hi = simd::f64x2_mul(simd::f64x2_set(a.x2, a.x3), scale);
                 double x0{}, x1{}, x2{}, x3{};
-                f256_simd_store(lo, x0, x1);
-                f256_simd_store(hi, x2, x3);
+                simd::f64x2_store(lo, x0, x1);
+                simd::f64x2_store(hi, x2, x3);
                 return renorm(x0, x1, x2, x3);
             }
             else

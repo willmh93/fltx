@@ -11,7 +11,20 @@
 #define F128_INCLUDED
 
 #include "fltx_fp.h"
+#include "fltx_simd.h"
 #include <numbers>
+
+#if !defined(BL_F128_ENABLE_SIMD)
+#  if BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD
+#    define BL_F128_ENABLE_SIMD 1
+#  else
+#    define BL_F128_ENABLE_SIMD 0
+#  endif
+#endif
+
+#if BL_F128_ENABLE_SIMD && !(BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
+#  error "BL_F128_ENABLE_SIMD requires AArch64 NEON or wasm128 SIMD support."
+#endif
 
 namespace bl {
 
@@ -35,6 +48,19 @@ namespace detail::_f128
     using detail::fp::floor_constexpr;
     using detail::fp::ceil_constexpr;
     using detail::fp::integer_fits_exact_double;
+
+    BL_FORCE_INLINE constexpr bool f128_runtime_product_pair_simd_enabled() noexcept
+    {
+        #if BL_F128_ENABLE_SIMD && !defined(FMA_AVAILABLE) && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
+        return !bl::use_constexpr_math();
+        #else
+        return false;
+        #endif
+    }
+
+    #if BL_F128_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
+    namespace simd = ::bl::detail::simd;
+    #endif
 
     template<class T>
     inline constexpr bool is_integer_scalar_v = detail::fp::is_integer_scalar_v<T>;
@@ -771,12 +797,76 @@ namespace detail::_f128
         t += c.lo - e;
         return renorm(s, t);
     }
+    BL_FORCE_INLINE constexpr void mul_add_pair_same_rhs_inline(
+        const f128_s& a0,
+        const f128_s& a1,
+        const f128_s& b,
+        const f128_s& c0,
+        const f128_s& c1,
+        f128_s& out0,
+        f128_s& out1) noexcept
+    {
+        double p0{}, e0{};
+        double p1{}, e1{};
+
+        #if BL_F128_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
+        if (f128_runtime_product_pair_simd_enabled())
+        {
+            simd::f64x2 p{}, e{};
+            const simd::f64x2 ah = simd::f64x2_set(a0.hi, a1.hi);
+            const simd::f64x2 bh = simd::f64x2_splat(b.hi);
+            const simd::f64x2 al = simd::f64x2_set(a0.lo, a1.lo);
+            const simd::f64x2 bl = simd::f64x2_splat(b.lo);
+            simd::f64x2_two_prod_precise(ah, bh, p, e);
+            e = simd::f64x2_add(e, simd::f64x2_mul(ah, bl));
+            e = simd::f64x2_add(e, simd::f64x2_mul(al, bh));
+            e = simd::f64x2_add(e, simd::f64x2_mul(al, bl));
+            simd::f64x2_store(p, p0, p1);
+            simd::f64x2_store(e, e0, e1);
+        }
+        else
+        #endif
+        {
+            mul_expansion_inline(a0, b, p0, e0);
+            mul_expansion_inline(a1, b, p1, e1);
+        }
+
+        double s0{}, t0{};
+        two_sum_precise(p0, c0.hi, s0, t0);
+        t0 += e0 + c0.lo;
+        out0 = renorm(s0, t0);
+
+        double s1{}, t1{};
+        two_sum_precise(p1, c1.hi, s1, t1);
+        t1 += e1 + c1.lo;
+        out1 = renorm(s1, t1);
+    }
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sum_products_inline(const f128_s& a, const f128_s& b, const f128_s& c, const f128_s& d) noexcept
     {
         double p0{}, e0{};
         double p1{}, e1{};
-        mul_expansion_inline(a, b, p0, e0);
-        mul_expansion_inline(c, d, p1, e1);
+
+        #if BL_F128_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
+        if (f128_runtime_product_pair_simd_enabled())
+        {
+            simd::f64x2 p{}, e{};
+            const simd::f64x2 ah = simd::f64x2_set(a.hi, c.hi);
+            const simd::f64x2 bh = simd::f64x2_set(b.hi, d.hi);
+            const simd::f64x2 al = simd::f64x2_set(a.lo, c.lo);
+            const simd::f64x2 bl = simd::f64x2_set(b.lo, d.lo);
+            simd::f64x2_two_prod_precise(ah, bh, p, e);
+            e = simd::f64x2_add(e, simd::f64x2_mul(ah, bl));
+            e = simd::f64x2_add(e, simd::f64x2_mul(al, bh));
+            e = simd::f64x2_add(e, simd::f64x2_mul(al, bl));
+            simd::f64x2_store(p, p0, p1);
+            simd::f64x2_store(e, e0, e1);
+        }
+        else
+        #endif
+        {
+            mul_expansion_inline(a, b, p0, e0);
+            mul_expansion_inline(c, d, p1, e1);
+        }
 
         double s{}, t{};
         two_sum_precise(p0, p1, s, t);
@@ -787,8 +877,28 @@ namespace detail::_f128
     {
         double p0{}, e0{};
         double p1{}, e1{};
-        mul_expansion_inline(a, b, p0, e0);
-        mul_expansion_inline(c, d, p1, e1);
+
+        #if BL_F128_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
+        if (f128_runtime_product_pair_simd_enabled())
+        {
+            simd::f64x2 p{}, e{};
+            const simd::f64x2 ah = simd::f64x2_set(a.hi, c.hi);
+            const simd::f64x2 bh = simd::f64x2_set(b.hi, d.hi);
+            const simd::f64x2 al = simd::f64x2_set(a.lo, c.lo);
+            const simd::f64x2 bl = simd::f64x2_set(b.lo, d.lo);
+            simd::f64x2_two_prod_precise(ah, bh, p, e);
+            e = simd::f64x2_add(e, simd::f64x2_mul(ah, bl));
+            e = simd::f64x2_add(e, simd::f64x2_mul(al, bh));
+            e = simd::f64x2_add(e, simd::f64x2_mul(al, bl));
+            simd::f64x2_store(p, p0, p1);
+            simd::f64x2_store(e, e0, e1);
+        }
+        else
+        #endif
+        {
+            mul_expansion_inline(a, b, p0, e0);
+            mul_expansion_inline(c, d, p1, e1);
+        }
 
         double s{}, t{};
         two_sum_precise(p0, -p1, s, t);

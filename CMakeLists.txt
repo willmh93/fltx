@@ -1,18 +1,12 @@
 cmake_minimum_required(VERSION 3.21)
 project(fltx VERSION 0.1.0 LANGUAGES CXX)
 
-# Project-owned default for fltx's compiled runtime sources: AUTO, ON, or OFF.
-set(FLTX_FAST_MATH_MODE ON)
-
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+include(cmake/fltxOptions.cmake)
 include(cmake/fltxFastMath.cmake)
 include(cmake/fltxMsvcTiming.cmake)
-
-#
-option(FLTX_BUILD_TESTS    "Build fltx tests"          ${PROJECT_IS_TOP_LEVEL})
-option(FLTX_BUILD_EXAMPLES "Build fltx examples"       ${PROJECT_IS_TOP_LEVEL})
-option(FLTX_BUILD_ISOLATED "Build fltx isolated units" ${PROJECT_IS_TOP_LEVEL})
+include(cmake/fltxSimd.cmake)
 
 set(FLTX_PUBLIC_SCOPE PUBLIC)
 add_library(fltx
@@ -47,6 +41,7 @@ if(MSVC)
 endif()
 
 target_compile_features(fltx ${FLTX_PUBLIC_SCOPE} cxx_std_23)
+fltx_apply_simd_options(fltx ${FLTX_PUBLIC_SCOPE})
 fltx_apply_fast_math_options(fltx)
 fltx_apply_msvc_timing_reports(fltx)
 
@@ -86,20 +81,14 @@ install(FILES
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/fltx"
 )
 
-include(CTest)
+if(FLTX_DEVELOPER_BUILD)
+    include(CTest)
 
-if(FLTX_BUILD_EXAMPLES)
     add_subdirectory(examples)
-endif()
-
-if(FLTX_BUILD_TESTS)
     add_subdirectory(tests)
-endif()
-
-if(FLTX_BUILD_ISOLATED)
     add_subdirectory(tests/unit_compile_tests)
-endif()
 
-if(NOT TARGET f256_expression_compile_bench)
-    add_subdirectory(tests/expressions/f256)
+    if(NOT TARGET f256_expression_compile_bench)
+        add_subdirectory(tests/expressions/f256)
+    endif()
 endif()
