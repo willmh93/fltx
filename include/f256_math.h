@@ -886,27 +886,48 @@ namespace detail::_f256
         }
         return out;
     }
-    BL_FORCE_INLINE constexpr bool try_pow_dyadic_eighth(const f256_s& x, const f256_s& y, f256_s& out)
+    BL_FORCE_INLINE constexpr bool pow_dyadic_eighth_exponent_in_range(int64_t n) noexcept
     {
-        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
-            return false;
-
-        int64_t n = 0;
-        if (!try_get_int64(mul_double_inline(y, 8.0), n))
-            return false;
-        if (n == 0)
-        {
-            out = f256_s{ 1.0 };
-            return true;
-        }
         if (n == std::numeric_limits<int64_t>::min())
             return false;
 
         const bool neg = n < 0;
         const uint64_t magnitude = neg ? static_cast<uint64_t>(-n) : static_cast<uint64_t>(n);
-        if (magnitude > 1024)
+        return magnitude <= 1024;
+    }
+    BL_FORCE_INLINE constexpr bool try_get_pow_dyadic_eighth_exponent(const f256_s& x, const f256_s& y, int64_t& n)
+    {
+        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
             return false;
 
+        if (!try_get_int64(mul_double_inline(y, 8.0), n))
+            return false;
+
+        return pow_dyadic_eighth_exponent_in_range(n);
+    }
+    BL_FORCE_INLINE constexpr bool try_get_pow_dyadic_eighth_exponent(const f256_s& x, double y, int64_t& n) noexcept
+    {
+        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
+            return false;
+
+        const double scaled = y * 8.0;
+        if (!isfinite(scaled) || absd(scaled) >= 0x1p63)
+            return false;
+
+        const double rounded = trunc_constexpr(scaled);
+        if (rounded != scaled)
+            return false;
+
+        n = static_cast<int64_t>(rounded);
+        return pow_dyadic_eighth_exponent_in_range(n);
+    }
+    BL_NO_INLINE constexpr f256_s pow_dyadic_eighth_unchecked(const f256_s& x, int64_t n)
+    {
+        if (n == 0)
+            return f256_s{ 1.0 };
+
+        const bool neg = n < 0;
+        const uint64_t magnitude = neg ? static_cast<uint64_t>(-n) : static_cast<uint64_t>(n);
         const uint64_t whole = magnitude / 8u;
         const int rem = static_cast<int>(magnitude & 7u);
 
@@ -916,10 +937,8 @@ namespace detail::_f256
         if (neg)
             result = recip(result);
 
-        out = result;
-        return true;
+        return result;
     }
-
     // remquo
     BL_FORCE_INLINE  constexpr double limb_mod_power_of_two(double value, double modulus, double zero_threshold) noexcept
     {
@@ -1717,7 +1736,7 @@ namespace detail::_f256
         const f256_s table_log = mul_double_inline(ln2, static_cast<double>(exp2) + static_cast<double>(j) / 64.0);
         return add_inline(table_log, mul_inline(u, p));
     }
-    BL_MSVC_NOINLINE constexpr f256_s exp_for_pow(const f256_s& x) noexcept
+    BL_NO_INLINE constexpr f256_s exp_for_pow(const f256_s& x) noexcept
     {
         if (isnan(x))
             return x;
@@ -2315,7 +2334,7 @@ namespace detail::_f256
     }
 
     // gamma
-    BL_MSVC_NOINLINE constexpr f256_s lgamma1p_series(const f256_s& y) noexcept
+    BL_NO_INLINE constexpr f256_s lgamma1p_series(const f256_s& y) noexcept
     {
         constexpr int count = static_cast<int>(sizeof(lgamma1p_coeff) / sizeof(lgamma1p_coeff[0]));
 
@@ -2323,7 +2342,7 @@ namespace detail::_f256
 
         return mul_inline(y, mul_add_inline(y, p, -egamma));
     }
-    BL_MSVC_NOINLINE constexpr bool try_lgamma_near_one_or_two(const f256_s& x, f256_s& out) noexcept
+    BL_NO_INLINE constexpr bool try_lgamma_near_one_or_two(const f256_s& x, f256_s& out) noexcept
     {
         const f256_s y1 = sub_double_inline(x, 1.0);
         if (abs(y1) <= f256_s{ 0.25 })
@@ -2341,35 +2360,7 @@ namespace detail::_f256
 
         return false;
     }
-    BL_MSVC_NOINLINE constexpr bool try_positive_integer_gamma(const f256_s& x, f256_s& gamma_out, f256_s& lgamma_out) noexcept
-    {
-        int64_t n = 0;
-        if (!try_get_int64(x, n) || n < 1 || n > 64)
-            return false;
-
-        f256_s product{ 1.0 };
-        for (int64_t i = 2; i < n; ++i)
-            product = mul_double_inline(product, static_cast<double>(i));
-
-        gamma_out = product;
-        lgamma_out = (n <= 2) ? f256_s{ 0.0 } : _log(product);
-        return true;
-    }
-    BL_MSVC_NOINLINE constexpr bool try_positive_half_integer_gamma(const f256_s& x, f256_s& gamma_out, f256_s& lgamma_out) noexcept
-    {
-        int64_t n = 0;
-        if (!try_get_int64(sub_double_inline(x, 0.5), n) || n < 0 || n > 64)
-            return false;
-
-        f256_s product{ 1.0 };
-        for (int64_t i = 0; i < n; ++i)
-            product = mul_double_inline(product, static_cast<double>(i) + 0.5);
-
-        gamma_out = mul_inline(product, sqrtpi);
-        lgamma_out = (n == 0) ? half_log_pi : add_inline(_log(product), half_log_pi);
-        return true;
-    }
-    BL_MSVC_NOINLINE constexpr bool try_lgamma_short_recurrence(const f256_s& x, f256_s& out) noexcept
+    BL_NO_INLINE constexpr bool try_lgamma_short_recurrence(const f256_s& x, f256_s& out) noexcept
     {
         if (!(x > f256_s{ 0.0 }) || !(x < f256_s{ 32.0 }))
             return false;
@@ -2398,36 +2389,7 @@ namespace detail::_f256
         out = shifted_up ? sub_inline(near_value, log_product) : add_inline(near_value, log_product);
         return true;
     }
-    BL_MSVC_NOINLINE constexpr bool try_gamma_short_recurrence(const f256_s& x, f256_s& out) noexcept
-    {
-        if (!(x > f256_s{ 0.0 }) || !(x < f256_s{ 32.0 }))
-            return false;
-
-        f256_s z = x;
-        f256_s product{ 1.0 };
-        bool shifted_up = false;
-
-        while (z < f256_s{ 1.0 })
-        {
-            product = mul_inline(product, z);
-            z = add_double_inline(z, 1.0);
-            shifted_up = true;
-        }
-        while (z > f256_s{ 2.25 })
-        {
-            z = sub_double_inline(z, 1.0);
-            product = mul_inline(product, z);
-        }
-
-        f256_s near_lgamma{};
-        if (!try_lgamma_near_one_or_two(z, near_lgamma))
-            return false;
-
-        const f256_s near_gamma = _exp(near_lgamma);
-        out = shifted_up ? div_inline(near_gamma, product) : mul_inline(near_gamma, product);
-        return true;
-    }
-    BL_MSVC_NOINLINE constexpr void positive_recurrence_product(const f256_s& x, const f256_s& asymptotic_min, f256_s& z, f256_s& product, int& product_exp2) noexcept
+    BL_NO_INLINE constexpr void positive_recurrence_product(const f256_s& x, const f256_s& asymptotic_min, f256_s& z, f256_s& product, int& product_exp2) noexcept
     {
         z = x;
         product = f256_s{ 1.0 };
@@ -2451,64 +2413,22 @@ namespace detail::_f256
             z = add_double_inline(z, 1.0);
         }
     }
-    BL_MSVC_NOINLINE constexpr f256_s lgamma_stirling_asymptotic(const f256_s& z) noexcept
+    BL_NO_INLINE constexpr f256_s lgamma_stirling_asymptotic(const f256_s& z) noexcept
     {
         const f256_s inv = f256_s{ 1.0 } / z;
         const f256_s inv2 = sqr_eval(inv);
-
-        f256_s series = inv / f256_s{ 12.0 };
-        f256_s invpow = mul_eval(inv, inv2);
-
-        series = sub_eval(series, div_eval(invpow, f256_s{ 360.0 }));
-        invpow = mul_eval(invpow, inv2);
-        series = add_eval(series, div_eval(invpow, f256_s{ 1260.0 }));
-        invpow = mul_eval(invpow, inv2);
-        series = sub_eval(series, div_eval(invpow, f256_s{ 1680.0 }));
-        invpow = mul_eval(invpow, inv2);
-        series = add_eval(series, div_eval(invpow, f256_s{ 1188.0 }));
-        invpow = mul_eval(invpow, inv2);
-        series = sub_eval(series, mul_eval(invpow, div_eval(f256_s{ 691.0 }, f256_s{ 360360.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = add_eval(series, div_eval(invpow, f256_s{ 156.0 }));
-        invpow = mul_eval(invpow, inv2);
-        series = sub_eval(series, mul_eval(invpow, div_eval(f256_s{ 3617.0 }, f256_s{ 122400.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = add_eval(series, mul_eval(invpow, div_eval(f256_s{ 43867.0 }, f256_s{ 244188.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = sub_eval(series, mul_eval(invpow, div_eval(f256_s{ 174611.0 }, f256_s{ 125400.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = add_eval(series, mul_eval(invpow, div_eval(f256_s{ 77683.0 }, f256_s{ 5796.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = sub_eval(series, mul_eval(invpow, div_eval(f256_s{ 236364091.0 }, f256_s{ 1506960.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = add_eval(series, mul_eval(invpow, div_eval(f256_s{ 657931.0 }, f256_s{ 300.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = sub_eval(series, mul_eval(invpow, div_eval(f256_s{ 3392780147.0 }, f256_s{ 93960.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = add_eval(series, mul_eval(invpow, div_eval(f256_s{ 1723168255201.0 }, f256_s{ 2492028.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = sub_eval(series, mul_eval(invpow, div_eval(f256_s{ 7709321041217.0 }, f256_s{ 505920.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = add_eval(series, mul_eval(invpow, div_eval(f256_s{ 151628697551.0 }, f256_s{ 3960.0 })));
-        invpow = mul_eval(invpow, inv2);
-
-        const f256_s b28_num = add_double_eval(mul_double_eval(to_f256(std::uint64_t{ 2631527155305347737 }), 10.0), 3.0);
-        series = sub_eval(series, mul_eval(invpow, div_eval(b28_num, f256_s{ 5609403360.0 })));
-        invpow = mul_eval(invpow, inv2);
-        series = add_eval(series, mul_eval(invpow, div_eval(f256_s{ 154210205991661.0 }, f256_s{ 444.0 })));
+        const f256_s series = mul_eval(inv, horner_reverse(
+            lgamma_stirling_coeffs,
+            sizeof(lgamma_stirling_coeffs) / sizeof(lgamma_stirling_coeffs[0]),
+            inv2));
 
         return add_eval(
             add_eval(mul_sub_eval(sub_double_eval(z, 0.5), log(z), z), half_log_two_pi),
             series);
     }
-    BL_MSVC_NOINLINE constexpr f256_s lgamma_positive_recurrence(const f256_s& x) noexcept
+    BL_NO_INLINE constexpr f256_s lgamma_positive_recurrence(const f256_s& x) noexcept
     {
-        f256_s gamma_value{};
         f256_s near_value{};
-        if (try_positive_integer_gamma(x, gamma_value, near_value))
-            return near_value;
-        if (try_positive_half_integer_gamma(x, gamma_value, near_value))
-            return near_value;
         if (try_lgamma_near_one_or_two(x, near_value))
             return near_value;
         if (try_lgamma_short_recurrence(x, near_value))
@@ -2525,32 +2445,6 @@ namespace detail::_f256
             sub_eval(lgamma_stirling_asymptotic(z), log(product)),
             ln2,
             static_cast<double>(product_exp2));
-    }
-    BL_MSVC_NOINLINE constexpr f256_s gamma_positive_recurrence(const f256_s& x) noexcept
-    {
-        f256_s gamma_value{};
-        f256_s near_lgamma{};
-        if (try_positive_integer_gamma(x, gamma_value, near_lgamma))
-            return gamma_value;
-        if (try_positive_half_integer_gamma(x, gamma_value, near_lgamma))
-            return gamma_value;
-        if (try_lgamma_near_one_or_two(x, near_lgamma))
-            return exp(near_lgamma);
-        if (try_gamma_short_recurrence(x, gamma_value))
-            return gamma_value;
-
-        constexpr f256_s asymptotic_min = f256_s{ 128.0 };
-
-        f256_s z{};
-        f256_s product{};
-        int product_exp2 = 0;
-        positive_recurrence_product(x, asymptotic_min, z, product, product_exp2);
-
-        f256_s result = exp(lgamma_stirling_asymptotic(z)) / product;
-        if (product_exp2 != 0)
-            result = ldexp(result, -product_exp2);
-
-        return result;
     }
 }
 
@@ -2795,9 +2689,9 @@ namespace detail::_f256
     if (y_is_int && try_get_int64(yi, yi64))
         return powi(x, yi64);
 
-    f256_s dyadic{};
-    if (try_pow_dyadic_eighth(x, y, dyadic))
-        return canonicalize_math_result(dyadic);
+    int64_t dyadic_exponent{};
+    if (try_get_pow_dyadic_eighth_exponent(x, y, dyadic_exponent))
+        return canonicalize_math_result(pow_dyadic_eighth_unchecked(x, dyadic_exponent));
 
     if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
     {
@@ -2840,9 +2734,9 @@ namespace detail::_f256
     if (y_is_int && absd(yi) < 0x1p63)
         return powi(x, static_cast<int64_t>(yi));
 
-    f256_s dyadic{};
-    if (try_pow_dyadic_eighth(x, f256_s{ y }, dyadic))
-        return canonicalize_math_result(dyadic);
+    int64_t dyadic_exponent{};
+    if (try_get_pow_dyadic_eighth_exponent(x, y, dyadic_exponent))
+        return canonicalize_math_result(pow_dyadic_eighth_unchecked(x, dyadic_exponent));
 
     if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
     {
@@ -3448,7 +3342,7 @@ namespace detail::_f256
         return std::numeric_limits<f256_s>::infinity();
 
     const f256_s out =
-        detail::_f256_constexpr::log(pi)
+        mul_double_eval(half_log_pi, 2.0)
         - detail::_f256_constexpr::log(abs(sinpix))
         - lgamma_positive_recurrence(f256_s{ 1.0 } - x);
 
@@ -3464,7 +3358,7 @@ namespace detail::_f256
         : std::numeric_limits<f256_s>::infinity();
 
     if (x > f256_s{ 0.0 })
-        return canonicalize_math_result(gamma_positive_recurrence(x));
+        return canonicalize_math_result(_exp(lgamma_positive_recurrence(x)));
 
     const f256_s xi = detail::_f256_constexpr::trunc(x);
     if (xi == x)
@@ -3474,7 +3368,12 @@ namespace detail::_f256
     if (iszero(sinpix))
         return std::numeric_limits<f256_s>::quiet_NaN();
 
-    const f256_s out = div_inline(pi, mul_inline(sinpix, gamma_positive_recurrence(sub_double_inline(1.0, x))));
+    const f256_s log_abs = sub_eval(
+        sub_eval(mul_double_eval(half_log_pi, 2.0), detail::_f256_constexpr::log(abs(sinpix))),
+        lgamma_positive_recurrence(sub_double_inline(1.0, x)));
+    f256_s out = _exp(log_abs);
+    if (signbit(sinpix))
+        out = -out;
     return canonicalize_math_result(out);
 }
 

@@ -6,8 +6,7 @@
 #include <limits>
 #include <numbers>
 
-#include <fltx.h>
-
+#include <fltx>
 using namespace bl;
 using namespace bl::literals;
 
@@ -26,7 +25,7 @@ consteval std::array<Vec2<T>, C> ellipse(T rx, T ry)
 
     for (std::size_t i = 0; i < C; ++i)
     {
-        T ratio = T(i) / T(C);
+        T ratio = T{ static_cast<std::uint64_t>(i) } / T{ static_cast<std::uint64_t>(C) };
         T angle = ratio * tau;
         Vec2<T> sc = bl::sincos<T>(angle);
 
@@ -45,7 +44,8 @@ int main()
 
     std::cout << std::setprecision(std::numeric_limits<T>::digits10);
 
-    constexpr auto points = ellipse<T, 100>(T{ 100 }, T{ 50 });
+    // generate 100 high-precision points
+    constexpr auto points = ellipse<T, 100>(100, 50);
 
     for (auto [x, y] : points)
     {

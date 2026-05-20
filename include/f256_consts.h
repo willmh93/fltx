@@ -11,8 +11,6 @@
 #define F256_CONSTS_INCLUDED
 
 #include "f256.h"
-#include <cstddef>
-#include <cstdint>
 
 namespace bl::detail::_f256
 {
@@ -277,6 +275,28 @@ namespace bl::detail::_f256
         {  0x1.29e4129e4129ep-7,  0x1.04a7904a7904bp-61, -0x1.d1745d1745d17p-115, -0x1.17372b38419eap-169 },
         { -0x1.27350b8812735p-7, -0x1.71024e6a17103p-64,  0x1.9f22983759f23p-118, -0x1.9f494ebf2163bp-172 },
         {  0x1.2492492492492p-7,  0x1.2492492492492p-61,  0x1.36db6db6db6dbp-115,  0x1.b6dd06f7523c6p-169 }
+    };
+
+    inline constexpr f256_s lgamma_stirling_coeffs[] = {
+        {  8.33333333333333287e-02,  4.62592926927148533e-18,  2.56790659251631433e-34,  1.42547451204917093e-50 },
+        { -2.77777777777777788e-03,  1.06010879087471541e-19,  3.47737351069917552e-36,  3.26671242344601679e-52 },
+        {  7.93650793650793650e-04,  6.88382331736828211e-22,  5.97076495655765083e-40,  5.17881306984009883e-58 },
+        { -5.95238095238095292e-04,  5.36938218754726024e-20, -1.83421899465451050e-36,  1.65456863005707355e-52 },
+        {  8.41750841750841714e-04,  3.68701748892376936e-20, -6.88990089532470776e-37,  3.76841825707443410e-53 },
+        { -1.91752691752691763e-03,  1.06757027768724749e-19,  6.56834249542655383e-37, -2.03112614013416523e-53 },
+        {  6.41025641025641003e-03,  2.22400445638052172e-19,  1.97531276347408799e-35,  6.85324284639024464e-52 },
+        { -2.95506535947712423e-02,  4.86176095750885531e-19,  1.31668151753532592e-35,  2.71818424111337035e-52 },
+        {  1.79644372368830574e-01, -6.40160048271094580e-19,  9.77997743967833185e-36, -1.64598734214484078e-52 },
+        { -1.39243221690590113e+00,  1.58370569892303027e-17,  5.20560126850388543e-34,  2.85858793057439511e-50 },
+        {  1.34028640441683926e+01, -6.15411410199396641e-16,  1.36104365980160770e-34, -2.67092015197618985e-51 },
+        { -1.56848284626002027e+02,  9.39182314171538895e-15,  1.65703924710861581e-31, -4.37812781670204933e-48 },
+        {  2.19310333333333347e+03, -1.33392556260029476e-13,  6.73161305788596784e-31, -4.32067026500151941e-47 },
+        { -3.61087712537249899e+04,  5.89758335351436479e-13,  7.04970971579373310e-31,  3.24896626706216895e-47 },
+        {  6.91472268851313042e+05,  2.55852963051579989e-11, -1.25217228216408432e-27, -8.04285717897239093e-44 },
+        { -1.52382215394074153e+07, -8.76774522490625042e-10, -1.96723535939239966e-26, -1.19876979883652352e-42 },
+        {  3.82900751391414106e+07,  3.55219600176570404e-09, -1.26165931813643624e-25,  8.85887866978602061e-42 },
+        { -4.69127817420023727e+09, -1.95114155424800379e-07, -4.27850696371598895e-24, -4.88827400528090783e-41 },
+        {  3.47320283765002258e+11, -6.04852899774774780e-06,  5.34164921691901066e-23,  4.87141803043470482e-39 }
     };
 
     // Trig coefficients and tables
@@ -651,13 +671,13 @@ namespace bl::detail::_f256
     };
 
     // Table sizes and offsets
-    inline constexpr int         two_over_pi_fixed_bits        = 2048;
-    inline constexpr std::size_t f256_trig_coeff_count_pi4     = sizeof(f256_sin_coeffs_pi4) / sizeof(f256_sin_coeffs_pi4[0]);
-    inline constexpr std::size_t f256_trig_small_coeff_count   = 13;
-    inline constexpr std::size_t f256_trig_small_coeff_offset  = f256_trig_coeff_count_pi4 - f256_trig_small_coeff_count;
-    inline constexpr std::size_t f256_atan_tiny_coeff_count    = sizeof(f256_atan_tiny_coeffs) / sizeof(f256_atan_tiny_coeffs[0]);
-    inline constexpr std::size_t f256_atan_reduced_coeff_count = sizeof(f256_atan_reduced_coeffs) / sizeof(f256_atan_reduced_coeffs[0]);
-    inline constexpr std::size_t f256_erf_cheb_coeff_count     = 52;
+    inline constexpr int  two_over_pi_fixed_bits        = 2048;
+    inline constexpr auto f256_trig_coeff_count_pi4     = sizeof(f256_sin_coeffs_pi4) / sizeof(f256_sin_coeffs_pi4[0]);
+    inline constexpr auto f256_trig_small_coeff_count   = 13;
+    inline constexpr auto f256_trig_small_coeff_offset  = f256_trig_coeff_count_pi4 - f256_trig_small_coeff_count;
+    inline constexpr auto f256_atan_tiny_coeff_count    = sizeof(f256_atan_tiny_coeffs) / sizeof(f256_atan_tiny_coeffs[0]);
+    inline constexpr auto f256_atan_reduced_coeff_count = sizeof(f256_atan_reduced_coeffs) / sizeof(f256_atan_reduced_coeffs[0]);
+    inline constexpr auto f256_erf_cheb_coeff_count     = 52;
 
 }
 

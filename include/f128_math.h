@@ -65,6 +65,9 @@ namespace detail::_f128_runtime
     BL_NO_INLINE f128_s erfc(const f128_s& x);
     BL_NO_INLINE f128_s lgamma(const f128_s& x);
     BL_NO_INLINE f128_s tgamma(const f128_s& x);
+    BL_NO_INLINE f128_s horner_forward(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept;
+    BL_NO_INLINE f128_s horner_reverse(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept;
+    BL_NO_INLINE void   horner_pair_forward(const f128_s* left_coeffs, const f128_s* right_coeffs, std::size_t count, const f128_s& x, f128_s& left_out, f128_s& right_out) noexcept;
 }
 namespace detail::_f128_constexpr
 {
@@ -881,20 +884,89 @@ namespace detail::_f128
 	    r_out = r;
 	    return true;
 	}
+    BL_FORCE_INLINE constexpr f128_s horner_forward_constexpr(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
+    {
+        if (count == 0)
+            return {};
+
+        f128_s p = coeffs[0];
+        for (std::size_t i = 1; i < count; ++i)
+            p = mul_add_inline(p, x, coeffs[i]);
+        return p;
+    }
+    BL_FORCE_INLINE constexpr f128_s horner_reverse_constexpr(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
+    {
+        if (count == 0)
+            return {};
+
+        f128_s p = coeffs[count - 1];
+        for (std::size_t i = count - 1; i > 0; --i)
+            p = mul_add_inline(p, x, coeffs[i - 1]);
+        return p;
+    }
+    BL_FORCE_INLINE constexpr void horner_pair_forward_constexpr(
+        const f128_s* left_coeffs,
+        const f128_s* right_coeffs,
+        std::size_t count,
+        const f128_s& x,
+        f128_s& left_out,
+        f128_s& right_out) noexcept
+    {
+        if (count == 0)
+        {
+            left_out = f128_s{};
+            right_out = f128_s{};
+            return;
+        }
+
+        f128_s left = left_coeffs[0];
+        f128_s right = right_coeffs[0];
+        for (std::size_t i = 1; i < count; ++i)
+            mul_add_pair_same_rhs_inline(left, right, x, left_coeffs[i], right_coeffs[i], left, right);
+
+        left_out = left;
+        right_out = right;
+    }
+    BL_FORCE_INLINE constexpr f128_s horner_forward(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
+    {
+        if (bl::use_constexpr_math())
+            return horner_forward_constexpr(coeffs, count, x);
+
+        return detail::_f128_runtime::horner_forward(coeffs, count, x);
+    }
+    BL_FORCE_INLINE constexpr f128_s horner_reverse(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
+    {
+        if (bl::use_constexpr_math())
+            return horner_reverse_constexpr(coeffs, count, x);
+
+        return detail::_f128_runtime::horner_reverse(coeffs, count, x);
+    }
+    BL_FORCE_INLINE constexpr void horner_pair_forward(
+        const f128_s* left_coeffs,
+        const f128_s* right_coeffs,
+        std::size_t count,
+        const f128_s& x,
+        f128_s& left_out,
+        f128_s& right_out) noexcept
+    {
+        if (bl::use_constexpr_math())
+        {
+            horner_pair_forward_constexpr(left_coeffs, right_coeffs, count, x, left_out, right_out);
+            return;
+        }
+
+        detail::_f128_runtime::horner_pair_forward(left_coeffs, right_coeffs, count, x, left_out, right_out);
+    }
     BL_FORCE_INLINE constexpr f128_s  sin_kernel_small(const f128_s& x)
     {
         using namespace detail::_f128;
 
         const f128_s t = mul_inline(x, x);
 
-        f128_s ps = f128_s{  2.81145725434552060e-15,  1.65088427308614330e-31 };
-        ps = mul_add_inline(ps, t, f128_s{ -7.64716373181981648e-13, -7.03872877733452971e-30 });
-        ps = mul_add_inline(ps, t, f128_s{  1.60590438368216146e-10,  1.25852945887520981e-26 });
-        ps = mul_add_inline(ps, t, f128_s{ -2.50521083854417188e-08,  1.44881407093591197e-24 });
-        ps = mul_add_inline(ps, t, f128_s{  2.75573192239858907e-06, -1.85839327404647208e-22 });
-        ps = mul_add_inline(ps, t, f128_s{ -1.98412698412698413e-04, -1.72095582934207053e-22 });
-        ps = mul_add_inline(ps, t, f128_s{  8.33333333333333322e-03,  1.15648231731787140e-19 });
-        ps = mul_add_inline(ps, t, f128_s{ -1.66666666666666657e-01, -9.25185853854297066e-18 });
+        const f128_s ps = horner_forward(
+            f128_sin_coeffs_pi4 + f128_trig_small_coeff_offset,
+            f128_trig_small_coeff_count,
+            t);
 
         return mul_add_inline(mul_inline(x, t), ps, x);
     }
@@ -904,14 +976,10 @@ namespace detail::_f128
 
         const f128_s t = mul_inline(x, x);
 
-        f128_s pc = f128_s{  4.77947733238738530e-14,  4.39920548583408094e-31 };
-        pc = mul_add_inline(pc, t, f128_s{ -1.14707455977297247e-11, -2.06555127528307454e-28 });
-        pc = mul_add_inline(pc, t, f128_s{  2.08767569878680990e-09, -1.20734505911325997e-25 });
-        pc = mul_add_inline(pc, t, f128_s{ -2.75573192239858907e-07, -2.37677146222502973e-23 });
-        pc = mul_add_inline(pc, t, f128_s{  2.48015873015873016e-05,  2.15119478667758816e-23 });
-        pc = mul_add_inline(pc, t, f128_s{ -1.38888888888888894e-03,  5.30054395437357706e-20 });
-        pc = mul_add_inline(pc, t, f128_s{  4.16666666666666644e-02,  2.31296463463574269e-18 });
-        pc = mul_add_inline(pc, t, f128_s{ -5.00000000000000000e-01,  0.0                     });
+        const f128_s pc = horner_forward(
+            f128_cos_coeffs_pi4 + f128_trig_small_coeff_offset,
+            f128_trig_small_coeff_count,
+            t);
 
         return mul_add_inline(t, pc, f128_s{ 1.0 });
     }
@@ -921,37 +989,15 @@ namespace detail::_f128
 
         const f128_s t = mul_inline(x, x);
 
-        f128_s ps = f128_s{  2.81145725434552060e-15,  1.65088427308614330e-31 };
-        f128_s pc = f128_s{  4.77947733238738530e-14,  4.39920548583408094e-31 };
-
-        mul_add_pair_same_rhs_inline(ps, pc, t,
-            f128_s{ -7.64716373181981648e-13, -7.03872877733452971e-30 },
-            f128_s{ -1.14707455977297247e-11, -2.06555127528307454e-28 },
-            ps, pc);
-        mul_add_pair_same_rhs_inline(ps, pc, t,
-            f128_s{  1.60590438368216146e-10,  1.25852945887520981e-26 },
-            f128_s{  2.08767569878680990e-09, -1.20734505911325997e-25 },
-            ps, pc);
-        mul_add_pair_same_rhs_inline(ps, pc, t,
-            f128_s{ -2.50521083854417188e-08,  1.44881407093591197e-24 },
-            f128_s{ -2.75573192239858907e-07, -2.37677146222502973e-23 },
-            ps, pc);
-        mul_add_pair_same_rhs_inline(ps, pc, t,
-            f128_s{  2.75573192239858907e-06, -1.85839327404647208e-22 },
-            f128_s{  2.48015873015873016e-05,  2.15119478667758816e-23 },
-            ps, pc);
-        mul_add_pair_same_rhs_inline(ps, pc, t,
-            f128_s{ -1.98412698412698413e-04, -1.72095582934207053e-22 },
-            f128_s{ -1.38888888888888894e-03,  5.30054395437357706e-20 },
-            ps, pc);
-        mul_add_pair_same_rhs_inline(ps, pc, t,
-            f128_s{  8.33333333333333322e-03,  1.15648231731787140e-19 },
-            f128_s{  4.16666666666666644e-02,  2.31296463463574269e-18 },
-            ps, pc);
-        mul_add_pair_same_rhs_inline(ps, pc, t,
-            f128_s{ -1.66666666666666657e-01, -9.25185853854297066e-18 },
-            f128_s{ -5.00000000000000000e-01,  0.0                     },
-            ps, pc);
+        f128_s ps{};
+        f128_s pc{};
+        horner_pair_forward(
+            f128_sin_coeffs_pi4 + f128_trig_small_coeff_offset,
+            f128_cos_coeffs_pi4 + f128_trig_small_coeff_offset,
+            f128_trig_small_coeff_count,
+            t,
+            ps,
+            pc);
 
         const f128_s xt = mul_inline(x, t);
         s_out = mul_add_inline(xt, ps, x);
@@ -988,20 +1034,7 @@ namespace detail::_f128
     {
         const f128_s t = mul_inline(x, x);
 
-        f128_s ps = f128_s{  1.13099628864477159e-31,  1.04980154129595057e-47 };
-        ps = mul_add_inline(ps, t, f128_s{ -9.18368986379554615e-29, -1.43031503967873224e-45 });
-        ps = mul_add_inline(ps, t, f128_s{  6.44695028438447391e-26, -1.93304042337034642e-42 });
-        ps = mul_add_inline(ps, t, f128_s{ -3.86817017063068404e-23,  8.84317765548234382e-40 });
-        ps = mul_add_inline(ps, t, f128_s{  1.95729410633912625e-20, -1.36435038300879076e-36 });
-        ps = mul_add_inline(ps, t, f128_s{ -8.22063524662432972e-18, -2.21418941196042654e-34 });
-        ps = mul_add_inline(ps, t, f128_s{  2.81145725434552060e-15,  1.65088427308614330e-31 });
-        ps = mul_add_inline(ps, t, f128_s{ -7.64716373181981648e-13, -7.03872877733452971e-30 });
-        ps = mul_add_inline(ps, t, f128_s{  1.60590438368216146e-10,  1.25852945887520981e-26 });
-        ps = mul_add_inline(ps, t, f128_s{ -2.50521083854417188e-08,  1.44881407093591197e-24 });
-        ps = mul_add_inline(ps, t, f128_s{  2.75573192239858907e-06, -1.85839327404647208e-22 });
-        ps = mul_add_inline(ps, t, f128_s{ -1.98412698412698413e-04, -1.72095582934207053e-22 });
-        ps = mul_add_inline(ps, t, f128_s{  8.33333333333333322e-03,  1.15648231731787140e-19 });
-        ps = mul_add_inline(ps, t, f128_s{ -1.66666666666666657e-01, -9.25185853854297066e-18 });
+        const f128_s ps = horner_forward(f128_sin_coeffs_pi4, f128_trig_coeff_count_pi4, t);
 
         return mul_add_inline(mul_inline(x, t), ps, x);
     }
@@ -1009,20 +1042,7 @@ namespace detail::_f128
     {
         const f128_s t = mul_inline(x, x);
 
-        f128_s pc = f128_s{  3.27988923706983791e-30,  1.51175427440298786e-46 };
-        pc = mul_add_inline(pc, t, f128_s{ -2.47959626322479746e-27,  1.29537309647652292e-43 });
-        pc = mul_add_inline(pc, t, f128_s{  1.61173757109611835e-24, -3.68465735645097656e-41 });
-        pc = mul_add_inline(pc, t, f128_s{ -8.89679139245057329e-22,  7.91140261487237594e-38 });
-        pc = mul_add_inline(pc, t, f128_s{  4.11031762331216486e-19,  1.44129733786595266e-36 });
-        pc = mul_add_inline(pc, t, f128_s{ -1.56192069685862265e-16, -1.19106796602737541e-32 });
-        pc = mul_add_inline(pc, t, f128_s{  4.77947733238738530e-14,  4.39920548583408094e-31 });
-        pc = mul_add_inline(pc, t, f128_s{ -1.14707455977297247e-11, -2.06555127528307454e-28 });
-        pc = mul_add_inline(pc, t, f128_s{  2.08767569878680990e-09, -1.20734505911325997e-25 });
-        pc = mul_add_inline(pc, t, f128_s{ -2.75573192239858907e-07, -2.37677146222502973e-23 });
-        pc = mul_add_inline(pc, t, f128_s{  2.48015873015873016e-05,  2.15119478667758816e-23 });
-        pc = mul_add_inline(pc, t, f128_s{ -1.38888888888888894e-03,  5.30054395437357706e-20 });
-        pc = mul_add_inline(pc, t, f128_s{  4.16666666666666644e-02,  2.31296463463574269e-18 });
-        pc = mul_add_inline(pc, t, f128_s{ -5.00000000000000000e-01,  0.0                     });
+        const f128_s pc = horner_forward(f128_cos_coeffs_pi4, f128_trig_coeff_count_pi4, t);
 
         return mul_add_inline(t, pc, f128_s{ 1.0 });
     }
@@ -1035,9 +1055,7 @@ namespace detail::_f128
         constexpr int count = static_cast<int>(sizeof(f128_atan_reduced_coeffs) / sizeof(f128_atan_reduced_coeffs[0]));
 
         const f128_s z2 = mul_inline(z, z);
-        f128_s p = f128_atan_reduced_coeffs[count - 1];
-        for (int i = count - 2; i >= 0; --i)
-            p = mul_add_inline(p, z2, f128_atan_reduced_coeffs[i]);
+        const f128_s p = horner_reverse(f128_atan_reduced_coeffs, static_cast<std::size_t>(count), z2);
 
         return mul_inline(z, p);
     }
@@ -1252,9 +1270,7 @@ namespace detail::_f128
     {
         constexpr int count = static_cast<int>(sizeof(lgamma1p_coeff) / sizeof(lgamma1p_coeff[0]));
 
-        f128_s p = lgamma1p_coeff[count - 1];
-        for (int i = count - 2; i >= 0; --i)
-            p = mul_add_inline(p, y, lgamma1p_coeff[i]);
+        const f128_s p = horner_reverse(lgamma1p_coeff, static_cast<std::size_t>(count), y);
 
         return mul_inline(y, mul_add_inline(y, p, -egamma));
     }
@@ -1262,9 +1278,7 @@ namespace detail::_f128
     {
         constexpr int count = static_cast<int>(sizeof(lgamma1p5_coeff) / sizeof(lgamma1p5_coeff[0]));
 
-        f128_s p = lgamma1p5_coeff[count - 1];
-        for (int i = count - 2; i >= 0; --i)
-            p = mul_add_inline(p, y, lgamma1p5_coeff[i]);
+        const f128_s p = horner_reverse(lgamma1p5_coeff, static_cast<std::size_t>(count), y);
 
         const f128_s constant = sub_inline(half_log_two_pi, mul_inline(f128_s{ 1.5 }, ln2));
         const f128_s linear = sub_inline(sub_inline(f128_s{ 2.0 }, egamma), mul_inline(f128_s{ 2.0 }, ln2));
@@ -1299,31 +1313,10 @@ namespace detail::_f128
     {
         const f128_s inv = div_inline(f128_s{ 1.0 }, z);
         const f128_s inv2 = mul_inline(inv, inv);
-
-        f128_s series = div_inline(inv, f128_s{ 12.0 });
-        f128_s invpow = mul_inline(inv, inv2);
-
-        series = sub_inline(series, div_inline(invpow, f128_s{ 360.0 }));
-        invpow = mul_inline(invpow, inv2);
-        series = add_inline(series, div_inline(invpow, f128_s{ 1260.0 }));
-        invpow = mul_inline(invpow, inv2);
-        series = sub_inline(series, div_inline(invpow, f128_s{ 1680.0 }));
-        invpow = mul_inline(invpow, inv2);
-        series = add_inline(series, div_inline(invpow, f128_s{ 1188.0 }));
-        invpow = mul_inline(invpow, inv2);
-        series = sub_inline(series, mul_inline(invpow, div_inline(f128_s{ 691.0 }, f128_s{ 360360.0 })));
-        invpow = mul_inline(invpow, inv2);
-        series = add_inline(series, div_inline(invpow, f128_s{ 156.0 }));
-        invpow = mul_inline(invpow, inv2);
-        series = sub_inline(series, mul_inline(invpow, div_inline(f128_s{ 3617.0 }, f128_s{ 122400.0 })));
-        invpow = mul_inline(invpow, inv2);
-        series = add_inline(series, mul_inline(invpow, div_inline(f128_s{ 43867.0 }, f128_s{ 244188.0 })));
-        invpow = mul_inline(invpow, inv2);
-        series = sub_inline(series, mul_inline(invpow, div_inline(f128_s{ 174611.0 }, f128_s{ 125400.0 })));
-        invpow = mul_inline(invpow, inv2);
-        series = add_inline(series, mul_inline(invpow, div_inline(f128_s{ 77683.0 }, f128_s{ 5796.0 })));
-        invpow = mul_inline(invpow, inv2);
-        series = sub_inline(series, mul_inline(invpow, div_inline(f128_s{ 236364091.0 }, f128_s{ 1506960.0 })));
+        const f128_s series = mul_inline(inv, horner_reverse(
+            lgamma_stirling_coeffs,
+            sizeof(lgamma_stirling_coeffs) / sizeof(lgamma_stirling_coeffs[0]),
+            inv2));
 
         return add_inline(add_inline(sub_inline(mul_inline(sub_inline(z, f128_s{ 0.5 }), log(z)), z), half_log_two_pi), series);
     }

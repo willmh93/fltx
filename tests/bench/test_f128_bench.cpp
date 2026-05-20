@@ -16,7 +16,6 @@
 #include <type_traits>
 #include <utility>
 
-#define FLTX_INLINE_LEVEL 2
 #include <f128_math.h>
 #include <f128_io.h>
 #include "benchmark_chart_writer.h"
