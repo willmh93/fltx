@@ -17,6 +17,31 @@
 #include <type_traits>
 #include <utility>
 
+#ifndef BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH
+#if BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL
+#define BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
+    do                                                                        \
+    {                                                                         \
+        if consteval                                                          \
+        {                                                                     \
+            return (CONSTEVAL_EXPR);                                          \
+        }                                                                     \
+        else                                                                  \
+        {                                                                     \
+            return (RUNTIME_EXPR);                                            \
+        }                                                                     \
+    } while (false)
+#else
+#define BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
+    do                                                                        \
+    {                                                                         \
+        if (bl::is_constant_evaluated())                                      \
+            return (CONSTEVAL_EXPR);                                          \
+        return (RUNTIME_EXPR);                                                \
+    } while (false)
+#endif
+#endif
+
 namespace bl {
 
 namespace detail::_f256
@@ -796,507 +821,297 @@ namespace detail::_f256_expr
     // scalar evaluation dispatch
     BL_FORCE_INLINE constexpr f256_s add_eval(const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_inline(a, b);
-
-        return detail::_f256_runtime::add(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_inline(a, b), detail::_f256_runtime::add(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s sub_eval(const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::sub_inline(a, b);
-
-        return detail::_f256_runtime::sub(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::sub_inline(a, b), detail::_f256_runtime::sub(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s mul_eval(const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_inline(a, b);
-
-        return detail::_f256_runtime::mul(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_inline(a, b), detail::_f256_runtime::mul(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s div_eval(const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(a, b);
-
-        return detail::_f256_runtime::div(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(a, b), detail::_f256_runtime::div(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s add_double_eval(const f256_s& a, double b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_double_inline(a, b);
-
-        return detail::_f256_runtime::add_double(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_double_inline(a, b), detail::_f256_runtime::add_double(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s sub_double_eval(const f256_s& a, double b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::sub_double_inline(a, b);
-
-        return detail::_f256_runtime::sub_double(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::sub_double_inline(a, b), detail::_f256_runtime::sub_double(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s sub_double_eval(double a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::sub_double_inline(a, b);
-
-        return detail::_f256_runtime::sub_double(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::sub_double_inline(a, b), detail::_f256_runtime::sub_double(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s div_double_eval(const f256_s& a, double b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_double_inline(a, b);
-
-        return detail::_f256_runtime::div_double(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_double_inline(a, b), detail::_f256_runtime::div_double(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s div_double_eval(double a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_double_inline(a, b);
-
-        return detail::_f256_runtime::div_double(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_double_inline(a, b), detail::_f256_runtime::div_double(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s mul_pow2_or_double_eval(const f256_s& a, double b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_pow2_or_double_inline(a, b);
-
-        return detail::_f256_runtime::mul_pow2_or_double(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_pow2_or_double_inline(a, b), detail::_f256_runtime::mul_pow2_or_double(a, b));
     }
 
     // prod-value fused eval
     BL_FORCE_INLINE constexpr f256_s mul_add_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_add_inline(a, b, c);
-
-        return detail::_f256_runtime::mul_add(a, b, c);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_add_inline(a, b, c), detail::_f256_runtime::mul_add(a, b, c));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_sub_inline(a, b, c);
-
-        return detail::_f256_runtime::mul_sub(a, b, c);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_sub_inline(a, b, c), detail::_f256_runtime::mul_sub(a, b, c));
     }
     BL_FORCE_INLINE constexpr f256_s value_sub_mul_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::value_sub_mul_inline(a, b, c);
-
-        return detail::_f256_runtime::value_sub_mul(a, b, c);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::value_sub_mul_inline(a, b, c), detail::_f256_runtime::value_sub_mul(a, b, c));
     }
     BL_FORCE_INLINE constexpr f256_s mul_add_mul_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_add_mul_inline(a, b, c, d);
-
-        return detail::_f256_runtime::mul_add_mul(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256_runtime::mul_add_mul(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_mul_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_sub_mul_inline(a, b, c, d);
-
-        return detail::_f256_runtime::mul_sub_mul(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_sub_mul_inline(a, b, c, d), detail::_f256_runtime::mul_sub_mul(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s mul_add_mul_add_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_add_mul_add_inline(a, b, c, d, e);
-
-        return detail::_f256_runtime::mul_add_mul_add(a, b, c, d, e);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_add_mul_add_inline(a, b, c, d, e), detail::_f256_runtime::mul_add_mul_add(a, b, c, d, e));
     }
     BL_FORCE_INLINE constexpr f256_s mul_add_mul_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_add_mul_sub_inline(a, b, c, d, e);
-
-        return detail::_f256_runtime::mul_add_mul_sub(a, b, c, d, e);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_add_mul_sub_inline(a, b, c, d, e), detail::_f256_runtime::mul_add_mul_sub(a, b, c, d, e));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_mul_add_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_sub_mul_add_inline(a, b, c, d, e);
-
-        return detail::_f256_runtime::mul_sub_mul_add(a, b, c, d, e);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_sub_mul_add_inline(a, b, c, d, e), detail::_f256_runtime::mul_sub_mul_add(a, b, c, d, e));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_mul_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_sub_mul_sub_inline(a, b, c, d, e);
-
-        return detail::_f256_runtime::mul_sub_mul_sub(a, b, c, d, e);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_sub_mul_sub_inline(a, b, c, d, e), detail::_f256_runtime::mul_sub_mul_sub(a, b, c, d, e));
     }
 
     // additive fused eval
     BL_FORCE_INLINE constexpr f256_s add_add_add_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_add_add_inline(a, b, c);
-
-        return detail::_f256_runtime::add_add_add(a, b, c);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_add_add_inline(a, b, c), detail::_f256_runtime::add_add_add(a, b, c));
     }
     BL_FORCE_INLINE constexpr f256_s add_sub_add_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_sub_add_inline(a, b, c);
-
-        return detail::_f256_runtime::add_sub_add(a, b, c);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_sub_add_inline(a, b, c), detail::_f256_runtime::add_sub_add(a, b, c));
     }
     BL_FORCE_INLINE constexpr f256_s add_add_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_add_sub_inline(a, b, c);
-
-        return detail::_f256_runtime::add_add_sub(a, b, c);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_add_sub_inline(a, b, c), detail::_f256_runtime::add_add_sub(a, b, c));
     }
     BL_FORCE_INLINE constexpr f256_s add_sub_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_sub_sub_inline(a, b, c);
-
-        return detail::_f256_runtime::add_sub_sub(a, b, c);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_sub_sub_inline(a, b, c), detail::_f256_runtime::add_sub_sub(a, b, c));
     }
 
     // scaled additive eval
     BL_FORCE_INLINE constexpr f256_s add_scaled_2_1_eval(const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_scaled_inline<2, 1>(a, b);
-
-        return detail::_f256_runtime::add_scaled_2_1(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH((detail::_f256::add_scaled_inline<2, 1>(a, b)), detail::_f256_runtime::add_scaled_2_1(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s add_scaled_1_2_eval(const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_scaled_inline<1, 2>(a, b);
-
-        return detail::_f256_runtime::add_scaled_1_2(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH((detail::_f256::add_scaled_inline<1, 2>(a, b)), detail::_f256_runtime::add_scaled_1_2(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s add_scaled_2_neg1_eval(const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_scaled_inline<2, -1>(a, b);
-
-        return detail::_f256_runtime::add_scaled_2_neg1(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH((detail::_f256::add_scaled_inline<2, -1>(a, b)), detail::_f256_runtime::add_scaled_2_neg1(a, b));
     }
     BL_FORCE_INLINE constexpr f256_s add_scaled_1_neg2_eval(const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_scaled_inline<1, -2>(a, b);
-
-        return detail::_f256_runtime::add_scaled_1_neg2(a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH((detail::_f256::add_scaled_inline<1, -2>(a, b)), detail::_f256_runtime::add_scaled_1_neg2(a, b));
     }
 
     // double-scaled eval
     BL_FORCE_INLINE constexpr f256_s add_mul_double_eval(const f256_s& add, const f256_s& value, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_mul_double_inline(add, value, scalar);
-
-        return detail::_f256_runtime::add_mul_double(add, value, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_mul_double_inline(add, value, scalar), detail::_f256_runtime::add_mul_double(add, value, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s sub_mul_double_eval(const f256_s& min, const f256_s& value, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::sub_mul_double_inline(min, value, scalar);
-
-        return detail::_f256_runtime::sub_mul_double(min, value, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::sub_mul_double_inline(min, value, scalar), detail::_f256_runtime::sub_mul_double(min, value, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s mul_double_sub_eval(const f256_s& value, double scalar, const f256_s& sub) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::mul_double_sub_inline(value, scalar, sub);
-
-        return detail::_f256_runtime::mul_double_sub(value, scalar, sub);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::mul_double_sub_inline(value, scalar, sub), detail::_f256_runtime::mul_double_sub(value, scalar, sub));
     }
     BL_FORCE_INLINE constexpr f256_s div_add_double_eval(const f256_s& numerator, const f256_s& base_den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_add_double_inline(numerator, base_den, scalar);
-
-        return detail::_f256_runtime::div_add_double(numerator, base_den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_add_double_inline(numerator, base_den, scalar), detail::_f256_runtime::div_add_double(numerator, base_den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s div_double_sub_eval(const f256_s& numerator, double scalar, const f256_s& base_den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_double_sub_inline(numerator, scalar, base_den);
-
-        return detail::_f256_runtime::div_double_sub(numerator, scalar, base_den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_double_sub_inline(numerator, scalar, base_den), detail::_f256_runtime::div_double_sub(numerator, scalar, base_den));
     }
 
     // chained numerator eval
     BL_FORCE_INLINE constexpr f256_s mul_add_add_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_inline(detail::_f256::mul_add_inline(a, b, c), d);
-
-        return detail::_f256_runtime::mul_add_add(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_inline(detail::_f256::mul_add_inline(a, b, c), d), detail::_f256_runtime::mul_add_add(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s mul_add_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::sub_inline(detail::_f256::mul_add_inline(a, b, c), d);
-
-        return detail::_f256_runtime::mul_add_sub(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::sub_inline(detail::_f256::mul_add_inline(a, b, c), d), detail::_f256_runtime::mul_add_sub(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_add_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_inline(detail::_f256::mul_sub_inline(a, b, c), d);
-
-        return detail::_f256_runtime::mul_sub_add(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_inline(detail::_f256::mul_sub_inline(a, b, c), d), detail::_f256_runtime::mul_sub_add(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::sub_inline(detail::_f256::mul_sub_inline(a, b, c), d);
-
-        return detail::_f256_runtime::mul_sub_sub(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::sub_inline(detail::_f256::mul_sub_inline(a, b, c), d), detail::_f256_runtime::mul_sub_sub(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s mul_add_mul_add_mul_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e, const f256_s& f) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256::mul_inline(e, f));
-
-        return detail::_f256_runtime::mul_add_mul_add_mul(a, b, c, d, e, f);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256::mul_inline(e, f)), detail::_f256_runtime::mul_add_mul_add_mul(a, b, c, d, e, f));
     }
     BL_FORCE_INLINE constexpr f256_s mul_add_mul_add_mul_add_mul_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& e, const f256_s& f, const f256_s& g, const f256_s& h) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256::mul_add_mul_inline(e, f, g, h));
-
-        return detail::_f256_runtime::mul_add_mul_add_mul_add_mul(a, b, c, d, e, f, g, h);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256::mul_add_mul_inline(e, f, g, h)), detail::_f256_runtime::mul_add_mul_add_mul_add_mul(a, b, c, d, e, f, g, h));
     }
     BL_FORCE_INLINE constexpr f256_s add_add_add_add_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_inline(detail::_f256::add_add_add_inline(a, b, c), d);
-
-        return detail::_f256_runtime::add_add_add_add(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_inline(detail::_f256::add_add_add_inline(a, b, c), d), detail::_f256_runtime::add_add_add_add(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s add_add_add_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::sub_inline(detail::_f256::add_add_add_inline(a, b, c), d);
-
-        return detail::_f256_runtime::add_add_add_sub(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::sub_inline(detail::_f256::add_add_add_inline(a, b, c), d), detail::_f256_runtime::add_add_add_sub(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s add_add_sub_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::sub_inline(detail::_f256::add_add_sub_inline(a, b, c), d);
-
-        return detail::_f256_runtime::add_add_sub_sub(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::sub_inline(detail::_f256::add_add_sub_inline(a, b, c), d), detail::_f256_runtime::add_add_sub_sub(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s add_sub_sub_sub_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::sub_inline(detail::_f256::add_sub_sub_inline(a, b, c), d);
-
-        return detail::_f256_runtime::add_sub_sub_sub(a, b, c, d);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::sub_inline(detail::_f256::add_sub_sub_inline(a, b, c), d), detail::_f256_runtime::add_sub_sub_sub(a, b, c, d));
     }
     BL_FORCE_INLINE constexpr f256_s mul_double_add_mul_double_eval(const f256_s& a, double a_scalar, const f256_s& b, double b_scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_raw5_raw5_inline(detail::_f256::mul_double_raw5_inline(a, a_scalar), detail::_f256::mul_double_raw5_inline(b, b_scalar));
-
-        return detail::_f256_runtime::mul_double_add_mul_double(a, a_scalar, b, b_scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_raw5_raw5_inline(detail::_f256::mul_double_raw5_inline(a, a_scalar), detail::_f256::mul_double_raw5_inline(b, b_scalar)), detail::_f256_runtime::mul_double_add_mul_double(a, a_scalar, b, b_scalar));
     }
     BL_FORCE_INLINE constexpr f256_s mul_double_add_mul_double_add_eval(const f256_s& a, double a_scalar, const f256_s& b, double b_scalar, const f256_s& c) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::add_raw5_raw5_value_inline(detail::_f256::mul_double_raw5_inline(a, a_scalar), detail::_f256::mul_double_raw5_inline(b, b_scalar), c);
-
-        return detail::_f256_runtime::mul_double_add_mul_double_add(a, a_scalar, b, b_scalar, c);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::add_raw5_raw5_value_inline(detail::_f256::mul_double_raw5_inline(a, a_scalar), detail::_f256::mul_double_raw5_inline(b, b_scalar), c), detail::_f256_runtime::mul_double_add_mul_double_add(a, a_scalar, b, b_scalar, c));
     }
 
     // den fused eval
     BL_FORCE_INLINE constexpr f256_s div_add_eval(const f256_s& numerator, const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(numerator, detail::_f256::add_inline(a, b));
-
-        return detail::_f256_runtime::div_add(numerator, a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(numerator, detail::_f256::add_inline(a, b)), detail::_f256_runtime::div_add(numerator, a, b));
     }
     BL_FORCE_INLINE constexpr f256_s div_sub_eval(const f256_s& numerator, const f256_s& a, const f256_s& b) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(numerator, detail::_f256::sub_inline(a, b));
-
-        return detail::_f256_runtime::div_sub(numerator, a, b);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(numerator, detail::_f256::sub_inline(a, b)), detail::_f256_runtime::div_sub(numerator, a, b));
     }
     BL_FORCE_INLINE constexpr f256_s mul_add_div_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_add_inline(a, b, c), den);
-
-        return detail::_f256_runtime::mul_add_div(a, b, c, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_add_inline(a, b, c), den), detail::_f256_runtime::mul_add_div(a, b, c, den));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_div_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_sub_inline(a, b, c), den);
-
-        return detail::_f256_runtime::mul_sub_div(a, b, c, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_sub_inline(a, b, c), den), detail::_f256_runtime::mul_sub_div(a, b, c, den));
     }
     BL_FORCE_INLINE constexpr f256_s value_sub_mul_div_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::value_sub_mul_inline(a, b, c), den);
-
-        return detail::_f256_runtime::value_sub_mul_div(a, b, c, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::value_sub_mul_inline(a, b, c), den), detail::_f256_runtime::value_sub_mul_div(a, b, c, den));
     }
     BL_FORCE_INLINE constexpr f256_s mul_add_mul_div_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), den);
-
-        return detail::_f256_runtime::mul_add_mul_div(a, b, c, d, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), den), detail::_f256_runtime::mul_add_mul_div(a, b, c, d, den));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_mul_div_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_sub_mul_inline(a, b, c, d), den);
-
-        return detail::_f256_runtime::mul_sub_mul_div(a, b, c, d, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_sub_mul_inline(a, b, c, d), den), detail::_f256_runtime::mul_sub_mul_div(a, b, c, d, den));
     }
     BL_FORCE_INLINE constexpr f256_s add_add_add_div_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_add_add_inline(a, b, c), den);
-
-        return detail::_f256_runtime::add_add_add_div(a, b, c, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_add_add_inline(a, b, c), den), detail::_f256_runtime::add_add_add_div(a, b, c, den));
     }
     BL_FORCE_INLINE constexpr f256_s add_sub_add_div_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_sub_add_inline(a, b, c), den);
-
-        return detail::_f256_runtime::add_sub_add_div(a, b, c, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_sub_add_inline(a, b, c), den), detail::_f256_runtime::add_sub_add_div(a, b, c, den));
     }
     BL_FORCE_INLINE constexpr f256_s add_add_sub_div_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_add_sub_inline(a, b, c), den);
-
-        return detail::_f256_runtime::add_add_sub_div(a, b, c, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_add_sub_inline(a, b, c), den), detail::_f256_runtime::add_add_sub_div(a, b, c, den));
     }
     BL_FORCE_INLINE constexpr f256_s add_sub_sub_div_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_sub_sub_inline(a, b, c), den);
-
-        return detail::_f256_runtime::add_sub_sub_div(a, b, c, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_sub_sub_inline(a, b, c), den), detail::_f256_runtime::add_sub_sub_div(a, b, c, den));
     }
     BL_FORCE_INLINE constexpr f256_s add_mul_double_div_eval(const f256_s& add, const f256_s& value, double scalar, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_mul_double_inline(add, value, scalar), den);
-
-        return detail::_f256_runtime::add_mul_double_div(add, value, scalar, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_mul_double_inline(add, value, scalar), den), detail::_f256_runtime::add_mul_double_div(add, value, scalar, den));
     }
     BL_FORCE_INLINE constexpr f256_s sub_mul_double_div_eval(const f256_s& min, const f256_s& value, double scalar, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::sub_mul_double_inline(min, value, scalar), den);
-
-        return detail::_f256_runtime::sub_mul_double_div(min, value, scalar, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::sub_mul_double_inline(min, value, scalar), den), detail::_f256_runtime::sub_mul_double_div(min, value, scalar, den));
     }
     BL_FORCE_INLINE constexpr f256_s mul_double_sub_div_eval(const f256_s& value, double scalar, const f256_s& sub, const f256_s& den) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_double_sub_inline(value, scalar, sub), den);
-
-        return detail::_f256_runtime::mul_double_sub_div(value, scalar, sub, den);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_double_sub_inline(value, scalar, sub), den), detail::_f256_runtime::mul_double_sub_div(value, scalar, sub, den));
     }
 
     // add-double den eval
     BL_FORCE_INLINE constexpr f256_s mul_add_div_add_double_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_add_inline(a, b, c), detail::_f256::add_double_inline(den, scalar));
-
-        return detail::_f256_runtime::mul_add_div_add_double(a, b, c, den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_add_inline(a, b, c), detail::_f256::add_double_inline(den, scalar)), detail::_f256_runtime::mul_add_div_add_double(a, b, c, den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_div_add_double_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_sub_inline(a, b, c), detail::_f256::add_double_inline(den, scalar));
-
-        return detail::_f256_runtime::mul_sub_div_add_double(a, b, c, den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_sub_inline(a, b, c), detail::_f256::add_double_inline(den, scalar)), detail::_f256_runtime::mul_sub_div_add_double(a, b, c, den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s value_sub_mul_div_add_double_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::value_sub_mul_inline(a, b, c), detail::_f256::add_double_inline(den, scalar));
-
-        return detail::_f256_runtime::value_sub_mul_div_add_double(a, b, c, den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::value_sub_mul_inline(a, b, c), detail::_f256::add_double_inline(den, scalar)), detail::_f256_runtime::value_sub_mul_div_add_double(a, b, c, den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s mul_add_mul_div_add_double_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256::add_double_inline(den, scalar));
-
-        return detail::_f256_runtime::mul_add_mul_div_add_double(a, b, c, d, den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_add_mul_inline(a, b, c, d), detail::_f256::add_double_inline(den, scalar)), detail::_f256_runtime::mul_add_mul_div_add_double(a, b, c, d, den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s mul_sub_mul_div_add_double_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& d, const f256_s& den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_sub_mul_inline(a, b, c, d), detail::_f256::add_double_inline(den, scalar));
-
-        return detail::_f256_runtime::mul_sub_mul_div_add_double(a, b, c, d, den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_sub_mul_inline(a, b, c, d), detail::_f256::add_double_inline(den, scalar)), detail::_f256_runtime::mul_sub_mul_div_add_double(a, b, c, d, den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s add_add_add_div_add_double_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_add_add_inline(a, b, c), detail::_f256::add_double_inline(den, scalar));
-
-        return detail::_f256_runtime::add_add_add_div_add_double(a, b, c, den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_add_add_inline(a, b, c), detail::_f256::add_double_inline(den, scalar)), detail::_f256_runtime::add_add_add_div_add_double(a, b, c, den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s add_sub_add_div_add_double_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_sub_add_inline(a, b, c), detail::_f256::add_double_inline(den, scalar));
-
-        return detail::_f256_runtime::add_sub_add_div_add_double(a, b, c, den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_sub_add_inline(a, b, c), detail::_f256::add_double_inline(den, scalar)), detail::_f256_runtime::add_sub_add_div_add_double(a, b, c, den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s add_add_sub_div_add_double_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_add_sub_inline(a, b, c), detail::_f256::add_double_inline(den, scalar));
-
-        return detail::_f256_runtime::add_add_sub_div_add_double(a, b, c, den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_add_sub_inline(a, b, c), detail::_f256::add_double_inline(den, scalar)), detail::_f256_runtime::add_add_sub_div_add_double(a, b, c, den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s add_sub_sub_div_add_double_eval(const f256_s& a, const f256_s& b, const f256_s& c, const f256_s& den, double scalar) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_sub_sub_inline(a, b, c), detail::_f256::add_double_inline(den, scalar));
-
-        return detail::_f256_runtime::add_sub_sub_div_add_double(a, b, c, den, scalar);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_sub_sub_inline(a, b, c), detail::_f256::add_double_inline(den, scalar)), detail::_f256_runtime::add_sub_sub_div_add_double(a, b, c, den, scalar));
     }
     BL_FORCE_INLINE constexpr f256_s add_mul_double_div_add_double_eval(const f256_s& add, const f256_s& value, double val_s, const f256_s& den, double den_s) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::add_mul_double_inline(add, value, val_s), detail::_f256::add_double_inline(den, den_s));
-
-        return detail::_f256_runtime::add_mul_double_div_add_double(add, value, val_s, den, den_s);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::add_mul_double_inline(add, value, val_s), detail::_f256::add_double_inline(den, den_s)), detail::_f256_runtime::add_mul_double_div_add_double(add, value, val_s, den, den_s));
     }
     BL_FORCE_INLINE constexpr f256_s sub_mul_double_div_add_double_eval(const f256_s& min, const f256_s& value, double val_s, const f256_s& den, double den_s) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::sub_mul_double_inline(min, value, val_s), detail::_f256::add_double_inline(den, den_s));
-
-        return detail::_f256_runtime::sub_mul_double_div_add_double(min, value, val_s, den, den_s);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::sub_mul_double_inline(min, value, val_s), detail::_f256::add_double_inline(den, den_s)), detail::_f256_runtime::sub_mul_double_div_add_double(min, value, val_s, den, den_s));
     }
     BL_FORCE_INLINE constexpr f256_s mul_double_sub_div_add_double_eval(const f256_s& value, double val_s, const f256_s& sub, const f256_s& den, double den_s) noexcept
     {
-        if (bl::is_constant_evaluated())
-            return detail::_f256::div_inline(detail::_f256::mul_double_sub_inline(value, val_s, sub), detail::_f256::add_double_inline(den, den_s));
-
-        return detail::_f256_runtime::mul_double_sub_div_add_double(value, val_s, sub, den, den_s);
+        BL_F256_EXPR_CONSTEVAL_RUNTIME_DISPATCH(detail::_f256::div_inline(detail::_f256::mul_double_sub_inline(value, val_s, sub), detail::_f256::add_double_inline(den, den_s)), detail::_f256_runtime::mul_double_sub_div_add_double(value, val_s, sub, den, den_s));
     }
 
     // prod evaluation helpers

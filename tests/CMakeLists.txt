@@ -4,6 +4,9 @@ project(fltx LANGUAGES CXX)
 if (NOT COMMAND fltx_apply_fast_math_options)
     include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxFastMath.cmake")
 endif()
+if (NOT COMMAND fltx_apply_msvc_timing_reports)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxMsvcTiming.cmake")
+endif()
 
 find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
@@ -90,6 +93,8 @@ set(FLTX_LIBRARY_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../src/f128_math.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256_math.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256_math_transcendental.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256_math_pow.cpp"
 )
 
 function (addFltxTestLibrary _TARGET)
@@ -105,6 +110,8 @@ function (addFltxTestLibrary _TARGET)
     else()
         fltx_apply_fast_math_options(${_TARGET})
     endif()
+
+    fltx_apply_msvc_timing_reports(${_TARGET})
 endfunction()
 
 function (addFltxTestMacroStatus _TARGET)
@@ -126,6 +133,7 @@ function (addFltxTestMacroStatus _TARGET)
         fltx_apply_fast_math_options(${_STATUS_TARGET})
     endif()
 
+    fltx_apply_msvc_timing_reports(${_STATUS_TARGET})
     target_sources(${_TARGET} PRIVATE $<TARGET_OBJECTS:${_STATUS_TARGET}>)
 endfunction()
 
@@ -256,10 +264,7 @@ function (prepareTarget _TARGET _FLTX_LIBRARY)
         target_compile_definitions(${_TARGET} PRIVATE "FLTX_BENCH_OUTPUT_ROOT=\"${FLTX_BENCH_OUTPUT_ROOT}\"")
     endif()
 
-    if (MSVC)
-        target_compile_options(${_TARGET} PRIVATE /Bt+)
-        target_link_options(${_TARGET} PRIVATE /TIME)
-    endif()
+    fltx_apply_msvc_timing_reports(${_TARGET})
 endfunction()
 
 set(FLTX_PRECISION_TEST_LIBRARY fltx::fltx)
@@ -383,4 +388,8 @@ endif()
 
 if(FLTX_BUILD_MPFR_TESTS)
     addFltxTestMacroStatus(parity_tests ${FLTX_PARITY_TEST_DEFINITIONS})
+endif()
+
+if(NOT TARGET f256_expression_compile_bench)
+    add_subdirectory(expressions/f256)
 endif()

@@ -17,6 +17,7 @@
 #include <type_traits>
 #include <utility>
 
+
 namespace
 {
 using sample_type = bl::f256;

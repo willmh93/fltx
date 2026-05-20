@@ -7,6 +7,7 @@ set(FLTX_FAST_MATH_MODE ON)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(cmake/fltxFastMath.cmake)
+include(cmake/fltxMsvcTiming.cmake)
 
 #
 option(FLTX_BUILD_TESTS    "Build fltx tests"          ${PROJECT_IS_TOP_LEVEL})
@@ -19,6 +20,8 @@ add_library(fltx
     src/f128_math.cpp
     src/f256.cpp
     src/f256_math.cpp
+    src/f256_math_transcendental.cpp
+    src/f256_math_pow.cpp
 )
 
 add_library(fltx::fltx ALIAS fltx)
@@ -45,6 +48,7 @@ endif()
 
 target_compile_features(fltx ${FLTX_PUBLIC_SCOPE} cxx_std_23)
 fltx_apply_fast_math_options(fltx)
+fltx_apply_msvc_timing_reports(fltx)
 
 install(TARGETS fltx
     EXPORT fltxTargets
@@ -94,4 +98,8 @@ endif()
 
 if(FLTX_BUILD_ISOLATED)
     add_subdirectory(tests/unit_compile_tests)
+endif()
+
+if(NOT TARGET f256_expression_compile_bench)
+    add_subdirectory(tests/expressions/f256)
 endif()

@@ -99,8 +99,8 @@ namespace detail::_f256_constexpr
     BL_FORCE_INLINE constexpr f256_s log(const f256_s& a);
     BL_FORCE_INLINE constexpr f256_s log2(const f256_s& a);
     BL_FORCE_INLINE constexpr f256_s log10(const f256_s& a);
-    BL_FORCE_INLINE constexpr f256_s pow(const f256_s& x, const f256_s& y);
-    BL_FORCE_INLINE constexpr f256_s pow(const f256_s& x, double y);
+    BL_MSVC_NOINLINE constexpr f256_s pow(const f256_s& x, const f256_s& y);
+    BL_MSVC_NOINLINE constexpr f256_s pow(const f256_s& x, double y);
 
     BL_FORCE_INLINE constexpr bool   sincos(const f256_s& x, f256_s& s_out, f256_s& c_out);
     BL_FORCE_INLINE constexpr f256_s sin(const f256_s& x);
@@ -2780,7 +2780,7 @@ namespace detail::_f256
 {
     return canonicalize_math_result(_log(a) / ln10);
 }
-[[nodiscard]] BL_FORCE_INLINE  constexpr f256_s detail::_f256_constexpr::pow(const f256_s& x, const f256_s& y)
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s detail::_f256_constexpr::pow(const f256_s& x, const f256_s& y)
 {
     if (iszero(y))
         return f256_s{ 1.0 };
@@ -2810,7 +2810,7 @@ namespace detail::_f256
 
     return canonicalize_math_result(exp_for_pow(mul_inline(y, _log(x))));
 }
-[[nodiscard]] BL_FORCE_INLINE  constexpr f256_s detail::_f256_constexpr::pow(const f256_s& x, double y)
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s detail::_f256_constexpr::pow(const f256_s& x, double y)
 {
     if (y == 0.0)
         return f256_s{ 1.0 };
