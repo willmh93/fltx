@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f128/consts.h - internal constants and coefficient tables for f128 math.
+ * fltx/detail/f128/consts.h - Internal constants and coefficient tables for f128 math.
  *
  * Copyright (c) 2026 William Hemsworth
  *

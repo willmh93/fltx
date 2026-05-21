@@ -1,5 +1,5 @@
 /**
- * fltx/io.h - Unified formatting and parsing interface for FLTX types.
+ * fltx/io.h - Unified formatting and parsing interface.
  *
  * Copyright (c) 2026 William Hemsworth
  *

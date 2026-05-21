@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f256/consts.h - internal constants and coefficient tables for f256 math.
+ * fltx/detail/f256/consts.h - Internal constants and coefficient tables for f256 math.
  *
  * Copyright (c) 2026 William Hemsworth
  *

@@ -9,8 +9,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_ERF_IMPL_INCLUDED
-#define FLTX_F256_DETAIL_ERF_IMPL_INCLUDED
+#ifndef FLTX_F256_DETAIL_ERF_INCLUDED
+#define FLTX_F256_DETAIL_ERF_INCLUDED
 #include "fltx/detail/f256/math/exp_log.h"
 
 namespace bl {

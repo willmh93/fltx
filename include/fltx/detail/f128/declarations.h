@@ -1,5 +1,5 @@
 /**
- * fltx/f128/detail/declarations.h - shared f128 math declarations.
+ * fltx/f128/detail/declarations.h - Shared f128 math declarations.
  *
  * Copyright (c) 2026 William Hemsworth
  *

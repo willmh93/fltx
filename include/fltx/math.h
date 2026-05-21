@@ -9,6 +9,7 @@
 
 #ifndef FLTX_MATH_INCLUDED
 #define FLTX_MATH_INCLUDED
+
 #include "fltx/core.h"
 #include "fltx/f32/math.h"
 #include "fltx/f64/math.h"

@@ -1,5 +1,5 @@
 /**
- * fltx/f256/math/basic.h - basic f256 operations.
+ * fltx/f256/math/basic.h - Basic f256 operations.
  *
  * Rounding, decomposition, square root, remainders, scaling, cbrt, hypot, fused arithmetic helpers, and adjacent-value operations.
  * Runtime calls dispatch to compiled library bodies; constant evaluation uses

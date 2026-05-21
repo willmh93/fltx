@@ -1,5 +1,5 @@
 /**
- * fltx/f128/classification.h - value utilities and classification predicates for f128.
+ * fltx/f128/classification.h - Value utilities and classification predicates for f128.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -35,7 +35,7 @@ namespace bl {
 
 [[nodiscard]] BL_FORCE_INLINE constexpr bool signbit(const f128_s& x) noexcept
 {
-    return detail::_f128::signbit_constexpr(x.hi) || (x.hi == 0.0 && detail::_f128::signbit_constexpr(x.lo));
+    return detail::_f128::signbit(x.hi) || (x.hi == 0.0 && detail::_f128::signbit(x.lo));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr int fpclassify(const f128_s& x) noexcept

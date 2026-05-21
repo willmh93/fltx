@@ -1,7 +1,7 @@
 /**
- * fltx/detail/f128/math_support.h - shared f128 math implementation support.
+ * fltx/detail/f128/math_shared.h - Shared f128 math implementation support.
  *
- * Shared f128 helpers used by math-family implementation headers.
+ * Shared f128 helpers used by math implementation headers.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -9,8 +9,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_MATH_SUPPORT_IMPL_INCLUDED
-#define FLTX_F128_DETAIL_MATH_SUPPORT_IMPL_INCLUDED
+#ifndef FLTX_F128_DETAIL_MATH_SHARED_INCLUDED
+#define FLTX_F128_DETAIL_MATH_SHARED_INCLUDED
 #include "fltx/detail/f128/declarations.h"
 #include "fltx/f128/rounding.h"
 
@@ -18,19 +18,19 @@ namespace bl {
 
 namespace detail::_f128
 {
-    using detail::fp::signbit_constexpr;
-    using detail::fp::fabs_constexpr;
-    using detail::fp::floor_constexpr;
-    using detail::fp::ceil_constexpr;
+    using detail::fp::signbit;
+    using detail::fp::fabs;
+    using detail::fp::floor;
+    using detail::fp::ceil;
     using detail::fp::double_integer_is_odd;
-    using detail::fp::fmod_constexpr;
-    using detail::fp::sqrt_seed_constexpr;
+    using detail::fp::fmod;
+    using detail::fp::sqrt_seed;
     using detail::fp::nearbyint_ties_even;
 
     BL_FORCE_INLINE constexpr int frexp_exponent(double value) noexcept
     {
         if (bl::use_constexpr_math())
-            return detail::fp::frexp_exponent_constexpr(value);
+            return detail::fp::frexp_exponent(value);
 
         int exponent = 0;
         (void)std::frexp(value, &exponent);
@@ -40,7 +40,7 @@ namespace detail::_f128
     BL_FORCE_INLINE constexpr double ldexp_limb(double value, int exponent) noexcept
     {
         if (bl::use_constexpr_math())
-            return detail::fp::ldexp_constexpr2(value, exponent);
+            return detail::fp::ldexp(value, exponent);
 
         return std::ldexp(value, exponent);
     }
@@ -57,8 +57,8 @@ namespace detail::_f128
         if (bl::use_constexpr_math())
         {
             return renorm(
-                detail::fp::ldexp_constexpr2(x.hi, e),
-                detail::fp::ldexp_constexpr2(x.lo, e)
+                detail::fp::ldexp(x.hi, e),
+                detail::fp::ldexp(x.lo, e)
             );
         }
         else
@@ -329,12 +329,12 @@ namespace detail::_f128
 
         if (ax.lo == 0.0)
         {
-            out = f128_s{ fmod_constexpr(ax.hi, ay), 0.0 };
+            out = f128_s{ fmod(ax.hi, ay), 0.0 };
             return true;
         }
 
-        const double rh = (ax.hi < ay) ? ax.hi : fmod_constexpr(ax.hi, ay);
-        const double rl = (absd(ax.lo) < ay) ? ax.lo : fmod_constexpr(ax.lo, ay);
+        const double rh = (ax.hi < ay) ? ax.hi : fmod(ax.hi, ay);
+        const double rl = (absd(ax.lo) < ay) ? ax.lo : fmod(ax.lo, ay);
 
         f128_s r = add_inline(f128_s{ rh, 0.0 }, f128_s{ rl, 0.0 });
 
@@ -393,8 +393,8 @@ namespace detail::_f128
 
         const std::uint64_t c1 = fmod_u128_get_bits(q, 0, 53);
         const std::uint64_t c0 = fmod_u128_get_bits(q, 53, 53);
-        const double hi = c0 ? detail::fp::ldexp_constexpr2(static_cast<double>(c0), e2 - 52) : 0.0;
-        const double lo = c1 ? detail::fp::ldexp_constexpr2(static_cast<double>(c1), e2 - 105) : 0.0;
+        const double hi = c0 ? detail::fp::ldexp(static_cast<double>(c0), e2 - 52) : 0.0;
+        const double lo = c1 ? detail::fp::ldexp(static_cast<double>(c1), e2 - 105) : 0.0;
 
         f128_s out = renorm(hi, lo);
         return neg ? -out : out;
@@ -426,7 +426,7 @@ namespace detail::_f128
 
         f128_s out = exact_dyadic_to_f128_fmod(remainder, out_exp, !ispositive(x));
         if (iszero(out))
-            return f128_s{ signbit_constexpr(x.hi) ? -0.0 : 0.0 };
+            return f128_s{ signbit(x.hi) ? -0.0 : 0.0 };
         return out;
     }
 
@@ -449,8 +449,8 @@ namespace detail::_f128
     {
         const std::uint64_t c1 = q.get_bits(0, 53);
         const std::uint64_t c0 = q.get_bits(53, 53);
-        const double hi = c0 ? detail::fp::ldexp_constexpr2(static_cast<double>(c0), e2 - 52) : 0.0;
-        const double lo = c1 ? detail::fp::ldexp_constexpr2(static_cast<double>(c1), e2 - 105) : 0.0;
+        const double hi = c0 ? detail::fp::ldexp(static_cast<double>(c0), e2 - 52) : 0.0;
+        const double lo = c1 ? detail::fp::ldexp(static_cast<double>(c1), e2 - 105) : 0.0;
 
         f128_s out = renorm(hi, lo);
         return neg ? -out : out;
@@ -513,7 +513,6 @@ namespace detail::_f128
         return abs(a);
     }
 
-    using detail::fp::nextafter_double_constexpr;
     BL_FORCE_INLINE constexpr f128_s round_half_away_zero(const f128_s& x) noexcept
     {
         if (isnan(x) || isinf(x) || iszero(x))
@@ -550,7 +549,7 @@ namespace detail::_f128
         {
             t = add_inline(t, f128_s{ 1.0 });
             if (iszero(t))
-                return f128_s{ signbit_constexpr(a.hi) ? -0.0 : 0.0 };
+                return f128_s{ signbit(a.hi) ? -0.0 : 0.0 };
             return t;
         }
 
@@ -558,7 +557,7 @@ namespace detail::_f128
             t = add_inline(t, f128_s{ 1.0 });
 
         if (iszero(t))
-            return f128_s{ signbit_constexpr(a.hi) ? -0.0 : 0.0 };
+            return f128_s{ signbit(a.hi) ? -0.0 : 0.0 };
 
         return t;
     }
@@ -609,7 +608,7 @@ namespace detail::_f128
         if (abs_frac > f128_s{ 0.5 } || (!ties_to_even && abs_frac == f128_s{ 0.5 }) ||
             (ties_to_even && abs_frac == f128_s{ 0.5 } && (base & 1ll) != 0))
         {
-            rounded += (x.hi < 0.0 || (x.hi == 0.0 && signbit_constexpr(x.hi))) ? -1 : 1;
+            rounded += (x.hi < 0.0 || (x.hi == 0.0 && signbit(x.hi))) ? -1 : 1;
         }
 
         if (rounded < lo_i || rounded > hi_i)
@@ -765,7 +764,7 @@ namespace detail::_f128
 
     double y0;
     if (bl::use_constexpr_math()) {
-        y0 = sqrt_seed_constexpr(scaled_a.hi);
+        y0 = sqrt_seed(scaled_a.hi);
         f128_s y{ y0 };
         y = add_inline(y, div_inline(sub_mul_inline(scaled_a, y, y), add_inline(y, y)));
         y = add_inline(y, div_inline(sub_mul_inline(scaled_a, y, y), add_inline(y, y)));
@@ -807,7 +806,7 @@ namespace detail::_f128
     if (y.lo == 0.0 && fmod_fast_double_divisor_abs(ax, ay.hi, fast))
     {
         if (iszero(fast))
-            return f128_s{ signbit_constexpr(x.hi) ? -0.0 : 0.0 };
+            return f128_s{ signbit(x.hi) ? -0.0 : 0.0 };
         return ispositive(x) ? fast : -fast;
     }
 
@@ -831,7 +830,7 @@ namespace detail::_f128
     int e = 0;
 
     if (bl::use_constexpr_math())
-        e = detail::fp::frexp_exponent_constexpr(lead);
+        e = detail::fp::frexp_exponent(lead);
     else
         (void)std::frexp(lead, &e);
 
@@ -876,7 +875,7 @@ namespace detail::_f128
 
     return renorm(
         from.hi,
-        nextafter_double_constexpr(from.lo, toward)
+        detail::fp::nextafter(from.lo, toward)
     );
 }
 

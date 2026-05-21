@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f256/math/hyperbolic.h - hyperbolic implementation details.
+ * fltx/detail/f256/math/hyperbolic.h - Hyperbolic implementation details.
  *
  * f256 sinh/cosh/tanh and inverse hyperbolic implementations.
  *
@@ -9,15 +9,15 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_HYPERBOLIC_IMPL_INCLUDED
-#define FLTX_F256_DETAIL_HYPERBOLIC_IMPL_INCLUDED
+#ifndef FLTX_F256_DETAIL_HYPERBOLIC_INCLUDED
+#define FLTX_F256_DETAIL_HYPERBOLIC_INCLUDED
 #include "fltx/detail/f256/math/exp_log.h"
 
 namespace bl {
 
 namespace detail::_f256
 {
-    BL_MSVC_NOINLINE constexpr f256_s atanh_small_series_constexpr(const f256_s& x)
+    BL_MSVC_NOINLINE constexpr f256_s atanh_small_series(const f256_s& x)
     {
         const f256_s x2 = sqr_inline(x);
         f256_s sum   = x;
@@ -196,7 +196,7 @@ namespace detail::_f256
     if (ax <= f256_s{ 0.125 })
     {
         if (bl::use_constexpr_math())
-            return canonicalize_math_result(atanh_small_series_constexpr(x));
+            return canonicalize_math_result(atanh_small_series(x));
 
         return canonicalize_math_result(atanh_small_series_runtime(x));
     }

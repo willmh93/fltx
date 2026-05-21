@@ -1,5 +1,5 @@
 /**
- * fltx/f128/comparison.h - comparison operators for f128.
+ * fltx/f128/comparison.h - Comparison operators for f128.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -9,98 +9,181 @@
 
 #ifndef FLTX_F128_COMPARISON_INCLUDED
 #define FLTX_F128_COMPARISON_INCLUDED
+#include <type_traits>
+
 #include "fltx/f128/type.h"
 
 namespace bl {
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, const f128_s& b)  { return (a.hi < b.hi) || (a.hi == b.hi && a.lo <  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, const f128_s& b)  { return (a.hi > b.hi) || (a.hi == b.hi && a.lo >  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, const f128_s& b) { return (a.hi < b.hi) || (a.hi == b.hi && a.lo <= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, const f128_s& b) { return (a.hi > b.hi) || (a.hi == b.hi && a.lo >= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, const f128_s& b) { return a.hi == b.hi && a.lo == b.lo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, const f128_s& b) { return a.hi != b.hi || a.lo != b.lo; }
+namespace detail::_f128
+{
+    template<class T>
+    concept compare_scalar =
+        !std::is_same_v<std::remove_cvref_t<T>, bool> &&
+        (std::is_same_v<std::remove_cvref_t<T>, float> ||
+         std::is_same_v<std::remove_cvref_t<T>, double> ||
+         detail::fp::is_integer_scalar_v<std::remove_cvref_t<T>>);
+
+    BL_FORCE_INLINE constexpr bool compare_less(double ahi, double alo, double bhi, double blo) noexcept
+    {
+        return (ahi < bhi) || (ahi == bhi && alo < blo);
+    }
+
+    BL_FORCE_INLINE constexpr bool compare_less_equal(double ahi, double alo, double bhi, double blo) noexcept
+    {
+        return (ahi < bhi) || (ahi == bhi && alo <= blo);
+    }
+
+    BL_FORCE_INLINE constexpr bool compare_equal(double ahi, double alo, double bhi, double blo) noexcept
+    {
+        return ahi == bhi && alo == blo;
+    }
+
+    template<class T>
+    BL_FORCE_INLINE constexpr void compare_terms(T value, double& hi, double& lo) noexcept
+    {
+        using clean_t = std::remove_cvref_t<T>;
+
+        if constexpr (std::is_same_v<clean_t, float> ||
+                      std::is_same_v<clean_t, double> ||
+                      detail::fp::integer_type_fits_exact_double_v<clean_t>)
+        {
+            hi = static_cast<double>(value);
+            lo = 0.0;
+        }
+        else if constexpr (std::is_signed_v<clean_t>)
+        {
+            detail::fp::int64_to_exact_double_pair(static_cast<int64_t>(value), hi, lo);
+        }
+        else
+        {
+            detail::fp::uint64_to_exact_double_pair(static_cast<uint64_t>(value), hi, lo);
+        }
+    }
+
+} // namespace detail::_f128
 
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, double b)  { return (a.hi < b) || (a.hi == b && a.lo <  0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(double a, const f128_s& b)  { return (a < b.hi) || (a == b.hi && 0.0 <  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, double b)  { return (a.hi > b) || (a.hi == b && a.lo >  0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(double a, const f128_s& b)  { return (a > b.hi) || (a == b.hi && 0.0 >  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, double b) { return (a.hi < b) || (a.hi == b && a.lo <= 0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(double a, const f128_s& b) { return (a < b.hi) || (a == b.hi && 0.0 <= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, double b) { return (a.hi > b) || (a.hi == b && a.lo >= 0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(double a, const f128_s& b) { return (a > b.hi) || (a == b.hi && 0.0 >= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, double b) { return a.hi == b && a.lo == 0.0; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(double a, const f128_s& b) { return a == b.hi && 0.0 == b.lo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, double b) { return a.hi != b || a.lo != 0.0; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(double a, const f128_s& b) { return a != b.hi || 0.0 != b.lo; }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, const f128_s& b)
+{
+    return detail::_f128::compare_less(a.hi, a.lo, b.hi, b.lo);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, const f128_s& b)
+{
+    return b < a;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, const f128_s& b)
+{
+    return detail::_f128::compare_less_equal(a.hi, a.lo, b.hi, b.lo);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, const f128_s& b)
+{
+    return b <= a;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, const f128_s& b)
+{
+    return detail::_f128::compare_equal(a.hi, a.lo, b.hi, b.lo);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, const f128_s& b)
+{
+    return !(a == b);
+}
 
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, float b)  { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <  0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(float a, const f128_s& b)  { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, float b)  { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >  0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(float a, const f128_s& b)  { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, float b) { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <= 0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(float a, const f128_s& b) { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, float b) { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >= 0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(float a, const f128_s& b) { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, float b) { const double bd = (double)b; return a.hi == bd && a.lo == 0.0; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(float a, const f128_s& b) { const double ad = (double)a; return ad == b.hi && 0.0 == b.lo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, float b) { const double bd = (double)b; return a.hi != bd || a.lo != 0.0; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(float a, const f128_s& b) { const double ad = (double)a; return ad != b.hi || 0.0 != b.lo; }
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, T b)
+{
+    double bhi{}, blo{};
+    detail::_f128::compare_terms(b, bhi, blo);
 
+    return detail::_f128::compare_less(a.hi, a.lo, bhi, blo);
+}
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, int32_t b)  { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <  0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(int32_t a, const f128_s& b)  { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, int32_t b)  { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >  0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(int32_t a, const f128_s& b)  { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, int32_t b) { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <= 0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(int32_t a, const f128_s& b) { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, int32_t b) { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >= 0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(int32_t a, const f128_s& b) { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, int32_t b) { const double bd = (double)b; return a.hi == bd && a.lo == 0.0; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(int32_t a, const f128_s& b) { const double ad = (double)a; return ad == b.hi && 0.0 == b.lo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, int32_t b) { const double bd = (double)b; return a.hi != bd || a.lo != 0.0; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(int32_t a, const f128_s& b) { const double ad = (double)a; return ad != b.hi || 0.0 != b.lo; }
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(T a, const f128_s& b)
+{
+    double ahi{}, alo{};
+    detail::_f128::compare_terms(a, ahi, alo);
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, uint32_t b)  { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <  0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(uint32_t a, const f128_s& b)  { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, uint32_t b)  { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >  0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(uint32_t a, const f128_s& b)  { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, uint32_t b) { const double bd = (double)b; return (a.hi < bd) || (a.hi == bd && a.lo <= 0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(uint32_t a, const f128_s& b) { const double ad = (double)a; return (ad < b.hi) || (ad == b.hi && 0.0 <= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, uint32_t b) { const double bd = (double)b; return (a.hi > bd) || (a.hi == bd && a.lo >= 0.0); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(uint32_t a, const f128_s& b) { const double ad = (double)a; return (ad > b.hi) || (ad == b.hi && 0.0 >= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, uint32_t b) { const double bd = (double)b; return a.hi == bd && a.lo == 0.0; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(uint32_t a, const f128_s& b) { const double ad = (double)a; return ad == b.hi && 0.0 == b.lo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, uint32_t b) { const double bd = (double)b; return a.hi != bd || a.lo != 0.0; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(uint32_t a, const f128_s& b) { const double ad = (double)a; return ad != b.hi || 0.0 != b.lo; }
+    return detail::_f128::compare_less(ahi, alo, b.hi, b.lo);
+}
 
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, T b)
+{
+    return b < a;
+}
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, int64_t b)  { double bhi{}, blo{}; detail::fp::int64_to_exact_double_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <  blo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(int64_t a, const f128_s& b)  { double ahi{}, alo{}; detail::fp::int64_to_exact_double_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, int64_t b)  { double bhi{}, blo{}; detail::fp::int64_to_exact_double_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >  blo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(int64_t a, const f128_s& b)  { double ahi{}, alo{}; detail::fp::int64_to_exact_double_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, int64_t b) { double bhi{}, blo{}; detail::fp::int64_to_exact_double_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <= blo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(int64_t a, const f128_s& b) { double ahi{}, alo{}; detail::fp::int64_to_exact_double_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, int64_t b) { double bhi{}, blo{}; detail::fp::int64_to_exact_double_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >= blo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(int64_t a, const f128_s& b) { double ahi{}, alo{}; detail::fp::int64_to_exact_double_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, int64_t b) { double bhi{}, blo{}; detail::fp::int64_to_exact_double_pair(b, bhi, blo); return a.hi == bhi && a.lo == blo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(int64_t a, const f128_s& b) { double ahi{}, alo{}; detail::fp::int64_to_exact_double_pair(a, ahi, alo); return ahi == b.hi && alo == b.lo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, int64_t b) { double bhi{}, blo{}; detail::fp::int64_to_exact_double_pair(b, bhi, blo); return a.hi != bhi || a.lo != blo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(int64_t a, const f128_s& b) { double ahi{}, alo{}; detail::fp::int64_to_exact_double_pair(a, ahi, alo); return ahi != b.hi || alo != b.lo; }
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(T a, const f128_s& b)
+{
+    return b < a;
+}
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(const f128_s& a, uint64_t b)  { double bhi{}, blo{}; detail::fp::uint64_to_exact_double_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <  blo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<(uint64_t a, const f128_s& b)  { double ahi{}, alo{}; detail::fp::uint64_to_exact_double_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(const f128_s& a, uint64_t b)  { double bhi{}, blo{}; detail::fp::uint64_to_exact_double_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >  blo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>(uint64_t a, const f128_s& b)  { double ahi{}, alo{}; detail::fp::uint64_to_exact_double_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >  b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; detail::fp::uint64_to_exact_double_pair(b, bhi, blo); return (a.hi < bhi) || (a.hi == bhi && a.lo <= blo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; detail::fp::uint64_to_exact_double_pair(a, ahi, alo); return (ahi < b.hi) || (ahi == b.hi && alo <= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; detail::fp::uint64_to_exact_double_pair(b, bhi, blo); return (a.hi > bhi) || (a.hi == bhi && a.lo >= blo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; detail::fp::uint64_to_exact_double_pair(a, ahi, alo); return (ahi > b.hi) || (ahi == b.hi && alo >= b.lo); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, uint64_t b) { double bhi{}, blo{}; detail::fp::uint64_to_exact_double_pair(b, bhi, blo); return a.hi == bhi && a.lo == blo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(uint64_t a, const f128_s& b) { double ahi{}, alo{}; detail::fp::uint64_to_exact_double_pair(a, ahi, alo); return ahi == b.hi && alo == b.lo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, uint64_t b) { double bhi{}, blo{}; detail::fp::uint64_to_exact_double_pair(b, bhi, blo); return a.hi != bhi || a.lo != blo; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(uint64_t a, const f128_s& b) { double ahi{}, alo{}; detail::fp::uint64_to_exact_double_pair(a, ahi, alo); return ahi != b.hi || alo != b.lo; }
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(const f128_s& a, T b)
+{
+    double bhi{}, blo{};
+    detail::_f128::compare_terms(b, bhi, blo);
+
+    return detail::_f128::compare_less_equal(a.hi, a.lo, bhi, blo);
+}
+
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator<=(T a, const f128_s& b)
+{
+    double ahi{}, alo{};
+    detail::_f128::compare_terms(a, ahi, alo);
+
+    return detail::_f128::compare_less_equal(ahi, alo, b.hi, b.lo);
+}
+
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(const f128_s& a, T b)
+{
+    return b <= a;
+}
+
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator>=(T a, const f128_s& b)
+{
+    return b <= a;
+}
+
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(const f128_s& a, T b)
+{
+    double bhi{}, blo{};
+    detail::_f128::compare_terms(b, bhi, blo);
+
+    return detail::_f128::compare_equal(a.hi, a.lo, bhi, blo);
+}
+
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator==(T a, const f128_s& b)
+{
+    double ahi{}, alo{};
+    detail::_f128::compare_terms(a, ahi, alo);
+
+    return detail::_f128::compare_equal(ahi, alo, b.hi, b.lo);
+}
+
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, T b)
+{
+    return !(a == b);
+}
+
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(T a, const f128_s& b)
+{
+    return !(a == b);
+}
 
 } // namespace bl
 

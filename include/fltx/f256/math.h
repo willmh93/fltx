@@ -1,5 +1,5 @@
 /**
- * fltx/f256/math.h - umbrella header for constexpr f256 math functions.
+ * fltx/f256/math.h - Umbrella header for constexpr f256 math functions.
  *
  * Copyright (c) 2026 William Hemsworth
  *

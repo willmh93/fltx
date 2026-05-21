@@ -84,7 +84,7 @@ namespace bl::detail::_f256_runtime
                 const double hi = product.x0;
                 if (hi != 0.0)
                 {
-                    const int e = frexp_exponent_constexpr(hi);
+                    const int e = frexp_exponent(hi);
                     if (e > 512 || e < -512)
                     {
                         product = detail::_f256_runtime::ldexp(product, -e);

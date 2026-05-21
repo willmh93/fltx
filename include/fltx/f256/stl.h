@@ -1,5 +1,5 @@
 /**
- * fltx/f256/stl.h - standard-library integration for f256.
+ * fltx/f256/stl.h - Standard-library integration for f256.
  *
  * Copyright (c) 2026 William Hemsworth
  *

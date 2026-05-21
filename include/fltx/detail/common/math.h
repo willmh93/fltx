@@ -19,7 +19,7 @@
 
 namespace bl::detail::fp
 {
-BL_FORCE_INLINE constexpr double log_series_reduced_constexpr(double z) noexcept
+BL_FORCE_INLINE constexpr double log_series_reduced(double z) noexcept
 {
     const double z2 = z * z;
     const double poly =
@@ -43,7 +43,7 @@ BL_FORCE_INLINE constexpr double log_series_reduced_constexpr(double z) noexcept
     return 2.0 * z * poly;
 }
 
-BL_FORCE_INLINE constexpr double log_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double log(double x) noexcept
 {
     constexpr double ln2 = 0.6931471805599453094172321214581765680755;
     constexpr double sqrt_half = 0.7071067811865475244008443621048490392848;
@@ -53,8 +53,8 @@ BL_FORCE_INLINE constexpr double log_constexpr(double x) noexcept
     if (x < 0.0)  return  std::numeric_limits<double>::quiet_NaN();
     if (isinf(x)) return  std::numeric_limits<double>::infinity();
 
-    int e = frexp_exponent_constexpr(x);
-    double m = ldexp_constexpr2(x, -e);
+    int e = frexp_exponent(x);
+    double m = ldexp(x, -e);
 
     if (m < sqrt_half)
     {
@@ -63,10 +63,10 @@ BL_FORCE_INLINE constexpr double log_constexpr(double x) noexcept
     }
 
     const double z = (m - 1.0) / (m + 1.0);
-    return static_cast<double>(e) * ln2 + log_series_reduced_constexpr(z);
+    return static_cast<double>(e) * ln2 + log_series_reduced(z);
 }
 
-BL_FORCE_INLINE constexpr double log1p_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double log1p(double x) noexcept
 {
     if (x == -1.0) return -std::numeric_limits<double>::infinity();
     if (x < -1.0 || isnan(x)) return std::numeric_limits<double>::quiet_NaN();
@@ -75,9 +75,9 @@ BL_FORCE_INLINE constexpr double log1p_constexpr(double x) noexcept
 
     const double ax = absd(x);
     if (ax < 0.5)
-        return log_series_reduced_constexpr(x / (2.0 + x));
+        return log_series_reduced(x / (2.0 + x));
 
-    return log_constexpr(1.0 + x);
+    return log(1.0 + x);
 }
 
 
@@ -87,17 +87,17 @@ BL_FORCE_INLINE constexpr double round_half_away_zero(double x) noexcept
         return x;
 
     constexpr double integer_threshold = double_integer_threshold;
-    const double ax = signbit_constexpr(x) ? -x : x;
+    const double ax = signbit(x) ? -x : x;
     if (ax >= integer_threshold)
         return x;
 
-    if (signbit_constexpr(x))
+    if (signbit(x))
     {
-        const double y = -floor_constexpr((-x) + 0.5);
+        const double y = -floor((-x) + 0.5);
         return (y == 0.0) ? -0.0 : y;
     }
 
-    return floor_constexpr(x + 0.5);
+    return floor(x + 0.5);
 }
 
 BL_FORCE_INLINE constexpr float round_half_away_zero(float x) noexcept
@@ -106,25 +106,25 @@ BL_FORCE_INLINE constexpr float round_half_away_zero(float x) noexcept
         return x;
 
     constexpr float integer_threshold = 8388608.0f;
-    const float ax = fabs_constexpr(x);
+    const float ax = fabs(x);
     if (ax >= integer_threshold)
         return x;
 
-    if (signbit_constexpr(x))
+    if (signbit(x))
     {
-        const float y = static_cast<float>(-floor_constexpr(static_cast<double>(-x) + 0.5));
+        const float y = static_cast<float>(-floor(static_cast<double>(-x) + 0.5));
         return (y == 0.0f) ? -0.0f : y;
     }
 
-    return static_cast<float>(floor_constexpr(static_cast<double>(x) + 0.5));
+    return static_cast<float>(floor(static_cast<double>(x) + 0.5));
 }
 
-BL_FORCE_INLINE constexpr long long llround_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr long long llround(double x) noexcept
 {
     if (isnan(x) || isinf(x))
         return 0;
 
-    const double rounded = signbit_constexpr(x) ? (x - 0.5) : (x + 0.5);
+    const double rounded = signbit(x) ? (x - 0.5) : (x + 0.5);
 
     constexpr double min_ll = static_cast<double>(std::numeric_limits<long long>::min());
     constexpr double max_ll = static_cast<double>(std::numeric_limits<long long>::max());
@@ -135,18 +135,18 @@ BL_FORCE_INLINE constexpr long long llround_constexpr(double x) noexcept
     return static_cast<long long>(rounded);
 }
 
-BL_FORCE_INLINE constexpr double fmod_constexpr(double x, double y) noexcept
+BL_FORCE_INLINE constexpr double fmod(double x, double y) noexcept
 {
     if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
         return std::numeric_limits<double>::quiet_NaN();
     if (isinf(y) || x == 0.0)
         return x;
 
-    const double q = trunc_constexpr(x / y);
+    const double q = trunc(x / y);
     return x - q * y;
 }
 
-BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double to) noexcept
+BL_FORCE_INLINE constexpr double nextafter(double from, double to) noexcept
 {
     if (isnan(from) || isnan(to))
         return std::numeric_limits<double>::quiet_NaN();
@@ -155,7 +155,7 @@ BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double 
         return to;
 
     if (from == 0.0)
-        return signbit_constexpr(to)
+        return signbit(to)
             ? -std::numeric_limits<double>::denorm_min()
             :  std::numeric_limits<double>::denorm_min();
 
@@ -168,7 +168,7 @@ BL_FORCE_INLINE constexpr double nextafter_double_constexpr(double from, double 
     return std::bit_cast<double>(bits);
 }
 
-BL_FORCE_INLINE constexpr float nextafter_float_constexpr(float from, float to) noexcept
+BL_FORCE_INLINE constexpr float nextafter(float from, float to) noexcept
 {
     if (isnan(from) || isnan(to))
         return std::numeric_limits<float>::quiet_NaN();
@@ -177,7 +177,7 @@ BL_FORCE_INLINE constexpr float nextafter_float_constexpr(float from, float to) 
         return to;
 
     if (from == 0.0f)
-        return signbit_constexpr(to)
+        return signbit(to)
             ? -std::numeric_limits<float>::denorm_min()
             :  std::numeric_limits<float>::denorm_min();
 
@@ -195,7 +195,7 @@ BL_FORCE_INLINE constexpr double nearbyint_ties_even(double x) noexcept
     if (isnan(x) || isinf(x) || x == 0.0)
         return x;
 
-    const double t = floor_constexpr(x);
+    const double t = floor(x);
     const double frac = x - t;
     if (frac < 0.5)
         return t;
@@ -203,24 +203,24 @@ BL_FORCE_INLINE constexpr double nearbyint_ties_even(double x) noexcept
         return t + 1.0;
     double out = double_integer_is_odd(t) ? (t + 1.0) : t;
     if (out == 0.0)
-        return signbit_constexpr(x) ? -0.0 : 0.0;
+        return signbit(x) ? -0.0 : 0.0;
     return out;
 }
 
-BL_FORCE_INLINE constexpr double nearbyint_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double nearbyint(double x) noexcept
 {
     const double y = nearbyint_ties_even(x);
     if (y == 0.0)
-        return signbit_constexpr(x) ? -0.0 : 0.0;
+        return signbit(x) ? -0.0 : 0.0;
     return y;
 }
 
-BL_FORCE_INLINE constexpr float nearbyint_constexpr(float x) noexcept
+BL_FORCE_INLINE constexpr float nearbyint(float x) noexcept
 {
     const double y = nearbyint_ties_even(static_cast<double>(x));
     const float out = static_cast<float>(y);
     if (out == 0.0f)
-        return signbit_constexpr(x) ? -0.0f : 0.0f;
+        return signbit(x) ? -0.0f : 0.0f;
     return out;
 }
 
@@ -288,7 +288,7 @@ template<class BigUInt> BL_FORCE_INLINE constexpr BigUInt append_decimal_digits(
     return coeff;
 }
 
-BL_FORCE_INLINE constexpr double atan_series_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double atan_series(double x) noexcept
 {
     const double x2 = x * x;
     double term = x;
@@ -301,7 +301,7 @@ BL_FORCE_INLINE constexpr double atan_series_constexpr(double x) noexcept
     return sum;
 }
 
-BL_FORCE_INLINE constexpr double atan_unit_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double atan_unit(double x) noexcept
 {
     constexpr double pi_4     = 0.7853981633974483096156608458198757210493;
     constexpr double tan_pi_8 = 0.4142135623730950488016887242096980785697;
@@ -309,20 +309,20 @@ BL_FORCE_INLINE constexpr double atan_unit_constexpr(double x) noexcept
     if (x > tan_pi_8)
     {
         const double t = (x - 1.0) / (x + 1.0);
-        return pi_4 + atan_series_constexpr(t);
+        return pi_4 + atan_series(t);
     }
 
-    return atan_series_constexpr(x);
+    return atan_series(x);
 }
 
-BL_FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double atan(double x) noexcept
 {
     constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
 
     if (isnan(x))
         return std::numeric_limits<double>::quiet_NaN();
     if (isinf(x))
-        return signbit_constexpr(x) ? -pi_2 : pi_2;
+        return signbit(x) ? -pi_2 : pi_2;
     if (x == 0.0)
         return x;
 
@@ -330,13 +330,13 @@ BL_FORCE_INLINE constexpr double atan_constexpr(double x) noexcept
     const double ax = neg ? -x : x;
 
     const double out = ax > 1.0
-        ? pi_2 - atan_unit_constexpr(1.0 / ax)
-        : atan_unit_constexpr(ax);
+        ? pi_2 - atan_unit(1.0 / ax)
+        : atan_unit(ax);
 
     return neg ? -out : out;
 }
 
-BL_MSVC_NOINLINE constexpr double atan2_constexpr(double y, double x) noexcept
+BL_MSVC_NOINLINE constexpr double atan2(double y, double x) noexcept
 {
     constexpr double pi   = 3.1415926535897932384626433832795028841972;
     constexpr double pi_2 = 1.5707963267948966192313216916397514420986;
@@ -347,16 +347,16 @@ BL_MSVC_NOINLINE constexpr double atan2_constexpr(double y, double x) noexcept
     {
         if (y == 0.0)
             return std::numeric_limits<double>::quiet_NaN();
-        return signbit_constexpr(y) ? -pi_2 : pi_2;
+        return signbit(y) ? -pi_2 : pi_2;
     }
 
-    const double a = atan_constexpr(y / x);
+    const double a = atan(y / x);
     if (x < 0.0)
-        return signbit_constexpr(y) ? (a - pi) : (a + pi);
+        return signbit(y) ? (a - pi) : (a + pi);
     return a;
 }
 
-BL_FORCE_INLINE constexpr void reduce_pi_over_2_constexpr(double x, int& quadrant, double& r) noexcept
+BL_FORCE_INLINE constexpr void reduce_pi_over_2(double x, int& quadrant, double& r) noexcept
 {
     constexpr double pi_2_hi  = 0x1.921fb54442d18p+0;
     constexpr double pi_2_lo  = 0x1.1a62633145c07p-54;
@@ -383,7 +383,7 @@ BL_FORCE_INLINE constexpr void reduce_pi_over_2_constexpr(double x, int& quadran
     }
 }
 
-BL_FORCE_INLINE constexpr double sin_poly_reduced_constexpr(double r) noexcept
+BL_FORCE_INLINE constexpr double sin_poly_reduced(double r) noexcept
 {
     const double t = r * r;
 
@@ -399,7 +399,7 @@ BL_FORCE_INLINE constexpr double sin_poly_reduced_constexpr(double r) noexcept
     return r + r * t * p;
 }
 
-BL_FORCE_INLINE constexpr double cos_poly_reduced_constexpr(double r) noexcept
+BL_FORCE_INLINE constexpr double cos_poly_reduced(double r) noexcept
 {
     const double t = r * r;
 
@@ -415,7 +415,7 @@ BL_FORCE_INLINE constexpr double cos_poly_reduced_constexpr(double r) noexcept
     return 1.0 + t * p;
 }
 
-BL_MSVC_NOINLINE constexpr void sincos_constexpr(double x, double& s, double& c) noexcept
+BL_MSVC_NOINLINE constexpr void sincos(double x, double& s, double& c) noexcept
 {
     if (isnan(x) || isinf(x))
     {
@@ -432,10 +432,10 @@ BL_MSVC_NOINLINE constexpr void sincos_constexpr(double x, double& s, double& c)
 
     int quadrant = 0;
     double r = 0.0;
-    reduce_pi_over_2_constexpr(x, quadrant, r);
+    reduce_pi_over_2(x, quadrant, r);
 
-    const double sr = sin_poly_reduced_constexpr(r);
-    const double cr = cos_poly_reduced_constexpr(r);
+    const double sr = sin_poly_reduced(r);
+    const double cr = cos_poly_reduced(r);
 
     switch (quadrant)
     {
@@ -446,7 +446,7 @@ BL_MSVC_NOINLINE constexpr void sincos_constexpr(double x, double& s, double& c)
     }
 }
 
-BL_FORCE_INLINE constexpr double sin_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double sin(double x) noexcept
 {
     if (isnan(x) || isinf(x))
         return std::numeric_limits<double>::quiet_NaN();
@@ -455,49 +455,49 @@ BL_FORCE_INLINE constexpr double sin_constexpr(double x) noexcept
 
     int quadrant = 0;
     double r = 0.0;
-    reduce_pi_over_2_constexpr(x, quadrant, r);
+    reduce_pi_over_2(x, quadrant, r);
 
     switch (quadrant)
     {
-    case 0: return sin_poly_reduced_constexpr(r);
-    case 1: return cos_poly_reduced_constexpr(r);
-    case 2: return -sin_poly_reduced_constexpr(r);
-    default: return -cos_poly_reduced_constexpr(r);
+    case 0: return sin_poly_reduced(r);
+    case 1: return cos_poly_reduced(r);
+    case 2: return -sin_poly_reduced(r);
+    default: return -cos_poly_reduced(r);
     }
 }
 
-BL_FORCE_INLINE constexpr double cos_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double cos(double x) noexcept
 {
     if (isnan(x) || isinf(x))
         return std::numeric_limits<double>::quiet_NaN();
 
     int quadrant = 0;
     double r = 0.0;
-    reduce_pi_over_2_constexpr(x, quadrant, r);
+    reduce_pi_over_2(x, quadrant, r);
 
     switch (quadrant)
     {
-    case 0: return cos_poly_reduced_constexpr(r);
-    case 1: return -sin_poly_reduced_constexpr(r);
-    case 2: return -cos_poly_reduced_constexpr(r);
-    default: return sin_poly_reduced_constexpr(r);
+    case 0: return cos_poly_reduced(r);
+    case 1: return -sin_poly_reduced(r);
+    case 2: return -cos_poly_reduced(r);
+    default: return sin_poly_reduced(r);
     }
 }
 
-BL_FORCE_INLINE constexpr double tan_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double tan(double x) noexcept
 {
     double s{}, c{};
-    sincos_constexpr(x, s, c);
+    sincos(x, s, c);
     return s / c;
 }
 
-BL_FORCE_INLINE constexpr double sqrt_seed_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double sqrt_seed(double x) noexcept
 {
     if (!(x > 0.0) || isnan(x) || isinf(x))
         return x;
 
-    int exp2 = frexp_exponent_constexpr(x);
-    double m = ldexp_constexpr2(x, -exp2);
+    int exp2 = frexp_exponent(x);
+    double m = ldexp(x, -exp2);
 
     if ((exp2 & 1) != 0)
     {
@@ -513,7 +513,7 @@ BL_FORCE_INLINE constexpr double sqrt_seed_constexpr(double x) noexcept
     y = 0.5 * (y + m / y);
     y = 0.5 * (y + m / y);
 
-    return ldexp_constexpr2(y, exp2 / 2);
+    return ldexp(y, exp2 / 2);
 }
 
 

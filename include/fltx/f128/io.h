@@ -1,5 +1,5 @@
 /**
- * fltx/f128/io.h - constexpr formatting, parsing, and literals for f128.
+ * fltx/f128/io.h - Constexpr formatting, parsing, and literals for f128.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -25,8 +25,8 @@ namespace detail::_f128
 
         f128_s ax = abs(x);
 
-        int e2 = detail::fp::frexp_exponent_constexpr(ax.hi); // ax.hi = f * 2^(e2-1)
-        int e10 = (int)detail::fp::floor_constexpr((e2 - 1) * 0.30102999566398114); // ≈ log10(2)
+        int e2 = detail::fp::frexp_exponent(ax.hi); // ax.hi = f * 2^(e2-1)
+        int e10 = (int)detail::fp::floor((e2 - 1) * 0.30102999566398114); // ≈ log10(2)
 
         m = ax * pow10_128(-e10);
         while (m >= f128_s{ 10.0 }) { m = m / f128_s{ 10.0 }; ++e10; }
@@ -82,7 +82,7 @@ namespace detail::_f128
             f128_s q = floor(n / base);
             f128_s r = n - q * base;
 
-            long long chunk = (long long)detail::fp::floor_constexpr(r.hi);
+            long long chunk = (long long)detail::fp::floor(r.hi);
             if (chunk >= 1000000000LL) { chunk -= 1000000000LL; q = q + f128_s{ 1.0 }; }
             if (chunk < 0) chunk = 0;
 
@@ -95,7 +95,7 @@ namespace detail::_f128
             n = q;
         }
 
-        long long last = (long long)detail::fp::floor_constexpr(n.hi);
+        long long last = (long long)detail::fp::floor(n.hi);
         if (last == 0) {
             dst[len++] = '0';
         }
@@ -162,8 +162,8 @@ namespace detail::_f128
         {
             const std::uint64_t c1 = q.get_bits(0, 53);
             const std::uint64_t c0 = q.get_bits(53, 53);
-            const double hi = c0 ? detail::fp::ldexp_constexpr2(static_cast<double>(c0), e2 - 52) : 0.0;
-            const double lo = c1 ? detail::fp::ldexp_constexpr2(static_cast<double>(c1), e2 - 105) : 0.0;
+            const double hi = c0 ? detail::fp::ldexp(static_cast<double>(c0), e2 - 52) : 0.0;
+            const double lo = c1 ? detail::fp::ldexp(static_cast<double>(c1), e2 - 105) : 0.0;
             f128_s out = detail::_f128::renorm(hi, lo);
             if (neg)
                 out = -out;
@@ -187,7 +187,7 @@ namespace detail::_f128
         if (prec < 0) prec = 0;
 
         if (x.hi == 0.0 && x.lo == 0.0)
-            return detail::emit_fixed_zero_to_chars<f128_chars_result>(first, last, detail::_f128::signbit_constexpr(x.hi), prec, strip_trailing_zeros);
+            return detail::emit_fixed_zero_to_chars<f128_chars_result>(first, last, detail::_f128::signbit(x.hi), prec, strip_trailing_zeros);
 
         const bool neg = (x.hi < 0.0);
         if (neg) x = f128_s{ -x.hi, -x.lo };
@@ -230,7 +230,7 @@ namespace detail::_f128
 
                 uint32_t chunk = 0;
                 if (fp.hi > 0.0) {
-                    const double hi_floor = detail::fp::floor_constexpr(fp.hi);
+                    const double hi_floor = detail::fp::floor(fp.hi);
                     if (hi_floor >= (double)kPow10u32[9])
                         chunk = kPow10u32[9] - 1u;
                     else
@@ -262,7 +262,7 @@ namespace detail::_f128
                 uint32_t chunk = 0;
                 const uint32_t chunk_limit = kPow10u32[rem] - 1u;
                 if (fp.hi > 0.0) {
-                    const double hi_floor = detail::fp::floor_constexpr(fp.hi);
+                    const double hi_floor = detail::fp::floor(fp.hi);
                     if (hi_floor >= (double)kPow10u32[rem])
                         chunk = chunk_limit;
                     else
@@ -394,7 +394,7 @@ namespace detail::_f128
     {
         if (frac_digits < 0) frac_digits = 0;
         if (iszero(x)) {
-            const bool neg = detail::_f128::signbit_constexpr(x.hi);
+            const bool neg = detail::_f128::signbit(x.hi);
             int frac_len = strip_trailing_zeros ? 0 : static_cast<int>(frac_digits);
             char exp_buf[16];
             char* ep = exp_buf;

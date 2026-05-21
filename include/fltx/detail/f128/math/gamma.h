@@ -9,8 +9,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_GAMMA_IMPL_INCLUDED
-#define FLTX_F128_DETAIL_GAMMA_IMPL_INCLUDED
+#ifndef FLTX_F128_DETAIL_GAMMA_INCLUDED
+#define FLTX_F128_DETAIL_GAMMA_INCLUDED
 #include "fltx/detail/f128/math/basic.h"
 #include "fltx/detail/f128/math/trig.h"
 

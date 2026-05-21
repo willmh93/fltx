@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f256/arithmetic.h - low-level quad-double arithmetic helpers for f256.
+ * fltx/detail/f256/arithmetic.h - Low-level quad-double arithmetic helpers for f256.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_ARITHMETIC_IMPL_INCLUDED
-#define FLTX_F256_DETAIL_ARITHMETIC_IMPL_INCLUDED
+#ifndef FLTX_F256_DETAIL_ARITHMETIC_INCLUDED
+#define FLTX_F256_DETAIL_ARITHMETIC_INCLUDED
 #include "fltx/detail/f256/expansion.h"
 #include "fltx/f256/classification.h"
 #include "fltx/f256/stl.h"
@@ -493,7 +493,7 @@ return renorm5(p0, p1, s0, t0, t1);
                 if (isinf(a))
                     return std::numeric_limits<f256_s>::quiet_NaN();
 
-                const bool neg = signbit_constexpr(a.x0) ^ signbit_constexpr(b);
+                const bool neg = signbit(a.x0) ^ signbit(b);
                 return f256_s{ neg ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
             }
 
@@ -502,14 +502,14 @@ return renorm5(p0, p1, s0, t0, t1);
                 if (iszero(a))
                     return std::numeric_limits<f256_s>::quiet_NaN();
 
-                const bool neg = signbit_constexpr(a.x0) ^ signbit_constexpr(b);
+                const bool neg = signbit(a.x0) ^ signbit(b);
                 return f256_s{ neg ? -std::numeric_limits<double>::infinity()
                                    : std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
             }
 
             if (isinf(a))
             {
-                const bool neg = signbit_constexpr(a.x0) ^ signbit_constexpr(b);
+                const bool neg = signbit(a.x0) ^ signbit(b);
                 return f256_s{ neg ? -std::numeric_limits<double>::infinity()
                                    : std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
             }
@@ -543,7 +543,7 @@ return renorm5(p0, p1, s0, t0, t1);
                 if (isinf(a))
                     return std::numeric_limits<f256_s>::quiet_NaN();
 
-                const bool neg = signbit_constexpr(a) ^ signbit_constexpr(b.x0);
+                const bool neg = signbit(a) ^ signbit(b.x0);
                 return f256_s{ neg ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
             }
 
@@ -552,14 +552,14 @@ return renorm5(p0, p1, s0, t0, t1);
                 if (a == 0.0)
                     return std::numeric_limits<f256_s>::quiet_NaN();
 
-                const bool neg = signbit_constexpr(a) ^ signbit_constexpr(b.x0);
+                const bool neg = signbit(a) ^ signbit(b.x0);
                 return f256_s{ neg ? -std::numeric_limits<double>::infinity()
                                    : std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
             }
 
             if (isinf(a))
             {
-                const bool neg = signbit_constexpr(a) ^ signbit_constexpr(b.x0);
+                const bool neg = signbit(a) ^ signbit(b.x0);
                 return f256_s{ neg ? -std::numeric_limits<double>::infinity()
                                    : std::numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 };
             }

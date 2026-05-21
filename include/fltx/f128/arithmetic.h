@@ -1,5 +1,5 @@
 /**
- * fltx/f128/arithmetic.h - public arithmetic operators for f128.
+ * fltx/f128/arithmetic.h - Public arithmetic operators for f128.
  *
  * Copyright (c) 2026 William Hemsworth
  *

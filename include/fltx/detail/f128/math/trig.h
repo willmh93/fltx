@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f128/math/trig.h - trigonometry implementation details.
+ * fltx/detail/f128/math/trig.h - Trigonometry implementation details.
  *
  * f128 angle reduction plus sin/cos/tan/atan2 constexpr implementations.
  *
@@ -9,9 +9,9 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_TRIG_IMPL_INCLUDED
-#define FLTX_F128_DETAIL_TRIG_IMPL_INCLUDED
-#include "fltx/detail/f128/math_support.h"
+#ifndef FLTX_F128_DETAIL_TRIG_INCLUDED
+#define FLTX_F128_DETAIL_TRIG_INCLUDED
+#include "fltx/detail/f128/math_shared.h"
 
 namespace bl {
 
@@ -19,7 +19,7 @@ namespace detail::_f128
 {
     BL_FORCE_INLINE constexpr bool remainder_pio2(const f128_s& x, long long& n_out, f128_s& r_out)
 	{
-	    const double ax = fabs_constexpr(x.hi);
+	    const double ax = fabs(x.hi);
 	    if (!isfinite(ax))
 	        return false;
 
@@ -81,7 +81,7 @@ namespace detail::_f128
 	    return true;
 	}
 
-    BL_FORCE_INLINE constexpr f128_s horner_forward_constexpr(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
+    BL_FORCE_INLINE constexpr f128_s horner_forward_inline(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
     {
         if (count == 0)
             return {};
@@ -92,7 +92,7 @@ namespace detail::_f128
         return p;
     }
 
-    BL_FORCE_INLINE constexpr f128_s horner_reverse_constexpr(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
+    BL_FORCE_INLINE constexpr f128_s horner_reverse_inline(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
     {
         if (count == 0)
             return {};
@@ -103,7 +103,7 @@ namespace detail::_f128
         return p;
     }
 
-    BL_FORCE_INLINE constexpr void horner_pair_forward_constexpr(
+    BL_FORCE_INLINE constexpr void horner_pair_forward_inline(
         const f128_s* left_coeffs,
         const f128_s* right_coeffs,
         std::size_t count,
@@ -130,7 +130,7 @@ namespace detail::_f128
     BL_FORCE_INLINE constexpr f128_s horner_forward(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
     {
         if (bl::use_constexpr_math())
-            return horner_forward_constexpr(coeffs, count, x);
+            return horner_forward_inline(coeffs, count, x);
 
         return detail::_f128_runtime::horner_forward(coeffs, count, x);
     }
@@ -138,7 +138,7 @@ namespace detail::_f128
     BL_FORCE_INLINE constexpr f128_s horner_reverse(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
     {
         if (bl::use_constexpr_math())
-            return horner_reverse_constexpr(coeffs, count, x);
+            return horner_reverse_inline(coeffs, count, x);
 
         return detail::_f128_runtime::horner_reverse(coeffs, count, x);
     }
@@ -153,7 +153,7 @@ namespace detail::_f128
     {
         if (bl::use_constexpr_math())
         {
-            horner_pair_forward_constexpr(left_coeffs, right_coeffs, count, x, left_out, right_out);
+            horner_pair_forward_inline(left_coeffs, right_coeffs, count, x, left_out, right_out);
             return;
         }
 
@@ -290,7 +290,7 @@ namespace detail::_f128
     {
         if (isnan(x))  return x;
         if (iszero(x)) return x;
-        if (isinf(x))  return signbit_constexpr(x.hi) ? -pi_2 : pi_2;
+        if (isinf(x))  return signbit(x.hi) ? -pi_2 : pi_2;
 
         const bool neg = x.hi < 0.0;
         const f128_s ax = neg ? -x : x;
@@ -355,7 +355,7 @@ namespace detail::_f128
 
 [[nodiscard]] BL_MSVC_NOINLINE constexpr bool   detail::_f128_constexpr::sincos(const f128_s& x, f128_s& s_out, f128_s& c_out)
 {
-    const double ax = fabs_constexpr(x.hi);
+    const double ax = fabs(x.hi);
     if (!isfinite(ax))
     {
         s_out = f128_s{ std::numeric_limits<double>::quiet_NaN() };
@@ -394,7 +394,7 @@ namespace detail::_f128
 
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s detail::_f128_constexpr::sin(const f128_s& x)
 {
-    const double ax = fabs_constexpr(x.hi);
+    const double ax = fabs(x.hi);
     if (!isfinite(ax))
         return f128_s{ std::numeric_limits<double>::quiet_NaN() };
 
@@ -407,7 +407,7 @@ namespace detail::_f128
     {
         if (bl::use_constexpr_math())
         {
-            return canonicalize_math_result(f128_s{ detail::fp::sin_constexpr(static_cast<double>(x)) });
+            return canonicalize_math_result(f128_s{ detail::fp::sin(static_cast<double>(x)) });
         }
         else
         {
@@ -426,7 +426,7 @@ namespace detail::_f128
 
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s detail::_f128_constexpr::cos(const f128_s& x)
 {
-    const double ax = fabs_constexpr(x.hi);
+    const double ax = fabs(x.hi);
     if (!isfinite(ax))
         return f128_s{ std::numeric_limits<double>::quiet_NaN() };
 
@@ -439,7 +439,7 @@ namespace detail::_f128
     {
         if (bl::use_constexpr_math())
         {
-            return canonicalize_math_result(f128_s{ detail::fp::cos_constexpr(static_cast<double>(x)) });
+            return canonicalize_math_result(f128_s{ detail::fp::cos(static_cast<double>(x)) });
         }
         else
         {
@@ -463,7 +463,7 @@ namespace detail::_f128
         return div_inline(s, c);
     const double xd = (double)x;
     if (bl::use_constexpr_math()) {
-        return f128_s{ detail::fp::tan_constexpr(xd) };
+        return f128_s{ detail::fp::tan(xd) };
     } else {
         return f128_s{ std::tan(xd) };
     }
@@ -484,7 +484,7 @@ namespace detail::_f128
     if (iszero(y))
     {
         if (x.hi < 0.0)
-            return signbit_constexpr(y.hi) ? -std::numbers::pi_v<f128_s> : std::numbers::pi_v<f128_s>;
+            return signbit(y.hi) ? -std::numbers::pi_v<f128_s> : std::numbers::pi_v<f128_s>;
         return y;
     }
 

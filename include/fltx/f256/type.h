@@ -49,10 +49,10 @@ namespace detail::_f256
     using detail::fp::int64_to_exact_double_pair;
     using detail::fp::two_prod_precise;
     using detail::fp::two_sum_precise;
-    using detail::fp::signbit_constexpr;
-    using detail::fp::fabs_constexpr;
-    using detail::fp::floor_constexpr;
-    using detail::fp::ceil_constexpr;
+    using detail::fp::signbit;
+    using detail::fp::fabs;
+    using detail::fp::floor;
+    using detail::fp::ceil;
     using detail::fp::integer_fits_exact_double;
 
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sub_mul_scalar_fast(const f256_s& r, const f256_s& b, double q) noexcept;

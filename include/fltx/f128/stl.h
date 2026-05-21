@@ -1,5 +1,5 @@
 /**
- * fltx/f128/stl.h - standard-library integration for f128.
+ * fltx/f128/stl.h - Standard-library integration for f128.
  *
  * Copyright (c) 2026 William Hemsworth
  *

@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f128/math/basic.h - basic math implementation details.
+ * fltx/detail/f128/math/basic.h - Basic math implementation details.
  *
  * f128 rounding, decomposition, remainder, cbrt, hypot, and adjacent-value implementations.
  * This core includes exp/log details because cbrt uses them in constant evaluation.
@@ -10,8 +10,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_BASIC_IMPL_INCLUDED
-#define FLTX_F128_DETAIL_BASIC_IMPL_INCLUDED
+#ifndef FLTX_F128_DETAIL_BASIC_INCLUDED
+#define FLTX_F128_DETAIL_BASIC_INCLUDED
 #include "fltx/detail/f128/math/exp_log.h"
 
 namespace bl {
@@ -244,8 +244,8 @@ namespace bl {
     int ey = 0;
     if (bl::use_constexpr_math())
     {
-        ex = detail::fp::frexp_exponent_constexpr(ax.hi);
-        ey = detail::fp::frexp_exponent_constexpr(ay.hi);
+        ex = detail::fp::frexp_exponent(ax.hi);
+        ey = detail::fp::frexp_exponent(ay.hi);
     }
     else
     {

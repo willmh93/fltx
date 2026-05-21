@@ -1,5 +1,5 @@
 /**
- * fltx/f256/io.h - constexpr formatting, parsing, and literals for f256.
+ * fltx/f256/io.h - Constexpr formatting, parsing, and literals for f256.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -101,7 +101,7 @@ namespace detail::_f256
 
         int e2 = 0;
         (void)std::frexp(ax.x0, &e2);
-        int e10 = (int)detail::fp::floor_constexpr((e2 - 1) * 0.30102999566398114);
+        int e10 = (int)detail::fp::floor((e2 - 1) * 0.30102999566398114);
 
         m = ax * pow10_256(-e10);
         while (m >= f256_s{ 10.0, 0.0, 0.0, 0.0 }) { m = m / f256_s{ 10.0, 0.0, 0.0, 0.0 }; ++e10; }
@@ -126,7 +126,7 @@ namespace detail::_f256
             f256_s q = floor(n / base);
             f256_s r = n - q * base;
 
-            long long chunk = (long long)detail::fp::floor_constexpr(r.x0);
+            long long chunk = (long long)detail::fp::floor(r.x0);
             if (chunk >= 1000000000LL) { chunk -= 1000000000LL; q += 1.0; }
             if (chunk < 0) chunk = 0;
 
@@ -139,7 +139,7 @@ namespace detail::_f256
             n = q;
         }
 
-        long long last = (long long)detail::fp::floor_constexpr(n.x0);
+        long long last = (long long)detail::fp::floor(n.x0);
         if (last == 0) {
             dst[len++] = '0';
         }
@@ -215,10 +215,10 @@ namespace detail::_f256
             const std::uint64_t c1 = q.get_bits(106, 53);
             const std::uint64_t c0 = q.get_bits(159, 53);
 
-            const double x0 = c0 ? detail::fp::ldexp_constexpr2(static_cast<double>(c0), e2 - 52) : 0.0;
-            const double x1 = c1 ? detail::fp::ldexp_constexpr2(static_cast<double>(c1), e2 - 105) : 0.0;
-            const double x2 = c2 ? detail::fp::ldexp_constexpr2(static_cast<double>(c2), e2 - 158) : 0.0;
-            const double x3 = c3 ? detail::fp::ldexp_constexpr2(static_cast<double>(c3), e2 - 211) : 0.0;
+            const double x0 = c0 ? detail::fp::ldexp(static_cast<double>(c0), e2 - 52) : 0.0;
+            const double x1 = c1 ? detail::fp::ldexp(static_cast<double>(c1), e2 - 105) : 0.0;
+            const double x2 = c2 ? detail::fp::ldexp(static_cast<double>(c2), e2 - 158) : 0.0;
+            const double x3 = c3 ? detail::fp::ldexp(static_cast<double>(c3), e2 - 211) : 0.0;
 
             f256_s out = renorm(x0, x1, x2, x3);
             if (neg)
@@ -248,7 +248,7 @@ namespace detail::_f256
         if (prec < 0) prec = 0;
 
         if (iszero(x))
-            return detail::emit_fixed_zero_to_chars<f256_chars_result>(first, last, detail::_f256::signbit_constexpr(x.x0), prec, strip_trailing_zeros);
+            return detail::emit_fixed_zero_to_chars<f256_chars_result>(first, last, detail::_f256::signbit(x.x0), prec, strip_trailing_zeros);
 
         const bool neg = (x.x0 < 0.0);
         if (neg) x = -x;
@@ -416,7 +416,7 @@ namespace detail::_f256
         if (frac_digits < 0) frac_digits = 0;
 
         if (iszero(x)) {
-            const bool neg = detail::_f256::signbit_constexpr(x.x0);
+            const bool neg = detail::_f256::signbit(x.x0);
             int frac_len = strip_trailing_zeros ? 0 : (int)frac_digits;
 
             char exp_buf[16];

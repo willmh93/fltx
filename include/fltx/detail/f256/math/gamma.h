@@ -9,8 +9,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_GAMMA_IMPL_INCLUDED
-#define FLTX_F256_DETAIL_GAMMA_IMPL_INCLUDED
+#ifndef FLTX_F256_DETAIL_GAMMA_INCLUDED
+#define FLTX_F256_DETAIL_GAMMA_INCLUDED
 #include "fltx/detail/f256/math/exp_log.h"
 #include "fltx/detail/f256/math/trig.h"
 
@@ -89,7 +89,7 @@ namespace detail::_f256
             const double hi = product.x0;
             if (hi != 0.0)
             {
-                const int e = frexp_exponent_constexpr(hi);
+                const int e = frexp_exponent(hi);
                 if (e > 512 || e < -512)
                 {
                     product = detail::_f256_constexpr::ldexp(product, -e);

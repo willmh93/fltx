@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f256/math/basic.h - basic math implementation details.
+ * fltx/detail/f256/math/basic.h - Basic math implementation details.
  *
  * f256 rounding, decomposition, remainder, cbrt, hypot, and adjacent-value implementations.
  *
@@ -9,8 +9,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_BASIC_IMPL_INCLUDED
-#define FLTX_F256_DETAIL_BASIC_IMPL_INCLUDED
+#ifndef FLTX_F256_DETAIL_BASIC_INCLUDED
+#define FLTX_F256_DETAIL_BASIC_INCLUDED
 #include "fltx/detail/f256/math/exp_log.h"
 
 namespace bl {
@@ -40,8 +40,8 @@ namespace detail::_f256
         int ey = 0;
         if (bl::use_constexpr_math())
         {
-            ex = frexp_exponent_constexpr(ax.x0);
-            ey = frexp_exponent_constexpr(ay.x0);
+            ex = frexp_exponent(ax.x0);
+            ey = frexp_exponent(ay.x0);
         }
         else
         {

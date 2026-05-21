@@ -1,5 +1,5 @@
 /**
- * fltx/f256/arithmetic.h - public arithmetic operators for f256.
+ * fltx/f256/arithmetic.h - Public arithmetic operators for f256.
  *
  * Copyright (c) 2026 William Hemsworth
  *

@@ -1,5 +1,5 @@
 /**
- * fltx/f256/classification.h - value utilities and classification predicates for f256.
+ * fltx/f256/classification.h - Value utilities and classification predicates for f256.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -35,10 +35,10 @@ namespace bl {
 
 [[nodiscard]] BL_FORCE_INLINE constexpr bool signbit(const f256_s& x) noexcept
 {
-    return detail::_f256::signbit_constexpr(x.x0)
-        || (x.x0 == 0.0 && (detail::_f256::signbit_constexpr(x.x1)
-        || (x.x1 == 0.0 && (detail::_f256::signbit_constexpr(x.x2)
-        || (x.x2 == 0.0 && detail::_f256::signbit_constexpr(x.x3))))));
+    return detail::_f256::signbit(x.x0)
+        || (x.x0 == 0.0 && (detail::_f256::signbit(x.x1)
+        || (x.x1 == 0.0 && (detail::_f256::signbit(x.x2)
+        || (x.x2 == 0.0 && detail::_f256::signbit(x.x3))))));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr int fpclassify(const f256_s& x) noexcept

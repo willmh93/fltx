@@ -9,9 +9,9 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_EXP_LOG_IMPL_INCLUDED
-#define FLTX_F256_DETAIL_EXP_LOG_IMPL_INCLUDED
-#include "fltx/detail/f256/math_support.h"
+#ifndef FLTX_F256_DETAIL_EXP_LOG_INCLUDED
+#define FLTX_F256_DETAIL_EXP_LOG_INCLUDED
+#include "fltx/detail/f256/math_shared.h"
 
 namespace bl {
 
@@ -21,13 +21,13 @@ namespace detail::_f256
     {
         const double hi = a.x0;
         if (hi <= 0.0)
-            return detail::fp::log_constexpr(static_cast<double>(a));
+            return detail::fp::log(static_cast<double>(a));
 
         const double lo = (a.x1 + a.x2) + a.x3;
         if (!bl::use_constexpr_math())
             return std::log(hi) + std::log1p(lo / hi);
 
-        return detail::fp::log_constexpr(hi) + detail::fp::log1p_constexpr(lo / hi);
+        return detail::fp::log(hi) + detail::fp::log1p(lo / hi);
     }
 
     BL_FORCE_INLINE constexpr f256_s log1p_double_seed_residual(const f256_s& r) noexcept
@@ -152,7 +152,7 @@ namespace detail::_f256
         int exp2 = 0;
         if (bl::use_constexpr_math())
         {
-            exp2 = frexp_exponent_constexpr(a.x0);
+            exp2 = frexp_exponent(a.x0);
         }
         else
         {
@@ -172,7 +172,7 @@ namespace detail::_f256
         }
 
         const double log2_m = bl::use_constexpr_math()
-            ? detail::fp::log_constexpr(m.x0) * 1.4426950408889634074
+            ? detail::fp::log(m.x0) * 1.4426950408889634074
             : std::log2(m.x0);
 
         int j = static_cast<int>(nearbyint_ties_even(log2_m * 64.0));
@@ -256,7 +256,7 @@ namespace detail::_f256
         if (x == f256_s{ 0.0 })
             return x;
         if (isinf(x))
-            return signbit_constexpr(x.x0)
+            return signbit(x.x0)
                 ? f256_s{ -1.0, 0.0, 0.0, 0.0 }
                 : std::numeric_limits<f256_s>::infinity();
 

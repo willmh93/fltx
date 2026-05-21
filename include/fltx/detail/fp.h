@@ -108,7 +108,7 @@ BL_FORCE_INLINE constexpr bool isnan(float value) noexcept
 
 BL_FORCE_INLINE constexpr double absd(double x) noexcept { return (x < 0.0) ? -x : x; }
 
-BL_FORCE_INLINE constexpr int frexp_exponent_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr int frexp_exponent(double x) noexcept
 {
     if (x == 0.0 || !isfinite(x))
         return 0;
@@ -128,7 +128,7 @@ BL_FORCE_INLINE constexpr int frexp_exponent_constexpr(double x) noexcept
     return e + 1;
 }
 
-BL_FORCE_INLINE constexpr int highest_bit_index_constexpr(std::uint64_t value) noexcept
+BL_FORCE_INLINE constexpr int highest_bit_index(std::uint64_t value) noexcept
 {
     int index = -1;
     while (value != 0)
@@ -139,7 +139,7 @@ BL_FORCE_INLINE constexpr int highest_bit_index_constexpr(std::uint64_t value) n
     return index;
 }
 
-BL_FORCE_INLINE constexpr double scalbn_constexpr2(double value, int exp) noexcept
+BL_FORCE_INLINE constexpr double scalbn(double value, int exp) noexcept
 {
     if (value == 0.0 || isnan(value) || isinf(value) || exp == 0)
         return value;
@@ -164,7 +164,7 @@ BL_FORCE_INLINE constexpr double scalbn_constexpr2(double value, int exp) noexce
     }
     else
     {
-        const int msb_index = highest_bit_index_constexpr(fraction);
+        const int msb_index = highest_bit_index(fraction);
         significand = fraction << (52 - msb_index);
         unbiased_exponent = static_cast<long long>(msb_index) - 1074ll;
     }
@@ -215,47 +215,47 @@ BL_FORCE_INLINE constexpr double scalbn_constexpr2(double value, int exp) noexce
     return std::bit_cast<double>(sign | subnormal_fraction);
 }
 
-BL_FORCE_INLINE constexpr double ldexp_constexpr2(double value, int exp) noexcept
+BL_FORCE_INLINE constexpr double ldexp(double value, int exp) noexcept
 {
-    return scalbn_constexpr2(value, exp);
+    return scalbn(value, exp);
 }
 
-BL_FORCE_INLINE constexpr bool signbit_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr bool signbit(double x) noexcept
 {
     const std::uint64_t bits = std::bit_cast<std::uint64_t>(x);
     return (bits >> 63) != 0;
 }
 
-BL_FORCE_INLINE constexpr bool signbit_constexpr(float x) noexcept
+BL_FORCE_INLINE constexpr bool signbit(float x) noexcept
 {
     return (std::bit_cast<std::uint32_t>(x) & 0x80000000u) != 0u;
 }
 
-BL_FORCE_INLINE constexpr double fabs_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double fabs(double x) noexcept
 {
     return absd(x);
 }
 
-BL_FORCE_INLINE constexpr float fabs_constexpr(float x) noexcept
+BL_FORCE_INLINE constexpr float fabs(float x) noexcept
 {
     return std::bit_cast<float>(std::bit_cast<std::uint32_t>(x) & 0x7fffffffu);
 }
 
-BL_FORCE_INLINE constexpr double copysign_constexpr(double magnitude, double sign_source) noexcept
+BL_FORCE_INLINE constexpr double copysign(double magnitude, double sign_source) noexcept
 {
     const std::uint64_t magnitude_bits = std::bit_cast<std::uint64_t>(magnitude) & 0x7fffffffffffffffULL;
     const std::uint64_t sign_bits = std::bit_cast<std::uint64_t>(sign_source) & 0x8000000000000000ULL;
     return std::bit_cast<double>(magnitude_bits | sign_bits);
 }
 
-BL_FORCE_INLINE constexpr float copysign_constexpr(float magnitude, float sign_source) noexcept
+BL_FORCE_INLINE constexpr float copysign(float magnitude, float sign_source) noexcept
 {
     const std::uint32_t magnitude_bits = std::bit_cast<std::uint32_t>(magnitude) & 0x7fffffffu;
     const std::uint32_t sign_bits = std::bit_cast<std::uint32_t>(sign_source) & 0x80000000u;
     return std::bit_cast<float>(magnitude_bits | sign_bits);
 }
 
-BL_FORCE_INLINE constexpr double floor_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double floor(double x) noexcept
 {
     if (isnan(x) || isinf(x) || x == 0.0)
         return x;
@@ -267,11 +267,11 @@ BL_FORCE_INLINE constexpr double floor_constexpr(double x) noexcept
     const long long i = static_cast<long long>(x);
     double di = static_cast<double>(i);
     if (di > x) di -= 1.0;
-    if (di == 0.0) return signbit_constexpr(x) ? -0.0 : 0.0;
+    if (di == 0.0) return signbit(x) ? -0.0 : 0.0;
     return di;
 }
 
-BL_FORCE_INLINE constexpr double ceil_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double ceil(double x) noexcept
 {
     if (isnan(x) || isinf(x) || x == 0.0)
         return x;
@@ -285,13 +285,13 @@ BL_FORCE_INLINE constexpr double ceil_constexpr(double x) noexcept
     if (di < x)
         di += 1.0;
     if (di == 0.0)
-        return signbit_constexpr(x) ? -0.0 : 0.0;
+        return signbit(x) ? -0.0 : 0.0;
     return di;
 }
 
-BL_FORCE_INLINE constexpr double trunc_constexpr(double x) noexcept
+BL_FORCE_INLINE constexpr double trunc(double x) noexcept
 {
-    return signbit_constexpr(x) ? ceil_constexpr(x) : floor_constexpr(x);
+    return signbit(x) ? ceil(x) : floor(x);
 }
 
 BL_FORCE_INLINE constexpr bool double_integer_is_odd(double x) noexcept

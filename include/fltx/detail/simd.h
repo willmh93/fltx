@@ -160,12 +160,9 @@ namespace bl::detail::simd
 
         #if BL_FLTX_SIMD_USE_FMA_TWO_PROD && BL_FLTX_HAS_X86_FMA
         e = _mm_fmsub_pd(a, b, p);
-        return;
         #elif BL_FLTX_SIMD_USE_FMA_TWO_PROD && BL_FLTX_HAS_NEON
         e = vfmaq_f64(f64x2_sub(f64x2_splat(0.0), p), a, b);
-        return;
-        #endif
-
+        #else
         const f64x2 split    = f64x2_splat(134217729.0);
         const f64x2 a_scaled = f64x2_mul(a, split);
         const f64x2 b_scaled = f64x2_mul(b, split);
@@ -178,6 +175,7 @@ namespace bl::detail::simd
         e = f64x2_add(f64x2_sub(f64x2_mul(a_hi, b_hi), p), f64x2_mul(a_hi, b_lo));
         e = f64x2_add(e, f64x2_mul(a_lo, b_hi));
         e = f64x2_add(e, f64x2_mul(a_lo, b_lo));
+        #endif
     }
 
     BL_FORCE_INLINE void f64x2_two_sum(f64x2 a, f64x2 b, f64x2& s, f64x2& e) noexcept

@@ -9,9 +9,9 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_EXP_LOG_IMPL_INCLUDED
-#define FLTX_F128_DETAIL_EXP_LOG_IMPL_INCLUDED
-#include "fltx/detail/f128/math_support.h"
+#ifndef FLTX_F128_DETAIL_EXP_LOG_INCLUDED
+#define FLTX_F128_DETAIL_EXP_LOG_INCLUDED
+#include "fltx/detail/f128/math_shared.h"
 
 namespace bl {
 
@@ -21,9 +21,9 @@ namespace detail::_f128
     {
         const double hi = a.hi;
         if (hi <= 0.0)
-            return detail::fp::log_constexpr(static_cast<double>(a));
+            return detail::fp::log(static_cast<double>(a));
 
-        return detail::fp::log_constexpr(hi) + detail::fp::log1p_constexpr(a.lo / hi);
+        return detail::fp::log(hi) + detail::fp::log1p(a.lo / hi);
     }
 
     BL_FORCE_INLINE constexpr f128_s log1p_double_seed_residual(const f128_s& r) noexcept
@@ -152,7 +152,7 @@ namespace detail::_f128
 
         int exp2 = 0;
         if (bl::use_constexpr_math()) {
-            exp2 = detail::fp::frexp_exponent_constexpr(a.hi);
+            exp2 = detail::fp::frexp_exponent(a.hi);
         }
         else {
             (void)std::frexp(a.hi, &exp2);
@@ -228,9 +228,9 @@ namespace detail::_f128
     if (x.hi > 0.0)
     {
         const int exp2 =
-            detail::fp::frexp_exponent_constexpr(x.hi);
+            detail::fp::frexp_exponent(x.hi);
         const int k0 =
-            static_cast<int>(detail::fp::floor_constexpr((exp2 - 1) * 0.30102999566398114));
+            static_cast<int>(detail::fp::floor((exp2 - 1) * 0.30102999566398114));
 
         for (int k = k0 - 2; k <= k0 + 2; ++k)
         {

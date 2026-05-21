@@ -1,5 +1,5 @@
 /**
- * fltx/f256/detail/expansion.h - quad-double normalization and expansion helpers for f256.
+ * fltx/f256/detail/expansion.h - Quad-double normalization and expansion helpers for f256.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -62,7 +62,7 @@ namespace detail::_f256
         return { s0, s1, s2, s3 };
     }
 
-    // Error-free residuals here are association-sensitive; fast-math can fold away low limbs.
+    // Error-free residuals here are association-sensitive, fast-math can fold away low limbs
     BL_PUSH_PRECISE
     BL_FORCE_INLINE constexpr f256_s renorm4(double c0, double c1, double c2, double c3) noexcept
     {
@@ -173,10 +173,6 @@ namespace detail::_f256
         return value;
     }
 
-} // namespace detail::_f256
-
-namespace detail::_f256
-{
     // Shewchuk-style expansion sum, expansions sorted by increasing magnitude (small -> large)
     BL_FORCE_INLINE constexpr int fast_expansion_sum_zeroelim(int elen, const double* e, int flen, const double* f, double* h) noexcept
     {

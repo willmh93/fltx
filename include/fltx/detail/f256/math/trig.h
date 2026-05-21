@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f256/math/trig.h - trigonometry implementation details.
+ * fltx/detail/f256/math/trig.h - Trigonometry implementation details.
  *
  * f256 angle reduction, trig kernels, and inverse trig implementations.
  *
@@ -9,9 +9,9 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_TRIG_IMPL_INCLUDED
-#define FLTX_F256_DETAIL_TRIG_IMPL_INCLUDED
-#include "fltx/detail/f256/math_support.h"
+#ifndef FLTX_F256_DETAIL_TRIG_INCLUDED
+#define FLTX_F256_DETAIL_TRIG_INCLUDED
+#include "fltx/detail/f256/math_shared.h"
 
 namespace bl {
 
@@ -60,7 +60,7 @@ namespace detail::_f256
 
     BL_FORCE_INLINE constexpr bool remainder_pi2_payne_hanek(const f256_s& x, long long& n_out, f256_s& r_out)
     {
-        const bool neg = signbit_constexpr(x.x0);
+        const bool neg = signbit(x.x0);
         const exact_dyadic_fmod dx = exact_from_f256_fmod(abs(x));
         if (dx.mant.is_zero())
         {
@@ -283,31 +283,31 @@ namespace detail::_f256
         );
     }
     #endif
-    BL_MSVC_NOINLINE constexpr f256_s sin_kernel_pi4_constexpr(const f256_s& r)
+    BL_MSVC_NOINLINE constexpr f256_s sin_kernel_pi4_inline(const f256_s& r)
     {
         const f256_s t = sqr_inline(r);
 
-        const f256_s ps = horner_forward_constexpr(f256_sin_coeffs_pi4, f256_trig_coeff_count_pi4, t);
+        const f256_s ps = horner_forward_inline(f256_sin_coeffs_pi4, f256_trig_coeff_count_pi4, t);
 
         return mul_add_inline(mul_inline(r, t), ps, r);
     }
 
-    BL_MSVC_NOINLINE constexpr f256_s cos_kernel_pi4_constexpr(const f256_s& r)
+    BL_MSVC_NOINLINE constexpr f256_s cos_kernel_pi4_inline(const f256_s& r)
     {
         const f256_s t = sqr_inline(r);
 
-        const f256_s pc = horner_forward_constexpr(f256_cos_coeffs_pi4, f256_trig_coeff_count_pi4, t);
+        const f256_s pc = horner_forward_inline(f256_cos_coeffs_pi4, f256_trig_coeff_count_pi4, t);
 
         return mul_add_inline(t, pc, f256_s{ 1.0 });
     }
 
-    BL_MSVC_NOINLINE constexpr void sincos_kernel_pi4_constexpr(const f256_s& r, f256_s& s_out, f256_s& c_out)
+    BL_MSVC_NOINLINE constexpr void sincos_kernel_pi4_inline(const f256_s& r, f256_s& s_out, f256_s& c_out)
     {
         const f256_s t = sqr_inline(r);
 
         f256_s ps{};
         f256_s pc{};
-        horner_pair_forward_constexpr(f256_sin_coeffs_pi4, f256_cos_coeffs_pi4, f256_trig_coeff_count_pi4, t, ps, pc);
+        horner_pair_forward_inline(f256_sin_coeffs_pi4, f256_cos_coeffs_pi4, f256_trig_coeff_count_pi4, t, ps, pc);
 
         s_out = mul_add_inline(mul_inline(r, t), ps, r);
         c_out = mul_add_inline(t, pc, f256_s{ 1.0 });
@@ -364,7 +364,7 @@ namespace detail::_f256
     BL_MSVC_NOINLINE constexpr f256_s sin_kernel_pi4(const f256_s& r)
     {
         if (bl::use_constexpr_math())
-            return sin_kernel_pi4_constexpr(r);
+            return sin_kernel_pi4_inline(r);
 
         const f256_s t = sqr_inline(r);
         const f256_s ps = horner_forward(f256_sin_coeffs_pi4, f256_trig_coeff_count_pi4, t);
@@ -376,7 +376,7 @@ namespace detail::_f256
     BL_MSVC_NOINLINE constexpr f256_s cos_kernel_pi4(const f256_s& r)
     {
         if (bl::use_constexpr_math())
-            return cos_kernel_pi4_constexpr(r);
+            return cos_kernel_pi4_inline(r);
 
         const f256_s t = sqr_inline(r);
         const f256_s pc = horner_forward(f256_cos_coeffs_pi4, f256_trig_coeff_count_pi4, t);
@@ -391,7 +391,7 @@ namespace detail::_f256
 
     BL_MSVC_NOINLINE constexpr bool _sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
     {
-        const double ax = fabs_constexpr(x.x0);
+        const double ax = fabs(x.x0);
         if (!isfinite(ax))
         {
             s_out = f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
@@ -459,7 +459,7 @@ namespace detail::_f256
 
         if (isnan(x))  return x;
         if (iszero(x)) return x;
-        if (isinf(x))  return signbit_constexpr(x.x0) ? -pi_2 : pi_2;
+        if (isinf(x))  return signbit(x.x0) ? -pi_2 : pi_2;
 
         const bool neg = x.x0 < 0.0;
         const f256_s ax = neg ? -x : x;
@@ -524,7 +524,7 @@ namespace detail::_f256
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::sin(const f256_s& x)
 {
-    const double ax = fabs_constexpr(x.x0);
+    const double ax = fabs(x.x0);
     if (!isfinite(ax))
         return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
 
@@ -546,7 +546,7 @@ namespace detail::_f256
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::cos(const f256_s& x)
 {
-    const double ax = fabs_constexpr(x.x0);
+    const double ax = fabs(x.x0);
     if (!isfinite(ax))
         return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
 
@@ -596,7 +596,7 @@ namespace detail::_f256
     if (iszero(y))
     {
         if (x.x0 < 0.0)
-            return signbit_constexpr(y.x0) ? -std::numbers::pi_v<f256_s> : std::numbers::pi_v<f256_s>;
+            return signbit(y.x0) ? -std::numbers::pi_v<f256_s> : std::numbers::pi_v<f256_s>;
         return y;
     }
 

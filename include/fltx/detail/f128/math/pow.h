@@ -9,8 +9,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_POW_IMPL_INCLUDED
-#define FLTX_F128_DETAIL_POW_IMPL_INCLUDED
+#ifndef FLTX_F128_DETAIL_POW_INCLUDED
+#define FLTX_F128_DETAIL_POW_INCLUDED
 #include "fltx/detail/f128/math/exp_log.h"
 
 namespace bl {
@@ -51,7 +51,7 @@ namespace detail::_f128
     if (y_is_int && f128_try_get_int64(yi, yi64))
         return powi(x, yi64);
 
-    if (x.hi < 0.0 || (x.hi == 0.0 && signbit_constexpr(x.hi)))
+    if (x.hi < 0.0 || (x.hi == 0.0 && signbit(x.hi)))
     {
         if (!y_is_int)
             return std::numeric_limits<f128_s>::quiet_NaN();
@@ -80,8 +80,8 @@ namespace detail::_f128
     if (bl::use_constexpr_math())
     {
         yi = (y < 0.0)
-            ? ceil_constexpr(y)
-            : floor_constexpr(y);
+            ? detail::fp::ceil(y)
+            : detail::fp::floor(y);
     }
     else
     {
@@ -93,7 +93,7 @@ namespace detail::_f128
     if (y_is_int && absd(yi) < 0x1p63)
         return powi(x, static_cast<int64_t>(yi));
 
-    if (x.hi < 0.0 || (x.hi == 0.0 && signbit_constexpr(x.hi)))
+    if (x.hi < 0.0 || (x.hi == 0.0 && signbit(x.hi)))
     {
         if (!y_is_int)
             return std::numeric_limits<f128_s>::quiet_NaN();

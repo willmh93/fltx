@@ -1,5 +1,5 @@
 /**
- * fltx/f256/detail/declarations.h - shared f256 math declarations.
+ * fltx/f256/detail/declarations.h - Shared f256 math declarations.
  *
  * Copyright (c) 2026 William Hemsworth
  *

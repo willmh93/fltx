@@ -950,7 +950,7 @@ template<class Traits, typename String>
         return false;
 
     const double log10_2 = 0.30102999566398119521373889472449;
-    int approx = static_cast<int>(fp::floor_constexpr((acc.mag.bit_length() - 1 + common_exp) * log10_2));
+    int approx = static_cast<int>(fp::floor((acc.mag.bit_length() - 1 + common_exp) * log10_2));
 
     int guard = 0;
     while (compare_scaled_with_pow10exp(acc.mag, common_exp, approx) < 0)

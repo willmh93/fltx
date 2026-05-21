@@ -1,5 +1,5 @@
 /**
- * fltx/f256/rounding.h - core f256 rounding wrappers and pow10 support.
+ * fltx/f256/rounding.h - Core f256 rounding wrappers and pow10 support.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -38,7 +38,7 @@ namespace detail::_f256_runtime
         return f256_s{ a.x0, 0.0, 0.0, 0.0 } + detail::_f256_constexpr::floor(f256_s{ a.x1, a.x2, a.x3, 0.0 });
     }
 
-    f256_s r{ floor_constexpr(a.x0), 0.0, 0.0, 0.0 };
+    f256_s r{ detail::fp::floor(a.x0), 0.0, 0.0, 0.0 };
     if (r > a)
         r -= 1.0;
     return r;
@@ -59,7 +59,7 @@ namespace detail::_f256_runtime
         return f256_s{ a.x0, 0.0, 0.0, 0.0 } + detail::_f256_constexpr::ceil(f256_s{ a.x1, a.x2, a.x3, 0.0 });
     }
 
-    f256_s r{ ceil_constexpr(a.x0), 0.0, 0.0, 0.0 };
+    f256_s r{ detail::fp::ceil(a.x0), 0.0, 0.0, 0.0 };
     if (r < a)
         r += 1.0;
     return r;

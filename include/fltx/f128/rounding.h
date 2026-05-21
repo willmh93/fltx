@@ -1,5 +1,5 @@
 /**
- * fltx/f128/rounding.h - core f128 rounding wrappers and pow10 support.
+ * fltx/f128/rounding.h - Core f128 rounding wrappers and pow10 support.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -35,10 +35,10 @@ namespace detail::_f128_runtime
         if (a.lo == 0.0)
             return f128_s{ a.hi, 0.0 };
 
-        return detail::_f128::renorm(a.hi, detail::_f128::floor_constexpr(a.lo));
+        return detail::_f128::renorm(a.hi, detail::_f128::floor(a.lo));
     }
 
-    f128_s r{ detail::_f128::floor_constexpr(a.hi), 0.0 };
+    f128_s r{ detail::_f128::floor(a.hi), 0.0 };
     if (r > a)
         r -= 1.0;
     return r;
@@ -56,10 +56,10 @@ namespace detail::_f128_runtime
         if (a.lo == 0.0)
             return f128_s{ a.hi, 0.0 };
 
-        return detail::_f128::renorm(a.hi, detail::_f128::ceil_constexpr(a.lo));
+        return detail::_f128::renorm(a.hi, detail::_f128::ceil(a.lo));
     }
 
-    f128_s r{ detail::_f128::ceil_constexpr(a.hi), 0.0 };
+    f128_s r{ detail::_f128::ceil(a.hi), 0.0 };
     if (r < a)
         r += 1.0;
     return r;

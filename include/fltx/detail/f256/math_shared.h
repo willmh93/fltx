@@ -1,7 +1,7 @@
 /**
- * fltx/detail/f256/math_support.h - shared f256 math implementation support.
+ * fltx/detail/f256/math_shared.h - Shared f256 math implementation support.
  *
- * Shared f256 helpers used by math-family implementation headers.
+ * Shared f256 helpers used by math implementation headers.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -9,8 +9,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_MATH_SUPPORT_IMPL_INCLUDED
-#define FLTX_F256_DETAIL_MATH_SUPPORT_IMPL_INCLUDED
+#ifndef FLTX_F256_DETAIL_MATH_SHARED_INCLUDED
+#define FLTX_F256_DETAIL_MATH_SHARED_INCLUDED
 #include "fltx/detail/f256/declarations.h"
 
 namespace bl {
@@ -22,11 +22,10 @@ namespace detail::_f256
     using detail::exact_decimal::decompose_double_mantissa;
     using detail::exact_decimal::mod_shift_subtract;
     using detail::exact_decimal::signed_biguint;
-    using detail::fp::fmod_constexpr;
-    using detail::fp::frexp_exponent_constexpr;
+    using detail::fp::fmod;
     using detail::fp::nearbyint_ties_even;
-    using detail::fp::sqrt_seed_constexpr;
-    using detail::fp::trunc_constexpr;
+    using detail::fp::sqrt_seed;
+    using detail::fp::trunc;
 
     BL_FORCE_INLINE constexpr f256_s add_inline(const f256_s& a, const f256_s& b) noexcept;
     BL_FORCE_INLINE constexpr f256_s sub_inline(const f256_s& a, const f256_s& b) noexcept;
@@ -170,7 +169,7 @@ namespace detail::_f256
     BL_FORCE_INLINE constexpr int frexp_exponent(double value) noexcept
     {
         if (bl::use_constexpr_math())
-            return frexp_exponent_constexpr(value);
+            return detail::fp::frexp_exponent(value);
 
         int exponent = 0;
         (void)std::frexp(value, &exponent);
@@ -180,7 +179,7 @@ namespace detail::_f256
     BL_FORCE_INLINE constexpr double ldexp_limb(double value, int exponent) noexcept
     {
         if (bl::use_constexpr_math())
-            return detail::fp::ldexp_constexpr2(value, exponent);
+            return detail::fp::ldexp(value, exponent);
 
         return std::ldexp(value, exponent);
     }
@@ -434,11 +433,11 @@ namespace detail::_f256
         const std::uint64_t c1 = q.get_bits(159, 53);
         const std::uint64_t c0 = q.get_bits(212, 53);
 
-        const double x0 = c0 ? detail::fp::ldexp_constexpr2(static_cast<double>(c0), e2 - 52) : 0.0;
-        const double x1 = c1 ? detail::fp::ldexp_constexpr2(static_cast<double>(c1), e2 - 105) : 0.0;
-        const double x2 = c2 ? detail::fp::ldexp_constexpr2(static_cast<double>(c2), e2 - 158) : 0.0;
-        const double x3 = c3 ? detail::fp::ldexp_constexpr2(static_cast<double>(c3), e2 - 211) : 0.0;
-        const double x4 = c4 ? detail::fp::ldexp_constexpr2(static_cast<double>(c4), e2 - 264) : 0.0;
+        const double x0 = c0 ? detail::fp::ldexp(static_cast<double>(c0), e2 - 52) : 0.0;
+        const double x1 = c1 ? detail::fp::ldexp(static_cast<double>(c1), e2 - 105) : 0.0;
+        const double x2 = c2 ? detail::fp::ldexp(static_cast<double>(c2), e2 - 158) : 0.0;
+        const double x3 = c3 ? detail::fp::ldexp(static_cast<double>(c3), e2 - 211) : 0.0;
+        const double x4 = c4 ? detail::fp::ldexp(static_cast<double>(c4), e2 - 264) : 0.0;
 
         f256_s out = renorm5(x0, x1, x2, x3, x4);
         return neg ? -out : out;
@@ -450,7 +449,7 @@ namespace detail::_f256
         const exact_dyadic_fmod dy = exact_from_f256_fmod(abs(y));
 
         if (dx.mant.is_zero() || dy.mant.is_zero())
-            return f256_s{ signbit_constexpr(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
 
         biguint remainder{};
         int out_exp = 0;
@@ -477,7 +476,7 @@ namespace detail::_f256
 
         f256_s out = exact_dyadic_to_f256_fmod(remainder, out_exp, !ispositive(x));
         if (iszero(out))
-            return f256_s{ signbit_constexpr(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
         return out;
     }
 
@@ -540,7 +539,7 @@ namespace detail::_f256
         if (!(ay.x0 > 0.0) || !isfinite(ay) || !(ax >= ay))
             return false;
 
-        const double q = trunc_constexpr(ax.x0 / ay.x0);
+        const double q = trunc(ax.x0 / ay.x0);
         if (!(q > 0.0) || q >= 0x1p42)
             return false;
 
@@ -590,7 +589,7 @@ namespace detail::_f256
             return fmod_exact(x, y);
 
         if (iszero(r))
-            return f256_s{ signbit_constexpr(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
 
         return ispositive(x) ? r : -r;
     }
@@ -604,14 +603,14 @@ namespace detail::_f256
 
         if (ax.x1 == 0.0 && ax.x2 == 0.0 && ax.x3 == 0.0)
         {
-            out = f256_s{ fmod_constexpr(ax.x0, ay), 0.0, 0.0, 0.0 };
+            out = f256_s{ fmod(ax.x0, ay), 0.0, 0.0, 0.0 };
             return true;
         }
 
-        const double r0 = (ax.x0 < ay) ? ax.x0 : fmod_constexpr(ax.x0, ay);
-        const double r1 = (absd(ax.x1) < ay) ? ax.x1 : fmod_constexpr(ax.x1, ay);
-        const double r2 = (absd(ax.x2) < ay) ? ax.x2 : fmod_constexpr(ax.x2, ay);
-        const double r3 = (absd(ax.x3) < ay) ? ax.x3 : fmod_constexpr(ax.x3, ay);
+        const double r0 = (ax.x0 < ay) ? ax.x0 : fmod(ax.x0, ay);
+        const double r1 = (absd(ax.x1) < ay) ? ax.x1 : fmod(ax.x1, ay);
+        const double r2 = (absd(ax.x2) < ay) ? ax.x2 : fmod(ax.x2, ay);
+        const double r3 = (absd(ax.x3) < ay) ? ax.x3 : fmod(ax.x3, ay);
 
         f256_s r = f256_s{ r0, 0.0, 0.0, 0.0 } +
             f256_s{ r1, 0.0, 0.0, 0.0 } +
@@ -668,10 +667,10 @@ namespace detail::_f256
         const std::uint64_t c1 = q.get_bits(106, 53);
         const std::uint64_t c0 = q.get_bits(159, 53);
 
-        const double x0 = c0 ? detail::fp::ldexp_constexpr2(static_cast<double>(c0), e2 - 52) : 0.0;
-        const double x1 = c1 ? detail::fp::ldexp_constexpr2(static_cast<double>(c1), e2 - 105) : 0.0;
-        const double x2 = c2 ? detail::fp::ldexp_constexpr2(static_cast<double>(c2), e2 - 158) : 0.0;
-        const double x3 = c3 ? detail::fp::ldexp_constexpr2(static_cast<double>(c3), e2 - 211) : 0.0;
+        const double x0 = c0 ? detail::fp::ldexp(static_cast<double>(c0), e2 - 52) : 0.0;
+        const double x1 = c1 ? detail::fp::ldexp(static_cast<double>(c1), e2 - 105) : 0.0;
+        const double x2 = c2 ? detail::fp::ldexp(static_cast<double>(c2), e2 - 158) : 0.0;
+        const double x3 = c3 ? detail::fp::ldexp(static_cast<double>(c3), e2 - 211) : 0.0;
 
         f256_s out = renorm(x0, x1, x2, x3);
         return neg ? -out : out;
@@ -734,7 +733,7 @@ namespace detail::_f256
         if (value == 0.0 || !isfinite(value) || absd(value) >= 0x1p53)
             return 0.0;
 
-        return fmod_constexpr(value, 2.0);
+        return fmod(value, 2.0);
     }
 
     BL_FORCE_INLINE constexpr bool is_odd_integer(const f256_s& x) noexcept
@@ -745,7 +744,7 @@ namespace detail::_f256
             limb_mod2(x.x2) +
             limb_mod2(x.x3);
 
-        mod2 = fmod_constexpr(mod2, 2.0);
+        mod2 = fmod(mod2, 2.0);
         if (mod2 < 0.0)
             mod2 += 2.0;
 
@@ -757,7 +756,7 @@ namespace detail::_f256
         if (value == 0.0 || !isfinite(value) || absd(value) >= zero_threshold)
             return 0.0;
 
-        return fmod_constexpr(value, modulus);
+        return fmod(value, modulus);
     }
 
     BL_FORCE_INLINE constexpr int low_quotient_bits(const f256_s& x) noexcept
@@ -771,11 +770,11 @@ namespace detail::_f256
             limb_mod_power_of_two(x.x2, modulus, zero_threshold) +
             limb_mod_power_of_two(x.x3, modulus, zero_threshold);
 
-        bits = fmod_constexpr(bits, modulus);
+        bits = fmod(bits, modulus);
         return static_cast<int>(static_cast<long long>(nearbyint_ties_even(bits)));
     }
 
-    BL_FORCE_INLINE constexpr f256_s mul_add_horner_step_constexpr(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
+    BL_FORCE_INLINE constexpr f256_s mul_add_horner_step_inline(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
         return mul_add_inline(a, b, c);
     }
@@ -783,12 +782,12 @@ namespace detail::_f256
     BL_FORCE_INLINE constexpr f256_s mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
         if (bl::use_constexpr_math())
-            return mul_add_horner_step_constexpr(a, b, c);
+            return mul_add_horner_step_inline(a, b, c);
 
         return detail::_f256_runtime::mul_add_horner_step(a, b, c);
     }
 
-    BL_FORCE_INLINE constexpr f256_s horner_forward_constexpr(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
+    BL_FORCE_INLINE constexpr f256_s horner_forward_inline(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
     {
         if (count == 0)
             return {};
@@ -802,12 +801,12 @@ namespace detail::_f256
     BL_FORCE_INLINE constexpr f256_s horner_forward(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
     {
         if (bl::use_constexpr_math())
-            return horner_forward_constexpr(coeffs, count, x);
+            return horner_forward_inline(coeffs, count, x);
 
         return detail::_f256_runtime::horner_forward(coeffs, count, x);
     }
 
-    BL_FORCE_INLINE constexpr f256_s horner_reverse_constexpr(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
+    BL_FORCE_INLINE constexpr f256_s horner_reverse_inline(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
     {
         if (count == 0)
             return {};
@@ -821,12 +820,12 @@ namespace detail::_f256
     BL_FORCE_INLINE constexpr f256_s horner_reverse(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
     {
         if (bl::use_constexpr_math())
-            return horner_reverse_constexpr(coeffs, count, x);
+            return horner_reverse_inline(coeffs, count, x);
 
         return detail::_f256_runtime::horner_reverse(coeffs, count, x);
     }
 
-    BL_FORCE_INLINE constexpr void horner_pair_forward_constexpr(
+    BL_FORCE_INLINE constexpr void horner_pair_forward_inline(
         const f256_s* left_coeffs,
         const f256_s* right_coeffs,
         std::size_t count,
@@ -863,7 +862,7 @@ namespace detail::_f256
     {
         if (bl::use_constexpr_math())
         {
-            horner_pair_forward_constexpr(left_coeffs, right_coeffs, count, x, left_out, right_out);
+            horner_pair_forward_inline(left_coeffs, right_coeffs, count, x, left_out, right_out);
             return;
         }
 
@@ -958,7 +957,7 @@ namespace detail::_f256
         const int input_scale = -2 * result_scale;
         const f256_s scaled_a = input_scale == 0 ? a : ldexp_terms(a, input_scale);
 
-        const double y0 = sqrt_seed_constexpr(scaled_a.x0);
+        const double y0 = sqrt_seed(scaled_a.x0);
         const double half_inv_y0 = 0.5 / y0;
         f256_s y{ y0, 0.0, 0.0, 0.0 };
         sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
@@ -1005,10 +1004,10 @@ namespace detail::_f256
 
     BL_FORCE_INLINE constexpr bool signbit_impl(const f256_s& x) noexcept
     {
-        return signbit_constexpr(x.x0)
-            || (x.x0 == 0.0 && (signbit_constexpr(x.x1)
-            || (x.x1 == 0.0 && (signbit_constexpr(x.x2)
-            || (x.x2 == 0.0 && signbit_constexpr(x.x3))))));
+        return signbit(x.x0)
+            || (x.x0 == 0.0 && (signbit(x.x1)
+            || (x.x1 == 0.0 && (signbit(x.x2)
+            || (x.x2 == 0.0 && signbit(x.x3))))));
     }
 
     BL_FORCE_INLINE constexpr int fpclassify_impl(const f256_s& x) noexcept
@@ -1072,8 +1071,6 @@ namespace detail::_f256
             add_inline(x, f256_s{ 0.5 }));
     }
 
-    using detail::fp::nextafter_double_constexpr;
-
     BL_FORCE_INLINE constexpr f256_s normalize_nextafter_tail(const f256_s& from, double stepped_x3) noexcept
     {
         if (from.x1 == 0.0)
@@ -1134,7 +1131,7 @@ namespace detail::_f256
         if (abs_frac > f256_s{ 0.5 } || (!ties_to_even && abs_frac == f256_s{ 0.5 }) ||
             (ties_to_even && abs_frac == f256_s{ 0.5 } && (base & 1ll) != 0))
         {
-            rounded += (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0))) ? -1 : 1;
+            rounded += (x.x0 < 0.0 || (x.x0 == 0.0 && signbit(x.x0))) ? -1 : 1;
         }
 
         if (rounded < lo_i || rounded > hi_i)
@@ -1243,7 +1240,7 @@ namespace detail::_f256
         double s;
         if (bl::use_constexpr_math())
         {
-            s = bl::detail::fp::ldexp_constexpr2(1.0, e);
+            s = bl::detail::fp::ldexp(1.0, e);
         }
         else
         {
@@ -1294,14 +1291,14 @@ namespace detail::_f256
     if (y.x1 == 0.0 && y.x2 == 0.0 && y.x3 == 0.0 && fmod_fast_double_divisor_abs(ax, ay.x0, fast))
     {
         if (iszero(fast))
-            return f256_s{ signbit_constexpr(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
         const f256_s out = ispositive(x) ? fast : -fast;
         return canonicalize_math_result(out);
     }
     if (!bl::use_constexpr_math() && fmod_fast_small_quotient_abs(ax, ay, fast))
     {
         if (iszero(fast))
-            return f256_s{ signbit_constexpr(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
         const f256_s out = ispositive(x) ? fast : -fast;
         return canonicalize_math_result(out);
     }
@@ -1348,7 +1345,7 @@ namespace detail::_f256
     {
         t = add_inline(t, f256_s{ 1.0 });
         if (iszero(t))
-            return f256_s{ signbit_constexpr(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return f256_s{ signbit(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
         return t;
     }
 
@@ -1356,7 +1353,7 @@ namespace detail::_f256
         t = add_inline(t, f256_s{ 1.0 });
 
     if (iszero(t))
-        return f256_s{ signbit_constexpr(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+        return f256_s{ signbit(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
 
     return t;
 }
@@ -1381,7 +1378,7 @@ namespace detail::_f256
     int e = 0;
 
     if (bl::use_constexpr_math())
-        e = detail::fp::frexp_exponent_constexpr(lead);
+        e = detail::fp::frexp_exponent(lead);
     else
         (void)std::frexp(lead, &e);
 
@@ -1426,7 +1423,7 @@ namespace detail::_f256
 
     return normalize_nextafter_tail(
         from,
-        nextafter_double_constexpr(from.x3, toward));
+        detail::fp::nextafter(from.x3, toward));
 }
 
 } // namespace bl

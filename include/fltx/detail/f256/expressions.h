@@ -45,7 +45,7 @@ namespace detail::_f256
         if ((fraction & (fraction - 1)) != 0)
             return { false, negative, 0 };
 
-        return { true, negative, bl::detail::fp::highest_bit_index_constexpr(fraction) - 1074 };
+        return { true, negative, bl::detail::fp::highest_bit_index(fraction) - 1074 };
     }
 
     BL_FORCE_INLINE constexpr bool finite_scaled_limb_is_safe(double value, double scaled) noexcept
@@ -235,15 +235,15 @@ namespace detail::_f256
         #if defined(BL_FAST_MATH)
         if (!bl::use_constexpr_math())
         {
-            const double scale = bl::detail::fp::scalbn_constexpr2(negative ? -1.0 : 1.0, exponent);
+            const double scale = bl::detail::fp::scalbn(negative ? -1.0 : 1.0, exponent);
             return scale_unchecked_inline(a, scale);
         }
         #endif
 
-        const double x0 = bl::detail::fp::scalbn_constexpr2(a.x0, exponent);
-        const double x1 = bl::detail::fp::scalbn_constexpr2(a.x1, exponent);
-        const double x2 = bl::detail::fp::scalbn_constexpr2(a.x2, exponent);
-        const double x3 = bl::detail::fp::scalbn_constexpr2(a.x3, exponent);
+        const double x0 = bl::detail::fp::scalbn(a.x0, exponent);
+        const double x1 = bl::detail::fp::scalbn(a.x1, exponent);
+        const double x2 = bl::detail::fp::scalbn(a.x2, exponent);
+        const double x3 = bl::detail::fp::scalbn(a.x3, exponent);
 
         #if !defined(BL_FAST_MATH)
         if (!finite_scaled_limb_is_safe(a.x0, x0) ||
@@ -251,7 +251,7 @@ namespace detail::_f256
             !finite_scaled_limb_is_safe(a.x2, x2) ||
             !finite_scaled_limb_is_safe(a.x3, x3))
         {
-            const double scalar = negative ? -bl::detail::fp::scalbn_constexpr2(1.0, exponent) : bl::detail::fp::scalbn_constexpr2(1.0, exponent);
+            const double scalar = negative ? -bl::detail::fp::scalbn(1.0, exponent) : bl::detail::fp::scalbn(1.0, exponent);
             return mul_double_inline(a, scalar);
         }
         #endif

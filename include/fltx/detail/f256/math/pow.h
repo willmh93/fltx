@@ -9,8 +9,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_POW_IMPL_INCLUDED
-#define FLTX_F256_DETAIL_POW_IMPL_INCLUDED
+#ifndef FLTX_F256_DETAIL_POW_INCLUDED
+#define FLTX_F256_DETAIL_POW_INCLUDED
 #include "fltx/detail/f256/math/exp_log.h"
 
 namespace bl {
@@ -73,7 +73,7 @@ namespace detail::_f256
 
     BL_FORCE_INLINE constexpr bool try_get_pow_dyadic_eighth_exponent(const f256_s& x, const f256_s& y, int64_t& n)
     {
-        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
+        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit(x.x0)))
             return false;
 
         if (!try_get_int64(mul_double_inline(y, 8.0), n))
@@ -84,14 +84,14 @@ namespace detail::_f256
 
     BL_FORCE_INLINE constexpr bool try_get_pow_dyadic_eighth_exponent(const f256_s& x, double y, int64_t& n) noexcept
     {
-        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
+        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit(x.x0)))
             return false;
 
         const double scaled = y * 8.0;
         if (!isfinite(scaled) || absd(scaled) >= 0x1p63)
             return false;
 
-        const double rounded = trunc_constexpr(scaled);
+        const double rounded = trunc(scaled);
         if (rounded != scaled)
             return false;
 
@@ -139,7 +139,7 @@ namespace detail::_f256
     if (try_get_pow_dyadic_eighth_exponent(x, y, dyadic_exponent))
         return canonicalize_math_result(pow_dyadic_eighth_unchecked(x, dyadic_exponent));
 
-    if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
+    if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit(x.x0)))
     {
         if (!y_is_int)
             return std::numeric_limits<f256_s>::quiet_NaN();
@@ -168,8 +168,8 @@ namespace detail::_f256
     if (bl::use_constexpr_math())
     {
         yi = (y < 0.0)
-            ? ceil_constexpr(y)
-            : floor_constexpr(y);
+            ? detail::fp::ceil(y)
+            : detail::fp::floor(y);
     }
     else
     {
@@ -185,7 +185,7 @@ namespace detail::_f256
     if (try_get_pow_dyadic_eighth_exponent(x, y, dyadic_exponent))
         return canonicalize_math_result(pow_dyadic_eighth_unchecked(x, dyadic_exponent));
 
-    if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
+    if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit(x.x0)))
     {
         if (!y_is_int)
             return std::numeric_limits<f256_s>::quiet_NaN();

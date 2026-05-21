@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f128/arithmetic.h - low-level double-double arithmetic helpers for f128.
+ * fltx/detail/f128/arithmetic.h - Low-level double-double arithmetic helpers for f128.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_ARITHMETIC_IMPL_INCLUDED
-#define FLTX_F128_DETAIL_ARITHMETIC_IMPL_INCLUDED
+#ifndef FLTX_F128_DETAIL_ARITHMETIC_INCLUDED
+#define FLTX_F128_DETAIL_ARITHMETIC_INCLUDED
 #include "fltx/f128/conversions.h"
 #include "fltx/f128/stl.h"
 
@@ -73,6 +73,7 @@ namespace detail::_f128
         return renorm(s, e);
     }
     BL_POP_PRECISE;
+
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s mul_inline(const f128_s& a, const f128_s& b) noexcept
     {
         double p, e;
@@ -147,7 +148,7 @@ namespace detail::_f128
                 if (isinf(a.hi))
                     return std::numeric_limits<f128_s>::quiet_NaN();
 
-                const bool neg = signbit_constexpr(a.hi) ^ signbit_constexpr(b);
+                const bool neg = signbit(a.hi) ^ signbit(b);
                 return f128_s{ neg ? -0.0 : 0.0, 0.0 };
             }
 
@@ -156,14 +157,14 @@ namespace detail::_f128
                 if (a.hi == 0.0 && a.lo == 0.0)
                     return std::numeric_limits<f128_s>::quiet_NaN();
 
-                const bool neg = signbit_constexpr(a.hi) ^ signbit_constexpr(b);
+                const bool neg = signbit(a.hi) ^ signbit(b);
                 return f128_s{ neg ? -std::numeric_limits<double>::infinity()
                              : std::numeric_limits<double>::infinity(), 0.0 };
             }
 
             if (isinf(a.hi)) [[unlikely]]
             {
-                const bool neg = signbit_constexpr(a.hi) ^ signbit_constexpr(b);
+                const bool neg = signbit(a.hi) ^ signbit(b);
                 return f128_s{ neg ? -std::numeric_limits<double>::infinity()
                              : std::numeric_limits<double>::infinity(), 0.0 };
             }

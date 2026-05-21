@@ -1,5 +1,5 @@
 /**
- * fltx/detail/f128/math/hyperbolic.h - hyperbolic implementation details.
+ * fltx/detail/f128/math/hyperbolic.h - Hyperbolic implementation details.
  *
  * f128 sinh/cosh/tanh and inverse hyperbolic implementations.
  *
@@ -9,15 +9,15 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_HYPERBOLIC_IMPL_INCLUDED
-#define FLTX_F128_DETAIL_HYPERBOLIC_IMPL_INCLUDED
+#ifndef FLTX_F128_DETAIL_HYPERBOLIC_INCLUDED
+#define FLTX_F128_DETAIL_HYPERBOLIC_INCLUDED
 #include "fltx/detail/f128/math/exp_log.h"
 
 namespace bl {
 
 namespace detail::_f128
 {
-    BL_MSVC_NOINLINE constexpr f128_s atanh_small_series_constexpr(const f128_s& x)
+    BL_MSVC_NOINLINE constexpr f128_s atanh_small_series(const f128_s& x)
     {
         const f128_s x2 = mul_inline(x, x);
         f128_s sum   = x;
@@ -185,7 +185,7 @@ namespace detail::_f128
     if (ax <= f128_s{ 0.125 })
     {
         if (bl::use_constexpr_math())
-            return canonicalize_math_result(atanh_small_series_constexpr(x));
+            return canonicalize_math_result(atanh_small_series(x));
 
         return canonicalize_math_result(atanh_small_series_runtime(x));
     }

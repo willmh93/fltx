@@ -1,5 +1,5 @@
 /**
- * fltx/f128/math/basic.h - basic f128 operations.
+ * fltx/f128/math/basic.h - Basic f128 operations.
  *
  * Rounding, decomposition, square root, remainders, hypot, cbrt, fused arithmetic helpers, and adjacent-value operations.
  * Runtime calls dispatch to compiled library bodies; constant evaluation uses

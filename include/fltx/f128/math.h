@@ -1,5 +1,5 @@
 /**
- * fltx/f128/math.h - umbrella header for constexpr f128 math functions.
+ * fltx/f128/math.h - Umbrella header for constexpr f128 math functions.
  *
  * Copyright (c) 2026 William Hemsworth
  *

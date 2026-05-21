@@ -78,7 +78,7 @@ namespace bl::detail::_f256_runtime
         if (try_get_pow_dyadic_eighth_exponent(x, y, dyadic_exponent))
             return canonicalize_math_result(pow_dyadic_eighth_runtime(x, dyadic_exponent));
 
-        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
+        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit(x.x0)))
         {
             if (!y_is_int)
                 return std::numeric_limits<f256_s>::quiet_NaN();
@@ -115,7 +115,7 @@ namespace bl::detail::_f256_runtime
         if (try_get_pow_dyadic_eighth_exponent(x, y, dyadic_exponent))
             return canonicalize_math_result(pow_dyadic_eighth_runtime(x, dyadic_exponent));
 
-        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit_constexpr(x.x0)))
+        if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit(x.x0)))
         {
             if (!y_is_int)
                 return std::numeric_limits<f256_s>::quiet_NaN();

@@ -9,6 +9,7 @@
 
 #ifndef FLTX_CORE_INCLUDED
 #define FLTX_CORE_INCLUDED
+
 #include "fltx/f128.h"
 #include "fltx/f256.h"
 

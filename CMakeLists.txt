@@ -14,6 +14,20 @@ add_library(fltx ${FLTX_LIBRARY_SOURCE_FILES})
 
 add_library(fltx::fltx ALIAS fltx)
 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    PREFIX "Source Files"
+    FILES ${FLTX_LIBRARY_SOURCE_FILE_PATHS}
+)
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    PREFIX "Header Files"
+    FILES ${FLTX_LIBRARY_HEADER_FILES}
+)
+
+source_group("Resource Files"
+    FILES ${FLTX_NATVIS_FILE}
+)
+
 target_include_directories(fltx
     ${FLTX_PUBLIC_SCOPE}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -22,8 +36,9 @@ target_include_directories(fltx
 
 # source-tree / VS-project style use
 target_sources(fltx
-    ${FLTX_PUBLIC_SCOPE}
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/fltx.natvis>
+    PRIVATE
+        ${FLTX_LIBRARY_HEADER_FILES}
+        ${FLTX_NATVIS_FILE}
 )
 
 if(MSVC)
