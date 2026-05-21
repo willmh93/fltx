@@ -1,5 +1,4 @@
 #pragma once
-
 #include <algorithm>
 #include <initializer_list>
 #include <iostream>
@@ -19,8 +18,8 @@ namespace fltx_example
 struct image_view
 {
     std::string_view name;
-    int width = 0;
-    int height = 0;
+    int width                = 0;
+    int height               = 0;
     const unsigned char* rgb = nullptr;
 };
 
@@ -153,15 +152,15 @@ inline bool show_images(std::string_view title, std::initializer_list<image_view
 
         const double cell_w = static_cast<double>(current_w) / static_cast<double>(columns);
         const double cell_h = static_cast<double>(current_h) / static_cast<double>(rows);
-        const double scale = std::min(cell_w / static_cast<double>(max_image_w), cell_h / static_cast<double>(max_image_h));
+        const double scale  = std::min(cell_w / static_cast<double>(max_image_w), cell_h / static_cast<double>(max_image_h));
 
         SDL_SetRenderDrawColor(renderer, 30, 31, 34, 255);
         SDL_RenderClear(renderer);
 
         for (std::size_t i = 0; i < views.size(); ++i)
         {
-            const int column = static_cast<int>(i) % columns;
-            const int row = static_cast<int>(i) / columns;
+            const int column      = static_cast<int>(i) % columns;
+            const int row         = static_cast<int>(i) / columns;
             const image_view& img = views[i];
 
             const int draw_w = std::max(1, static_cast<int>(static_cast<double>(img.width) * scale));
@@ -190,4 +189,5 @@ inline bool show_images(std::string_view title, std::initializer_list<image_view
     return true;
 #endif
 }
-}
+
+} // namespace fltx_example

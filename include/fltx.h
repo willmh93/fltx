@@ -9,9 +9,8 @@
 
 #ifndef FLTX_INCLUDED
 #define FLTX_INCLUDED
-
-#include "fltx_io.h"
-#include "fltx_math.h"
-#include "fltx_dispatch.h"
+#include "fltx/io.h"
+#include "fltx/math.h"
+#include "fltx/dispatch.h"
 
 #endif

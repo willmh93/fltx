@@ -2,6 +2,7 @@
 #include <iomanip>
 
 #include <fltx.h>
+
 using namespace bl;
 using namespace bl::literals;
 
@@ -40,11 +41,11 @@ void print_math(const char* name)
     std::cout << "print_math<" << name << ">():\n";
 
     std::cout << std::setprecision(std::numeric_limits<T1>::digits10);
-    std::cout << "   " << name << " min = " << min_v << "\n";
-    std::cout << "   " << name << " max = " << max_v << "\n";
-    std::cout << "   " << name << " PI = " << pi_v << "\n";
-    std::cout << "   " << "bl::sin(pi_v / 6.0) = " << sin_pi_6 << "\n";
-    std::cout << "   " << "bl::sin(pi_v / 5.0) = " << sin_pi_5 << "\n";
+    std::cout << " " << name << " min        = " << min_v << "\n";
+    std::cout << " " << name << " max        = " << max_v << "\n";
+    std::cout << " " << name << " PI         = " << pi_v << "\n";
+    std::cout << " " << "bl::sin(pi_v / 6.0) = " << sin_pi_6 << "\n";
+    std::cout << " " << "bl::sin(pi_v / 5.0) = " << sin_pi_5 << "\n";
 
     // T2 is fixed to f32 by the dispatch argument below in this example
     T2 c = static_cast<T2>(sin_pi_5);
@@ -64,16 +65,14 @@ void print_math(const char* name)
 
 int main()
 {
-    // -- direct invocation example --
     // print_math<f32, f32, true>("F32");
 
 
-    // -- dynamic dispatch table invocation --
     for (int i = 0; i < (int)FloatType::COUNT; i++)
     {
-        const char* name = FloatTypeNames[i];
+        const char* name     = FloatTypeNames[i];
         FloatType float_type = (FloatType)i;
-        bool test_bool = (i % 2) == 0;
+        bool test_bool       = (i % 2) == 0;
 
         // invokes print_math<T1, T2, Test_Bool>(name), selected from runtime dispatch values
         bl::table_invoke(

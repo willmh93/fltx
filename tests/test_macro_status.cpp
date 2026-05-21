@@ -1,8 +1,8 @@
-#include "f256.h"
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
+#include "fltx/f256.h"
 
 #ifndef FLTX_TEST_NAME
 #define FLTX_TEST_NAME "unknown_tests"
@@ -70,76 +70,76 @@ namespace
 
             std::fputs("[fltx ", stderr);
             std::fputs(FLTX_TEST_NAME, stderr);
-            std::fputs("] BL_FAST_MATH=", stderr);
+            std::fputs("] BL_FAST_MATH = ", stderr);
             #if defined(BL_FAST_MATH)
             std::fputs("defined", stderr);
             #else
             std::fputs("not defined", stderr);
             #endif
 
-            std::fputs(", FMA_AVAILABLE=", stderr);
+            std::fputs(", FMA_AVAILABLE = ", stderr);
             #if defined(FMA_AVAILABLE)
             std::fputs("defined", stderr);
             #else
             std::fputs("not defined", stderr);
             #endif
 
-            std::fputs(", FLTX_CONSTEXPR_PARITY=", stderr);
+            std::fputs(", FLTX_CONSTEXPR_PARITY = ", stderr);
             #if defined(FLTX_CONSTEXPR_PARITY)
             std::fputs("defined", stderr);
             #else
             std::fputs("not defined", stderr);
             #endif
 
-            std::fputs(", FLTX_SIMULATE_CONSTEVAL_MODE=", stderr);
+            std::fputs(", FLTX_SIMULATE_CONSTEVAL_MODE = ", stderr);
             #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
             std::fputs("defined", stderr);
             #else
             std::fputs("not defined", stderr);
             #endif
 
-            std::fputs(", FLTX_TEST_FORCE_SIMULATED_CONSTEVAL=", stderr);
+            std::fputs(", FLTX_TEST_FORCE_SIMULATED_CONSTEVAL = ", stderr);
             #if defined(FLTX_TEST_FORCE_SIMULATED_CONSTEVAL)
             std::fputs("defined", stderr);
             #else
             std::fputs("not defined", stderr);
             #endif
 
-            std::fputs(", simulated_consteval=", stderr);
+            std::fputs(", simulated_consteval = ", stderr);
             #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
             std::fputs(simulated_consteval_enabled ? "on" : "off", stderr);
             #else
             std::fputs("unavailable", stderr);
             #endif
 
-            std::fputs(", BL_FLTX_HAS_SSE2=", stderr);
+            std::fputs(", BL_FLTX_HAS_SSE2 = ", stderr);
             std::fputs(FLTX_STRINGIZE(BL_FLTX_HAS_SSE2), stderr);
 
-            std::fputs(", BL_FLTX_HAS_NEON=", stderr);
+            std::fputs(", BL_FLTX_HAS_NEON = ", stderr);
             std::fputs(FLTX_STRINGIZE(BL_FLTX_HAS_NEON), stderr);
 
-            std::fputs(", BL_FLTX_HAS_WASM_SIMD=", stderr);
+            std::fputs(", BL_FLTX_HAS_WASM_SIMD = ", stderr);
             std::fputs(FLTX_STRINGIZE(BL_FLTX_HAS_WASM_SIMD), stderr);
 
-            std::fputs(", BL_F256_ENABLE_SIMD=", stderr);
+            std::fputs(", BL_F256_ENABLE_SIMD = ", stderr);
             std::fputs(FLTX_STRINGIZE(BL_F256_ENABLE_SIMD), stderr);
 
-            std::fputs(", BL_F256_ENABLE_TRIG_SIMD=", stderr);
+            std::fputs(", BL_F256_ENABLE_TRIG_SIMD = ", stderr);
             std::fputs(FLTX_STRINGIZE(BL_F256_ENABLE_TRIG_SIMD), stderr);
 
-            std::fputs(", BL_FLTX_SIMD_USE_FMA_TWO_PROD=", stderr);
+            std::fputs(", BL_FLTX_SIMD_USE_FMA_TWO_PROD = ", stderr);
             std::fputs(FLTX_STRINGIZE(BL_FLTX_SIMD_USE_FMA_TWO_PROD), stderr);
 
-            std::fputs(", arm64=", stderr);
+            std::fputs(", arm64 = ", stderr);
             std::fputs(FLTX_ARCH_ARM64_STATUS, stderr);
 
-            std::fputs(", neon=", stderr);
+            std::fputs(", neon = ", stderr);
             std::fputs(FLTX_ARCH_NEON_STATUS, stderr);
 
-            std::fputs(", sse2=", stderr);
+            std::fputs(", sse2 = ", stderr);
             std::fputs(FLTX_ARCH_SSE2_STATUS, stderr);
 
-            std::fputs(", wasm_simd128=", stderr);
+            std::fputs(", wasm_simd128 = ", stderr);
             std::fputs(FLTX_ARCH_WASM_SIMD128_STATUS, stderr);
 
             std::fputc('\n', stderr);
@@ -148,4 +148,5 @@ namespace
     };
 
     const fltx_test_macro_status_printer fltx_test_macro_status_printer_instance{};
-}
+
+} // namespace

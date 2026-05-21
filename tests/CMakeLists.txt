@@ -13,6 +13,7 @@ endif()
 if (NOT COMMAND fltx_apply_simd_options)
     include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxSimd.cmake")
 endif()
+include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxSources.cmake")
 
 find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
@@ -31,7 +32,7 @@ if(NOT FLTX_BENCH_FAST_MATH_MODE MATCHES "^(DEFAULT|AUTO|ON|OFF)$")
     message(FATAL_ERROR "Invalid bench_tests fast-math mode '${FLTX_BENCH_FAST_MATH_MODE}'. Expected DEFAULT, AUTO, ON, or OFF.")
 endif()
 
-file(GLOB FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h")
+file(GLOB_RECURSE FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h")
 file(GLOB FLTX_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.cpp")
 
 file(GLOB FLTX_TESTS_PRECISION_SOURCE          CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/precision/*.cpp")
@@ -51,14 +52,10 @@ set(FLTX_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/../include")
 get_filename_component(FLTX_BENCH_OUTPUT_ROOT_NATIVE "${CMAKE_CURRENT_SOURCE_DIR}/../res/bench" REALPATH)
 file(TO_CMAKE_PATH "${FLTX_BENCH_OUTPUT_ROOT_NATIVE}" FLTX_BENCH_OUTPUT_ROOT)
 
-set(FLTX_LIBRARY_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f128.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f128_math.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256_math.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256_math_transcendental.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256_math_pow.cpp"
-)
+set(FLTX_LIBRARY_SOURCES "")
+foreach(_FLTX_LIBRARY_SOURCE IN LISTS FLTX_LIBRARY_SOURCE_FILES)
+    list(APPEND FLTX_LIBRARY_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../${_FLTX_LIBRARY_SOURCE}")
+endforeach()
 
 function (addFltxTestLibrary _TARGET)
     cmake_parse_arguments(FLTX_TEST_LIB "" "FAST_MATH_MODE" "DEFINITIONS" ${ARGN})

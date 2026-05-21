@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 #include <boost/multiprecision/mpfr.hpp>
-
 #include <array>
 #include <cmath>
 #include <iomanip>
@@ -10,7 +9,7 @@
 #include <string>
 #include <utility>
 
-#include <f128_io.h>
+#include <fltx/f128/io.h>
 
 using namespace bl;
 
@@ -23,7 +22,7 @@ namespace
     using mpfr_random = boost::multiprecision::mpfr_float_50;
 
     constexpr int checked_digits = std::numeric_limits<f128>::digits10 - 4;
-    constexpr int print_digits = std::numeric_limits<f128>::max_digits10;
+    constexpr int print_digits   = std::numeric_limits<f128>::max_digits10;
 
     [[nodiscard]] mpfr_check abs_check(const mpfr_check& value)
     {
@@ -76,9 +75,9 @@ namespace
 
     void require_close(const f128& actual, const mpfr_check& expected)
     {
-        const mpfr_check got = to_ref_exact(actual);
+        const mpfr_check got       = to_ref_exact(actual);
         const mpfr_check tolerance = comparison_tolerance(expected);
-        const mpfr_check diff = abs_check(got - expected);
+        const mpfr_check diff      = abs_check(got - expected);
 
         CAPTURE(to_text(actual));
         CAPTURE(to_text(expected));
@@ -94,7 +93,7 @@ namespace
     {
         f128 parsed{};
         const char* end = nullptr;
-        const bool ok = parse_flt128(text, parsed, &end);
+        const bool ok   = parse_flt128(text, parsed, &end);
 
         CAPTURE(text);
         REQUIRE(ok);
@@ -106,12 +105,12 @@ namespace
 
     void check_roundtrip_case(const char* label, const f128& value)
     {
-        const std::string text = to_text(value);
-        const f128 reparsed = to_f128(text);
-        const mpfr_check expected = to_ref_exact(value);
-        const mpfr_check got = to_ref_exact(reparsed);
+        const std::string text     = to_text(value);
+        const f128 reparsed        = to_f128(text);
+        const mpfr_check expected  = to_ref_exact(value);
+        const mpfr_check got       = to_ref_exact(reparsed);
         const mpfr_check tolerance = comparison_tolerance(expected);
-        const mpfr_check diff = abs_check(got - expected);
+        const mpfr_check diff      = abs_check(got - expected);
 
         CAPTURE(label);
         CAPTURE(text);
@@ -144,7 +143,8 @@ namespace
     {
         return value.str(digits, std::ios_base::scientific);
     }
-}
+
+} // namespace
 
 TEST_CASE("f128 parses decimal and scientific strings accurately", "[fltx][f128][io][parse]")
 {
@@ -179,9 +179,9 @@ TEST_CASE("f128 literals parse numeric and string source text", "[fltx][f128][io
 {
     using namespace bl::literals;
 
-    constexpr f128 numeric = 0.123456789012345678901234567890123_dd;
+    constexpr f128 numeric    = 0.123456789012345678901234567890123_dd;
     constexpr f128 scientific = 1.25e-20_dd;
-    constexpr f128 text = "0.123456789012345678901234567890123"_dd;
+    constexpr f128 text       = "0.123456789012345678901234567890123"_dd;
 
     require_close(numeric, to_ref("0.123456789012345678901234567890123"));
     require_close(scientific, to_ref("1.25e-20"));
@@ -192,7 +192,7 @@ TEST_CASE("f128 parser handles special values, partial tokens, and invalid input
 {
     {
         const char* text = " \t+infinity;";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f128 parsed{};
         REQUIRE(parse_flt128(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -202,7 +202,7 @@ TEST_CASE("f128 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "-inf tail";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f128 parsed{};
         REQUIRE(parse_flt128(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -212,7 +212,7 @@ TEST_CASE("f128 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "NaN(payload)";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f128 parsed{};
         REQUIRE(parse_flt128(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -221,7 +221,7 @@ TEST_CASE("f128 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "1.25tail";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f128 parsed{};
         REQUIRE(parse_flt128(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -230,7 +230,7 @@ TEST_CASE("f128 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "1e+oops";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f128 parsed{};
         REQUIRE(parse_flt128(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -239,7 +239,7 @@ TEST_CASE("f128 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "1e100000000";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f128 parsed{};
         REQUIRE(parse_flt128(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -249,7 +249,7 @@ TEST_CASE("f128 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "-1e-100000000";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f128 parsed{ 1.0, 0.0 };
         REQUIRE(parse_flt128(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -299,9 +299,9 @@ TEST_CASE("f128 fixed zero formatting respects precision", "[fltx][f128][io][for
 
 TEST_CASE("f128 formats special values and stream flags consistently", "[fltx][f128][io][format][edge]")
 {
-    const f128 inf = std::numeric_limits<f128>::infinity();
+    const f128 inf     = std::numeric_limits<f128>::infinity();
     const f128 neg_inf = -inf;
-    const f128 nan = std::numeric_limits<f128>::quiet_NaN();
+    const f128 nan     = std::numeric_limits<f128>::quiet_NaN();
 
     REQUIRE(bl::to_std_string(inf) == "inf");
     REQUIRE(bl::to_std_string(neg_inf) == "-inf");
@@ -347,10 +347,10 @@ TEST_CASE("f128 brute-force random roundtrip test", "[fltx][f128][io][rand]")
 
     for (int i = 0; i < sample_count; ++i)
     {
-        const mpfr_random value = random_large_finite_for_f128(rng);
+        const mpfr_random value    = random_large_finite_for_f128(rng);
         const std::string expected = to_scientific_string(value, print_digits);
 
-        const f128 parsed = to_f128(expected);
+        const f128 parsed        = to_f128(expected);
         const std::string actual = to_text(parsed);
 
         INFO("iteration: " << i);

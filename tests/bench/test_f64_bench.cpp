@@ -1,5 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -14,7 +13,7 @@
 #include <type_traits>
 #include <utility>
 
-#include <f64_math.h>
+#include <fltx/f64/math.h>
 #include "benchmark_chart_writer.h"
 
 namespace
@@ -23,9 +22,9 @@ namespace
 
     constexpr int benchmark_scale = 10;
     [[maybe_unused]] constexpr bool generate_compact_report = true;
-    constexpr std::size_t value_count = 64;
+    constexpr std::size_t value_count              = 64;
     constexpr std::size_t atan_typical_value_count = 4096;
-    constexpr double benchmark_pi = 3.141592653589793238462643383279502884;
+    constexpr double benchmark_pi                  = 3.141592653589793238462643383279502884;
 
     bl::bench::benchmark_chart_writer chart_writer{
         "f64",
@@ -37,8 +36,8 @@ namespace
 
     struct bench_result
     {
-        double total_ms = 0.0;
-        double ns_per_iter = 0.0;
+        double total_ms              = 0.0;
+        double ns_per_iter           = 0.0;
         std::int64_t iteration_count = 0;
     };
 
@@ -69,32 +68,32 @@ namespace
 
     struct long_exponent_value
     {
-        double value = 0.0;
+        double value  = 0.0;
         long exponent = 0;
     };
 
     struct nexttoward_value
     {
-        double from = 0.0;
+        double from    = 0.0;
         long double to = 0.0L;
     };
 
     struct frexp_result
     {
         double fraction = 0.0;
-        int exponent = 0;
+        int exponent    = 0;
     };
 
     struct modf_result
     {
         double fractional = 0.0;
-        double integral = 0.0;
+        double integral   = 0.0;
     };
 
     struct remquo_result
     {
         double remainder = 0.0;
-        int quotient = 0;
+        int quotient     = 0;
     };
 
     volatile double benchmark_sink_double = 0.0;
@@ -174,9 +173,9 @@ namespace
     template<typename Result, typename Work>
     [[nodiscard]] bench_result run_benchmark(std::int64_t iteration_count, Work&& work)
     {
-        const auto start = clock_type::now();
+        const auto start         = clock_type::now();
         const Result final_value = work();
-        const auto end = clock_type::now();
+        const auto end           = clock_type::now();
 
         consume_result(final_value);
 
@@ -307,7 +306,7 @@ namespace
         std::mt19937_64 rng(0x641002ull);
         for (std::size_t i = 0; i < values.size(); ++i)
         {
-            const double base = std::ldexp(random_real(rng, 0.5, 1.9999999999999998), random_int(rng, -6, 20));
+            const double base       = std::ldexp(random_real(rng, 0.5, 1.9999999999999998), random_int(rng, -6, 20));
             const double fractional = (static_cast<int>(i % 8) - 3.5) * 0.125;
             values[i] = random_sign(rng) * (std::floor(base) + fractional);
         }
@@ -363,7 +362,7 @@ namespace
         std::mt19937_64 rng(0x641006ull);
         for (std::size_t i = 0; i < values.size(); ++i)
         {
-            const double scale = std::ldexp(random_real(rng, 0.5, 1.5), random_int(rng, 0, 20));
+            const double scale  = std::ldexp(random_real(rng, 0.5, 1.5), random_int(rng, 0, 20));
             const double offset = std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 6, 40));
             values[i] = random_sign(rng) * (scale * benchmark_pi + offset * static_cast<double>((i % 5) + 1));
         }
@@ -393,10 +392,10 @@ namespace
 
         for (binary_value& value : values)
         {
-            const double angle = angle_distribution(rng);
+            const double angle  = angle_distribution(rng);
             const double radius = std::pow(10.0, log_radius_distribution(rng));
-            const double x = radius * std::cos(angle);
-            const double y = radius * std::sin(angle);
+            const double x      = radius * std::cos(angle);
+            const double y      = radius * std::sin(angle);
 
             value.lhs = y;
             value.rhs = x;
@@ -466,7 +465,7 @@ namespace
         {
             if ((i % 3) == 0)
             {
-                const double k = static_cast<double>(random_int(rng, -64, 64));
+                const double k   = static_cast<double>(random_int(rng, -64, 64));
                 const double eps = random_sign(rng) * std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 10, 40));
                 values[i] = k * ln2 + eps;
             }
@@ -493,7 +492,7 @@ namespace
         std::mt19937_64 rng(0x64100Cull);
         for (double& value : values)
         {
-            double x = random_real(rng, -20.0, 20.0);
+            double x             = random_real(rng, -20.0, 20.0);
             const double nearest = std::nearbyint(x);
             if (std::fabs(x - nearest) < 0.15)
                 x = nearest + (random_bool(rng) ? 0.25 : -0.25);
@@ -783,11 +782,12 @@ namespace
         return result;
     }
 
-    constexpr std::int64_t basic_iterations = 100000ll * benchmark_scale;
-    constexpr std::int64_t core_iterations = 40000ll * benchmark_scale;
+    constexpr std::int64_t basic_iterations          = 100000ll * benchmark_scale;
+    constexpr std::int64_t core_iterations           = 40000ll * benchmark_scale;
     constexpr std::int64_t transcendental_iterations = 20000ll * benchmark_scale;
-    constexpr std::int64_t special_iterations = 4000ll * benchmark_scale;
-}
+    constexpr std::int64_t special_iterations        = 4000ll * benchmark_scale;
+
+} // namespace
 
 #define BL_F64_UNARY_DOUBLE_TEST(label_text, tags_text, values_name, iterations_value, bl_expr, std_expr) \
 TEST_CASE("f64 vs std " label_text " performance", tags_text) \

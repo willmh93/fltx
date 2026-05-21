@@ -7,16 +7,10 @@ include(cmake/fltxOptions.cmake)
 include(cmake/fltxFastMath.cmake)
 include(cmake/fltxMsvcTiming.cmake)
 include(cmake/fltxSimd.cmake)
+include(cmake/fltxSources.cmake)
 
 set(FLTX_PUBLIC_SCOPE PUBLIC)
-add_library(fltx
-    src/f128.cpp
-    src/f128_math.cpp
-    src/f256.cpp
-    src/f256_math.cpp
-    src/f256_math_transcendental.cpp
-    src/f256_math_pow.cpp
-)
+add_library(fltx ${FLTX_LIBRARY_SOURCE_FILES})
 
 add_library(fltx::fltx ALIAS fltx)
 

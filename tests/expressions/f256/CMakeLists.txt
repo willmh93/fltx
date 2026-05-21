@@ -24,7 +24,7 @@ function(fltx_f256_expression_write_source _NAME _TEXT)
 endfunction()
 
 function(fltx_f256_expression_make_source _NAME _COUNT _KIND)
-    set(_TEXT "#include \"f256.h\"\n\n")
+    set(_TEXT "#include \"fltx/f256.h\"\n\n")
     string(APPEND _TEXT "#if defined(_MSC_VER)\n")
     string(APPEND _TEXT "#define FLTX_EXPR_NOINLINE __declspec(noinline)\n")
     string(APPEND _TEXT "#elif defined(__GNUC__) || defined(__clang__)\n")

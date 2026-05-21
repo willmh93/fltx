@@ -1,0 +1,18 @@
+set(FLTX_LIBRARY_SOURCE_FILES
+    src/f128.cpp
+    src/f128_math.cpp
+    src/f128_math_basic.cpp
+    src/f128_math_erf_gamma.cpp
+    src/f128_math_exp_log_pow.cpp
+    src/f128_math_hyperbolic.cpp
+    src/f128_math_trig.cpp
+    src/f256.cpp
+    src/f256_math.cpp
+    src/f256_math_basic.cpp
+    src/f256_math_erf.cpp
+    src/f256_math_gamma.cpp
+    src/f256_math_hyperbolic.cpp
+    src/f256_math_transcendental.cpp
+    src/f256_math_trig.cpp
+    src/f256_math_pow.cpp
+)

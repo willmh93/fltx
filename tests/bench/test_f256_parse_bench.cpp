@@ -3,7 +3,6 @@
 #include <random>
 #include <string>
 #include <vector>
-
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 
@@ -12,9 +11,9 @@
 namespace
 {
     constexpr std::size_t kSampleCount = 100000;
-    constexpr int kSignificantDigits = 80;
-    constexpr int kExponentLimit = 300;
-    constexpr std::uint64_t kSeed = 0x6c8e9cf570932bd1ULL;
+    constexpr int kSignificantDigits   = 80;
+    constexpr int kExponentLimit       = 300;
+    constexpr std::uint64_t kSeed      = 0x6c8e9cf570932bd1ULL;
 
     void append_zero_padded_unsigned(std::string& text, std::uint64_t value, int width)
     {
@@ -176,7 +175,8 @@ namespace
 
         return hash;
     }
-}
+
+} // namespace
 
 TEST_CASE("f256 parse benchmark uses common short qd literal strings", "[f256][bench_parse]")
 {

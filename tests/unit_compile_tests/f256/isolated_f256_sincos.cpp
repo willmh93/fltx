@@ -1,4 +1,4 @@
-#include <f256_math.h>
+#include <fltx/f256/math/trig.h>
 #include "isolated_runtime.h"
 
 namespace
@@ -8,7 +8,8 @@ namespace
         bl::f256 c;
         bl::f256 s;
     };
-}
+
+} // namespace
 
 void isolated_f256_sincos()
 {

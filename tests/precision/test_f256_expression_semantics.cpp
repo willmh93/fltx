@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 #include <boost/multiprecision/mpfr.hpp>
-
 #include <array>
 #include <bit>
 #include <cstdint>
@@ -11,8 +10,8 @@
 #include <type_traits>
 #include <utility>
 
-#include <f256_math.h>
-#include <f256_io.h>
+#include <fltx/f256/math.h>
+#include <fltx/f256/io.h>
 
 using namespace bl;
 
@@ -116,7 +115,7 @@ namespace
 
         for (std::size_t i = 0; i < scratch.size(); ++i)
         {
-            const f256_s scale = make_f256((i & 1u) == 0u ? "1.0000000000000000000000000000000001" : "-0.9999999999999999999999999999999999");
+            const f256_s scale  = make_f256((i & 1u) == 0u ? "1.0000000000000000000000000000000001" : "-0.9999999999999999999999999999999999");
             const f256_s offset = make_f256((i % 3u) == 0u ? "0.3333333333333333333333333333333333" : "-0.1250000000000000000000000000000001");
             accumulator = accumulator * scale + offset;
             scratch[i] = accumulator;
@@ -156,7 +155,7 @@ namespace
 
     [[nodiscard]] f256 make_materialized_log_minus_input_expression()
     {
-        const f256 z = make_f256("1.3125000000000000000000000000000001");
+        const f256 z      = make_f256("1.3125000000000000000000000000000001");
         const f256 result = log(z) - z;
         return result;
     }
@@ -191,17 +190,17 @@ namespace
     [[nodiscard]] f256 make_materialized_storage_member_expression()
     {
         const storage_rect rect = make_storage_rect();
-        const f256 result = storage_member_expression(rect);
+        const f256 result       = storage_member_expression(rect);
         return result;
     }
 
     [[nodiscard]] mpfr_ref storage_member_expression_reference()
     {
         const storage_rect rect = make_storage_rect();
-        const mpfr_ref ax = to_ref_exact(rect.a.x);
-        const mpfr_ref ay = to_ref_exact(rect.a.y);
-        const mpfr_ref bx = to_ref_exact(rect.b.x);
-        const mpfr_ref by = to_ref_exact(rect.b.y);
+        const mpfr_ref ax       = to_ref_exact(rect.a.x);
+        const mpfr_ref ay       = to_ref_exact(rect.a.y);
+        const mpfr_ref bx       = to_ref_exact(rect.b.x);
+        const mpfr_ref by       = to_ref_exact(rect.b.y);
 
         return ((ax + ay * mpfr_ref{ 0.5 }) - (bx / mpfr_ref{ 3.0 })) +
                ((mpfr_ref{ 2.0 } * by) - (ax * by)) / (ay + mpfr_ref{ 1.25 });
@@ -217,7 +216,7 @@ namespace
     void require_close_to_reference(const f256_s& got, const mpfr_ref& expected)
     {
         const mpfr_ref got_ref = to_ref_exact(got);
-        const mpfr_ref diff = got_ref > expected ? got_ref - expected : expected - got_ref;
+        const mpfr_ref diff    = got_ref > expected ? got_ref - expected : expected - got_ref;
         mpfr_ref scale = expected;
         if (scale < 0)
             scale = -scale;
@@ -232,14 +231,15 @@ namespace
         CAPTURE(to_text(tolerance));
         REQUIRE(diff <= tolerance);
     }
-}
+
+} // namespace
 
 TEST_CASE("f256 delayed fused expressions preserve normal value semantics", "[fltx][f256][precision][arithmetic][expressions][semantics]")
 {
     auto expression = make_returned_basic_expression();
     clobber_stack_between_expression_creation_and_evaluation();
 
-    const f256 delayed = std::move(expression);
+    const f256 delayed   = std::move(expression);
     const f256 immediate = make_materialized_basic_expression();
 
     require_same_value_bits(delayed, immediate);
@@ -250,7 +250,7 @@ TEST_CASE("f256 delayed expressions preserve math temporary semantics", "[fltx][
     auto expression = make_returned_log_minus_input_expression();
     clobber_stack_between_expression_creation_and_evaluation();
 
-    const f256 delayed = std::move(expression);
+    const f256 delayed   = std::move(expression);
     const f256 immediate = make_materialized_log_minus_input_expression();
 
     require_same_value_bits(delayed, immediate);
@@ -266,47 +266,47 @@ TEST_CASE("f256 delayed product expressions preserve simple multi-line value sem
     const mpfr_ref y_ref = to_ref_exact(y);
     const mpfr_ref a_ref = to_ref_exact(a);
 
-    auto xy0 = x * y;
-    auto xy1 = x * y;
+    auto xy0           = x * y;
+    auto xy1           = x * y;
     const f256 doubled = std::move(xy0) + std::move(xy1);
 
-    auto xy2 = x * y;
-    auto xy3 = x * y;
+    auto xy2                = x * y;
+    auto xy3                = x * y;
     const f256 doubled_plus = a + (std::move(xy2) + std::move(xy3));
 
-    auto xy4 = x * y;
-    auto xy5 = x * y;
+    auto xy4                   = x * y;
+    auto xy5                   = x * y;
     const f256 associated_plus = (std::move(xy4) + a) + std::move(xy5);
 
-    auto xy6 = x * y;
-    auto xy7 = x * y;
+    auto xy6                    = x * y;
+    auto xy7                    = x * y;
     const f256 associated_minus = (std::move(xy6) - a) + std::move(xy7);
 
-    auto xx0 = x * x;
-    auto yy0 = y * y;
+    auto xx0                       = x * x;
+    auto yy0                       = y * y;
     const f256 commuted_difference = a + (std::move(xx0) - std::move(yy0));
 
-    auto xy8 = x * y;
-    auto xx1 = x * x;
-    auto yy1 = y * y;
+    auto xy8                        = x * y;
+    auto xx1                        = x * x;
+    auto yy1                        = y * y;
     const f256 product_reassociated = std::move(xy8) + (std::move(xx1) + std::move(yy1));
 
-    auto xx2 = x * x;
-    auto yy2 = y * y;
+    auto xx2                                  = x * x;
+    auto yy2                                  = y * y;
     const f256 product_plus_value_sub_product = std::move(xx2) + (a - std::move(yy2));
 
-    auto xx3 = x * x;
-    auto yy3 = y * y;
+    auto xx3                                  = x * x;
+    auto yy3                                  = y * y;
     const f256 value_sub_product_plus_product = (a - std::move(xx3)) + std::move(yy3);
 
-    auto xx4 = x * x;
-    auto yy4 = y * y;
+    auto xx4                                   = x * x;
+    auto yy4                                   = y * y;
     const f256 product_minus_value_sub_product = std::move(xx4) - (a - std::move(yy4));
 
-    const f256 scaled_right_associated = (x * 1.25) + (a + y * -0.75);
+    const f256 scaled_right_associated  = (x * 1.25) + (a + y * -0.75);
     const f256 scaled_value_sub_product = (x * 1.25) + (a - y * 0.75);
-    const f256 scaled_sub_associated = (x * 1.25) - (a + y * 0.75);
-    const f256 scaled_left_associated = (a + x * 1.25) - (y * 0.75);
+    const f256 scaled_sub_associated    = (x * 1.25) - (a + y * 0.75);
+    const f256 scaled_left_associated   = (a + x * 1.25) - (y * 0.75);
 
     require_close_to_reference(doubled, x_ref * y_ref + x_ref * y_ref);
     require_close_to_reference(doubled_plus, a_ref + (x_ref * y_ref + x_ref * y_ref));
@@ -325,27 +325,27 @@ TEST_CASE("f256 delayed product expressions preserve simple multi-line value sem
 
 TEST_CASE("f256 named expressions require explicit consumption", "[fltx][f256][precision][arithmetic][expressions][semantics][fusion]")
 {
-    const f256 x = make_f256("1.1250000000000000000000000000000001");
-    const f256 y = make_f256("-0.8750000000000000000000000000000001");
+    const f256 x  = make_f256("1.1250000000000000000000000000000001");
+    const f256 y  = make_f256("-0.8750000000000000000000000000000001");
     const f256 cx = make_f256("0.3333333333333333333333333333333333");
 
-    auto xx = x * x - y * y + cx;
+    auto xx             = x * x - y * y + cx;
     const f256 assigned = std::move(xx);
-    const f256 direct = x * x - y * y + cx;
+    const f256 direct   = x * x - y * y + cx;
 
     require_same_value_bits(assigned, direct);
 }
 
 TEST_CASE("f256_s storage member arithmetic preserves normal value semantics", "[fltx][f256][precision][arithmetic][expressions][semantics][storage]")
 {
-    auto value_for_f256 = make_returned_storage_member_expression();
+    auto value_for_f256    = make_returned_storage_member_expression();
     auto value_for_storage = make_returned_storage_member_expression();
     clobber_stack_between_expression_creation_and_evaluation();
 
-    const f256 delayed_value = std::move(value_for_f256);
+    const f256 delayed_value         = std::move(value_for_f256);
     const f256 delayed_storage_value = std::move(value_for_storage);
-    const f256_s delayed_storage = delayed_storage_value;
-    const f256 immediate = make_materialized_storage_member_expression();
+    const f256_s delayed_storage     = delayed_storage_value;
+    const f256 immediate             = make_materialized_storage_member_expression();
 
     require_same_value_bits(delayed_value, immediate);
     require_same_value_bits(delayed_storage, immediate);

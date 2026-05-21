@@ -1,6 +1,5 @@
-#include <f128_math.h>
-#include <f256_math.h>
-
+#include <fltx/f128/math.h>
+#include <fltx/f256/math.h>
 #include "isolated_runtime.h"
 
 #if !defined(FLTX_BINARY_SIZE_STRESS_CASE)

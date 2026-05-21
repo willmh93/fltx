@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 #include <boost/multiprecision/mpfr.hpp>
-
 #include <array>
 #include <cmath>
 #include <iomanip>
@@ -9,8 +8,8 @@
 #include <string>
 #include <type_traits>
 
-#include <f128_math.h>
-#include <f256_math.h>
+#include <fltx/f128/math.h>
+#include <fltx/f256/math.h>
 
 namespace
 {
@@ -275,20 +274,20 @@ namespace
         };
     }
 
-    constexpr auto f128_core_unary_constexpr_cases = make_core_unary_cases<bl::f128_s>();
-    constexpr auto f128_inverse_unary_constexpr_cases = make_inverse_unary_cases<bl::f128_s>();
-    constexpr auto f128_hyperbolic_unary_constexpr_cases = make_hyperbolic_unary_cases<bl::f128_s>();
-    constexpr auto f128_special_unary_constexpr_cases = make_special_unary_cases<bl::f128_s>();
-    constexpr auto f128_arithmetic_binary_constexpr_cases = make_arithmetic_binary_cases<bl::f128_s>();
-    constexpr auto f128_reduction_binary_constexpr_cases = make_reduction_binary_cases<bl::f128_s>();
+    constexpr auto f128_core_unary_constexpr_cases            = make_core_unary_cases<bl::f128_s>();
+    constexpr auto f128_inverse_unary_constexpr_cases         = make_inverse_unary_cases<bl::f128_s>();
+    constexpr auto f128_hyperbolic_unary_constexpr_cases      = make_hyperbolic_unary_cases<bl::f128_s>();
+    constexpr auto f128_special_unary_constexpr_cases         = make_special_unary_cases<bl::f128_s>();
+    constexpr auto f128_arithmetic_binary_constexpr_cases     = make_arithmetic_binary_cases<bl::f128_s>();
+    constexpr auto f128_reduction_binary_constexpr_cases      = make_reduction_binary_cases<bl::f128_s>();
     constexpr auto f128_transcendental_binary_constexpr_cases = make_transcendental_binary_cases<bl::f128_s>();
 
-    constexpr auto f256_core_unary_constexpr_cases = make_core_unary_cases<bl::f256_s>();
-    constexpr auto f256_inverse_unary_constexpr_cases = make_inverse_unary_cases<bl::f256_s>();
-    constexpr auto f256_hyperbolic_unary_constexpr_cases = make_hyperbolic_unary_cases<bl::f256_s>();
-    constexpr auto f256_special_unary_constexpr_cases = make_special_unary_cases<bl::f256_s>();
-    constexpr auto f256_arithmetic_binary_constexpr_cases = make_arithmetic_binary_cases<bl::f256_s>();
-    constexpr auto f256_reduction_binary_constexpr_cases = make_reduction_binary_cases<bl::f256_s>();
+    constexpr auto f256_core_unary_constexpr_cases            = make_core_unary_cases<bl::f256_s>();
+    constexpr auto f256_inverse_unary_constexpr_cases         = make_inverse_unary_cases<bl::f256_s>();
+    constexpr auto f256_hyperbolic_unary_constexpr_cases      = make_hyperbolic_unary_cases<bl::f256_s>();
+    constexpr auto f256_special_unary_constexpr_cases         = make_special_unary_cases<bl::f256_s>();
+    constexpr auto f256_arithmetic_binary_constexpr_cases     = make_arithmetic_binary_cases<bl::f256_s>();
+    constexpr auto f256_reduction_binary_constexpr_cases      = make_reduction_binary_cases<bl::f256_s>();
     constexpr auto f256_transcendental_binary_constexpr_cases = make_transcendental_binary_cases<bl::f256_s>();
 
     static_assert(f128_core_unary_constexpr_cases.size() > 0);
@@ -485,10 +484,10 @@ namespace
 
         for (const auto& test : cases)
         {
-            const ref input = to_ref_exact<ref>(test.input);
-            const ref got = to_ref_exact<ref>(test.result);
-            const ref expected = apply_ref(test.op, input);
-            const ref diff = abs_ref(got - expected);
+            const ref input     = to_ref_exact<ref>(test.input);
+            const ref got       = to_ref_exact<ref>(test.result);
+            const ref expected  = apply_ref(test.op, input);
+            const ref diff      = abs_ref(got - expected);
             const ref tolerance = tolerance_for(expected, digits);
 
             INFO("type=" << ref_for<Float>::label);
@@ -511,11 +510,11 @@ namespace
 
         for (const auto& test : cases)
         {
-            const ref lhs = to_ref_exact<ref>(test.lhs);
-            const ref rhs = to_ref_exact<ref>(test.rhs);
-            const ref got = to_ref_exact<ref>(test.result);
-            const ref expected = apply_ref(test.op, lhs, rhs);
-            const ref diff = abs_ref(got - expected);
+            const ref lhs       = to_ref_exact<ref>(test.lhs);
+            const ref rhs       = to_ref_exact<ref>(test.rhs);
+            const ref got       = to_ref_exact<ref>(test.result);
+            const ref expected  = apply_ref(test.op, lhs, rhs);
+            const ref diff      = abs_ref(got - expected);
             const ref tolerance = tolerance_for(expected, digits);
 
             INFO("type=" << ref_for<Float>::label);
@@ -530,7 +529,8 @@ namespace
             CHECK(diff <= tolerance);
         }
     }
-}
+
+} // namespace
 
 TEST_CASE("real constexpr f128 libm corpus matches MPFR", "[fltx][constexpr][mpfr][f128]")
 {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-  
+
   <Type Name="bl::f128">
     <DisplayString Condition="lo == 0">{hi}</DisplayString>
     <DisplayString Condition="lo != 0">{hi}…</DisplayString>
@@ -18,7 +18,7 @@
       <Item Name="lo">lo</Item>
     </Expand>
   </Type>
-  
+
   <Type Name="bl::f256">
     <DisplayString Condition="x1 == 0">{x0}</DisplayString>
     <DisplayString Condition="x1 != 0">{x0}…</DisplayString>
@@ -40,5 +40,5 @@
       <Item Name="x3">x3</Item>
     </Expand>
   </Type>
-  
+
 </AutoVisualizer>

@@ -1,7 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-
-#include <f32_math.h>
-
 #include <array>
 #include <bit>
 #include <cmath>
@@ -14,6 +11,8 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+
+#include <fltx/f32/math.h>
 
 namespace
 {
@@ -107,7 +106,7 @@ auto eval_runtime_path(Function&& function)
 
 [[nodiscard]] float scaled_float(std::mt19937_64& rng, int exp_lo, int exp_hi, bool force_positive = false) noexcept
 {
-    const int exponent = random_int(rng, exp_lo, exp_hi);
+    const int exponent    = random_int(rng, exp_lo, exp_hi);
     const float magnitude = std::ldexp(unit_01(rng), exponent);
     if (force_positive)
         return magnitude;
@@ -172,7 +171,7 @@ auto eval_runtime_path(Function&& function)
 
     case 2:
     {
-        const float base = static_cast<float>(random_long_long(rng, -1000000, 1000000));
+        const float base  = static_cast<float>(random_long_long(rng, -1000000, 1000000));
         const float delta = std::ldexp(signed_unit(rng), -random_int(rng, 4, 20));
         return base + delta;
     }
@@ -212,9 +211,9 @@ auto eval_runtime_path(Function&& function)
         return signed_unit(rng) * 0.95;
     case 2:
     {
-        const float base = static_cast<float>(random_int(rng, -1, 1));
+        const float base  = static_cast<float>(random_int(rng, -1, 1));
         const float delta = std::ldexp(signed_unit(rng), -random_int(rng, 2, 12));
-        float value = base + delta;
+        float value       = base + delta;
         if (value <= -1.0)
             value = -0.99999994f;
         if (value >= 1.0)
@@ -426,9 +425,9 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
         auto rng = make_rng(test_name, bucket);
         for (int iteration = 0; iteration < kSamplesPerBucket; ++iteration)
         {
-            const auto args = generator(rng, bucket);
+            const auto args             = generator(rng, bucket);
             const auto constexpr_result = eval_constexpr_path([&]() { return std::apply(function, args); });
-            const auto runtime_result = eval_runtime_path([&]() { return std::apply(function, args); });
+            const auto runtime_result   = eval_runtime_path([&]() { return std::apply(function, args); });
 
             INFO("function=" << test_name << ", bucket=" << kBucketNames[static_cast<std::size_t>(bucket)] << ", iteration=" << iteration);
             INFO("args=" << describe_tuple(args));

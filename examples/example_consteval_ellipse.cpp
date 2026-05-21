@@ -6,7 +6,8 @@
 #include <limits>
 #include <numbers>
 
-#include <fltx>
+#include <fltx.h>
+
 using namespace bl;
 using namespace bl::literals;
 

@@ -1,4 +1,4 @@
-#include <f256_math.h>
+#include <fltx/f256/classification.h>
 #include "isolated_runtime.h"
 
 void isolated_f256_isunordered()

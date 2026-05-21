@@ -1,9 +1,4 @@
-
 #include <catch2/catch_test_macros.hpp>
-
-#include <f256_math.h>
-#include <f256_io.h>
-
 #include <array>
 #include <bit>
 #include <cmath>
@@ -17,6 +12,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <fltx/f256/math.h>
+#include <fltx/f256/io.h>
 
 namespace
 {
@@ -108,7 +105,7 @@ auto eval_runtime_path(Function&& function)
 
 [[nodiscard]] double scaled_double(std::mt19937_64& rng, int exp_lo, int exp_hi, bool force_positive = false) noexcept
 {
-    const int exponent = random_int(rng, exp_lo, exp_hi);
+    const int exponent     = random_int(rng, exp_lo, exp_hi);
     const double magnitude = std::ldexp(unit_01(rng), exponent);
     if (force_positive)
         return magnitude;
@@ -652,7 +649,7 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
                 continue;
 
             const auto constexpr_result = eval_constexpr_path([&]() { return std::apply(function, args); });
-            const auto runtime_result = eval_runtime_path([&]() { return std::apply(function, args); });
+            const auto runtime_result   = eval_runtime_path([&]() { return std::apply(function, args); });
 
             INFO("function=" << test_name << ", bucket=" << kBucketNames[static_cast<std::size_t>(bucket)] << ", iteration=" << iteration);
             INFO("args=" << describe_tuple(args));
@@ -863,6 +860,7 @@ TEST_CASE("f256 constexpr parity: round_to_decimals", "[fltx][constexpr][parity]
         return bl::round_to_decimals(x, digits);
     });
 }
+
 FLTX_TEST_UNARY(sqrt, gen_unary_positive)
 FLTX_TEST_UNARY(nearbyint, gen_unary_any)
 FLTX_TEST_UNARY(log_as_double, gen_unary_positive)
@@ -876,10 +874,12 @@ TEST_CASE("f256 constexpr parity: pow", "[fltx][constexpr][parity][f256][pow]")
 {
     run_tuple_test("pow", gen_pow_args, [](const value_type& x, const value_type& y) { return bl::pow(x, y); });
 }
+
 TEST_CASE("f256 constexpr parity: pow(double)", "[fltx][constexpr][parity][f256][pow_double]")
 {
     run_tuple_test("pow_double", gen_pow_double_args, [](const value_type& x, double y) { return bl::pow(x, y); });
 }
+
 TEST_CASE("f256 constexpr parity: pow10_256", "[fltx][constexpr][parity][f256][pow10_256]")
 {
     run_tuple_test("pow10_256", gen_pow10_args, [](int exponent) { return bl::pow10_256(exponent); });
@@ -1004,4 +1004,5 @@ TEST_CASE("f256 constexpr parity harness switches forced path", "[fltx][constexp
 #undef FLTX_TEST_TERNARY
 #undef FLTX_TEST_VALUE_INT
 #undef FLTX_TEST_VALUE_LONG
+
 } // namespace

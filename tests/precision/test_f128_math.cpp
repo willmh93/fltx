@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/mpfr.hpp>
-
 #include <array>
 #include <bit>
 #include <cmath>
@@ -17,8 +16,8 @@
 #include <utility>
 #include <vector>
 
-#include <f128_math.h>
-#include <f128_io.h>
+#include <fltx/f128/math.h>
+#include <fltx/f128/io.h>
 
 using big = boost::multiprecision::mpfr_float_50;
 
@@ -33,9 +32,9 @@ namespace
     constexpr int checked_digits = std::numeric_limits<f128>::digits10 - 2;
     constexpr int printed_digits = std::numeric_limits<f128>::max_digits10;
 
-    constexpr std::uint64_t random_seed = 1ull;
+    constexpr std::uint64_t random_seed     = 1ull;
     constexpr int random_sample_count_scale = 500;
-    constexpr const char* type_label = "f128";
+    constexpr const char* type_label        = "f128";
 
     void print_random_run(const char* description, int count)
     {
@@ -254,7 +253,7 @@ namespace
             return { 0, true };
 
         const mpfr_ref diff = abs_ref(lhs_ref - rhs_ref);
-        const mpfr_ref ulp = nominal_ulp_size(rhs, lhs);
+        const mpfr_ref ulp  = nominal_ulp_size(rhs, lhs);
         return { ceil_to_ulp_count(diff / ulp), true };
     }
 
@@ -299,10 +298,10 @@ namespace
     struct accuracy_stats_entry
     {
         int samples = 0;
-        int passed = 0;
+        int passed  = 0;
         std::vector<double> achieved_digits;
         ulp_count worst_ulp = 0;
-        bool worst_ulp_exact = true;
+        bool worst_ulp_exact    = true;
         int inexact_ulp_samples = 0;
         mpfr_ref worst_scaled_error = 0;
     };
@@ -370,7 +369,7 @@ namespace
                 return;
 
             const std::ios_base::fmtflags old_flags = std::cout.flags();
-            const std::streamsize old_precision = std::cout.precision();
+            const std::streamsize old_precision     = std::cout.precision();
 
             std::cout << "\naccuracy summary for " << test_name << ":\n";
             std::cout << std::fixed << std::setprecision(2);
@@ -378,7 +377,7 @@ namespace
             for (const auto& [op_name, entry] : stats)
             {
                 const double median = median_digits(entry.achieved_digits);
-                const double worst = *std::min_element(entry.achieved_digits.begin(), entry.achieved_digits.end());
+                const double worst  = *std::min_element(entry.achieved_digits.begin(), entry.achieved_digits.end());
 
                 std::cout << "  " << op_name
                           << ": pass " << entry.passed << "/" << entry.samples
@@ -468,8 +467,8 @@ namespace
         const f128 lhs = to_f128(lhs_text);
         const f128 rhs = to_f128(rhs_text);
 
-        const f128 got = f128_op(lhs, rhs);
-        const mpfr_ref got_ref = to_ref_exact(got);
+        const f128 got          = f128_op(lhs, rhs);
+        const mpfr_ref got_ref  = to_ref_exact(got);
         const mpfr_ref expected = ref_op(to_ref_exact(lhs), to_ref_exact(rhs));
 
         mpfr_ref scale = abs_ref(expected);
@@ -477,7 +476,7 @@ namespace
             scale = 1;
 
         const mpfr_ref tolerance = function_tolerance(op_name, scale);
-        const mpfr_ref diff = abs_ref(got_ref - expected);
+        const mpfr_ref diff      = abs_ref(got_ref - expected);
 
         CAPTURE(op_name);
         CAPTURE(lhs_text);
@@ -506,12 +505,12 @@ namespace
         F128Op&& f128_op,
         RefOp&& ref_op)
     {
-        const f128 value = to_f128(value_text);
+        const f128 value         = to_f128(value_text);
         const mpfr_ref value_ref = to_ref_exact(value);
         const mpfr_ref scalar_ref{ static_cast<double>(scalar) };
 
-        const f128 got = f128_op(value, scalar);
-        const mpfr_ref got_ref = to_ref_exact(got);
+        const f128 got          = f128_op(value, scalar);
+        const mpfr_ref got_ref  = to_ref_exact(got);
         const mpfr_ref expected = ref_op(value_ref, scalar_ref);
 
         mpfr_ref scale = abs_ref(expected);
@@ -519,7 +518,7 @@ namespace
             scale = 1;
 
         const mpfr_ref tolerance = function_tolerance(op_name, scale);
-        const mpfr_ref diff = abs_ref(got_ref - expected);
+        const mpfr_ref diff      = abs_ref(got_ref - expected);
 
         CAPTURE(op_name);
         CAPTURE(case_label);
@@ -545,17 +544,17 @@ namespace
     {
         const f128 input = to_f128(input_text);
 
-        const f128 got = f128_op(input);
+        const f128 got           = f128_op(input);
         const mpfr_ref input_ref = to_ref_exact(input);
-        const mpfr_ref got_ref = to_ref_exact(got);
-        const mpfr_ref expected = ref_op(input_ref);
+        const mpfr_ref got_ref   = to_ref_exact(got);
+        const mpfr_ref expected  = ref_op(input_ref);
 
         mpfr_ref scale = abs_ref(expected);
         if (scale < 1)
             scale = 1;
 
         const mpfr_ref tolerance = function_tolerance(op_name, scale);
-        const mpfr_ref diff = abs_ref(got_ref - expected);
+        const mpfr_ref diff      = abs_ref(got_ref - expected);
 
         CAPTURE(op_name);
         CAPTURE(input_text);
@@ -590,16 +589,16 @@ namespace
     {
         const f128 input = to_f128(input_text);
 
-        const f128 got = f128_op(input);
+        const f128 got           = f128_op(input);
         const mpfr_ref input_ref = to_ref_exact(input);
-        const mpfr_ref got_ref = to_ref_exact(got);
-        const mpfr_ref expected = ref_op(input_ref);
+        const mpfr_ref got_ref   = to_ref_exact(got);
+        const mpfr_ref expected  = ref_op(input_ref);
 
         mpfr_ref accuracy_scale = abs_ref(expected);
         if (accuracy_scale < 1)
             accuracy_scale = 1;
 
-        const mpfr_ref scale = abs_ref(expected);
+        const mpfr_ref scale     = abs_ref(expected);
         const mpfr_ref tolerance = combined_tolerance(op_name, accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
         const mpfr_ref diff = abs_ref(got_ref - expected);
@@ -641,15 +640,15 @@ namespace
         const f128 lhs = to_f128(lhs_text);
         const f128 rhs = to_f128(rhs_text);
 
-        const f128 got = f128_op(lhs, rhs);
-        const mpfr_ref got_ref = to_ref_exact(got);
+        const f128 got          = f128_op(lhs, rhs);
+        const mpfr_ref got_ref  = to_ref_exact(got);
         const mpfr_ref expected = ref_op(to_ref_exact(lhs), to_ref_exact(rhs));
 
         mpfr_ref accuracy_scale = abs_ref(expected);
         if (accuracy_scale < 1)
             accuracy_scale = 1;
 
-        const mpfr_ref scale = abs_ref(expected);
+        const mpfr_ref scale     = abs_ref(expected);
         const mpfr_ref tolerance = combined_tolerance(op_name, accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
         const mpfr_ref diff = abs_ref(got_ref - expected);
@@ -700,6 +699,7 @@ namespace
             rounded -= 1;
         return rounded;
     }
+
     [[nodiscard]] mpfr_ref ref_round_half_away_zero(const mpfr_ref& value)
     {
         return value < 0
@@ -766,7 +766,7 @@ namespace
     {
         if (base < 0 && ref_is_integer(exponent))
         {
-            const long long n = exponent.convert_to<long long>();
+            const long long n  = exponent.convert_to<long long>();
             const mpfr_ref mag = ref_powi(-base, n);
             return (n & 1LL) ? -mag : mag;
         }
@@ -832,7 +832,7 @@ namespace
     {
         std::uniform_int_distribution<long long> multiple_dist(-1000000LL, 1000000LL);
 
-        const mpfr_ref half_pi = pi_ref() / 2;
+        const mpfr_ref half_pi    = pi_ref() / 2;
         const mpfr_ref quarter_pi = pi_ref() / 4;
 
         mpfr_ref offset = random_unit_interval_for_f128(rng) * (quarter_pi * 2);
@@ -921,9 +921,9 @@ namespace
         INFO("input_text: " << input_text);
         INFO("exponent: " << exponent);
 
-        const f128 input_value = to_f128(input_text.c_str());
-        const f128 got = bl::ldexp(input_value, exponent);
-        const mpfr_ref got_ref = to_ref_exact(got);
+        const f128 input_value  = to_f128(input_text.c_str());
+        const f128 got          = bl::ldexp(input_value, exponent);
+        const mpfr_ref got_ref  = to_ref_exact(got);
         const mpfr_ref expected = ref_ldexp(to_ref_exact(input_value), exponent);
 
         mpfr_ref scale = abs_ref(expected);
@@ -931,7 +931,7 @@ namespace
             scale = 1;
 
         const mpfr_ref tolerance = function_tolerance("ldexp", scale);
-        const mpfr_ref diff = abs_ref(got_ref - expected);
+        const mpfr_ref diff      = abs_ref(got_ref - expected);
 
         CAPTURE(label);
         CAPTURE(input_text);
@@ -957,7 +957,7 @@ namespace
         const mpfr_ref& abs_tolerance,
         const mpfr_ref& rel_tolerance)
     {
-        const std::string base_text = to_scientific_text(base, printed_digits + 4);
+        const std::string base_text     = to_scientific_text(base, printed_digits + 4);
         const std::string exponent_text = to_scientific_text(exponent, printed_digits + 4);
 
         INFO("label: " << label);
@@ -974,7 +974,7 @@ namespace
             [](const mpfr_ref& x, const mpfr_ref& y) { return ref_pow(x, y); });
     }
 
-}
+} // namespace
 
 
     [[nodiscard]] mpfr_ref ref_remainder_ties_even(const mpfr_ref& x, const mpfr_ref& y)
@@ -1078,7 +1078,7 @@ namespace
         const mpfr_ref& rel_tolerance)
     {
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
-        const f128 input_value = to_f128(input_text.c_str());
+        const f128 input_value       = to_f128(input_text.c_str());
 
         f128 got_s{};
         f128 got_c{};
@@ -1097,7 +1097,7 @@ namespace
             if (accuracy_scale < 1)
                 accuracy_scale = 1;
 
-            const mpfr_ref scale = abs_ref(expected_s);
+            const mpfr_ref scale     = abs_ref(expected_s);
             const mpfr_ref tolerance = combined_tolerance("sincos.sin", accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
             const mpfr_ref diff = abs_ref(got_ref - expected_s);
@@ -1115,7 +1115,7 @@ namespace
             if (accuracy_scale < 1)
                 accuracy_scale = 1;
 
-            const mpfr_ref scale = abs_ref(expected_c);
+            const mpfr_ref scale     = abs_ref(expected_c);
             const mpfr_ref tolerance = combined_tolerance("sincos.cos", accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
             const mpfr_ref diff = abs_ref(got_ref - expected_c);
@@ -1141,9 +1141,9 @@ namespace
         const f128 lhs = to_f128(lhs_text.c_str());
         const f128 rhs = to_f128(rhs_text.c_str());
 
-        int got_quo = 0;
-        const f128 got = bl::remquo(lhs, rhs, &got_quo);
-        const mpfr_ref got_ref = to_ref_exact(got);
+        int got_quo             = 0;
+        const f128 got          = bl::remquo(lhs, rhs, &got_quo);
+        const mpfr_ref got_ref  = to_ref_exact(got);
         const mpfr_ref expected = ref_remainder_ties_even(to_ref_exact(lhs), to_ref_exact(rhs));
 
         const mpfr_ref n = ref_round_to_even(to_ref_exact(lhs) / to_ref_exact(rhs));
@@ -1155,7 +1155,7 @@ namespace
         if (accuracy_scale < 1)
             accuracy_scale = 1;
 
-        const mpfr_ref scale = abs_ref(expected);
+        const mpfr_ref scale     = abs_ref(expected);
         const mpfr_ref tolerance = combined_tolerance("remquo", accuracy_scale, abs_tolerance, rel_tolerance, scale);
 
         const mpfr_ref diff = abs_ref(got_ref - expected);
@@ -1217,7 +1217,7 @@ TEST_CASE("f128 brute-force random arithmetic matches MPFR within tolerance", "[
     std::mt19937_64 rng{ random_seed };
 
     const int digits = printed_digits;
-    const int count = 128 * random_sample_count_scale;
+    const int count  = 128 * random_sample_count_scale;
     print_random_run("random arithmetic cases", count);
 
     for (int i = 0; i < count; ++i)
@@ -1330,10 +1330,10 @@ TEST_CASE("f128 integer overloads preserve exact integer values", "[fltx][f128][
 {
     auto check_signed = [](auto rhs, const char* label)
     {
-        const f128 base = to_f128("1.2345678901234567890123456789012345");
-        const f128 rhs_value = to_f128(static_cast<std::int64_t>(rhs));
+        const f128 base            = to_f128("1.2345678901234567890123456789012345");
+        const f128 rhs_value       = to_f128(static_cast<std::int64_t>(rhs));
         const bool rhs_fits_double = detail::_f128::integer_fits_exact_double(rhs);
-        const double rhs_double = static_cast<double>(rhs);
+        const double rhs_double    = static_cast<double>(rhs);
 
         auto add_right = [&]() -> f128 { return rhs_fits_double ? f128{ base + rhs_double } : f128{ base + rhs_value }; };
         auto add_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double + base } : f128{ rhs_value + base }; };
@@ -1372,10 +1372,10 @@ TEST_CASE("f128 integer overloads preserve exact integer values", "[fltx][f128][
 
     auto check_unsigned = [](auto rhs, const char* label)
     {
-        const f128 base = to_f128("1.2345678901234567890123456789012345");
-        const f128 rhs_value = to_f128(static_cast<std::uint64_t>(rhs));
+        const f128 base            = to_f128("1.2345678901234567890123456789012345");
+        const f128 rhs_value       = to_f128(static_cast<std::uint64_t>(rhs));
         const bool rhs_fits_double = detail::_f128::integer_fits_exact_double(rhs);
-        const double rhs_double = static_cast<double>(rhs);
+        const double rhs_double    = static_cast<double>(rhs);
 
         auto add_right = [&]() -> f128 { return rhs_fits_double ? f128{ base + rhs_double } : f128{ base + rhs_value }; };
         auto add_left  = [&]() -> f128 { return rhs_fits_double ? f128{ rhs_double + base } : f128{ rhs_value + base }; };
@@ -1425,11 +1425,11 @@ TEST_CASE("f128 integer overloads preserve exact integer values", "[fltx][f128][
 TEST_CASE("f128 sin matches MPFR for fixed values", "[fltx][f128][precision][transcendental][trig][sin]")
 {
     accuracy_report_scope report_scope{ "f128 sin matches MPFR for fixed values" };
-    const mpfr_ref pi = pi_ref();
-    const mpfr_ref half_pi = pi / 2;
+    const mpfr_ref pi         = pi_ref();
+    const mpfr_ref half_pi    = pi / 2;
     const mpfr_ref quarter_pi = pi / 4;
-    const mpfr_ref third_pi = pi / 3;
-    const mpfr_ref sixth_pi = pi / 6;
+    const mpfr_ref third_pi   = pi / 3;
+    const mpfr_ref sixth_pi   = pi / 6;
     const mpfr_ref tiny{ "1e-20" };
 
     const mpfr_ref reduced_abs_tolerance{ "1e-31" };
@@ -1450,7 +1450,7 @@ TEST_CASE("f128 sin matches MPFR for fixed values", "[fltx][f128][precision][tra
 TEST_CASE("f128 sin matches MPFR for fixed argument-reduction stress values", "[fltx][f128][precision][transcendental][trig][sin][reduction]")
 {
     accuracy_report_scope report_scope{ "f128 sin matches MPFR for fixed argument-reduction stress values", false };
-    const mpfr_ref pi = pi_ref();
+    const mpfr_ref pi     = pi_ref();
     const mpfr_ref two_pi = pi * 2;
     const mpfr_ref tiny{ "1e-20" };
 
@@ -1479,7 +1479,7 @@ TEST_CASE("f128 sin matches MPFR on random reduced-range inputs", "[fltx][f128][
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_sine_kernel_argument_for_f128(rng);
+        const mpfr_ref input         = random_sine_kernel_argument_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -1508,7 +1508,7 @@ TEST_CASE("f128 sin matches MPFR on random range-reduced inputs away from zero-c
 
     for (int i = 0, attempts = 0; i < count; ++attempts)
     {
-        const mpfr_ref input = random_sine_reduction_argument_for_f128(rng);
+        const mpfr_ref input    = random_sine_reduction_argument_for_f128(rng);
         const mpfr_ref expected = boost::multiprecision::sin(input);
         if (abs_ref(expected) < zero_crossing_threshold)
             continue;
@@ -1544,7 +1544,7 @@ TEST_CASE("f128 sin matches MPFR on random range-reduced zero-crossing stress in
 
     for (int i = 0, attempts = 0; i < count; ++attempts)
     {
-        const mpfr_ref input = random_sine_reduction_argument_for_f128(rng);
+        const mpfr_ref input    = random_sine_reduction_argument_for_f128(rng);
         const mpfr_ref expected = boost::multiprecision::sin(input);
         if (abs_ref(expected) >= zero_crossing_threshold)
             continue;
@@ -1570,10 +1570,10 @@ TEST_CASE("f128 sin matches MPFR on random range-reduced zero-crossing stress in
 TEST_CASE("f128 cos matches MPFR for fixed values", "[fltx][f128][precision][transcendental][trig][cos]")
 {
     accuracy_report_scope report_scope{ "f128 cos matches MPFR for fixed values" };
-    const mpfr_ref pi = pi_ref();
+    const mpfr_ref pi         = pi_ref();
     const mpfr_ref quarter_pi = pi / 4;
-    const mpfr_ref third_pi = pi / 3;
-    const mpfr_ref sixth_pi = pi / 6;
+    const mpfr_ref third_pi   = pi / 3;
+    const mpfr_ref sixth_pi   = pi / 6;
     const mpfr_ref tiny{ "1e-20" };
 
     const mpfr_ref reduced_abs_tolerance{ "1e-31" };
@@ -1593,9 +1593,9 @@ TEST_CASE("f128 cos matches MPFR for fixed values", "[fltx][f128][precision][tra
 TEST_CASE("f128 cos matches MPFR for fixed argument-reduction stress values", "[fltx][f128][precision][transcendental][trig][cos][reduction]")
 {
     accuracy_report_scope report_scope{ "f128 cos matches MPFR for fixed argument-reduction stress values", false };
-    const mpfr_ref pi = pi_ref();
+    const mpfr_ref pi      = pi_ref();
     const mpfr_ref half_pi = pi / 2;
-    const mpfr_ref two_pi = pi * 2;
+    const mpfr_ref two_pi  = pi * 2;
     const mpfr_ref tiny{ "1e-20" };
 
     const mpfr_ref reduction_abs_tolerance{ "1e-29" };
@@ -1624,7 +1624,7 @@ TEST_CASE("f128 cos matches MPFR on random reduced-range inputs", "[fltx][f128][
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_sine_kernel_argument_for_f128(rng);
+        const mpfr_ref input         = random_sine_kernel_argument_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -1653,7 +1653,7 @@ TEST_CASE("f128 cos matches MPFR on random range-reduced inputs away from zero-c
 
     for (int i = 0, attempts = 0; i < count; ++attempts)
     {
-        const mpfr_ref input = random_sine_reduction_argument_for_f128(rng);
+        const mpfr_ref input    = random_sine_reduction_argument_for_f128(rng);
         const mpfr_ref expected = boost::multiprecision::cos(input);
         if (abs_ref(expected) < zero_crossing_threshold)
             continue;
@@ -1689,7 +1689,7 @@ TEST_CASE("f128 cos matches MPFR on random range-reduced zero-crossing stress in
 
     for (int i = 0, attempts = 0; i < count; ++attempts)
     {
-        const mpfr_ref input = random_sine_reduction_argument_for_f128(rng);
+        const mpfr_ref input    = random_sine_reduction_argument_for_f128(rng);
         const mpfr_ref expected = boost::multiprecision::cos(input);
         if (abs_ref(expected) >= zero_crossing_threshold)
             continue;
@@ -1780,7 +1780,7 @@ TEST_CASE("f128 floor ceil trunc and round match MPFR on random finite inputs", 
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = mpfr_ref{ random_finite_for_f128(rng) };
+        const mpfr_ref input         = mpfr_ref{ random_finite_for_f128(rng) };
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -1902,7 +1902,7 @@ TEST_CASE("f128 sqrt matches MPFR on random positive inputs", "[fltx][f128][prec
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_positive_for_f128(rng);
+        const mpfr_ref input         = random_positive_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -1946,7 +1946,7 @@ TEST_CASE("f128 ldexp matches MPFR on random finite inputs", "[fltx][f128][preci
     for (int i = 0; i < count; ++i)
     {
         const mpfr_ref input = mpfr_ref{ random_finite_for_f128(rng) };
-        const int exponent = exponent_dist(rng);
+        const int exponent   = exponent_dist(rng);
 
         INFO("iteration: " << i);
         check_ldexp_case("ldexp", input, exponent);
@@ -1994,7 +1994,7 @@ TEST_CASE("f128 exp matches MPFR on random moderate inputs", "[fltx][f128][preci
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_signed_interval_for_f128(rng, mpfr_ref{ 20 });
+        const mpfr_ref input         = random_signed_interval_for_f128(rng, mpfr_ref{ 20 });
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -2051,7 +2051,7 @@ TEST_CASE("f128 exp2 matches MPFR on random moderate inputs", "[fltx][f128][prec
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_signed_interval_for_f128(rng, mpfr_ref{ 20 });
+        const mpfr_ref input         = random_signed_interval_for_f128(rng, mpfr_ref{ 20 });
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -2108,7 +2108,7 @@ TEST_CASE("f128 log matches MPFR on random positive inputs", "[fltx][f128][preci
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_positive_for_f128(rng);
+        const mpfr_ref input         = random_positive_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -2165,7 +2165,7 @@ TEST_CASE("f128 log2 matches MPFR on random positive inputs", "[fltx][f128][prec
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_positive_for_f128(rng);
+        const mpfr_ref input         = random_positive_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -2222,7 +2222,7 @@ TEST_CASE("f128 log10 matches MPFR on random positive inputs", "[fltx][f128][pre
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_positive_for_f128(rng);
+        const mpfr_ref input         = random_positive_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -2262,14 +2262,14 @@ TEST_CASE("f128 pow matches MPFR on random positive-base inputs", "[fltx][f128][
     accuracy_report_scope report_scope{ "f128 pow matches MPFR on random positive-base inputs" };
     std::mt19937_64 rng{ random_seed };
 
-    constexpr int count = 128 * random_sample_count_scale;
+    constexpr int count          = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance = decimal_epsilon(checked_digits);
     const mpfr_ref rel_tolerance = decimal_epsilon(checked_digits);
     print_random_run("random pow cases", count);
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref base = random_pow_base_for_f128(rng);
+        const mpfr_ref base     = random_pow_base_for_f128(rng);
         const mpfr_ref exponent = random_signed_interval_for_f128(rng, mpfr_ref{ 8 });
 
         INFO("iteration: " << i);
@@ -2319,9 +2319,9 @@ TEST_CASE("f128 utility math helpers behave correctly for fixed values", "[fltx]
         require_exact_value("clamp.high", got, to_f128("3"));
     }
     {
-        const f128 got = bl::fma(to_f128("1.25"), to_f128("2.5"), to_f128("-0.5"));
+        const f128 got          = bl::fma(to_f128("1.25"), to_f128("2.5"), to_f128("-0.5"));
         const mpfr_ref expected = to_ref_exact(to_f128("1.25")) * to_ref_exact(to_f128("2.5")) + to_ref_exact(to_f128("-0.5"));
-        const mpfr_ref diff = abs_ref(to_ref_exact(got) - expected);
+        const mpfr_ref diff     = abs_ref(to_ref_exact(got) - expected);
         mpfr_ref scale = abs_ref(expected);
         if (scale < 1)
             scale = 1;
@@ -2371,14 +2371,14 @@ TEST_CASE("f128 utility math helpers behave correctly for fixed values", "[fltx]
         const std::array<int, 9> exponents = {{ -8, -3, -1, 0, 1, 3, 8, 16, 32 }};
         for (int exponent : exponents)
         {
-            const f128 got = bl::pow10_128(exponent);
+            const f128 got          = bl::pow10_128(exponent);
             const mpfr_ref expected = ref_pow10(exponent);
-            const mpfr_ref got_ref = to_ref_exact(got);
+            const mpfr_ref got_ref  = to_ref_exact(got);
             mpfr_ref scale = abs_ref(expected);
             if (scale < 1)
                 scale = 1;
             const mpfr_ref tolerance = function_tolerance("pow10_128", scale);
-            const mpfr_ref diff = abs_ref(got_ref - expected);
+            const mpfr_ref diff      = abs_ref(got_ref - expected);
             CAPTURE(exponent);
             CAPTURE(to_text(got));
             CAPTURE(to_text(expected));
@@ -2413,12 +2413,12 @@ TEST_CASE("f128 public math results remain canonical on edge-shaped inputs", "[f
 
     accuracy_report_scope report_scope{ "f128 public math results remain canonical on edge-shaped inputs" };
 
-    const f128 a = detail::_f128::renorm(1.0, std::ldexp(1.0, -60));
-    const f128 b = detail::_f128::renorm(-0.375, -std::ldexp(1.0, -64));
-    const f128 domain = detail::_f128::renorm(0.625, std::ldexp(1.0, -62));
-    const f128 positive = detail::_f128::renorm(1.125, std::ldexp(1.0, -60));
+    const f128 a         = detail::_f128::renorm(1.0, std::ldexp(1.0, -60));
+    const f128 b         = detail::_f128::renorm(-0.375, -std::ldexp(1.0, -64));
+    const f128 domain    = detail::_f128::renorm(0.625, std::ldexp(1.0, -62));
+    const f128 positive  = detail::_f128::renorm(1.125, std::ldexp(1.0, -60));
     const f128 gamma_arg = detail::_f128::renorm(1.75, std::ldexp(1.0, -62));
-    const f128 target = to_f128("2.0");
+    const f128 target    = to_f128("2.0");
 
     require_canonical_value("operator+", a + b);
     require_canonical_value("operator-", a - b);
@@ -2563,7 +2563,7 @@ TEST_CASE("f128 tan matches MPFR on random moderate inputs", "[fltx][f128][preci
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_signed_interval_for_f128(rng, mpfr_ref{ 1.2 });
+        const mpfr_ref input         = random_signed_interval_for_f128(rng, mpfr_ref{ 1.2 });
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -2620,7 +2620,7 @@ TEST_CASE("f128 atan matches MPFR on random moderate inputs", "[fltx][f128][prec
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_signed_interval_for_f128(rng, mpfr_ref{ 128.0 });
+        const mpfr_ref input         = random_signed_interval_for_f128(rng, mpfr_ref{ 128.0 });
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -2753,7 +2753,7 @@ TEST_CASE("f128 asin and acos match MPFR on random unit inputs", "[fltx][f128][p
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_unit_symmetric_for_f128(rng);
+        const mpfr_ref input         = random_unit_symmetric_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -2821,8 +2821,8 @@ TEST_CASE("f128 remainder matches MPFR on random finite inputs", "[fltx][f128][p
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref lhs = mpfr_ref{ random_finite_for_f128(rng) };
-        const mpfr_ref rhs = random_nonzero_for_f128(rng);
+        const mpfr_ref lhs         = mpfr_ref{ random_finite_for_f128(rng) };
+        const mpfr_ref rhs         = random_nonzero_for_f128(rng);
         const std::string lhs_text = to_scientific_text(lhs, printed_digits + 4);
         const std::string rhs_text = to_scientific_text(rhs, printed_digits + 4);
 
@@ -2896,7 +2896,7 @@ TEST_CASE("f128 nearbyint and rint match ties-to-even references on random input
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = mpfr_ref{ random_finite_for_f128(rng) };
+        const mpfr_ref input         = mpfr_ref{ random_finite_for_f128(rng) };
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -2954,7 +2954,7 @@ TEST_CASE("f128 expm1 matches MPFR on random moderate inputs", "[fltx][f128][pre
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_signed_interval_for_f128(rng, mpfr_ref{ 20.0 });
+        const mpfr_ref input         = random_signed_interval_for_f128(rng, mpfr_ref{ 20.0 });
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -3012,7 +3012,7 @@ TEST_CASE("f128 log1p matches MPFR on random valid inputs", "[fltx][f128][precis
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_log1p_argument_for_f128(rng);
+        const mpfr_ref input         = random_log1p_argument_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -3085,7 +3085,7 @@ TEST_CASE("f128 hyperbolic functions match MPFR on random moderate inputs", "[fl
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_signed_interval_for_f128(rng, mpfr_ref{ 8.0 });
+        const mpfr_ref input         = random_signed_interval_for_f128(rng, mpfr_ref{ 8.0 });
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -3264,12 +3264,12 @@ TEST_CASE("f128 cbrt and hypot match MPFR on random moderate inputs", "[fltx][f1
     for (int i = 0; i < count; ++i)
     {
         const mpfr_ref cbrt_input = random_signed_interval_for_f128(rng, mpfr_ref{ 1e12 });
-        const mpfr_ref hypot_x = random_signed_interval_for_f128(rng, mpfr_ref{ 1e12 });
-        const mpfr_ref hypot_y = random_signed_interval_for_f128(rng, mpfr_ref{ 1e12 });
+        const mpfr_ref hypot_x    = random_signed_interval_for_f128(rng, mpfr_ref{ 1e12 });
+        const mpfr_ref hypot_y    = random_signed_interval_for_f128(rng, mpfr_ref{ 1e12 });
 
         const std::string cbrt_text = to_scientific_text(cbrt_input, printed_digits + 4);
-        const std::string x_text = to_scientific_text(hypot_x, printed_digits + 4);
-        const std::string y_text = to_scientific_text(hypot_y, printed_digits + 4);
+        const std::string x_text    = to_scientific_text(hypot_x, printed_digits + 4);
+        const std::string y_text    = to_scientific_text(hypot_y, printed_digits + 4);
 
         INFO("iteration: " << i);
 
@@ -3297,12 +3297,12 @@ TEST_CASE("f128 decomposition and stepping functions behave correctly", "[fltx][
     accuracy_report_scope report_scope{ "f128 decomposition and stepping functions behave correctly" };
 
     {
-        const f128 input = to_f128("123.456");
-        int exponent = 0;
-        const f128 mantissa = bl::frexp(input, &exponent);
-        const f128 rebuilt = bl::ldexp(mantissa, exponent);
-        const mpfr_ref diff = abs_ref(to_ref_exact(rebuilt) - to_ref_exact(input));
-        const mpfr_ref scale = abs_ref(to_ref_exact(input));
+        const f128 input         = to_f128("123.456");
+        int exponent             = 0;
+        const f128 mantissa      = bl::frexp(input, &exponent);
+        const f128 rebuilt       = bl::ldexp(mantissa, exponent);
+        const mpfr_ref diff      = abs_ref(to_ref_exact(rebuilt) - to_ref_exact(input));
+        const mpfr_ref scale     = abs_ref(to_ref_exact(input));
         const mpfr_ref tolerance = function_tolerance("frexp", scale);
         CAPTURE(exponent);
         CAPTURE(to_text(mantissa));
@@ -3315,7 +3315,7 @@ TEST_CASE("f128 decomposition and stepping functions behave correctly", "[fltx][
     {
         const f128 input = to_f128("-123.456");
         f128 ip{};
-        const f128 frac = bl::modf(input, &ip);
+        const f128 frac         = bl::modf(input, &ip);
         const mpfr_ref sum_diff = abs_ref((to_ref_exact(frac) + to_ref_exact(ip)) - to_ref_exact(input));
         CAPTURE(to_text(frac));
         CAPTURE(to_text(ip));
@@ -3334,16 +3334,16 @@ TEST_CASE("f128 decomposition and stepping functions behave correctly", "[fltx][
         require_exact_value("scalbln", bl::scalbln(input, -5), bl::ldexp(input, -5));
     }
     {
-        const f128 from = to_f128("1.25");
-        const f128 to = to_f128("2.0");
+        const f128 from     = to_f128("1.25");
+        const f128 to       = to_f128("2.0");
         const f128 expected = f128{ from.hi, std::nextafter(from.lo, std::numeric_limits<double>::infinity()) };
         require_exact_value("nextafter.up", bl::nextafter(from, to), expected);
         require_exact_value("nexttoward.f128", bl::nexttoward(from, to), expected);
         require_exact_value("nexttoward.longdouble", bl::nexttoward(from, static_cast<long double>(2.0)), expected);
     }
     {
-        const f128 from = to_f128("1.25");
-        const f128 to = to_f128("-2.0");
+        const f128 from     = to_f128("1.25");
+        const f128 to       = to_f128("-2.0");
         const f128 expected = f128{ from.hi, std::nextafter(from.lo, -std::numeric_limits<double>::infinity()) };
         require_exact_value("nextafter.down", bl::nextafter(from, to), expected);
     }
@@ -3410,7 +3410,7 @@ TEST_CASE("f128 erf and erfc match MPFR on random moderate inputs", "[fltx][f128
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_erf_argument_for_f128(rng);
+        const mpfr_ref input         = random_erf_argument_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);
@@ -3483,7 +3483,7 @@ TEST_CASE("f128 lgamma and tgamma match MPFR on random positive inputs", "[fltx]
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = random_gamma_positive_for_f128(rng);
+        const mpfr_ref input         = random_gamma_positive_for_f128(rng);
         const std::string input_text = to_scientific_text(input, printed_digits + 4);
 
         INFO("iteration: " << i);

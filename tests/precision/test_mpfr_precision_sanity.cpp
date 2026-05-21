@@ -4,9 +4,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
-
 #include <boost/multiprecision/mpfr.hpp>
-
 #include <catch2/catch_test_macros.hpp>
 
 #include <fltx.h>
@@ -20,9 +18,9 @@ namespace
 
     struct scan_result
     {
-        int mpfr_digits10 = 0;
+        int mpfr_digits10           = 0;
         long double matching_digits = 0.0L;
-        bool found = false;
+        bool found                  = false;
     };
 
     template<class T>
@@ -280,7 +278,7 @@ namespace
         using ref_t = mpfr_number<ref_digits10>;
 
         const ref_t reference_y = Op::template apply<ref_t>();
-        const ref_t fltx_y = parse_as_ref<ref_t>(Op::template apply<Float>());
+        const ref_t fltx_y      = parse_as_ref<ref_t>(Op::template apply<Float>());
 
         const long double fltx_matching_digits =
             relative_matching_digits(fltx_y, reference_y);
@@ -341,7 +339,8 @@ namespace
         check_precision_case<Float, lgamma_op>(float_name);
         check_precision_case<Float, fmod_op>(float_name);
     }
-}
+
+} // namespace
 
 TEST_CASE("MPFR benchmark precision is comparable to f128", "[fltx][mpfr][compare_precision]")
 {

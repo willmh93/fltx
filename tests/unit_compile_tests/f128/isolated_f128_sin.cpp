@@ -1,6 +1,5 @@
-// isolated_f128_sin.cpp
 
-#include <f128_math.h>
+#include <fltx/f128/math/trig.h>
 #include "isolated_runtime.h"
 
 void isolated_f128_sin()
