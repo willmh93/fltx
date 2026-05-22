@@ -1,4 +1,4 @@
-#include <fltx/f256/math/hyperbolic.h>
+#include <fltx/f256/math.h>
 #include "isolated_runtime.h"
 
 void isolated_f256_tanh()

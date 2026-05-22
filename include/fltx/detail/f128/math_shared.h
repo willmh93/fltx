@@ -27,6 +27,7 @@ namespace detail::_f128
     using detail::fp::sqrt_seed;
     using detail::fp::nearbyint_ties_even;
 
+    // scaling helpers
     BL_FORCE_INLINE constexpr int frexp_exponent(double value) noexcept
     {
         if (bl::use_constexpr_math())
@@ -81,6 +82,8 @@ namespace detail::_f128
         int exp2 = 0;
         fmod_u128 mant{};
     };
+
+    // exact integer helpers
     BL_FORCE_INLINE constexpr bool fmod_u128_is_zero(const fmod_u128& value)
     {
         return value.lo == 0 && value.hi == 0;
@@ -241,6 +244,7 @@ namespace detail::_f128
         return value;
     }
 
+    // exact fmod conversion
     BL_FORCE_INLINE constexpr exact_dyadic_fmod exact_from_double_fmod(double value)
     {
         exact_dyadic_fmod out;
@@ -286,7 +290,7 @@ namespace detail::_f128
         if (fmod_u128_is_zero(lo.mant))
             return hi;
 
-        const int common_exp = std::min(hi.exp2, lo.exp2);
+        const int common_exp = (hi.exp2 < lo.exp2) ? hi.exp2 : lo.exp2;
         const fmod_u128 hi_scaled = fmod_u128_shl_bits(hi.mant, hi.exp2 - common_exp);
         const fmod_u128 lo_scaled = fmod_u128_shl_bits(lo.mant, lo.exp2 - common_exp);
 
@@ -320,6 +324,7 @@ namespace detail::_f128
         return out;
     }
 
+    // fmod kernels
     BL_FORCE_INLINE constexpr bool fmod_fast_double_divisor_abs(const f128_s& ax, double ay, f128_s& out)
     {
         if (!(ay > 0.0) || !isfinite(ay))
@@ -402,8 +407,8 @@ namespace detail::_f128
 
     BL_FORCE_INLINE constexpr f128_s fmod_exact_fixed_limb(const f128_s& x, const f128_s& y)
     {
-        const exact_dyadic_fmod dx = exact_from_f128_fmod(abs(x));
-        const exact_dyadic_fmod dy = exact_from_f128_fmod(abs(y));
+        const exact_dyadic_fmod dx = exact_from_f128_fmod(mag(x));
+        const exact_dyadic_fmod dy = exact_from_f128_fmod(mag(y));
 
         fmod_u128 remainder{};
         int out_exp = 0;
@@ -430,6 +435,7 @@ namespace detail::_f128
         return out;
     }
 
+    // decimal conversion
     BL_FORCE_INLINE constexpr bool f128_try_get_int64(const f128_s& x, int64_t& out)
     {
         const f128_s xi = trunc(x);
@@ -508,11 +514,7 @@ namespace detail::_f128
         return true;
     }
 
-    BL_FORCE_INLINE constexpr f128_s fabs_impl(const f128_s& a) noexcept
-    {
-        return abs(a);
-    }
-
+    // rounding helpers
     BL_FORCE_INLINE constexpr f128_s round_half_away_zero(const f128_s& x) noexcept
     {
         if (isnan(x) || isinf(x) || iszero(x))
@@ -527,39 +529,6 @@ namespace detail::_f128
         }
 
         return floor(add_inline(x, f128_s{ 0.5 }));
-    }
-
-    BL_FORCE_INLINE constexpr f128_s round_impl(const f128_s& a)
-    {
-        return round_half_away_zero(a);
-    }
-
-    BL_FORCE_INLINE constexpr f128_s nearbyint_impl(const f128_s& a)
-    {
-        if (isnan(a) || isinf(a) || iszero(a))
-            return a;
-
-        f128_s t = floor(a);
-        f128_s frac = sub_inline(a, t);
-
-        if (frac < f128_s{ 0.5 })
-            return t;
-
-        if (frac > f128_s{ 0.5 })
-        {
-            t = add_inline(t, f128_s{ 1.0 });
-            if (iszero(t))
-                return f128_s{ signbit(a.hi) ? -0.0 : 0.0 };
-            return t;
-        }
-
-        if (detail::_f128_constexpr::fmod(t, f128_s{ 2.0 }) != f128_s{ 0.0 })
-            t = add_inline(t, f128_s{ 1.0 });
-
-        if (iszero(t))
-            return f128_s{ signbit(a.hi) ? -0.0 : 0.0 };
-
-        return t;
     }
 
     template<typename SignedInt>
@@ -602,7 +571,7 @@ namespace detail::_f128
 
         const std::int64_t base = static_cast<std::int64_t>(x.hi);
         const f128_s frac     = sub_double_inline(x, static_cast<double>(base));
-        const f128_s abs_frac = abs(frac);
+        const f128_s abs_frac = mag(frac);
         std::int64_t rounded = base;
 
         if (abs_frac > f128_s{ 0.5 } || (!ties_to_even && abs_frac == f128_s{ 0.5 }) ||
@@ -625,11 +594,11 @@ namespace detail::_f128
         const f128_s half{ 0.5 };
         const f128_s one{ 1.0 };
 
-        if (abs(frac) > half)
+        if (mag(frac) > half)
         {
             n = add_inline(n, signbit(frac) ? -one : one);
         }
-        else if (abs(frac) == half)
+        else if (mag(frac) == half)
         {
             if (detail::_f128_constexpr::fmod(n, f128_s{ 2.0 }) != f128_s{ 0.0 })
                 n = add_inline(n, signbit(frac) ? -one : one);
@@ -638,116 +607,10 @@ namespace detail::_f128
         return n;
     }
 
-    BL_FORCE_INLINE constexpr f128_s rint_impl(const f128_s& x)
-    {
-        return nearbyint_impl(x);
-    }
-
-    BL_FORCE_INLINE constexpr long lround_impl(const f128_s& x)
-    {
-        return to_signed_integer_or_zero<long>(round_half_away_zero(x));
-    }
-
-    BL_FORCE_INLINE constexpr long long llround_impl(const f128_s& x)
-    {
-        return to_signed_integer_or_zero<long long>(round_half_away_zero(x));
-    }
-
-    BL_FORCE_INLINE constexpr long lrint_impl(const f128_s& x)
-    {
-        return to_signed_integer_or_zero<long>(nearbyint_impl(x));
-    }
-
-    BL_FORCE_INLINE constexpr long long llrint_impl(const f128_s& x)
-    {
-        return to_signed_integer_or_zero<long long>(nearbyint_impl(x));
-    }
-
-    BL_FORCE_INLINE constexpr f128_s fma_impl(const f128_s& x, const f128_s& y, const f128_s& z)
-    {
-        return canonicalize_math_result(add_inline(mul_inline(x, y), z));
-    }
-
-    BL_FORCE_INLINE constexpr f128_s fmin_impl(const f128_s& a, const f128_s& b)
-    {
-        if (isnan(a)) return b;
-        if (isnan(b)) return a;
-        if (a < b) return a;
-        if (b < a) return b;
-        if (iszero(a) && iszero(b))
-            return signbit(a) ? a : b;
-        return a;
-    }
-
-    BL_FORCE_INLINE constexpr f128_s fmax_impl(const f128_s& a, const f128_s& b)
-    {
-        if (isnan(a)) return b;
-        if (isnan(b)) return a;
-        if (a > b) return a;
-        if (b > a) return b;
-        if (iszero(a) && iszero(b))
-            return signbit(a) ? b : a;
-        return a;
-    }
-
-    BL_FORCE_INLINE constexpr f128_s fdim_impl(const f128_s& x, const f128_s& y)
-    {
-        return (x > y) ? canonicalize_math_result(sub_inline(x, y)) : f128_s{ 0.0 };
-    }
-
-    BL_FORCE_INLINE constexpr f128_s copysign_impl(const f128_s& x, const f128_s& y)
-    {
-        return signbit(x) == signbit(y) ? x : -x;
-    }
-
-    BL_FORCE_INLINE constexpr int ilogb_impl(const f128_s& x) noexcept
-    {
-        if (isnan(x))
-            return FP_ILOGBNAN;
-        if (iszero(x))
-            return FP_ILOGB0;
-        if (isinf(x))
-            return std::numeric_limits<int>::max();
-
-        int e = 0;
-        (void)detail::_f128_constexpr::frexp(abs(x), &e);
-        return e - 1;
-    }
-
-    BL_FORCE_INLINE constexpr f128_s logb_impl(const f128_s& x) noexcept
-    {
-        if (isnan(x))
-            return x;
-        if (iszero(x))
-            return f128_s{ -std::numeric_limits<double>::infinity(), 0.0 };
-        if (isinf(x))
-            return std::numeric_limits<f128_s>::infinity();
-
-        return f128_s{ static_cast<double>(ilogb_impl(x)), 0.0 };
-    }
-
-    BL_FORCE_INLINE constexpr f128_s scalbn_impl(const f128_s& x, int e) noexcept
-    {
-        return detail::_f128_constexpr::ldexp(x, e);
-    }
-
-    BL_FORCE_INLINE constexpr f128_s scalbln_impl(const f128_s& x, long e) noexcept
-    {
-        return detail::_f128_constexpr::ldexp(x, static_cast<int>(e));
-    }
-
-    BL_FORCE_INLINE constexpr f128_s nexttoward_impl(const f128_s& from, long double to) noexcept
-    {
-        return detail::_f128_constexpr::nextafter(from, f128_s{ static_cast<double>(to) });
-    }
-
-    BL_FORCE_INLINE constexpr f128_s nexttoward_impl(const f128_s& from, const f128_s& to) noexcept
-    {
-        return detail::_f128_constexpr::nextafter(from, to);
-    }
 
 } // namespace detail::_f128
 
+// roots
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::sqrt(f128_s a)
 {
     // Match std semantics for negative / zero quickly.
@@ -789,6 +652,7 @@ namespace detail::_f128
     }
 }
 
+// remainders
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s detail::_f128_constexpr::fmod(const f128_s& x, const f128_s& y)
 {
     if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
@@ -796,8 +660,8 @@ namespace detail::_f128
     if (isinf(y) || iszero(x))
         return x;
 
-    const f128_s ax = abs(x);
-    const f128_s ay = abs(y);
+    const f128_s ax = detail::_f128::mag(x);
+    const f128_s ay = detail::_f128::mag(y);
 
     if (ax < ay)
         return x;
@@ -813,6 +677,7 @@ namespace detail::_f128
     return fmod_exact_fixed_limb(x, y);
 }
 
+// decomposition and scaling
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::ldexp(const f128_s& x, int e)
 {
     return canonicalize_math_result(_ldexp(x, e));
@@ -835,7 +700,7 @@ namespace detail::_f128
         (void)std::frexp(lead, &e);
 
     f128_s m = detail::_f128_constexpr::ldexp(x, -e);
-    const f128_s am = abs(m);
+    const f128_s am = detail::_f128::mag(m);
 
     if (am < f128_s{ 0.5 })
     {
@@ -854,6 +719,7 @@ namespace detail::_f128
     return m;
 }
 
+// adjacent values
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::nextafter(const f128_s& from, const f128_s& to) noexcept
 {
     if (isnan(from) || isnan(to))

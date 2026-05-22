@@ -1,3 +1,12 @@
+/**
+ * fltx/f256_math_transcendental.cpp - Runtime f256 exponential and logarithm functions.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #include "fltx/detail/f256/math/exp_log.h"
 
 namespace bl::detail::_f256_runtime

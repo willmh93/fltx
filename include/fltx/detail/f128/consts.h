@@ -13,9 +13,11 @@
 
 namespace bl::detail::_f128
 {
+    // scalar constants
     inline constexpr f128_s sqrt_half       = { 0x1.6a09e667f3bcdp-1, -0x1.bdd3413b26456p-55 };
     inline constexpr f128_s half_log_two_pi = { 0x1.d67f1c864beb5p-1, -0x1.65b5a1b7ff5dfp-55 };
 
+    // trig constants
     inline constexpr f128_s pi_2   = { 0x1.921fb54442d18p+0,  0x1.1a62633145c07p-54 };
     inline constexpr f128_s pi_4   = { 0x1.921fb54442d18p-1,  0x1.1a62633145c07p-55 };
     inline constexpr f128_s invpi2 = { 0x1.45f306dc9c883p-1, -0x1.6b01ec5417056p-55 };
@@ -26,6 +28,7 @@ namespace bl::detail::_f128
     inline constexpr double pi_2_mid_d = 0x1.1a62633145c07p-54;
     inline constexpr double pi_2_lo_d  = -0x1.f1976b7ed8fbcp-110;
 
+    // sine/cosine tables
     inline constexpr f128_s f128_sin_table_pi64[] = {
         {             0x0.0p+0,               0x0.0p+0 },
         { 0x1.91f65f10dd814p-5, -0x1.912bd0d569a90p-61 },
@@ -64,6 +67,8 @@ namespace bl::detail::_f128
         { 0x1.7b5df226aafafp-1, -0x1.0f537acdf0ad7p-56 },
         { 0x1.6a09e667f3bcdp-1, -0x1.bdd3413b26456p-55 }
     };
+
+    // sine/cosine coefficients
     inline constexpr f128_s f128_sin_coeffs_pi4[] = {
         {  1.13099628864477159e-31,  1.04980154129595057e-47 },
         { -9.18368986379554615e-29, -1.43031503967873224e-45 },
@@ -97,10 +102,12 @@ namespace bl::detail::_f128
         { -5.00000000000000000e-01,  0.0                     }
     };
 
+    // trig table metadata
     inline constexpr auto f128_trig_coeff_count_pi4    = sizeof(f128_sin_coeffs_pi4) / sizeof(f128_sin_coeffs_pi4[0]);
     inline constexpr auto f128_trig_small_coeff_offset = 6;
     inline constexpr auto f128_trig_small_coeff_count  = f128_trig_coeff_count_pi4 - f128_trig_small_coeff_offset;
 
+    // gamma coefficients
     inline constexpr f128_s lgamma_stirling_coeffs[] = {
         {  8.33333333333333287e-02,  4.62592926927148533e-18 },
         { -2.77777777777777788e-03,  1.06010879087471541e-19 },
@@ -116,6 +123,7 @@ namespace bl::detail::_f128
         { -1.56848284626002027e+02,  9.39182314171538895e-15 }
     };
 
+    // arctangent tables
     inline constexpr f128_s f128_atan_reduced_table_16[] = {
         {             0x0.0p+0,               0x0.0p+0 },
         { 0x1.ff55bb72cfdeap-5, -0x1.c934d86d23f1dp-60 },
@@ -135,6 +143,8 @@ namespace bl::detail::_f128
         { 0x1.819d0b7158a4dp-1, -0x1.bf76229d3b917p-56 },
         { 0x1.921fb54442d18p-1,  0x1.1a62633145c07p-55 }
     };
+
+    // arctangent coefficients
     inline constexpr f128_s f128_atan_reduced_coeffs[] = {
         {  0x1.0000000000000p+0,               0x0.0p+0 },
         { -0x1.5555555555555p-2, -0x1.5555555555555p-56 },
@@ -162,6 +172,7 @@ namespace bl::detail::_f128
         { -0x1.5c9882b931057p-6, -0x1.310572620ae4cp-61 }
     };
 
+    // exponential coefficients
     inline constexpr f128_s exp_inv_fact[] = {
         { 1.66666666666666657e-01,  9.25185853854297066e-18 },
         { 4.16666666666666644e-02,  2.31296463463574266e-18 },
@@ -180,6 +191,7 @@ namespace bl::detail::_f128
         { 2.81145725434552060e-15,  1.65088427308614326e-31 }
     };
 
+    // near-one gamma coefficients
     inline constexpr f128_s lgamma1p_coeff[] = {
         {  0x1.a51a6625307d3p-1,  0x1.1873d8912200cp-56 },
         { -0x1.9a4d55beab2d7p-2,  0x1.4c26d1b465993p-59 },

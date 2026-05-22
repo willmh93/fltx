@@ -18,6 +18,7 @@ namespace bl {
 
 namespace detail::_f128
 {
+    // near-one series
     BL_MSVC_NOINLINE constexpr f128_s lgamma1p_series(const f128_s& y) noexcept
     {
         constexpr int count = static_cast<int>(sizeof(lgamma1p_coeff) / sizeof(lgamma1p_coeff[0]));
@@ -41,21 +42,21 @@ namespace detail::_f128
     BL_MSVC_NOINLINE constexpr bool try_lgamma_near_one_or_two(const f128_s& x, f128_s& out) noexcept
     {
         const f128_s y1 = sub_inline(x, f128_s{ 1.0 });
-        if (abs(y1) <= f128_s{ 0.25 })
+        if (mag(y1) <= f128_s{ 0.25 })
         {
             out = lgamma1p_series(y1);
             return true;
         }
 
         const f128_s y15 = sub_inline(x, f128_s{ 1.5 });
-        if (abs(y15) <= f128_s{ 0.25 })
+        if (mag(y15) <= f128_s{ 0.25 })
         {
             out = lgamma1p5_series(y15);
             return true;
         }
 
         const f128_s y2 = sub_inline(x, f128_s{ 2.0 });
-        if (abs(y2) <= f128_s{ 0.25 })
+        if (mag(y2) <= f128_s{ 0.25 })
         {
             out = add_inline(f128_log1p_series_reduced(y2), lgamma1p_series(y2));
             return true;
@@ -64,6 +65,7 @@ namespace detail::_f128
         return false;
     }
 
+    // asymptotic helpers
     BL_MSVC_NOINLINE constexpr f128_s lgamma_stirling_asymptotic(const f128_s& z) noexcept
     {
         const f128_s inv    = div_inline(f128_s{ 1.0 }, z);
@@ -101,6 +103,7 @@ namespace detail::_f128
         }
     }
 
+    // positive range helpers
     BL_MSVC_NOINLINE constexpr f128_s lgamma_positive_low_range(const f128_s& x) noexcept
     {
         f128_s y = x;
@@ -213,6 +216,7 @@ namespace detail::_f128
 
 } // namespace detail::_f128
 
+// gamma functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::lgamma(const f128_s& x)
 {
     using namespace detail::_f128;
@@ -237,7 +241,7 @@ namespace detail::_f128
 
     const f128_s out =
         sub_inline(
-            sub_inline(detail::_f128_constexpr::log(std::numbers::pi_v<f128_s>), detail::_f128_constexpr::log(abs(sinpix))),
+            sub_inline(detail::_f128_constexpr::log(std::numbers::pi_v<f128_s>), detail::_f128_constexpr::log(detail::_f128::mag(sinpix))),
             lgamma_positive_recurrence(sub_inline(f128_s{ 1.0 }, x)));
 
     return canonicalize_math_result(out);

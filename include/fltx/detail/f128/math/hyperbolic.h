@@ -17,6 +17,7 @@ namespace bl {
 
 namespace detail::_f128
 {
+    // atanh series
     BL_MSVC_NOINLINE constexpr f128_s atanh_small_series(const f128_s& x)
     {
         const f128_s x2 = mul_inline(x, x);
@@ -29,7 +30,7 @@ namespace detail::_f128
             const f128_s term = div_inline(power, f128_s{ static_cast<double>(2 * k + 1) });
             sum = add_inline(sum, term);
 
-            if (abs(term) <= f128_s::eps())
+            if (mag(term) <= f128_s::eps())
                 break;
         }
 
@@ -48,7 +49,7 @@ namespace detail::_f128
             const f128_s term = div_inline(power, f128_s{ static_cast<double>(2 * k + 1) });
             sum = add_inline(sum, term);
 
-            if (abs(term) <= f128_s::eps())
+            if (mag(term) <= f128_s::eps())
                 break;
         }
 
@@ -57,6 +58,7 @@ namespace detail::_f128
 
 } // namespace detail::_f128
 
+// sinh/cosh/tanh
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::sinh(const f128_s& x)
 {
     using namespace detail::_f128;
@@ -64,7 +66,7 @@ namespace detail::_f128
     if (isnan(x) || isinf(x) || iszero(x))
         return x;
 
-    const f128_s ax = abs(x);
+    const f128_s ax = detail::_f128::mag(x);
     if (ax <= f128_s{ 0.5 })
     {
         const f128_s x2 = mul_inline(x, x);
@@ -77,8 +79,9 @@ namespace detail::_f128
             term = div_inline(mul_inline(term, x2), f128_s{ denom });
             sum = add_inline(sum, term);
 
-            const f128_s scale = std::max(abs(sum), f128_s{ 1.0 });
-            if (abs(term) <= mul_inline(f128_s::eps(), scale))
+            const f128_s abs_sum = detail::_f128::mag(sum);
+            const f128_s scale = (abs_sum < f128_s{ 1.0 }) ? f128_s{ 1.0 } : abs_sum;
+            if (detail::_f128::mag(term) <= mul_inline(f128_s::eps(), scale))
                 break;
         }
 
@@ -101,7 +104,7 @@ namespace detail::_f128
     if (isinf(x))
         return std::numeric_limits<f128_s>::infinity();
 
-    const f128_s ax = abs(x);
+    const f128_s ax = detail::_f128::mag(x);
     const f128_s ex = detail::_f128_constexpr::exp(ax);
     return canonicalize_math_result(mul_inline(add_inline(ex, div_inline(f128_s{ 1.0 }, ex)), f128_s{ 0.5 }));
 }
@@ -115,7 +118,7 @@ namespace detail::_f128
     if (isinf(x))
         return signbit(x) ? f128_s{ -1.0 } : f128_s{ 1.0 };
 
-    const f128_s ax = abs(x);
+    const f128_s ax = detail::_f128::mag(x);
     if (ax > f128_s{ 20.0 })
         return signbit(x) ? f128_s{ -1.0 } : f128_s{ 1.0 };
 
@@ -126,6 +129,7 @@ namespace detail::_f128
     return canonicalize_math_result(out);
 }
 
+// inverse hyperbolic functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::asinh(const f128_s& x)
 {
     using namespace detail::_f128;
@@ -133,7 +137,7 @@ namespace detail::_f128
     if (isnan(x) || iszero(x) || isinf(x))
         return x;
 
-    const f128_s ax = abs(x);
+    const f128_s ax = detail::_f128::mag(x);
     f128_s out{};
     if (ax > f128_s{ 0x1p500 })
         out = add_inline(detail::_f128_constexpr::log(ax), std::numbers::ln2_v<f128_s>);
@@ -174,7 +178,7 @@ namespace detail::_f128
     if (isnan(x) || iszero(x))
         return x;
 
-    const f128_s ax = abs(x);
+    const f128_s ax = detail::_f128::mag(x);
     if (ax > f128_s{ 1.0 })
         return std::numeric_limits<f128_s>::quiet_NaN();
     if (ax == f128_s{ 1.0 })

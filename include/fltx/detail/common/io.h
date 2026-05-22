@@ -9,10 +9,7 @@
 
 #ifndef FLTX_COMMON_IO_INCLUDED
 #define FLTX_COMMON_IO_INCLUDED
-#include <algorithm>
-#include <array>
-#include <ios>
-#include <ostream>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -30,7 +27,7 @@ namespace bl
         static constexpr size_type npos            = static_cast<size_type>(-1);
         static constexpr size_type static_capacity = capacity;
 
-        std::array<char, capacity + 1> chars{};
+        char chars[capacity + 1]{};
         size_type length = 0;
 
         constexpr static_string() noexcept = default;
@@ -70,27 +67,27 @@ namespace bl
 
         constexpr operator std::string() const
         {
-            return std::string(chars.data(), length);
+            return std::string(chars, length);
         }
 
         constexpr std::string_view view() const noexcept
         {
-            return std::string_view(chars.data(), length);
+            return std::string_view(chars, length);
         }
 
         constexpr char* data() noexcept
         {
-            return chars.data();
+            return chars;
         }
 
         constexpr const char* data() const noexcept
         {
-            return chars.data();
+            return chars;
         }
 
         constexpr const char* c_str() const noexcept
         {
-            return chars.data();
+            return chars;
         }
 
         constexpr size_type size() const noexcept
@@ -105,22 +102,22 @@ namespace bl
 
         constexpr char* begin() noexcept
         {
-            return chars.data();
+            return chars;
         }
 
         constexpr char* end() noexcept
         {
-            return chars.data() + length;
+            return chars + length;
         }
 
         constexpr const char* begin() const noexcept
         {
-            return chars.data();
+            return chars;
         }
 
         constexpr const char* end() const noexcept
         {
-            return chars.data() + length;
+            return chars + length;
         }
 
         constexpr char& operator[](size_type index) noexcept
@@ -259,12 +256,6 @@ namespace bl
                 throw "static_string insert position out of range";
         }
     };
-
-    template<std::size_t capacity>
-    inline std::ostream& operator<<(std::ostream& os, const static_string<capacity>& text)
-    {
-        return os.write(text.data(), static_cast<std::streamsize>(text.size()));
-    }
 
     using default_io_string = static_string<512>;
 
@@ -449,18 +440,6 @@ constexpr inline bool assign_special_string(String& out, const typename Traits::
     return false;
 }
 
-template<class Traits>
-inline bool write_stream_special(std::ostream& os, const typename Traits::value_type& x, bool showpos, bool uppercase)
-{
-    const char* text = special_text<Traits>(x, uppercase);
-    if (!text)
-        return false;
-    if (showpos && text[0] != '-')
-        os << '+';
-    os << text;
-    return true;
-}
-
 template<class Traits, typename String>
 constexpr inline void format_to_string(String& out, const typename Traits::value_type& x, int precision, format_kind kind, bool strip_trailing_zeros = false)
 {
@@ -505,9 +484,9 @@ BL_FORCE_INLINE constexpr void to_string_into(String& out, const typename Traits
 }
 
 template<class Traits, typename String>
-BL_FORCE_INLINE constexpr void emit_scientific(String& out, const typename Traits::value_type& x, std::streamsize prec, bool strip_trailing_zeros)
+BL_FORCE_INLINE constexpr void emit_scientific(String& out, const typename Traits::value_type& x, int prec, bool strip_trailing_zeros)
 {
-    format_to_string<Traits>(out, x, static_cast<int>(prec), format_kind::scientific_frac, strip_trailing_zeros);
+    format_to_string<Traits>(out, x, prec, format_kind::scientific_frac, strip_trailing_zeros);
 }
 
 template<class Traits, typename String>
@@ -517,9 +496,9 @@ BL_FORCE_INLINE constexpr void emit_fixed_dec(String& out, const typename Traits
 }
 
 template<class Traits, typename String>
-BL_FORCE_INLINE constexpr void emit_scientific_sig(String& out, const typename Traits::value_type& x, std::streamsize sig_digits, bool strip_trailing_zeros)
+BL_FORCE_INLINE constexpr void emit_scientific_sig(String& out, const typename Traits::value_type& x, int sig_digits, bool strip_trailing_zeros)
 {
-    format_to_string<Traits>(out, x, static_cast<int>(sig_digits), format_kind::scientific_sig, strip_trailing_zeros);
+    format_to_string<Traits>(out, x, sig_digits, format_kind::scientific_sig, strip_trailing_zeros);
 }
 
 template<typename Token>
@@ -805,77 +784,6 @@ BL_MSVC_NOINLINE constexpr bool parse_flt(const char* s, typename Traits::value_
     return true;
 }
 
-template<class Traits>
-BL_NO_INLINE std::ostream& write_to_stream(std::ostream& os, const typename Traits::value_type& x)
-{
-    int prec = static_cast<int>(os.precision());
-    if (prec < 0)
-        prec = 6;
-
-    const auto flags = os.flags();
-    const bool fixed = (flags & std::ios_base::fixed) != 0;
-    const bool scientific = (flags & std::ios_base::scientific) != 0;
-    const bool showpoint = (flags & std::ios_base::showpoint) != 0;
-    const bool showpos = (flags & std::ios_base::showpos) != 0;
-    const bool uppercase = (flags & std::ios_base::uppercase) != 0;
-
-    if (write_stream_special<Traits>(os, x, showpos, uppercase))
-        return os;
-
-    std::string s;
-    if (fixed && !scientific)
-    {
-        format_to_string<Traits>(s, x, prec, format_kind::fixed_frac, false);
-    }
-    else if (scientific && !fixed)
-    {
-        format_to_string<Traits>(s, x, prec, format_kind::scientific_frac, false);
-    }
-    else
-    {
-        const int sig = (prec == 0) ? 1 : prec;
-        if (Traits::iszero(x))
-        {
-            if (showpoint)
-            {
-                format_to_string<Traits>(s, x, std::max(0, sig - 1), format_kind::fixed_frac, false);
-                ensure_decimal_point(s);
-            }
-            else
-            {
-                s = "0";
-            }
-            apply_stream_decorations(s, showpos, uppercase);
-            os << s;
-            return os;
-        }
-
-        typename Traits::value_type m;
-        int e10 = 0;
-        Traits::normalize10(Traits::abs(x), m, e10);
-
-        if (e10 >= -4 && e10 < sig)
-        {
-            format_to_string<Traits>(s, x, std::max(0, sig - (e10 + 1)), format_kind::fixed_frac, !showpoint);
-        }
-        else if (showpoint)
-        {
-            format_to_string<Traits>(s, x, std::max(0, sig - 1), format_kind::scientific_frac, false);
-            ensure_decimal_point(s);
-        }
-        else
-        {
-            format_to_string<Traits>(s, x, sig, format_kind::scientific_sig, true);
-        }
-    }
-
-    if (showpoint)
-        ensure_decimal_point(s);
-    apply_stream_decorations(s, showpos, uppercase);
-    os << s;
-    return os;
-}
-
 } // namespace bl::detail
 
 namespace bl::detail::exact_decimal {
@@ -921,7 +829,7 @@ template<class Traits, typename String>
         if (mantissa == 0)
             continue;
 
-        common_exp = std::min(common_exp, exponent);
+        common_exp = (exponent < common_exp) ? exponent : common_exp;
         have_term = true;
     }
 

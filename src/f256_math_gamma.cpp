@@ -1,3 +1,12 @@
+/**
+ * fltx/f256_math_gamma.cpp - Runtime f256 gamma helpers and functions.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #include "fltx/detail/f256/math/gamma.h"
 
 namespace bl::detail::_f256_runtime
@@ -20,14 +29,14 @@ namespace bl::detail::_f256_runtime
         BL_NO_INLINE bool try_lgamma_near_one_or_two_runtime(const f256_s& x, f256_s& out) noexcept
         {
             const f256_s y1 = sub_double_inline(x, 1.0);
-            if (abs(y1) <= f256_s{ 0.25 })
+            if (mag(y1) <= f256_s{ 0.25 })
             {
                 out = lgamma1p_series_runtime(y1);
                 return true;
             }
 
             const f256_s y2 = sub_double_inline(x, 2.0);
-            if (abs(y2) <= f256_s{ 0.25 })
+            if (mag(y2) <= f256_s{ 0.25 })
             {
                 out = add_inline(detail::_f256_runtime::log1p_series_reduced(y2), lgamma1p_series_runtime(y2));
                 return true;
@@ -157,7 +166,7 @@ namespace bl::detail::_f256_runtime
 
         const f256_s out =
             mul_double_eval(half_log_pi, 2.0)
-            - detail::_f256_runtime::log(abs(sinpix))
+            - detail::_f256_runtime::log(mag(sinpix))
             - lgamma_positive_recurrence_runtime(f256_s{ 1.0 } - x);
 
         return canonicalize_math_result(out);
@@ -186,7 +195,7 @@ namespace bl::detail::_f256_runtime
             return std::numeric_limits<f256_s>::quiet_NaN();
 
         const f256_s log_abs = sub_eval(
-            sub_eval(mul_double_eval(half_log_pi, 2.0), detail::_f256_runtime::log(abs(sinpix))),
+            sub_eval(mul_double_eval(half_log_pi, 2.0), detail::_f256_runtime::log(mag(sinpix))),
             lgamma_positive_recurrence_runtime(sub_double_inline(1.0, x)));
         f256_s out = detail::_f256_runtime::exp(log_abs);
         if (signbit(sinpix))

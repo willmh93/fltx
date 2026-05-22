@@ -15,52 +15,54 @@
 
 namespace bl {
 
-namespace detail::_f256
+// norms
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::hypot(const f256_s& x, const f256_s& y)
 {
-    BL_FORCE_INLINE constexpr f256_s hypot_impl(const f256_s& x, const f256_s& y)
+    if (isinf(x) || isinf(y))
+        return std::numeric_limits<f256_s>::infinity();
+    if (isnan(x))
+        return x;
+    if (isnan(y))
+        return y;
+
+    f256_s ax = detail::_f256::mag(x);
+    f256_s ay = detail::_f256::mag(y);
+    if (ax < ay)
     {
-        if (isinf(x) || isinf(y))
-            return std::numeric_limits<f256_s>::infinity();
-        if (isnan(x))
-            return x;
-        if (isnan(y))
-            return y;
-
-        f256_s ax = abs(x);
-        f256_s ay = abs(y);
-        if (ax < ay)
-            std::swap(ax, ay);
-
-        if (iszero(ax))
-            return f256_s{ 0.0 };
-        if (iszero(ay))
-            return canonicalize_math_result(ax);
-
-        int ex = 0;
-        int ey = 0;
-        if (bl::use_constexpr_math())
-        {
-            ex = frexp_exponent(ax.x0);
-            ey = frexp_exponent(ay.x0);
-        }
-        else
-        {
-            (void)std::frexp(ax.x0, &ex);
-            (void)std::frexp(ay.x0, &ey);
-        }
-
-        if ((ex - ey) > 110)
-            return canonicalize_math_result(ax);
-
-        if (!bl::use_constexpr_math() && ex > -450 && ex < 450)
-            return canonicalize_math_result(detail::_f256_constexpr::sqrt(add_raw5_raw5_inline(sqr_raw5_inline(ax), sqr_raw5_inline(ay))));
-
-        const f256_s r = div_inline(ay, ax);
-        return canonicalize_math_result(mul_inline(ax, detail::_f256_constexpr::sqrt(add_raw5_value_inline(sqr_raw5_inline(r), f256_s{ 1.0 }))));
+        const f256_s tmp = ax;
+        ax = ay;
+        ay = tmp;
     }
 
-} // namespace detail::_f256
+    if (iszero(ax))
+        return f256_s{ 0.0 };
+    if (iszero(ay))
+        return canonicalize_math_result(ax);
 
+    int ex = 0;
+    int ey = 0;
+    if (bl::use_constexpr_math())
+    {
+        ex = frexp_exponent(ax.x0);
+        ey = frexp_exponent(ay.x0);
+    }
+    else
+    {
+        (void)std::frexp(ax.x0, &ex);
+        (void)std::frexp(ay.x0, &ey);
+    }
+
+    if ((ex - ey) > 110)
+        return canonicalize_math_result(ax);
+
+    if (!bl::use_constexpr_math() && ex > -450 && ex < 450)
+        return canonicalize_math_result(detail::_f256_constexpr::sqrt(add_raw5_raw5_inline(sqr_raw5_inline(ax), sqr_raw5_inline(ay))));
+
+    const f256_s r = div_inline(ay, ax);
+    return canonicalize_math_result(mul_inline(ax, detail::_f256_constexpr::sqrt(add_raw5_value_inline(sqr_raw5_inline(r), f256_s{ 1.0 }))));
+}
+
+// integer rounding
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::rint(const f256_s& x)
 {
     return detail::_f256_constexpr::nearbyint(x);
@@ -86,11 +88,45 @@ namespace detail::_f256
     return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256_constexpr::nearbyint(x));
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::hypot(const f256_s& x, const f256_s& y)
+// arithmetic and comparisons
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::fma(const f256_s& x, const f256_s& y, const f256_s& z)
 {
-    return detail::_f256::hypot_impl(x, y);
+    return canonicalize_math_result(mul_add_inline(x, y, z));
 }
 
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::fmin(const f256_s& a, const f256_s& b)
+{
+    if (isnan(a)) return b;
+    if (isnan(b)) return a;
+    if (a < b) return a;
+    if (b < a) return b;
+    if (iszero(a) && iszero(b))
+        return signbit_impl(a) ? a : b;
+    return a;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::fmax(const f256_s& a, const f256_s& b)
+{
+    if (isnan(a)) return b;
+    if (isnan(b)) return a;
+    if (a > b) return a;
+    if (b > a) return b;
+    if (iszero(a) && iszero(b))
+        return signbit_impl(a) ? b : a;
+    return a;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::fdim(const f256_s& x, const f256_s& y)
+{
+    return (x > y) ? canonicalize_math_result(x - y) : f256_s{ 0.0 };
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::copysign(const f256_s& x, const f256_s& y)
+{
+    return signbit_impl(x) == signbit_impl(y) ? x : -x;
+}
+
+// rounding and decimals
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::round(const f256_s& a)
 {
     return round_half_away_zero(a);
@@ -185,6 +221,7 @@ namespace detail::_f256
     return neg ? -out : out;
 }
 
+// roots
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::cbrt(const f256_s& x)
 {
     if (isnan(x) || iszero(x) || isinf(x))
@@ -250,6 +287,7 @@ namespace detail::_f256
     return canonicalize_math_result(y);
 }
 
+// remainders
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::remquo(const f256_s& x, const f256_s& y, int* quo)
 {
     if (quo)
@@ -288,6 +326,7 @@ namespace detail::_f256
     return canonicalize_math_result(r);
 }
 
+// fractional decomposition
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::modf(const f256_s& x, f256_s* iptr) noexcept
 {
     const f256_s i = detail::_f256_constexpr::trunc(x);
@@ -300,14 +339,15 @@ namespace detail::_f256
     return frac;
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr int    detail::_f256_constexpr::ilogb(const f256_s& x) noexcept
+// decomposition and scaling
+[[nodiscard]] BL_FORCE_INLINE constexpr int detail::_f256_constexpr::ilogb(const f256_s& x) noexcept
 {
     if (isnan(x))  return FP_ILOGBNAN;
     if (iszero(x)) return FP_ILOGB0;
     if (isinf(x))  return std::numeric_limits<int>::max();
 
     int e = 0;
-    (void)detail::_f256_constexpr::frexp(abs(x), &e);
+    (void)detail::_f256_constexpr::frexp(detail::_f256::mag(x), &e);
     return e - 1;
 }
 

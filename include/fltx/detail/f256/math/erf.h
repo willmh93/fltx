@@ -17,6 +17,7 @@ namespace bl {
 
 namespace detail::_f256
 {
+    // erf helpers
     [[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s erf_cheb_eval(const f256_s& x, const f256_s* coeffs, double shift)
     {
         if (!bl::use_constexpr_math())
@@ -64,7 +65,7 @@ namespace detail::_f256
                 f256_s{ static_cast<double>(2 * n + 1) });
 
             sum = add_inline(sum, term);
-            if (abs(term) < f256_s::eps())
+            if (mag(term) < f256_s::eps())
                 break;
         }
 
@@ -73,6 +74,7 @@ namespace detail::_f256
             sum);
     }
 
+    // erfc helpers
     [[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s erfc_positive_cheb_3_4(const f256_s& x)
     {
         return erf_cheb_eval(x, f256_erfc_cheb_3_4, 7.0);
@@ -97,18 +99,18 @@ namespace detail::_f256
             b = add_double_inline(b, 2.0);
 
             d = mul_add_inline(an, d, b);
-            if (abs(d) < tiny)
+            if (mag(d) < tiny)
                 d = tiny;
 
             c = add_inline(b, div_inline(an, c));
-            if (abs(c) < tiny)
+            if (mag(c) < tiny)
                 c = tiny;
 
             d = f256_s{ 1.0 } / d;
             const f256_s delta = mul_inline(d, c);
             h = mul_inline(h, delta);
 
-            if (abs(sub_double_inline(delta, 1.0)) <= mul_double_inline(f256_s::eps(), 64.0))
+            if (mag(sub_double_inline(delta, 1.0)) <= mul_double_inline(f256_s::eps(), 64.0))
                 break;
         }
 
@@ -119,6 +121,7 @@ namespace detail::_f256
 
 } // namespace detail::_f256
 
+// erf/erfc functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::erf(const f256_s& x)
 {
     if (isnan(x))

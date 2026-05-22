@@ -10,7 +10,7 @@
 #ifndef FLTX_DISPATCH_INCLUDED
 #define FLTX_DISPATCH_INCLUDED
 #include "fltx/core.h"
-#include "fltx/types.h"
+#include "fltx/traits.h"
 #include "fltx/template_dispatch.h"
 
 bl_map_enum_to_type(bl::FloatType::F32,  bl::f32);

@@ -1,8 +1,16 @@
+/**
+ * fltx/f256_math.cpp - Core f256 runtime helpers and common math functions.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #include "fltx/detail/f256/math/basic.h"
 #include "fltx/detail/f256/math/erf.h"
 #include "fltx/detail/f256/math/hyperbolic.h"
 #include "fltx/detail/f256/math/trig.h"
-#include "fltx/detail/f256/math_shared.h"
 
 namespace bl::detail::_f256_runtime
 {
@@ -97,9 +105,9 @@ namespace bl::detail::_f256_runtime
             const f256_s add = detail::_f256::div_double_inline(term, static_cast<double>(k));
             sum = detail::_f256::add_inline(sum, add);
 
-            const f256_s asum  = abs(sum);
+            const f256_s asum  = detail::_f256::mag(sum);
             const f256_s scale = (asum > f256_s{ 1.0 }) ? asum : f256_s{ 1.0 };
-            if (abs(add) <= detail::_f256::mul_inline(f256_s::eps(), scale))
+            if (detail::_f256::mag(add) <= detail::_f256::mul_inline(f256_s::eps(), scale))
                 break;
         }
 
@@ -148,7 +156,7 @@ namespace bl::detail::_f256_runtime
     BL_NO_INLINE f256_s ldexp(const f256_s& a, int e) { return detail::_f256_constexpr::ldexp(a, e); }
 
     BL_NO_INLINE f256_s cbrt(const f256_s& x) { return detail::_f256_constexpr::cbrt(x); }
-    BL_NO_INLINE f256_s hypot(const f256_s& x, const f256_s& y) { return detail::_f256::hypot_impl(x, y); }
+    BL_NO_INLINE f256_s hypot(const f256_s& x, const f256_s& y) { return detail::_f256_constexpr::hypot(x, y); }
     BL_NO_INLINE f256_s remquo(const f256_s& x, const f256_s& y, int* quo) { return detail::_f256_constexpr::remquo(x, y, quo); }
     BL_NO_INLINE f256_s remainder(const f256_s& x, const f256_s& y) { return detail::_f256_constexpr::remainder(x, y); }
     BL_NO_INLINE f256_s frexp(const f256_s& x, int* exp) noexcept { return detail::_f256_constexpr::frexp(x, exp); }

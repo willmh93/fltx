@@ -1,3 +1,12 @@
+/**
+ * fltx/f256.cpp - Hot f256 runtime helpers and optimized fused expression bodies.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #include "fltx/detail/f256/expressions.h"
 
 namespace bl::detail::_f256_runtime

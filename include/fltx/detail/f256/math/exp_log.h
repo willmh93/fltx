@@ -15,21 +15,12 @@
 
 namespace bl {
 
+[[nodiscard]] BL_FORCE_INLINE constexpr double detail::_f256_constexpr::log_as_double(f256_s a) noexcept;
+
 namespace detail::_f256
 {
-    BL_FORCE_INLINE constexpr double log_as_double_impl(f256_s a) noexcept
-    {
-        const double hi = a.x0;
-        if (hi <= 0.0)
-            return detail::fp::log(static_cast<double>(a));
 
-        const double lo = (a.x1 + a.x2) + a.x3;
-        if (!bl::use_constexpr_math())
-            return std::log(hi) + std::log1p(lo / hi);
-
-        return detail::fp::log(hi) + detail::fp::log1p(lo / hi);
-    }
-
+    // log1p helpers
     BL_FORCE_INLINE constexpr f256_s log1p_double_seed_residual(const f256_s& r) noexcept
     {
         const f256_s r2 = sqr_inline(r);
@@ -94,15 +85,16 @@ namespace detail::_f256
             const f256_s add = div_double_inline(term, static_cast<double>(k));
             sum = add_inline(sum, add);
 
-            const f256_s asum  = abs(sum);
+            const f256_s asum  = mag(sum);
             const f256_s scale = (asum > f256_s{ 1.0 }) ? asum : f256_s{ 1.0 };
-            if (abs(add) <= mul_inline(f256_s::eps(), scale))
+            if (mag(add) <= mul_inline(f256_s::eps(), scale))
                 break;
         }
 
         return add_inline(sum, sum);
     }
 
+    // exponential kernels
     BL_FORCE_INLINE constexpr f256_s expm1_tiny_fast_13(const f256_s& r) noexcept
     {
         f256_s p = exp_inv_fact[12];
@@ -138,6 +130,7 @@ namespace detail::_f256
         return _ldexp(mul_inline(exp2_table_64[j], add_scalar_precise(e, 1.0)), n);
     }
 
+    // logarithm kernels
     BL_MSVC_NOINLINE constexpr f256_s log_with_fast_exp_correction(const f256_s& a) noexcept
     {
         if (isnan(a))
@@ -271,6 +264,7 @@ namespace detail::_f256
 
 } // namespace detail::_f256
 
+// exponential functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::exp(const f256_s& x)
 {
     return canonicalize_math_result(_exp(x));
@@ -279,6 +273,20 @@ namespace detail::_f256
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::exp2(const f256_s& x)
 {
     return canonicalize_math_result(_exp2(x));
+}
+
+// logarithm functions
+[[nodiscard]] BL_FORCE_INLINE constexpr double detail::_f256_constexpr::log_as_double(f256_s a) noexcept
+{
+    const double hi = a.x0;
+    if (hi <= 0.0)
+        return detail::fp::log(static_cast<double>(a));
+
+    const double lo = (a.x1 + a.x2) + a.x3;
+    if (!bl::use_constexpr_math())
+        return std::log(hi) + std::log1p(lo / hi);
+
+    return detail::fp::log(hi) + detail::fp::log1p(lo / hi);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::log(const f256_s& a)
@@ -296,6 +304,7 @@ namespace detail::_f256
     return canonicalize_math_result(_log(a) / std::numbers::ln10_v<f256_s>);
 }
 
+// expm1/log1p functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::expm1(const f256_s& x)
 {
     return canonicalize_math_result(_expm1(x));
@@ -314,7 +323,7 @@ namespace detail::_f256
     if (iszero(x))
         return x;
 
-    const f256_s ax = abs(x);
+    const f256_s ax = detail::_f256::mag(x);
     if (ax <= f256_s{ 0.5 })
         return canonicalize_math_result(log1p_series_reduced(x));
 

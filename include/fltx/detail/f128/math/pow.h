@@ -17,6 +17,7 @@ namespace bl {
 
 namespace detail::_f128
 {
+    // integer powers
     BL_FORCE_INLINE constexpr bool is_odd_integer(const f128_s& x) noexcept
     {
         int64_t value{};
@@ -36,6 +37,7 @@ namespace detail::_f128
 
 } // namespace detail::_f128
 
+// power functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::pow(const f128_s& x, const f128_s& y)
 {
     if (iszero(y))

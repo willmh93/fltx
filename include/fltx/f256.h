@@ -10,6 +10,7 @@
 #ifndef F256_INCLUDED
 #define F256_INCLUDED
 
+#include "fltx/aliases.h"
 #include "fltx/f256/type.h"
 #include "fltx/f256/stl.h"
 #include "fltx/f256/conversions.h"

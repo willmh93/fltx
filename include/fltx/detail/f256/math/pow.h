@@ -17,11 +17,13 @@ namespace bl {
 
 namespace detail::_f256
 {
+    // integer powers
     BL_FORCE_INLINE constexpr f256_s powi(f256_s base, int64_t exp)
     {
         return detail::fp::powi_by_squaring(base, exp);
     }
 
+    // dyadic eighth powers
     BL_FORCE_INLINE constexpr f256_s polish_eighth_root(const f256_s& x, const f256_s& y)
     {
         if (iszero(y))
@@ -120,6 +122,7 @@ namespace detail::_f256
 
 } // namespace detail::_f256
 
+// power functions
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s detail::_f256_constexpr::pow(const f256_s& x, const f256_s& y)
 {
     if (iszero(y))

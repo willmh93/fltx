@@ -15,16 +15,19 @@
 
 namespace bl::detail::_f256
 {
+    // scalar constants
     inline constexpr f256_s sqrt_half       = { 0x1.6a09e667f3bcdp-1, -0x1.bdd3413b26456p-55,  0x1.57d3e3adec175p-109,  0x1.2775099da2f59p-165 };
     inline constexpr f256_s sqrtpi          = { 0x1.c5bf891b4ef6bp+0, -0x1.618f13eb7ca89p-54, -0x1.b1f0071b7aae4p-110, -0x1.389b5a46bdfe8p-165 };
     inline constexpr f256_s half_log_pi     = { 0x1.250d048e7a1bdp-1,  0x1.7abf2ad8d5088p-58, -0x1.6ccf43244818ap-114,  0x1.f9303719c0176p-168 };
     inline constexpr f256_s half_log_two_pi = { 0x1.d67f1c864beb5p-1, -0x1.65b5a1b7ff5dfp-55, -0x1.b7f70c13dc1ccp-110,  0x1.3458b4ddec6a3p-164 };
 
+    // trig constants
     inline constexpr f256_s pi_2       = {  0x1.921fb54442d18p+0,  0x1.1a62633145c07p-54, -0x1.f1976b7ed8fbcp-110,  0x1.4cf98e804177dp-164 };
     inline constexpr f256_s pi_4       = {  0x1.921fb54442d18p-1,  0x1.1a62633145c07p-55, -0x1.f1976b7ed8fbcp-111,  0x1.4cf98e804177dp-165 };
     inline constexpr f256_s invpi2     = {  0x1.45f306dc9c883p-1, -0x1.6b01ec5417056p-55, -0x1.6447e493ad4cep-109,  0x1.e21c820ff28b2p-163 };
     inline constexpr f256_s pi_3_4     = {  0x1.2d97c7f3321d2p+1,  0x1.a79394c9e8a0ap-54,  0x1.456737b06ea1ap-108, -0x1.83226a8fe7731p-162 };
 
+    // argument reduction tables
     inline constexpr std::uint32_t two_over_pi_fixed_words[] = {
         0xcaf27f1du, 0x9f3a1f35u, 0x6b1e5ef8u, 0xc33d26efu,
         0x98327dbbu, 0x32c2de4fu, 0x3f7e33e8u, 0xa5ff0705u,
@@ -44,6 +47,7 @@ namespace bl::detail::_f256
         0xf534ddc0u, 0xfc2757d1u, 0x4e441529u, 0xa2f9836eu
     };
 
+    // exponential coefficients
     inline constexpr f256_s exp_inv_fact[] = {
         { 1.66666666666666657e-01,  9.25185853854297066e-18,  5.13581318503262866e-34,  2.85094902409834186e-50 },
         { 4.16666666666666644e-02,  2.31296463463574266e-18,  1.28395329625815716e-34,  7.12737256024585466e-51 },
@@ -62,6 +66,7 @@ namespace bl::detail::_f256
         { 2.81145725434552060e-15,  1.65088427308614326e-31, -2.87777179307447918e-50,  4.27110689256293549e-67 }
     };
 
+    // exponential tables
     inline constexpr f256_s exp2_table_64[] = {
         { 0x1.0000000000000p+0,  0x0.0p+0,                0x0.0p+0,                0x0.0p+0 },
         { 0x1.02c9a3e778061p+0, -0x1.19083535b085dp-56, -0x1.9085b0a3d74d5p-110, -0x1.d1a3b22f7f8a5p-167 },
@@ -129,6 +134,7 @@ namespace bl::detail::_f256
         { 0x1.fa7c1819e90d8p+0,  0x1.74853f3a5931ep-55,  0x1.dc060c36f7651p-112, -0x1.2cfc37316ebd2p-166 }
     };
 
+    // logarithm coefficients
     inline constexpr f256_s log_atanh_coeffs[] = {
         { 0x1p+1, 0x0p+0, 0x0p+0, 0x0p+0 },
         { 0x1.5555555555555p-1, 0x1.5555555555555p-55, 0x1.5555555555555p-109, 0x1.5555555555555p-163 },
@@ -144,6 +150,7 @@ namespace bl::detail::_f256
         { 0x1.642c8590b2164p-4, 0x1.642c8590b2164p-59, 0x1.642c8590b2164p-114, 0x1.642c8590b2164p-169 }
     };
 
+    // gamma coefficients
     inline constexpr f256_s lgamma1p_coeff[] = {
         {  0x1.a51a6625307d3p-1,  0x1.1873d8912200cp-56, -0x1.4c68528ddc956p-110,  0x1.162d8b33582c0p-168 },
         { -0x1.9a4d55beab2d7p-2,  0x1.4c26d1b465993p-59, -0x1.aa121007a9210p-113,  0x1.e77545b273b41p-167 },
@@ -280,6 +287,7 @@ namespace bl::detail::_f256
         {  3.47320283765002258e+11, -6.04852899774774780e-06,  5.34164921691901066e-23,  4.87141803043470482e-39 }
     };
 
+    // sine/cosine coefficients
     inline constexpr f256_s f256_sin_coeffs_pi4[] = {
         {  0x1.5a42f0dfeb086p-209, -0x1.35ae015f78f6ep-264, -0x1.c71a521ce2e79p-318,  0x1.6a300230ce998p-372 },
         { -0x1.8da8e0a127ebap-198,  0x1.21d2eac9d275cp-252,  0x1.ad541d26964afp-306,  0x1.1c066ebdf95dep-360 },
@@ -333,6 +341,7 @@ namespace bl::detail::_f256
         {   -0x1.0000000000000p-1,                0x0.0p+0,                0x0.0p+0,                0x0.0p+0 }
     };
 
+    // sine/cosine tables
     inline constexpr f256_s f256_sin_table_pi64[] = {
         {             0x0.0p+0,               0x0.0p+0,                0x0.0p+0,                0x0.0p+0 },
         { 0x1.91f65f10dd814p-5, -0x1.912bd0d569a90p-61, -0x1.d7476f4c4b019p-115, -0x1.7cbc503240da1p-170 },
@@ -371,6 +380,7 @@ namespace bl::detail::_f256
         { 0x1.7b5df226aafafp-1, -0x1.0f537acdf0ad7p-56, -0x1.4951b1cc475b3p-111,  0x1.785955fc17a6bp-165 },
         { 0x1.6a09e667f3bcdp-1, -0x1.bdd3413b26456p-55,  0x1.57d3e3adec175p-109,  0x1.2775099da2f59p-165 }
     };
+    // arctangent coefficients
     inline constexpr f256_s f256_atan_tiny_coeffs[] = {
         {  0x1.0000000000000p+0,               0x0.0p+0,                0x0.0p+0,                0x0.0p+0 },
         { -0x1.5555555555555p-2, -0x1.5555555555555p-56, -0x1.5555555555555p-110, -0x1.5555555555555p-164 },
@@ -385,6 +395,7 @@ namespace bl::detail::_f256
         {  0x1.8618618618618p-5,  0x1.8618618618618p-59,  0x1.8618618618618p-113,  0x1.8618618618618p-167 }
     };
 
+    // arctangent tables
     inline constexpr f256_s f256_atan_reduced_table_16[] = {
         {             0x0.0p+0,               0x0.0p+0,                0x0.0p+0,                0x0.0p+0 },
         { 0x1.ff55bb72cfdeap-5, -0x1.c934d86d23f1dp-60, -0x1.f2aece63ed30ap-116, -0x1.8ad348f1e1582p-170 },
@@ -404,6 +415,7 @@ namespace bl::detail::_f256
         { 0x1.819d0b7158a4dp-1, -0x1.bf76229d3b917p-56,  0x1.7d126ac77433dp-111,  0x1.de86dec6e1029p-165 },
         { 0x1.921fb54442d18p-1,  0x1.1a62633145c07p-55, -0x1.f1976b7ed8fbcp-111,  0x1.4cf98e804177dp-165 }
     };
+    // arctangent coefficients
     inline constexpr f256_s f256_atan_reduced_coeffs[] = {
         {  0x1.0000000000000p+0,               0x0.0p+0,                0x0.0p+0,                0x0.0p+0 },
         { -0x1.5555555555555p-2, -0x1.5555555555555p-56, -0x1.5555555555555p-110, -0x1.5555555555555p-164 },
@@ -431,6 +443,7 @@ namespace bl::detail::_f256
         { -0x1.5c9882b931057p-6, -0x1.310572620ae4cp-61, -0x1.0572620ae4c41p-115, -0x1.72620ae4c415dp-169 }
     };
 
+    // erf/erfc coefficients
     inline constexpr f256_s f256_erf_cheb_0_1[] = {
         {    0x1.e0e7739ddec39p-2,   0x1.3a4ee10fce73ep-56,  0x1.ebd9f663f231fp-110, -0x1.4132792c8f663p-164 },
         {    0x1.b40b53a48a550p-2,   0x1.61466f0de5c3ep-56, -0x1.0d13b8c31c903p-111, -0x1.dbe30fcee3951p-165 },
@@ -648,7 +661,8 @@ namespace bl::detail::_f256
         { -0x1.d527b931bde63p-200, -0x1.a90490031a12ep-254, -0x1.3a30d8ce0d4c0p-308, -0x1.5aa90a6cd2fa6p-362 },
     };
 
-    inline constexpr int two_over_pi_fixed_bits = 2048;
+    // table metadata
+    inline constexpr int two_over_pi_fixed_bits         = 2048;
     inline constexpr auto f256_trig_coeff_count_pi4     = sizeof(f256_sin_coeffs_pi4) / sizeof(f256_sin_coeffs_pi4[0]);
     inline constexpr auto f256_trig_small_coeff_count   = 13;
     inline constexpr auto f256_trig_small_coeff_offset  = f256_trig_coeff_count_pi4 - f256_trig_small_coeff_count;

@@ -20,6 +20,7 @@ namespace bl {
 
 namespace detail::_f256
 {
+    // raw expansion helpers
     struct f256_raw5 { double x0, x1, x2, x3, x4; };
     struct pow2_scale_info { bool valid; bool negative; int exponent; };
 
@@ -224,6 +225,7 @@ namespace detail::_f256
         return { -v.x0, -v.x1, -v.x2, -v.x3, -v.x4 };
     }
 
+    // scaling helpers
     BL_FORCE_INLINE constexpr f256_s mul_double_inline(const f256_s& a, double b) noexcept;
     BL_FORCE_INLINE constexpr f256_s scale_unchecked_inline(const f256_s& a, double scalar) noexcept
     {
@@ -281,6 +283,7 @@ namespace detail::_f256
         return mul_double_inline(a, b);
     }
 
+    // raw5 accumulation
     BL_FORCE_INLINE constexpr f256_s add_raw5_value_inline(f256_raw5 p, const f256_s& v) noexcept
     {
         double s0{}, e0{};
@@ -334,6 +337,7 @@ namespace detail::_f256
         return add_inline(add_raw5_raw5_inline(a, b), v);
     }
 
+    // fused expression kernels
     BL_FORCE_INLINE constexpr f256_s mul_add_inline(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
         return add_raw5_value_inline(mul_raw5_inline(a, b), c);
@@ -515,12 +519,14 @@ namespace detail::_f256
 
 namespace detail::_f256_expr
 {
+    // expression traits
     template<class T> using clean_t = std::remove_cv_t<std::remove_reference_t<T>>;
     template<class T> using left_t  = clean_t<decltype(std::declval<T>().left)>;
     template<class T> using right_t = clean_t<decltype(std::declval<T>().right)>;
     template<class T> using prod_t  = clean_t<decltype(std::declval<T>().prod)>;
     template<class T> using value_t = clean_t<decltype(std::declval<T>().value)>;
 
+    // expression nodes
     struct leaf_expr
     {
         f256_s value;
@@ -797,6 +803,7 @@ namespace detail::_f256_expr
 
     template<class T> using expr_t = clean_t<decltype(as_expr(std::declval<T>()))>;
 
+    // evaluation dispatch
     BL_FORCE_INLINE constexpr f256_s add_eval(const f256_s& a, const f256_s& b) noexcept
     {
         BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -2317,6 +2324,7 @@ namespace detail::_f256_expr
         }
     }
 
+    // expression builders
     template<class L, class R> BL_FORCE_INLINE constexpr auto make_add_expr(L&& a, R&& b) noexcept
     {
         using LExpr = expr_t<L>;
@@ -2633,6 +2641,7 @@ namespace detail::_f256_expr
         }
     }
 
+    // internal operators
     template<class L, class R, enable_expr_pair<L, R> = 0> BL_FORCE_INLINE constexpr auto operator+(L&& a, R&& b) noexcept
     {
         return make_add_expr(std::forward<L>(a), std::forward<R>(b));
@@ -2721,6 +2730,7 @@ namespace detail::_f256_expr
 
 } // namespace detail::_f256_expr
 
+// public operators
 template<class L, class R, detail::_f256_expr::pub_operand<L, R> = 0> [[nodiscard]] BL_FORCE_INLINE constexpr auto operator+(L&& a, R&& b) noexcept
 {
     return detail::_f256_expr::make_add_expr(std::forward<L>(a), std::forward<R>(b));

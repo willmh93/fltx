@@ -1,3 +1,12 @@
+/**
+ * fltx/f128.cpp - Runtime f128 conversion, rounding, and decimal power helpers.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #include "fltx/f128/rounding.h"
 
 namespace bl::detail::_f128_runtime

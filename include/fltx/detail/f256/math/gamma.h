@@ -18,6 +18,7 @@ namespace bl {
 
 namespace detail::_f256
 {
+    // near-one series
     BL_NO_INLINE constexpr f256_s lgamma1p_series(const f256_s& y) noexcept
     {
         constexpr int count = static_cast<int>(sizeof(lgamma1p_coeff) / sizeof(lgamma1p_coeff[0]));
@@ -30,14 +31,14 @@ namespace detail::_f256
     BL_NO_INLINE constexpr bool try_lgamma_near_one_or_two(const f256_s& x, f256_s& out) noexcept
     {
         const f256_s y1 = sub_double_inline(x, 1.0);
-        if (abs(y1) <= f256_s{ 0.25 })
+        if (mag(y1) <= f256_s{ 0.25 })
         {
             out = lgamma1p_series(y1);
             return true;
         }
 
         const f256_s y2 = sub_double_inline(x, 2.0);
-        if (abs(y2) <= f256_s{ 0.25 })
+        if (mag(y2) <= f256_s{ 0.25 })
         {
             out = add_inline(log1p_series_reduced(y2), lgamma1p_series(y2));
             return true;
@@ -76,6 +77,7 @@ namespace detail::_f256
         return true;
     }
 
+    // asymptotic helpers
     BL_NO_INLINE constexpr void positive_recurrence_product(const f256_s& x, const f256_s& asymptotic_min, f256_s& z, f256_s& product, int& product_exp2) noexcept
     {
         z = x;
@@ -115,6 +117,7 @@ namespace detail::_f256
             series);
     }
 
+    // positive range helpers
     BL_NO_INLINE constexpr f256_s lgamma_positive_recurrence(const f256_s& x) noexcept
     {
         f256_s near_value{};
@@ -138,6 +141,7 @@ namespace detail::_f256
 
 } // namespace detail::_f256
 
+// gamma functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::lgamma(const f256_s& x)
 {
     if (isnan(x))
@@ -160,7 +164,7 @@ namespace detail::_f256
 
     const f256_s out =
         mul_double_eval(half_log_pi, 2.0)
-        - detail::_f256_constexpr::log(abs(sinpix))
+        - detail::_f256_constexpr::log(detail::_f256::mag(sinpix))
         - lgamma_positive_recurrence(f256_s{ 1.0 } - x);
 
     return canonicalize_math_result(out);
@@ -187,7 +191,7 @@ namespace detail::_f256
         return std::numeric_limits<f256_s>::quiet_NaN();
 
     const f256_s log_abs = sub_eval(
-        sub_eval(mul_double_eval(half_log_pi, 2.0), detail::_f256_constexpr::log(abs(sinpix))),
+        sub_eval(mul_double_eval(half_log_pi, 2.0), detail::_f256_constexpr::log(detail::_f256::mag(sinpix))),
         lgamma_positive_recurrence(sub_double_inline(1.0, x)));
     f256_s out = _exp(log_abs);
     if (signbit(sinpix))

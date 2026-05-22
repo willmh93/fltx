@@ -16,6 +16,7 @@ namespace bl {
 
 namespace detail::_f128
 {
+    // residual helpers
     BL_FORCE_INLINE constexpr f128_s sub_mul_scalar_exact(const f128_s& r, const f128_s& b, double q) noexcept
     {
         double p{}, e{};
@@ -37,6 +38,7 @@ namespace detail::_f128
         return renorm(q0, q1);
     }
 
+    // core arithmetic
     BL_PUSH_PRECISE;
     BL_FORCE_INLINE constexpr void mul_expansion_inline(const f128_s& a, const f128_s& b, double& p, double& e) noexcept
     {
@@ -47,6 +49,7 @@ namespace detail::_f128
     }
     BL_POP_PRECISE;
 
+    // fused expressions
     BL_PUSH_PRECISE;
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s add_inline(const f128_s& a, const f128_s& b) noexcept
     {
@@ -336,6 +339,7 @@ namespace detail::_f128
 
 } // namespace detail::_f128
 
+// reciprocal helpers
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 recip(f128_s b) noexcept
 {
     constexpr f128_s one = f128_s{ 1.0 };

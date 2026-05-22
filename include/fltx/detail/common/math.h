@@ -10,7 +10,6 @@
 #ifndef FLTX_COMMON_MATH_INCLUDED
 #define FLTX_COMMON_MATH_INCLUDED
 #include <bit>
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <type_traits>

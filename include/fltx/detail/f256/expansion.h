@@ -15,6 +15,7 @@ namespace bl {
 
 namespace detail::_f256
 {
+    // error-free transforms
     BL_FORCE_INLINE constexpr void three_sum(double& a, double& b, double& c) noexcept
     {
         double t1{}, t2{}, t3{};
@@ -31,6 +32,7 @@ namespace detail::_f256
         b = t2 + t3;
     }
 
+    // renormalization
     BL_FORCE_INLINE constexpr f256_s renorm(double c0, double c1, double c2, double c3) noexcept
     {
         double s0{}, s1{}, s2 = 0.0, s3 = 0.0;
@@ -174,6 +176,7 @@ namespace detail::_f256
     }
 
     // Shewchuk-style expansion sum, expansions sorted by increasing magnitude (small -> large)
+    // expansion arithmetic
     BL_FORCE_INLINE constexpr int fast_expansion_sum_zeroelim(int elen, const double* e, int flen, const double* f, double* h) noexcept
     {
         int eindex = 0;

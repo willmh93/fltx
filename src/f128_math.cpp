@@ -1,6 +1,14 @@
+/**
+ * fltx/f128_math.cpp - Core f128 runtime helpers and common math functions.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #include "fltx/detail/f128/math/basic.h"
 #include "fltx/detail/f128/math/hyperbolic.h"
-#include "fltx/detail/f128/math_shared.h"
 
 namespace bl::detail::_f128_runtime
 {
@@ -64,7 +72,7 @@ namespace bl::detail::_f128_runtime
         long out = 0;
         if (detail::_f128::try_round_to_signed_integer(x, false, out))
             return out;
-        return detail::_f128::lround_impl(x);
+        return detail::_f128_constexpr::lround(x);
     }
 
     BL_NO_INLINE long long llround(const f128_s& x)
@@ -72,7 +80,7 @@ namespace bl::detail::_f128_runtime
         long long out = 0;
         if (detail::_f128::try_round_to_signed_integer(x, false, out))
             return out;
-        return detail::_f128::llround_impl(x);
+        return detail::_f128_constexpr::llround(x);
     }
 
     BL_NO_INLINE long lrint(const f128_s& x)
@@ -80,7 +88,7 @@ namespace bl::detail::_f128_runtime
         long out = 0;
         if (detail::_f128::try_round_to_signed_integer(x, true, out))
             return out;
-        return detail::_f128::lrint_impl(x);
+        return detail::_f128_constexpr::lrint(x);
     }
 
     BL_NO_INLINE long long llrint(const f128_s& x)
@@ -88,7 +96,7 @@ namespace bl::detail::_f128_runtime
         long long out = 0;
         if (detail::_f128::try_round_to_signed_integer(x, true, out))
             return out;
-        return detail::_f128::llrint_impl(x);
+        return detail::_f128_constexpr::llrint(x);
     }
 
     BL_NO_INLINE f128_s cbrt(const f128_s& x) { return detail::_f128_constexpr::cbrt(x); }

@@ -1,3 +1,12 @@
+/**
+ * fltx/f128_math_trig.cpp - Runtime f128 trigonometric functions.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #include "fltx/detail/f128/math/trig.h"
 
 namespace bl::detail::_f128_runtime

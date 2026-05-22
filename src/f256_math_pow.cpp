@@ -1,3 +1,12 @@
+/**
+ * fltx/f256_math_pow.cpp - Runtime f256 power helpers and pow functions.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #include "fltx/detail/f256/math/pow.h"
 
 namespace bl::detail::_f256_runtime

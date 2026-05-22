@@ -1,3 +1,12 @@
+/**
+ * fltx/f128_math_erf_gamma.cpp - Runtime f128 error and gamma functions.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
 #include "fltx/detail/f128/math/erf.h"
 #include "fltx/detail/f128/math/gamma.h"
 

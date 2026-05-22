@@ -17,6 +17,7 @@ namespace bl {
 
 namespace detail::_f128
 {
+    // erf helpers
     BL_FORCE_INLINE constexpr f128_s erf_positive_series(const f128_s& x)
     {
         const f128_s xx = mul_inline(x, x);
@@ -28,13 +29,14 @@ namespace detail::_f128
             power = mul_inline(power, div_inline(-xx, f128_s{ static_cast<double>(n) }));
             const f128_s term = div_inline(power, f128_s{ static_cast<double>(2 * n + 1) });
             sum = add_inline(sum, term);
-            if (abs(term) < f128_s::eps())
+            if (mag(term) < f128_s::eps())
                 break;
         }
 
         return canonicalize_math_result(mul_inline(mul_inline(f128_s{ 2.0 }, std::numbers::inv_sqrtpi_v<f128_s>), sum));
     }
 
+    // erfc helpers
     BL_FORCE_INLINE constexpr f128_s erfc_positive_cf(const f128_s& x)
     {
         const f128_s z = mul_inline(x, x);
@@ -54,18 +56,18 @@ namespace detail::_f128
             b = add_inline(b, f128_s{ 2.0 });
 
             d = mul_add_inline(an, d, b);
-            if (abs(d) < tiny)
+            if (mag(d) < tiny)
                 d = tiny;
 
             c = add_inline(b, div_inline(an, c));
-            if (abs(c) < tiny)
+            if (mag(c) < tiny)
                 c = tiny;
 
             d = div_inline(f128_s{ 1.0 }, d);
             const f128_s delta = mul_inline(d, c);
             h = mul_inline(h, delta);
 
-            if (abs(sub_inline(delta, f128_s{ 1.0 })) <= mul_inline(f128_s{ 32.0 }, f128_s::eps()))
+            if (mag(sub_inline(delta, f128_s{ 1.0 })) <= mul_inline(f128_s{ 32.0 }, f128_s::eps()))
                 break;
         }
 
@@ -75,6 +77,7 @@ namespace detail::_f128
 
 } // namespace detail::_f128
 
+// erf/erfc functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::erf(const f128_s& x)
 {
     using namespace detail::_f128;

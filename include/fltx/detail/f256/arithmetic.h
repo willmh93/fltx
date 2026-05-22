@@ -17,11 +17,13 @@ namespace bl {
 
 namespace detail::_f256_runtime
 {
+    // core operations
     [[nodiscard]] BL_NO_INLINE f256_s add(const f256_s& a, const f256_s& b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s sub(const f256_s& a, const f256_s& b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul(const f256_s& a, const f256_s& b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s div(const f256_s& a, const f256_s& b) noexcept;
 
+    // double-double operations
     [[nodiscard]] BL_NO_INLINE f256_s add_dd(const f256_s& a, detail::_f256::dd_scalar b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s sub_dd(const f256_s& a, detail::_f256::dd_scalar b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s sub_dd(detail::_f256::dd_scalar a, const f256_s& b) noexcept;
@@ -29,6 +31,7 @@ namespace detail::_f256_runtime
     [[nodiscard]] BL_NO_INLINE f256_s div_dd(const f256_s& a, detail::_f256::dd_scalar b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s div_dd(detail::_f256::dd_scalar a, const f256_s& b) noexcept;
 
+    // double operations
     [[nodiscard]] BL_NO_INLINE f256_s add_double(const f256_s& a, double b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s sub_double(const f256_s& a, double b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s sub_double(double a, const f256_s& b) noexcept;
@@ -36,6 +39,7 @@ namespace detail::_f256_runtime
     [[nodiscard]] BL_NO_INLINE f256_s div_double(const f256_s& a, double b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s div_double(double a, const f256_s& b) noexcept;
 
+    // fused operations
     [[nodiscard]] BL_NO_INLINE f256_s sqr(const f256_s& a) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_pow2_or_double(const f256_s& a, double b) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_add(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
@@ -99,6 +103,7 @@ namespace detail::_f256_runtime
     [[nodiscard]] BL_NO_INLINE f256_s sub_mul_double_div_add_double(const f256_s& minuend, const f256_s& value, double value_scalar, const f256_s& denominator, double denominator_scalar) noexcept;
     [[nodiscard]] BL_NO_INLINE f256_s mul_double_sub_div_add_double(const f256_s& value, double value_scalar, const f256_s& subtrahend, const f256_s& denominator, double denominator_scalar) noexcept;
 
+    // runtime math
     [[nodiscard]] BL_NO_INLINE f256_s floor(const f256_s& a);
     [[nodiscard]] BL_NO_INLINE f256_s ceil(const f256_s& a);
     [[nodiscard]] BL_NO_INLINE f256_s trunc(const f256_s& a);
@@ -109,6 +114,7 @@ namespace detail::_f256_runtime
 
 namespace detail::_f256
 {
+    // scalar accumulation
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_scalar_precise(const f256_s& a, double b) noexcept
     {
         double s0{}, e0{}; two_sum_precise(a.x0, b, s0, e0);
@@ -133,6 +139,7 @@ namespace detail::_f256
         return sum;
     }
 
+    // core arithmetic
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_inline(const f256_s& a, const f256_s& b) noexcept
     {
         double s0{}, e0{};
@@ -611,6 +618,7 @@ return renorm5(p0, p1, s0, t0, t1);
         return renorm5(q0, q1, q2, q3, q4);
     }
 
+    // residual helpers
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s sub_mul_scalar_fast(const f256_s& r, const f256_s& b, double q) noexcept
     {
         double p0{}, e0{};
@@ -714,6 +722,7 @@ return renorm5(p0, p1, s0, t0, t1);
         return renorm5(c0, c1, c2, c3, e0);
     }
 
+    // double-double dispatch
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s add_dd(const f256_s& a, dd_scalar b) noexcept
     {
         BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -764,6 +773,7 @@ return renorm5(p0, p1, s0, t0, t1);
 
 } // namespace detail::_f256
 
+// reciprocal helpers
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 recip(f256_s b) noexcept
 {
     using namespace detail::_f256;

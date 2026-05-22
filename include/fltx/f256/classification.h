@@ -14,18 +14,13 @@
 
 namespace bl {
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s abs(const f256_s& a) noexcept
+namespace detail::_f256
 {
-    return (a.x0 < 0.0) ? -a : a;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s mag(const f256_s& a) noexcept
+    {
+        return (a.x0 < 0.0) ? -a : a;
+    }
 }
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s clamp(const f256_s& v, const f256_s& lo, const f256_s& hi) noexcept
-{
-    if (v < lo) return lo;
-    if (v > hi) return hi;
-    return v;
-}
-
 
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isnan(const f256_s& a)      noexcept { return detail::_f256::isnan(a.x0); }
 [[nodiscard]] BL_FORCE_INLINE constexpr bool isinf(const f256_s& a)      noexcept { return detail::_f256::isinf(a.x0); }
@@ -39,6 +34,22 @@ namespace bl {
         || (x.x0 == 0.0 && (detail::_f256::signbit(x.x1)
         || (x.x1 == 0.0 && (detail::_f256::signbit(x.x2)
         || (x.x2 == 0.0 && detail::_f256::signbit(x.x3))))));
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s abs(const f256_s& a) noexcept
+{
+    if (a.x0 < 0.0)
+        return -a;
+    if (a.x0 != 0.0)
+        return a;
+    return signbit(a) ? -a : a;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s clamp(const f256_s& v, const f256_s& lo, const f256_s& hi) noexcept
+{
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr int fpclassify(const f256_s& x) noexcept

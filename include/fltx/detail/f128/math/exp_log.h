@@ -15,17 +15,12 @@
 
 namespace bl {
 
+[[nodiscard]] BL_FORCE_INLINE constexpr double detail::_f128_constexpr::log_as_double(f128_s a);
+
 namespace detail::_f128
 {
-    BL_FORCE_INLINE constexpr double log_as_double_impl(f128_s a)
-    {
-        const double hi = a.hi;
-        if (hi <= 0.0)
-            return detail::fp::log(static_cast<double>(a));
 
-        return detail::fp::log(hi) + detail::fp::log1p(a.lo / hi);
-    }
-
+    // log1p helpers
     BL_FORCE_INLINE constexpr f128_s log1p_double_seed_residual(const f128_s& r) noexcept
     {
         const f128_s r2 = mul_inline(r, r);
@@ -55,15 +50,16 @@ namespace detail::_f128
             const f128_s add = div_inline(term, f128_s{ static_cast<double>(k) });
             sum = add_inline(sum, add);
 
-            const f128_s asum  = abs(sum);
+            const f128_s asum  = mag(sum);
             const f128_s scale = (asum > f128_s{ 1.0 }) ? asum : f128_s{ 1.0 };
-            if (abs(add) <= mul_inline(f128_s::eps(), scale))
+            if (mag(add) <= mul_inline(f128_s::eps(), scale))
                 break;
         }
 
         return add_inline(sum, sum);
     }
 
+    // exponential kernels
     BL_MSVC_NOINLINE constexpr f128_s expm1_tiny(const f128_s& r)
     {
         f128_s p = exp_inv_fact[(sizeof(exp_inv_fact) / sizeof(exp_inv_fact[0])) - 1];
@@ -139,6 +135,7 @@ namespace detail::_f128
         return _ldexp(add_inline(e, f128_s{ 1.0 }), k);
     }
 
+    // logarithm kernels
     BL_MSVC_NOINLINE constexpr f128_s _log(const f128_s& a)
     {
         if (isnan(a))
@@ -166,7 +163,7 @@ namespace detail::_f128
         }
 
         const f128_s exp2_ln2 = mul_inline(f128_s{ static_cast<double>(exp2) }, std::numbers::ln2_v<f128_s>);
-        f128_s y = add_inline(exp2_ln2, f128_s{ log_as_double_impl(m) });
+        f128_s y = add_inline(exp2_ln2, f128_s{ detail::_f128_constexpr::log_as_double(m) });
         if (bl::use_constexpr_math())
         {
             y = add_inline(y, mul_sub_inline(m, _exp(sub_inline(exp2_ln2, y)), f128_s{ 1.0 }));
@@ -181,6 +178,7 @@ namespace detail::_f128
         return y;
     }
 
+    // exact logarithm cases
     BL_FORCE_INLINE constexpr bool f128_try_exact_binary_log2(const f128_s& x, int& out) noexcept
     {
         if (!(x.hi > 0.0) || x.lo != 0.0)
@@ -199,6 +197,7 @@ namespace detail::_f128
 
 } // namespace detail::_f128
 
+// exponential functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::exp(const f128_s& x)
 {
     return canonicalize_math_result(_exp(x));
@@ -207,6 +206,16 @@ namespace detail::_f128
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::exp2(const f128_s& x)
 {
     return canonicalize_math_result(_exp2(x));
+}
+
+// logarithm functions
+[[nodiscard]] BL_FORCE_INLINE constexpr double detail::_f128_constexpr::log_as_double(f128_s a)
+{
+    const double hi = a.hi;
+    if (hi <= 0.0)
+        return detail::fp::log(static_cast<double>(a));
+
+    return detail::fp::log(hi) + detail::fp::log1p(a.lo / hi);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::log(const f128_s& a)
@@ -242,6 +251,7 @@ namespace detail::_f128
     return canonicalize_math_result(mul_inline(_log(x), std::numbers::log10e_v<f128_s>));
 }
 
+// expm1/log1p functions
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_constexpr::expm1(const f128_s& x)
 {
     using namespace detail::_f128;
@@ -255,7 +265,7 @@ namespace detail::_f128
             ? f128_s{ -1.0, 0.0 }
             : std::numeric_limits<f128_s>::infinity();
 
-    const f128_s ax = abs(x);
+    const f128_s ax = detail::_f128::mag(x);
     if (ax <= f128_s{ 0.5 })
     {
         f128_s term = x;
@@ -266,8 +276,9 @@ namespace detail::_f128
             term = div_inline(mul_inline(term, x), f128_s{ static_cast<double>(n) });
             sum = add_inline(sum, term);
 
-            const f128_s scale = std::max(abs(sum), f128_s{ 1.0 });
-            if (abs(term) <= mul_inline(f128_s::eps(), scale))
+            const f128_s abs_sum = detail::_f128::mag(sum);
+            const f128_s scale = (abs_sum < f128_s{ 1.0 }) ? f128_s{ 1.0 } : abs_sum;
+            if (detail::_f128::mag(term) <= mul_inline(f128_s::eps(), scale))
                 break;
         }
 
@@ -292,7 +303,7 @@ namespace detail::_f128
     if (iszero(x))
         return x;
 
-    const f128_s ax = abs(x);
+    const f128_s ax = detail::_f128::mag(x);
     if (ax <= f128_s{ 0.5 })
         return canonicalize_math_result(f128_log1p_series_reduced(x));
 

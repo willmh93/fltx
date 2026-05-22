@@ -9,10 +9,8 @@
 
 #ifndef FLTX_CONFIG_INCLUDED
 #define FLTX_CONFIG_INCLUDED
-#include <climits>
 #include <cstdint>
 #include <limits>
-#include <type_traits>
 
 static_assert(sizeof(double) == sizeof(std::uint64_t),
     "fltx requires double to be 64 bits.");
@@ -278,9 +276,16 @@ struct std::numeric_limits<wrapper_type>                                        
     #define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
         do                                                              \
         {                                                               \
-            if (bl::use_constexpr_math())                               \
+            if consteval                                                \
+            {                                                           \
                 return (CONSTEVAL_EXPR);                                \
-            return (RUNTIME_EXPR);                                      \
+            }                                                           \
+            else                                                        \
+            {                                                           \
+                if (bl::use_constexpr_math())                           \
+                    return (CONSTEVAL_EXPR);                            \
+                return (RUNTIME_EXPR);                                  \
+            }                                                           \
         } while (false)
   #endif
 #endif

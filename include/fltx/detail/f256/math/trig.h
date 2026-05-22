@@ -17,6 +17,7 @@ namespace bl {
 
 namespace detail::_f256
 {
+    // fixed-point reduction helpers
     BL_FORCE_INLINE constexpr biguint biguint_from_words(const std::uint32_t* words, int count)
     {
         biguint out{};
@@ -61,7 +62,7 @@ namespace detail::_f256
     BL_FORCE_INLINE constexpr bool remainder_pi2_payne_hanek(const f256_s& x, long long& n_out, f256_s& r_out)
     {
         const bool neg = signbit(x.x0);
-        const exact_dyadic_fmod dx = exact_from_f256_fmod(abs(x));
+        const exact_dyadic_fmod dx = exact_from_f256_fmod(mag(x));
         if (dx.mant.is_zero())
         {
             n_out = 0;
@@ -123,12 +124,13 @@ namespace detail::_f256
         return true;
     }
 
+    // argument reduction
     BL_FORCE_INLINE constexpr bool remainder_pi2(const f256_s& x, long long& n_out, f256_s& r_out)
     {
         if (!isfinite(x.x0))
             return false;
 
-        if (abs(x) <= pi_4)
+        if (mag(x) <= pi_4)
         {
             n_out = 0;
             r_out = x;
@@ -166,6 +168,7 @@ namespace detail::_f256
         return true;
     }
 
+    // simd product helpers
     #if BL_F256_ENABLE_SIMD
     BL_FORCE_INLINE constexpr f256_s mul_from_two_prod_terms(
         double p0, double p1, double p2, double p3, double p4, double p5,
@@ -283,6 +286,8 @@ namespace detail::_f256
         );
     }
     #endif
+
+    // sine/cosine kernels
     BL_MSVC_NOINLINE constexpr f256_s sin_kernel_pi4_inline(const f256_s& r)
     {
         const f256_s t = sqr_inline(r);
@@ -428,6 +433,7 @@ namespace detail::_f256
         return true;
     }
 
+    // arctangent kernels
     BL_MSVC_NOINLINE constexpr f256_s atan_series_reduced(const f256_s& z)
     {
         const f256_s z2 = sqr_inline(z);
@@ -482,7 +488,7 @@ namespace detail::_f256
         if (isnan(x))
             return x;
 
-        const f256_s ax = abs(x);
+        const f256_s ax = detail::_f256::mag(x);
         if (ax > f256_s{ 1.0 })
             return std::numeric_limits<f256_s>::quiet_NaN();
         if (ax == f256_s{ 1.0 })
@@ -496,25 +502,37 @@ namespace detail::_f256
         return (x.x0 < 0.0) ? -a : a;
     }
 
-    BL_FORCE_INLINE constexpr f256_s _acos(const f256_s& x)
-    {
-        if (isnan(x))
-            return x;
-
-        const f256_s ax = abs(x);
-        if (ax > f256_s{ 1.0 })
-            return std::numeric_limits<f256_s>::quiet_NaN();
-        if (x == f256_s{ 1.0 })
-            return f256_s{ 0.0 };
-        if (x == f256_s{ -1.0 })
-            return std::numbers::pi_v<f256_s>;
-
-        return pi_2 - _asin(x);
-    }
-
 } // namespace detail::_f256
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool   detail::_f256_constexpr::sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
+// inverse trig functions
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::atan(const f256_s& x)
+{
+    return canonicalize_math_result(_atan(x));
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::asin(const f256_s& x)
+{
+    return canonicalize_math_result(_asin(x));
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::acos(const f256_s& x)
+{
+    if (isnan(x))
+        return x;
+
+    const f256_s ax = detail::_f256::mag(x);
+    if (ax > f256_s{ 1.0 })
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (x == f256_s{ 1.0 })
+        return f256_s{ 0.0 };
+    if (x == f256_s{ -1.0 })
+        return std::numbers::pi_v<f256_s>;
+
+    return canonicalize_math_result(pi_2 - _asin(x));
+}
+
+// sine/cosine functions
+[[nodiscard]] BL_FORCE_INLINE constexpr bool detail::_f256_constexpr::sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
 {
     bool ret = _sincos(x, s_out, c_out);
     s_out = canonicalize_math_result(s_out);
@@ -524,7 +542,7 @@ namespace detail::_f256
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::sin(const f256_s& x)
 {
-    const double ax = fabs(x.x0);
+    const double ax = detail::_f256::fabs(x.x0);
     if (!isfinite(ax))
         return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
 
@@ -546,7 +564,7 @@ namespace detail::_f256
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::cos(const f256_s& x)
 {
-    const double ax = fabs(x.x0);
+    const double ax = detail::_f256::fabs(x.x0);
     if (!isfinite(ax))
         return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
 
@@ -567,6 +585,7 @@ namespace detail::_f256
     }
 }
 
+// tangent and atan2
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::tan(const f256_s& x)
 {
     f256_s s{}, c{};
@@ -574,11 +593,6 @@ namespace detail::_f256
         return canonicalize_math_result(s / c);
 
     return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::atan(const f256_s& x)
-{
-    return canonicalize_math_result(_atan(x));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::atan2(const f256_s& y, const f256_s& x)
@@ -600,8 +614,8 @@ namespace detail::_f256
         return y;
     }
 
-    const f256_s ax = abs(x);
-    const f256_s ay = abs(y);
+    const f256_s ax = detail::_f256::mag(x);
+    const f256_s ay = detail::_f256::mag(y);
 
     if (ax == ay)
     {
@@ -626,16 +640,6 @@ namespace detail::_f256
 
     f256_s a = _atan(x / y);
     return canonicalize_math_result((y.x0 < 0.0) ? (-pi_2 - a) : (pi_2 - a));
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::asin(const f256_s& x)
-{
-    return canonicalize_math_result(_asin(x));
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_constexpr::acos(const f256_s& x)
-{
-    return detail::_f256::canonicalize_math_result(detail::_f256::_acos(x));
 }
 
 } // namespace bl

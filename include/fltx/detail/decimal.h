@@ -9,11 +9,8 @@
 
 #ifndef FLTX_DECIMAL_INCLUDED
 #define FLTX_DECIMAL_INCLUDED
-#include <algorithm>
 #include <bit>
 #include <cstdint>
-
-#include "fltx/detail/fp.h"
 
 namespace bl::detail::exact_decimal {
 
@@ -251,7 +248,7 @@ struct biguint
 
         const int old_size = size;
         const int writable_count = max_words - word_shift;
-        const int src_count = std::min(old_size, writable_count);
+        const int src_count = (old_size < writable_count) ? old_size : writable_count;
 
         if (src_count <= 0)
         {
@@ -439,14 +436,16 @@ constexpr inline biguint mul_big(const biguint& a, const biguint& b) noexcept
     if (a.is_zero() || b.is_zero())
         return out;
 
-    out.size = std::min(a.size + b.size, biguint::max_words);
+    const int product_size = a.size + b.size;
+    out.size = (product_size < biguint::max_words) ? product_size : biguint::max_words;
     for (int i = 0; i < out.size; ++i)
         out.words[i] = 0;
 
     for (int i = 0; i < a.size; ++i)
     {
         std::uint64_t carry = 0;
-        const int jmax = std::min(b.size, biguint::max_words - i);
+        const int writable_count = biguint::max_words - i;
+        const int jmax = (b.size < writable_count) ? b.size : writable_count;
         for (int j = 0; j < jmax; ++j)
         {
             const int k = i + j;

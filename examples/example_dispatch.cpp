@@ -1,10 +1,13 @@
 #include <iostream>
 #include <iomanip>
 
-#include <fltx.h>
+#include <fltx/core.h>
+#include <fltx/dispatch.h>
+#include <fltx/math.h>
+#include <fltx/io.h>
 
 using namespace bl;
-using namespace bl::literals;
+//using namespace bl::literals;
 
 /* Notes:
 
