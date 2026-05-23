@@ -7,7 +7,7 @@
  * See LICENSE for details.
  */
 
-#include "fltx/detail/f256/math/gamma.h"
+#include "fltx/detail/f256_math_gamma.h"
 
 namespace bl::detail::_f256_runtime
 {
@@ -154,7 +154,7 @@ namespace bl::detail::_f256_runtime
                 : std::numeric_limits<f256_s>::infinity();
 
         if (x > f256_s{ 0.0 })
-            return canonicalize_math_result(lgamma_positive_recurrence_runtime(x));
+            return F256_CANONICALIZE_MATH_RESULT(lgamma_positive_recurrence_runtime(x));
 
         const f256_s xi = detail::_f256_runtime::trunc(x);
         if (xi == x)
@@ -169,7 +169,7 @@ namespace bl::detail::_f256_runtime
             - detail::_f256_runtime::log(mag(sinpix))
             - lgamma_positive_recurrence_runtime(f256_s{ 1.0 } - x);
 
-        return canonicalize_math_result(out);
+        return F256_CANONICALIZE_MATH_RESULT(out);
     }
 
     BL_NO_INLINE f256_s tgamma(const f256_s& x)
@@ -184,7 +184,7 @@ namespace bl::detail::_f256_runtime
                 : std::numeric_limits<f256_s>::infinity();
 
         if (x > f256_s{ 0.0 })
-            return canonicalize_math_result(detail::_f256_runtime::exp(lgamma_positive_recurrence_runtime(x)));
+            return F256_CANONICALIZE_MATH_RESULT(detail::_f256_runtime::exp(lgamma_positive_recurrence_runtime(x)));
 
         const f256_s xi = detail::_f256_runtime::trunc(x);
         if (xi == x)
@@ -200,7 +200,7 @@ namespace bl::detail::_f256_runtime
         f256_s out = detail::_f256_runtime::exp(log_abs);
         if (signbit(sinpix))
             out = -out;
-        return canonicalize_math_result(out);
+        return F256_CANONICALIZE_MATH_RESULT(out);
     }
 
 } // namespace bl::detail::_f256_runtime

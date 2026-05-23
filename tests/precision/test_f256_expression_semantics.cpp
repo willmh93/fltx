@@ -10,8 +10,8 @@
 #include <type_traits>
 #include <utility>
 
-#include <fltx/f256/math.h>
-#include <fltx/f256/io.h>
+#include <fltx/f256_math.h>
+#include <fltx/f256_io.h>
 
 using namespace bl;
 

@@ -7,7 +7,7 @@
  * See LICENSE for details.
  */
 
-#include "fltx/detail/f256/expressions.h"
+#include "fltx/detail/f256_expressions.h"
 
 namespace bl::detail::_f256_runtime
 {
@@ -195,6 +195,12 @@ namespace bl::detail::_f256_runtime
             const double inv_b0 = 1.0 / b.hi;
 
             const double q0 = a.x0 * inv_b0;
+			
+            if (!isfinite(q0)) [[unlikely]]
+                return f256_s{ q0, 0.0, 0.0, 0.0 };
+            if (q0 == 0.0 && bl::iszero(a)) [[unlikely]]
+                return signed_zero(bl::signbit(a) != signbit(b.hi));
+
             f256_s r = sub_mul_scalar_exact_dd(a, b, q0);
 
             const double q1 = r.x0 * inv_b0;
@@ -225,122 +231,158 @@ namespace bl::detail::_f256_runtime
 
     f256_s floor(const f256_s& a)
     {
-        return detail::_f256_constexpr::floor(a);
+        return detail::_f256_impl::floor(a);
     }
 
     f256_s ceil(const f256_s& a)
     {
-        return detail::_f256_constexpr::ceil(a);
+        return detail::_f256_impl::ceil(a);
     }
 
     f256_s trunc(const f256_s& a)
     {
-        return detail::_f256_constexpr::trunc(a);
+        return detail::_f256_impl::trunc(a);
     }
 
     f256_s pow10_256(int k)
     {
-        return detail::_f256_constexpr::pow10_256(k);
+        return detail::_f256_impl::pow10_256(k);
     }
 
     f256_s to_f256(uint64_t u) noexcept
     {
-        return detail::_f256_constexpr::to_f256(u);
+        return detail::_f256_impl::to_f256(u);
     }
 
     f256_s to_f256(int64_t v) noexcept
     {
-        return detail::_f256_constexpr::to_f256(v);
+        return detail::_f256_impl::to_f256(v);
     }
 
     f256_s& assign(f256_s& out, uint64_t u) noexcept
     {
-        return detail::_f256_constexpr::assign(out, u);
+        return detail::_f256_impl::assign(out, u);
     }
 
     f256_s& assign(f256_s& out, int64_t v) noexcept
     {
-        return detail::_f256_constexpr::assign(out, v);
+        return detail::_f256_impl::assign(out, v);
     }
 
     f256_s add(const f256_s& a, const f256_s& b) noexcept
     {
-        return detail::_f256::add_inline(a, b);
+        return detail::_f256::add_checked_inline(a, b);
     }
 
     f256_s sub(const f256_s& a, const f256_s& b) noexcept
     {
-        return detail::_f256::sub_inline(a, b);
+        return detail::_f256::sub_checked_inline(a, b);
     }
 
     f256_s mul(const f256_s& a, const f256_s& b) noexcept
     {
-        return detail::_f256::mul_inline(a, b);
+        return detail::_f256::mul_checked_inline(a, b);
     }
 
     f256_s div(const f256_s& a, const f256_s& b) noexcept
     {
-        return detail::_f256::div_inline(a, b);
+        return detail::_f256::div_checked_inline(a, b);
     }
 
     f256_s add_dd(const f256_s& a, detail::_f256::dd_scalar b) noexcept
     {
-        return add_dd_impl(a, b);
+        const f256_s rhs{ b.hi, b.lo, 0.0, 0.0 };
+        if (!detail::_f256::isfinite(a.x0) || !detail::_f256::isfinite(b.hi)) [[unlikely]]
+            return detail::_f256::add_special(a, rhs);
+
+        const f256_s out = add_dd_impl(a, b);
+        if (!detail::_f256::isfinite(out.x0)) [[unlikely]]
+            return detail::_f256::signed_infinity(bl::signbit(a));
+        return out;
     }
 
     f256_s sub_dd(const f256_s& a, detail::_f256::dd_scalar b) noexcept
     {
-        return sub_dd_impl(a, b);
+        const f256_s rhs{ b.hi, b.lo, 0.0, 0.0 };
+        if (!detail::_f256::isfinite(a.x0) || !detail::_f256::isfinite(b.hi)) [[unlikely]]
+            return detail::_f256::sub_special(a, rhs);
+
+        const f256_s out = sub_dd_impl(a, b);
+        if (!detail::_f256::isfinite(out.x0)) [[unlikely]]
+            return detail::_f256::signed_infinity(bl::signbit(a));
+        return out;
     }
 
     f256_s sub_dd(detail::_f256::dd_scalar a, const f256_s& b) noexcept
     {
-        return sub_dd_impl(a, b);
+        const f256_s lhs{ a.hi, a.lo, 0.0, 0.0 };
+        if (!detail::_f256::isfinite(a.hi) || !detail::_f256::isfinite(b.x0)) [[unlikely]]
+            return detail::_f256::sub_special(lhs, b);
+
+        const f256_s out = sub_dd_impl(a, b);
+        if (!detail::_f256::isfinite(out.x0)) [[unlikely]]
+            return detail::_f256::signed_infinity(bl::signbit(lhs));
+        return out;
     }
 
     f256_s mul_dd(const f256_s& a, detail::_f256::dd_scalar b) noexcept
     {
-        return mul_dd_impl(a, b);
+        const f256_s rhs{ b.hi, b.lo, 0.0, 0.0 };
+        if (!detail::_f256::isfinite(a.x0) || !detail::_f256::isfinite(b.hi)) [[unlikely]]
+            return detail::_f256::mul_special(a, rhs);
+
+        const f256_s out = mul_dd_impl(a, b);
+        if (!detail::_f256::isfinite(out.x0)) [[unlikely]]
+            return detail::_f256::signed_infinity(bl::signbit(a) != bl::signbit(rhs));
+        return out;
     }
 
     f256_s div_dd(const f256_s& a, detail::_f256::dd_scalar b) noexcept
     {
+        const f256_s rhs{ b.hi, b.lo, 0.0, 0.0 };
+        if (!detail::_f256::isfinite(b.hi) || b.hi == 0.0) [[unlikely]]
+            return detail::_f256::div_special(a, rhs);
+
         return div_dd_impl(a, b);
     }
 
     f256_s div_dd(detail::_f256::dd_scalar a, const f256_s& b) noexcept
     {
+        const f256_s lhs{ a.hi, a.lo, 0.0, 0.0 };
+        if (!detail::_f256::isfinite(b.x0) || b.x0 == 0.0) [[unlikely]]
+            return detail::_f256::div_special(lhs, b);
+
         return div_dd_impl(a, b);
     }
 
     f256_s add_double(const f256_s& a, double b) noexcept
     {
-        return detail::_f256::add_double_inline(a, b);
+        return detail::_f256::add_double_checked_inline(a, b);
     }
 
     f256_s sub_double(const f256_s& a, double b) noexcept
     {
-        return detail::_f256::sub_double_inline(a, b);
+        return detail::_f256::sub_double_checked_inline(a, b);
     }
 
     f256_s sub_double(double a, const f256_s& b) noexcept
     {
-        return detail::_f256::sub_double_inline(a, b);
+        return detail::_f256::sub_double_checked_inline(a, b);
     }
 
     f256_s mul_double(const f256_s& a, double b) noexcept
     {
-        return detail::_f256::mul_double_inline(a, b);
+        return detail::_f256::mul_double_checked_inline(a, b);
     }
 
     f256_s div_double(const f256_s& a, double b) noexcept
     {
-        return detail::_f256::div_double_inline(a, b);
+        return detail::_f256::div_double_checked_inline(a, b);
     }
 
     f256_s div_double(double a, const f256_s& b) noexcept
     {
-        return detail::_f256::div_double_inline(a, b);
+        return detail::_f256::div_double_checked_inline(a, b);
     }
 
     f256_s sqr(const f256_s& a) noexcept
@@ -350,7 +392,7 @@ namespace bl::detail::_f256_runtime
 
     f256_s mul_pow2_or_double(const f256_s& a, double b) noexcept
     {
-        return detail::_f256::mul_pow2_or_double_inline(a, b);
+        return detail::_f256::mul_pow2_or_double_checked_inline(a, b);
     }
 
     f256_s mul_add(const f256_s& a, const f256_s& b, const f256_s& c) noexcept

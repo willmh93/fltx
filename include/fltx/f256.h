@@ -11,15 +11,15 @@
 #define F256_INCLUDED
 
 #include "fltx/aliases.h"
-#include "fltx/f256/type.h"
-#include "fltx/f256/stl.h"
-#include "fltx/f256/conversions.h"
-#include "fltx/f256/comparison.h"
-#include "fltx/f256/classification.h"
-#include "fltx/f256/arithmetic.h"
-#include "fltx/f256/rounding.h"
+#include "fltx/f256_type.h"
+#include "fltx/f256_stl.h"
+#include "fltx/f256_conversions.h"
+#include "fltx/f256_comparison.h"
+#include "fltx/f256_classification.h"
+#include "fltx/f256_arithmetic.h"
+#include "fltx/f256_rounding.h"
 
-#include "fltx/detail/f256/expressions.h"
+#include "fltx/detail/f256_expressions.h"
 #include "fltx/detail/interop.h"
 
 #endif

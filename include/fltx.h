@@ -10,6 +10,7 @@
 #ifndef FLTX_INCLUDED
 #define FLTX_INCLUDED
 
+#include "fltx/core.h"
 #include "fltx/io.h"
 #include "fltx/math.h"
 #include "fltx/dispatch.h"

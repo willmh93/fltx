@@ -7,7 +7,7 @@
  * See LICENSE for details.
  */
 
-#include "fltx/detail/f256/math/pow.h"
+#include "fltx/detail/f256_math_pow.h"
 
 namespace bl::detail::_f256_runtime
 {
@@ -85,7 +85,7 @@ namespace bl::detail::_f256_runtime
 
         int64_t dyadic_exponent{};
         if (try_get_pow_dyadic_eighth_exponent(x, y, dyadic_exponent))
-            return canonicalize_math_result(pow_dyadic_eighth_runtime(x, dyadic_exponent));
+            return F256_CANONICALIZE_MATH_RESULT(pow_dyadic_eighth_runtime(x, dyadic_exponent));
 
         if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit(x.x0)))
         {
@@ -96,7 +96,7 @@ namespace bl::detail::_f256_runtime
             return is_odd_integer(yi) ? -magnitude : magnitude;
         }
 
-        return canonicalize_math_result(exp_for_pow_runtime(mul_inline(y, detail::_f256_runtime::log(x))));
+        return F256_CANONICALIZE_MATH_RESULT(exp_for_pow_runtime(mul_inline(y, detail::_f256_runtime::log(x))));
     }
 
     BL_NO_INLINE f256_s pow(const f256_s& x, double y)
@@ -110,9 +110,9 @@ namespace bl::detail::_f256_runtime
             return std::numeric_limits<f256_s>::quiet_NaN();
 
         if (y == 1.0) return x;
-        if (y == 2.0) return canonicalize_math_result(sqr_inline(x));
-        if (y == -1.0) return canonicalize_math_result(f256_s{ 1.0 } / x);
-        if (y == 0.5) return canonicalize_math_result(detail::_f256_runtime::sqrt(x));
+        if (y == 2.0) return F256_CANONICALIZE_MATH_RESULT(sqr_inline(x));
+        if (y == -1.0) return F256_CANONICALIZE_MATH_RESULT(f256_s{ 1.0 } / x);
+        if (y == 0.5) return F256_CANONICALIZE_MATH_RESULT(detail::_f256_runtime::sqrt(x));
 
         const double yi = std::trunc(y);
         const bool y_is_int = (yi == y);
@@ -122,7 +122,7 @@ namespace bl::detail::_f256_runtime
 
         int64_t dyadic_exponent{};
         if (try_get_pow_dyadic_eighth_exponent(x, y, dyadic_exponent))
-            return canonicalize_math_result(pow_dyadic_eighth_runtime(x, dyadic_exponent));
+            return F256_CANONICALIZE_MATH_RESULT(pow_dyadic_eighth_runtime(x, dyadic_exponent));
 
         if (x.x0 < 0.0 || (x.x0 == 0.0 && signbit(x.x0)))
         {
@@ -134,10 +134,10 @@ namespace bl::detail::_f256_runtime
                 (absd(yi) < 0x1p53) &&
                 ((static_cast<int64_t>(yi) & 1ll) != 0);
 
-            return canonicalize_math_result(y_is_odd ? -magnitude : magnitude);
+            return F256_CANONICALIZE_MATH_RESULT(y_is_odd ? -magnitude : magnitude);
         }
 
-        return canonicalize_math_result(exp_for_pow_runtime(mul_double_inline(detail::_f256_runtime::log(x), y)));
+        return F256_CANONICALIZE_MATH_RESULT(exp_for_pow_runtime(mul_double_inline(detail::_f256_runtime::log(x), y)));
     }
 
 } // namespace bl::detail::_f256_runtime

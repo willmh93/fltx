@@ -13,7 +13,7 @@
 #include <type_traits>
 #include <utility>
 
-#include <fltx/f32/math.h>
+#include <fltx/f32_math.h>
 #include "benchmark_chart_writer.h"
 
 namespace

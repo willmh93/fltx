@@ -166,8 +166,8 @@ namespace bl
 
     [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_parity() noexcept
     {
-        // Result-parity policy only. Callers may use this to decide whether an
-        // otherwise optional canonicalization step is worth paying for.
+        // Result-parity policy only. Callers may use this to decide whether to
+        // canonicalization a math result.
         #if defined(FLTX_CONSTEXPR_PARITY)
         return true;
         #else
@@ -177,12 +177,10 @@ namespace bl
 
     [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_math() noexcept
     {
-        // Select constexpr-safe algorithms. In normal builds this tracks actual
-        // constant evaluation. In simulated-consteval mode, tests can force
-        // this at runtime to compare predicted consteval results with runtime
-        // results. FLTX_CONSTEXPR_PARITY does not change is_constant_evaluated(),
-        // but it may choose constexpr-safe runtime algorithms when that is the
-        // cleanest way to guarantee bitwise-identical results.
+        // Select constexpr-safe math algorithms. In normal builds this tracks
+        // actual constant evaluation. In FLTX_SIMULATE_CONSTEVAL_MODE, tests can
+        // force this at runtime to compare predicted consteval results with runtime
+        // results.
         #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
         return is_constant_evaluated() || _fltx_debug::simulate_consteval_path || use_constexpr_parity();
         #else
@@ -258,7 +256,6 @@ struct std::numeric_limits<wrapper_type>                                        
 
 #ifndef BL_CONSTEXPR_RUNTIME_DISPATCH
   #if !defined(FLTX_CONSTEXPR_PARITY) && !defined(FLTX_SIMULATE_CONSTEVAL_MODE)
-    #define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 1
     #define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
         do                                                              \
         {                                                               \
@@ -272,7 +269,6 @@ struct std::numeric_limits<wrapper_type>                                        
             }                                                           \
         } while (false)
   #else
-    #define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
     #define BL_CONSTEXPR_RUNTIME_DISPATCH(CONSTEVAL_EXPR, RUNTIME_EXPR) \
         do                                                              \
         {                                                               \
@@ -288,10 +284,6 @@ struct std::numeric_limits<wrapper_type>                                        
             }                                                           \
         } while (false)
   #endif
-#endif
-
-#ifndef BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL
-#define BL_CONSTEXPR_RUNTIME_DISPATCH_USES_CONSTEVAL 0
 #endif
 
 #endif

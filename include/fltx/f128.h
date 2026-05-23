@@ -11,13 +11,13 @@
 #define F128_INCLUDED
 
 #include "fltx/aliases.h"
-#include "fltx/f128/type.h"
-#include "fltx/f128/stl.h"
-#include "fltx/f128/conversions.h"
-#include "fltx/f128/comparison.h"
-#include "fltx/f128/classification.h"
-#include "fltx/f128/arithmetic.h"
-#include "fltx/f128/rounding.h"
+#include "fltx/f128_type.h"
+#include "fltx/f128_stl.h"
+#include "fltx/f128_conversions.h"
+#include "fltx/f128_comparison.h"
+#include "fltx/f128_classification.h"
+#include "fltx/f128_arithmetic.h"
+#include "fltx/f128_rounding.h"
 
 #include "fltx/detail/interop.h"
 

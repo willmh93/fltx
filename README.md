@@ -1,6 +1,6 @@
 <p align="center">
   <img src="res/logo.webp" alt="fltx logo" width="80"><br>
-  Extended-precision floating point and constexpr math for C++20<br>
+  Extended-precision floating point and constexpr math for C++23<br>
   Fast · Precise · Lightweight
 </p>
 
@@ -19,7 +19,7 @@
 ## Highlights
 
 - Fixed-size extended-precision scalar types: [`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h)
-- `constexpr` arithmetic, comparisons, conversions, parsing, formatting, and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style math
+- Portable `constexpr` arithmetic, comparisons, conversions, parsing, formatting, and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath) style API
 - Accuracy and performance validated against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at equivalent precision
 - [`bl::f256`](include/fltx/f256.h) has an expression node system which recognises and fuses common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations. This reduces intermediate rounding and temporary value materialisation, allowing those shapes to run through specialised fused evaluation paths.
 - Selected [`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h) kernels use platform SIMD by default where supported: x86/x64 SSE2 with FMA when available, AArch64 NEON, and WebAssembly `wasm128` SIMD via Emscripten
@@ -27,7 +27,6 @@
 - No required runtime dependencies
 - Standard-library integration for streams, `std::numeric_limits`, `std::numbers`, and common stream manipulators
 - Runtime code favors native performance by default
-- Test builds can define `FLTX_SIMULATE_CONSTEVAL_MODE` to run runtime samples through the branches used during constant evaluation without enabling `FLTX_CONSTEXPR_PARITY`
 - Suitable for lightweight native builds, WebAssembly / Emscripten
 - Optional runtime-to-compile-time dispatch helper for template-specialized kernels
 
@@ -440,7 +439,7 @@ cmake --preset ninja-release
 cmake --build --preset ninja-release
 ```
 
-Other distributions should use equivalent packages for a C++20 compiler, CMake, Ninja, pkg-config, and the autotools used by the GMP/MPFR vcpkg ports.
+Other distributions should use equivalent packages for a C++23 compiler, CMake, Ninja, pkg-config, and the autotools used by the GMP/MPFR vcpkg ports.
 
 </details>
 

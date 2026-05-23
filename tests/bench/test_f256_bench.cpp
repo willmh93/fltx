@@ -20,15 +20,15 @@
 #include <vector>
 
 #include <fltx/f128.h>
-#include <fltx/f256/math.h>
-#include <fltx/f256/io.h>
+#include <fltx/f256_math.h>
+#include <fltx/f256_io.h>
 #include "benchmark_chart_writer.h"
 
 using namespace bl;
 
 namespace
 {
-    constexpr unsigned mpfr_digits10 = std::numeric_limits<f256>::digits10;
+    constexpr unsigned mpfr_digits10 = std::numeric_limits<f256>::max_digits10;
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 

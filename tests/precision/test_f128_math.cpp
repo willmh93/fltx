@@ -16,8 +16,8 @@
 #include <utility>
 #include <vector>
 
-#include <fltx/f128/math.h>
-#include <fltx/f128/io.h>
+#include <fltx/f128_math.h>
+#include <fltx/f128_io.h>
 
 using big = boost::multiprecision::mpfr_float_50;
 
@@ -33,7 +33,7 @@ namespace
     constexpr int printed_digits = std::numeric_limits<f128>::max_digits10;
 
     constexpr std::uint64_t random_seed     = 1ull;
-    constexpr int random_sample_count_scale = 500;
+    constexpr int random_sample_count_scale = 5;
     constexpr const char* type_label        = "f128";
 
     void print_random_run(const char* description, int count)

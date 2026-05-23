@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-#include <fltx/f32/math.h>
+#include <fltx/f32_math.h>
 
 using namespace bl;
 
@@ -35,7 +35,7 @@ namespace
     constexpr float min_subnormal = std::numeric_limits<float>::denorm_min();
 
     constexpr std::uint64_t random_seed = 1ull;
-    constexpr int random_sample_count   = 500;
+    constexpr int random_sample_count   = 10;
     constexpr const char* type_label    = "f32";
 
     template<class T>

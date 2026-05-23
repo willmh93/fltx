@@ -8,8 +8,8 @@
 #include <string>
 #include <type_traits>
 
-#include <fltx/f128/math.h>
-#include <fltx/f256/math.h>
+#include <fltx/f128_math.h>
+#include <fltx/f256_math.h>
 
 namespace
 {

@@ -33,7 +33,7 @@ static unsigned char to_byte(double x)
 
 int main()
 {
-    using flt = f256;
+    using flt = f128;
 
     constexpr int max_iter = 20000;
     constexpr flt center_x = flt("-1.73200006480238126967529761198455");

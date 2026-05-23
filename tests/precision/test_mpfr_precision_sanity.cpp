@@ -272,8 +272,8 @@ namespace
     template<class Float, class Op>
     void check_precision_case(const char* float_name)
     {
-        constexpr int max_digits10 = std::numeric_limits<Float>::digits10;
-        constexpr int ref_digits10 = max_digits10 + 80;
+        constexpr int benchmark_digits10 = std::numeric_limits<Float>::max_digits10;
+        constexpr int ref_digits10 = benchmark_digits10 + 80;
 
         using ref_t = mpfr_number<ref_digits10>;
 
@@ -284,7 +284,7 @@ namespace
             relative_matching_digits(fltx_y, reference_y);
 
         const scan_result result =
-            scan_mpfr_digits10<Op, max_digits10, 2, ref_digits10>(
+            scan_mpfr_digits10<Op, benchmark_digits10, 2, ref_digits10>(
                 fltx_matching_digits
             );
 
@@ -293,7 +293,7 @@ namespace
 
         std::cout
             << float_name << " / " << Op::name << '\n'
-            << "  std::numeric_limits<>::digits10:    " << max_digits10 << '\n'
+            << "  benchmark mpfr digits10:            " << benchmark_digits10 << '\n'
             << "  fltx matching digits vs high MPFR:  "
             << std::fixed << std::setprecision(2) << fltx_matching_digits << '\n';
 
@@ -322,7 +322,7 @@ namespace
         INFO("best mpfr matching digits: " << result.matching_digits);
         INFO("matching gap: " << matching_gap);
 
-        CHECK(result.mpfr_digits10 <= max_digits10);
+        CHECK(result.mpfr_digits10 <= benchmark_digits10);
         CHECK(matching_gap <= 1.5L);
     }
 

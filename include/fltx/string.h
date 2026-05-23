@@ -14,8 +14,8 @@
 #include <string>
 
 #include "fltx/aliases.h"
-#include "fltx/f128/string.h"
-#include "fltx/f256/string.h"
+#include "fltx/f128_string.h"
+#include "fltx/f256_string.h"
 
 namespace bl
 {

@@ -2,6 +2,7 @@
 #include <array>
 #include <bit>
 #include <cmath>
+#include <cstdio>
 #include <cstdint>
 #include <iomanip>
 #include <limits>
@@ -12,7 +13,7 @@
 #include <type_traits>
 #include <utility>
 
-#include <fltx/f32/math.h>
+#include <fltx/f32_math.h>
 
 namespace
 {
@@ -23,6 +24,7 @@ constexpr int kSamplesPerBucket = 1000;
 #endif
 
 constexpr int kBucketCount = 4;
+constexpr const char* kTypeName = "f32";
 constexpr std::array<const char*, kBucketCount> kBucketNames =
 {
     "simple",
@@ -420,6 +422,7 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
 {
     bl::_fltx_debug::set_forced_runtime_path();
 
+    int checked = 0;
     for (int bucket = 0; bucket < kBucketCount; ++bucket)
     {
         auto rng = make_rng(test_name, bucket);
@@ -428,14 +431,22 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
             const auto args             = generator(rng, bucket);
             const auto constexpr_result = eval_constexpr_path([&]() { return std::apply(function, args); });
             const auto runtime_result   = eval_runtime_path([&]() { return std::apply(function, args); });
+            const bool matches          = equal(constexpr_result, runtime_result);
+            ++checked;
 
-            INFO("function=" << test_name << ", bucket=" << kBucketNames[static_cast<std::size_t>(bucket)] << ", iteration=" << iteration);
-            INFO("args=" << describe_tuple(args));
-            INFO("constexpr=" << describe(constexpr_result));
-            INFO("runtime=" << describe(runtime_result));
-            REQUIRE(equal(constexpr_result, runtime_result));
+            if (!matches)
+            {
+                INFO("function=" << test_name << ", bucket=" << kBucketNames[static_cast<std::size_t>(bucket)] << ", iteration=" << iteration);
+                INFO("args=" << describe_tuple(args));
+                INFO("constexpr=" << describe(constexpr_result));
+                INFO("runtime=" << describe(runtime_result));
+            }
+            REQUIRE(matches);
         }
     }
+
+    std::fprintf(stderr, "[fltx parity] %s %s passed (%d samples)\n", kTypeName, test_name, checked);
+    std::fflush(stderr);
 }
 
 [[nodiscard]] auto gen_unary_any(std::mt19937_64& rng, int bucket)

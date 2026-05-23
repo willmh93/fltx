@@ -11,9 +11,9 @@
 #define FLTX_MATH_INCLUDED
 
 #include "fltx/core.h"
-#include "fltx/f64/math.h"
-#include "fltx/f32/math.h"
-#include "fltx/f128/math.h"
-#include "fltx/f256/math.h"
+#include "fltx/f64_math.h"
+#include "fltx/f32_math.h"
+#include "fltx/f128_math.h"
+#include "fltx/f256_math.h"
 
 #endif

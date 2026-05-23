@@ -1,0 +1,204 @@
+/**
+ * fltx/detail/f256_math_gamma.h - gamma implementation details.
+ *
+ * f256 gamma/lgamma recurrence and asymptotic implementations.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
+#ifndef FLTX_F256_DETAIL_GAMMA_INCLUDED
+#define FLTX_F256_DETAIL_GAMMA_INCLUDED
+#include "fltx/detail/f256_math_exp_log.h"
+#include "fltx/detail/f256_math_trig.h"
+
+namespace bl {
+
+namespace detail::_f256 // primitives and kernels
+{
+    // near-one series
+    BL_NO_INLINE constexpr f256_s lgamma1p_series(const f256_s& y) noexcept
+    {
+        constexpr int count = static_cast<int>(sizeof(lgamma1p_coeff) / sizeof(lgamma1p_coeff[0]));
+
+        f256_s p = horner_reverse(lgamma1p_coeff, static_cast<std::size_t>(count), y);
+
+        return mul_inline(y, mul_add_inline(y, p, -std::numbers::egamma_v<f256_s>));
+    }
+
+    BL_NO_INLINE constexpr bool try_lgamma_near_one_or_two(const f256_s& x, f256_s& out) noexcept
+    {
+        const f256_s y1 = sub_double_inline(x, 1.0);
+        if (mag(y1) <= f256_s{ 0.25 })
+        {
+            out = lgamma1p_series(y1);
+            return true;
+        }
+
+        const f256_s y2 = sub_double_inline(x, 2.0);
+        if (mag(y2) <= f256_s{ 0.25 })
+        {
+            out = add_inline(log1p_series_reduced(y2), lgamma1p_series(y2));
+            return true;
+        }
+
+        return false;
+    }
+
+    BL_NO_INLINE constexpr bool try_lgamma_short_recurrence(const f256_s& x, f256_s& out) noexcept
+    {
+        if (!(x > f256_s{ 0.0 }) || !(x < f256_s{ 32.0 }))
+            return false;
+
+        f256_s z = x;
+        f256_s product{ 1.0 };
+        bool shifted_up = false;
+
+        while (z < f256_s{ 1.0 })
+        {
+            product = mul_inline(product, z);
+            z = add_double_inline(z, 1.0);
+            shifted_up = true;
+        }
+        while (z > f256_s{ 2.25 })
+        {
+            z = sub_double_inline(z, 1.0);
+            product = mul_inline(product, z);
+        }
+
+        f256_s near_value{};
+        if (!try_lgamma_near_one_or_two(z, near_value))
+            return false;
+
+        const f256_s log_product = _log(product);
+        out = shifted_up ? sub_inline(near_value, log_product) : add_inline(near_value, log_product);
+        return true;
+    }
+
+    // asymptotic helpers
+    BL_NO_INLINE constexpr void positive_recurrence_product(const f256_s& x, const f256_s& asymptotic_min, f256_s& z, f256_s& product, int& product_exp2) noexcept
+    {
+        z = x;
+        product = f256_s{ 1.0 };
+        product_exp2 = 0;
+
+        while (z < asymptotic_min)
+        {
+            product = mul_inline(product, z);
+
+            const double hi = product.x0;
+            if (hi != 0.0)
+            {
+                const int e = frexp_exponent(hi);
+                if (e > 512 || e < -512)
+                {
+                    product = detail::_f256_impl::ldexp(product, -e);
+                    product_exp2 += e;
+                }
+            }
+
+            z = add_double_inline(z, 1.0);
+        }
+    }
+
+    BL_NO_INLINE constexpr f256_s lgamma_stirling_asymptotic(const f256_s& z) noexcept
+    {
+        const f256_s inv    = f256_s{ 1.0 } / z;
+        const f256_s inv2   = sqr_eval(inv);
+        const f256_s series = mul_eval(inv, horner_reverse(
+            lgamma_stirling_coeffs,
+            sizeof(lgamma_stirling_coeffs) / sizeof(lgamma_stirling_coeffs[0]),
+            inv2));
+
+        return add_eval(
+            add_eval(mul_sub_eval(sub_double_eval(z, 0.5), detail::_f256_impl::log(z), z), half_log_two_pi),
+            series);
+    }
+
+    // positive range helpers
+    BL_NO_INLINE constexpr f256_s lgamma_positive_recurrence(const f256_s& x) noexcept
+    {
+        f256_s near_value{};
+        if (try_lgamma_near_one_or_two(x, near_value))
+            return near_value;
+        if (try_lgamma_short_recurrence(x, near_value))
+            return near_value;
+
+        constexpr f256_s asymptotic_min = f256_s{ 128.0 };
+
+        f256_s z{};
+        f256_s product{};
+        int product_exp2 = 0;
+        positive_recurrence_product(x, asymptotic_min, z, product, product_exp2);
+
+        return sub_mul_double_eval(
+            sub_eval(lgamma_stirling_asymptotic(z), detail::_f256_impl::log(product)),
+            std::numbers::ln2_v<f256_s>,
+            static_cast<double>(product_exp2));
+    }
+
+} // namespace detail::_f256
+
+// gamma functions
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::lgamma(const f256_s& x)
+{
+    if (isnan(x))
+        return x;
+    if (isinf(x))
+        return signbit(x)
+        ? std::numeric_limits<f256_s>::quiet_NaN()
+        : std::numeric_limits<f256_s>::infinity();
+
+    if (x > f256_s{ 0.0 })
+        return F256_CANONICALIZE_MATH_RESULT(lgamma_positive_recurrence(x));
+
+    const f256_s xi = detail::_f256_impl::trunc(x);
+    if (xi == x)
+        return std::numeric_limits<f256_s>::infinity();
+
+    const f256_s sinpix = detail::_f256_impl::sin(mul_inline(std::numbers::pi_v<f256_s>, x));
+    if (iszero(sinpix))
+        return std::numeric_limits<f256_s>::infinity();
+
+    const f256_s out =
+        mul_double_eval(half_log_pi, 2.0)
+        - detail::_f256_impl::log(detail::_f256::mag(sinpix))
+        - lgamma_positive_recurrence(f256_s{ 1.0 } - x);
+
+    return F256_CANONICALIZE_MATH_RESULT(out);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::tgamma(const f256_s& x)
+{
+    if (isnan(x))
+        return x;
+    if (isinf(x))
+        return signbit(x)
+        ? std::numeric_limits<f256_s>::quiet_NaN()
+        : std::numeric_limits<f256_s>::infinity();
+
+    if (x > f256_s{ 0.0 })
+        return F256_CANONICALIZE_MATH_RESULT(_exp(lgamma_positive_recurrence(x)));
+
+    const f256_s xi = detail::_f256_impl::trunc(x);
+    if (xi == x)
+        return std::numeric_limits<f256_s>::quiet_NaN();
+
+    const f256_s sinpix = detail::_f256_impl::sin(mul_inline(std::numbers::pi_v<f256_s>, x));
+    if (iszero(sinpix))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+
+    const f256_s log_abs = sub_eval(
+        sub_eval(mul_double_eval(half_log_pi, 2.0), detail::_f256_impl::log(detail::_f256::mag(sinpix))),
+        lgamma_positive_recurrence(sub_double_inline(1.0, x)));
+    f256_s out = _exp(log_abs);
+    if (signbit(sinpix))
+        out = -out;
+    return F256_CANONICALIZE_MATH_RESULT(out);
+}
+
+} // namespace bl
+
+#endif

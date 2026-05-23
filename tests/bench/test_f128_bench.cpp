@@ -15,15 +15,15 @@
 #include <type_traits>
 #include <utility>
 
-#include <fltx/f128/math.h>
-#include <fltx/f128/io.h>
+#include <fltx/f128_math.h>
+#include <fltx/f128_io.h>
 #include "benchmark_chart_writer.h"
 
 using namespace bl;
 
 namespace
 {
-    constexpr unsigned mpfr_digits10 = std::numeric_limits<f128>::digits10;
+    constexpr unsigned mpfr_digits10 = std::numeric_limits<f128>::max_digits10;
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 

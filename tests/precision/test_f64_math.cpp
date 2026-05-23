@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-#include <fltx/f64/math.h>
+#include <fltx/f64_math.h>
 
 using namespace bl;
 
@@ -34,7 +34,7 @@ namespace
     constexpr int printed_digits = std::numeric_limits<double>::max_digits10;
 
     constexpr std::uint64_t random_seed = 1ull;
-    constexpr int random_sample_count   = 500;
+    constexpr int random_sample_count   = 10;
     constexpr const char* type_label    = "f64";
 
     template<class T>

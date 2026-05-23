@@ -36,6 +36,7 @@ file(GLOB_RECURSE FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/..
 file(GLOB FLTX_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.cpp")
 
 file(GLOB FLTX_TESTS_PRECISION_SOURCE          CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/precision/*.cpp")
+file(GLOB FLTX_TESTS_ACCURACY_SOURCE           CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/accuracy/*.cpp")
 file(GLOB FLTX_TESTS_IO_SOURCE                 CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/io/*.cpp")
 file(GLOB FLTX_TESTS_CONSTEXPR_PARITY_SOURCE   CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/constexpr_parity/*.cpp")
 file(GLOB FLTX_TESTS_BENCH_HEADERS             CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/bench/*.h")
@@ -128,6 +129,11 @@ add_executable(precision_tests
     ${FLTX_HEADERS}
     ${FLTX_SOURCE}
     ${FLTX_TESTS_PRECISION_SOURCE}
+)
+add_executable(accuracy_tests
+    ${FLTX_HEADERS}
+    ${FLTX_SOURCE}
+    ${FLTX_TESTS_ACCURACY_SOURCE}
 )
 add_executable(io_tests
     ${FLTX_HEADERS}
@@ -258,6 +264,7 @@ elseif(NOT FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
 endif()
 
 prepareTarget(precision_tests ${FLTX_PRECISION_TEST_LIBRARY})
+prepareTarget(accuracy_tests  fltx::fltx)
 prepareTarget(io_tests        fltx::fltx)
 prepareTarget(parity_tests    fltx_parity_test_lib)
 prepareTarget(bench_tests     ${FLTX_BENCH_TEST_LIBRARY})
@@ -286,6 +293,7 @@ else()
 endif()
 
 addFltxTestMacroStatus(io_tests)
+addFltxTestMacroStatus(accuracy_tests)
 
 if (FLTX_BENCH_TESTS_CONSTEXPR_PARITY)
     if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
