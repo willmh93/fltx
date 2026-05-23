@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F64_MATH_INCLUDED
-#define FLTX_F64_MATH_INCLUDED
+#ifndef F64_MATH_INCLUDED
+#define F64_MATH_INCLUDED
 
 #include "fltx/aliases.h"
 #include "fltx/detail/common_math.h"

@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_MATH_UTILS
-#define FLTX_MATH_UTILS
+#ifndef FLTX_DETAIL_MATH_UTILS_INCLUDED
+#define FLTX_DETAIL_MATH_UTILS_INCLUDED
 #include <concepts>
 #include <type_traits>
 

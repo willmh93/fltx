@@ -13,7 +13,7 @@
 #include <string>
 
 #include "fltx/f256_limits.h"
-#include "fltx/f256_rounding.h"
+#include "fltx/f256_math.h"
 #include "fltx/detail/common_io.h"
 
 namespace bl {

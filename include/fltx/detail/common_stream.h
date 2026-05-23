@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_COMMON_STREAM_INCLUDED
-#define FLTX_COMMON_STREAM_INCLUDED
+#ifndef FLTX_DETAIL_COMMON_STREAM_INCLUDED
+#define FLTX_DETAIL_COMMON_STREAM_INCLUDED
 
 #include <ios>
 #include <ostream>

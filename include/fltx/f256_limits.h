@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_LIMITS_INCLUDED
-#define FLTX_F256_LIMITS_INCLUDED
+#ifndef F256_LIMITS_INCLUDED
+#define F256_LIMITS_INCLUDED
 #include <limits>
 
 #include "fltx/f256_type.h"

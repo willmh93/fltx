@@ -17,7 +17,6 @@
 #include "fltx/f256_comparison.h"
 #include "fltx/f256_classification.h"
 #include "fltx/f256_arithmetic.h"
-#include "fltx/f256_rounding.h"
 
 #include "fltx/detail/f256_expressions.h"
 #include "fltx/detail/interop.h"

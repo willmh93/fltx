@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_COMMON_IO_INCLUDED
-#define FLTX_COMMON_IO_INCLUDED
+#ifndef FLTX_DETAIL_COMMON_IO_INCLUDED
+#define FLTX_DETAIL_COMMON_IO_INCLUDED
 #include <limits>
 #include <string>
 #include <string_view>

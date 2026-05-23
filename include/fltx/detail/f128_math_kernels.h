@@ -1,7 +1,7 @@
 /**
- * fltx/detail/f128_math_shared.h - Shared f128 math implementation support.
+ * fltx/detail/f128_math_kernels.h - f128 math kernels and helper algorithms.
  *
- * Shared f128 helpers used by math implementation headers.
+ * Low-level f128 helper logic used by grouped math implementations.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -9,10 +9,9 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_MATH_SHARED_INCLUDED
-#define FLTX_F128_DETAIL_MATH_SHARED_INCLUDED
+#ifndef F128_DETAIL_MATH_KERNELS_INCLUDED
+#define F128_DETAIL_MATH_KERNELS_INCLUDED
 #include "fltx/detail/f128_declarations.h"
-#include "fltx/detail/f128_rounding.h"
 
 namespace bl {
 
@@ -438,7 +437,7 @@ namespace detail::_f128 // primitives and kernels
     }
 
     // decimal conversion
-    BL_FORCE_INLINE constexpr bool f128_try_get_int64(const f128_s& x, int64_t& out)
+    BL_FORCE_INLINE constexpr bool try_get_int64(const f128_s& x, int64_t& out)
     {
         const f128_s xi = detail::_f128_impl::trunc(x);
         if (xi != x)
@@ -451,6 +450,18 @@ namespace detail::_f128 // primitives and kernels
         const f128_s rem = sub_inline(xi, detail::_f128_impl::to_f128(hi_part));
         out = hi_part + static_cast<int64_t>(rem.hi + rem.lo);
         return true;
+    }
+
+    BL_FORCE_INLINE constexpr bool is_odd_integer(const f128_s& x) noexcept
+    {
+        int64_t value{};
+        if (try_get_int64(x, value))
+            return (value & 1ll) != 0;
+
+        if (x.lo != 0.0 || !isfinite(x.hi))
+            return false;
+
+        return double_integer_is_odd(x.hi);
     }
 
     BL_FORCE_INLINE constexpr f128_s pack_decimal_significand(const detail::exact_decimal::biguint& q, int e2, bool neg) noexcept
@@ -504,7 +515,7 @@ namespace detail::_f128 // primitives and kernels
     BL_FORCE_INLINE constexpr bool try_rounded_decimal_to_f128(const f128_s& integer_part, const char* digits, int digit_count, bool neg, f128_s& out) noexcept
     {
         int64_t integer_value = 0;
-        if (!f128_try_get_int64(integer_part, integer_value) || integer_value < 0)
+        if (!try_get_int64(integer_part, integer_value) || integer_value < 0)
             return false;
 
         const detail::exact_decimal::biguint coeff = detail::fp::append_decimal_digits(
@@ -551,7 +562,7 @@ namespace detail::_f128 // primitives and kernels
             return 0;
 
         std::int64_t out = 0;
-        if (!f128_try_get_int64(x, out))
+        if (!try_get_int64(x, out))
             return 0;
 
         return static_cast<SignedInt>(out);
@@ -646,118 +657,6 @@ namespace detail::_f128 // primitives and kernels
     }
 
 } // namespace detail::_f128
-
-// remainders
-[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s detail::_f128_impl::fmod(const f128_s& x, const f128_s& y)
-{
-    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
-        return std::numeric_limits<f128_s>::quiet_NaN();
-    if (isinf(y) || iszero(x))
-        return x;
-
-    const f128_s ax = detail::_f128::mag(x);
-    const f128_s ay = detail::_f128::mag(y);
-
-    if (ax < ay)
-        return x;
-
-    f128_s fast{};
-    if (y.lo == 0.0 && fmod_fast_double_divisor_abs(ax, ay.hi, fast))
-    {
-        if (iszero(fast))
-            return f128_s{ signbit(x.hi) ? -0.0 : 0.0 };
-        return ispositive(x) ? fast : -fast;
-    }
-
-    return fmod_exact_fixed_limb(x, y);
-}
-
-// decomposition and scaling
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::ldexp(const f128_s& x, int e)
-{
-    return F128_CANONICALIZE_MATH_RESULT(_ldexp(x, e));
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::frexp(const f128_s& x, int* exp) noexcept
-{
-    if (exp)
-        *exp = 0;
-
-    if (!detail::fp::isfinite(x.hi) || (x.hi == 0.0 && x.lo == 0.0))
-        return x;
-
-    int e = 0;
-    double scaled_hi = 0.0;
-    double scaled_lo = 0.0;
-
-    if (bl::use_constexpr_math())
-    {
-        const double lead = (x.hi != 0.0) ? x.hi : x.lo;
-        e = detail::fp::frexp_exponent(lead);
-        scaled_hi = detail::fp::ldexp(x.hi, -e);
-        scaled_lo = detail::fp::ldexp(x.lo, -e);
-    }
-    else
-    {
-        if (x.hi != 0.0)
-        {
-            scaled_hi = std::frexp(x.hi, &e);
-            scaled_lo = std::ldexp(x.lo, -e);
-        }
-        else
-        {
-            scaled_hi = std::frexp(x.lo, &e);
-        }
-    }
-
-    const double hi = scaled_hi + scaled_lo;
-    f128_s m{hi, (scaled_hi - hi) + scaled_lo};
-    f128_s am = (m.hi < 0.0) ? -m : m;
-
-    if (am.hi == 0.5 && am.lo < 0.0)
-    {
-        m.hi *= 2.0;
-        m.lo *= 2.0;
-        --e;
-    }
-    else if (am.hi == 1.0 && am.lo >= 0.0)
-    {
-        m.hi *= 0.5;
-        m.lo *= 0.5;
-        ++e;
-    }
-
-    if (exp)
-        *exp = e;
-
-    return m;
-}
-
-// adjacent values
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::nextafter(const f128_s& from, const f128_s& to) noexcept
-{
-    if (isnan(from) || isnan(to))
-        return std::numeric_limits<f128_s>::quiet_NaN();
-    if (from == to)
-        return to;
-    if (iszero(from))
-        return signbit(to)
-            ? f128_s{ -std::numeric_limits<double>::denorm_min(), 0.0 }
-            : f128_s{  std::numeric_limits<double>::denorm_min(), 0.0 };
-    if (isinf(from))
-        return signbit(from)
-            ? -std::numeric_limits<f128_s>::max()
-            :  std::numeric_limits<f128_s>::max();
-
-    const double toward = (from < to)
-        ? std::numeric_limits<double>::infinity()
-        : -std::numeric_limits<double>::infinity();
-
-    return renorm(
-        from.hi,
-        detail::fp::nextafter(from.lo, toward)
-    );
-}
 
 } // namespace bl
 

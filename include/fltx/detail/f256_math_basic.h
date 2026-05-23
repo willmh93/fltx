@@ -1,7 +1,7 @@
 /**
  * fltx/detail/f256_math_basic.h - Basic math implementation details.
  *
- * f256 rounding, decomposition, remainder, cbrt, hypot, and adjacent-value implementations.
+ * f256 rounding, decomposition, remainder, hypot, and adjacent-value implementations.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -9,13 +9,35 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_BASIC_INCLUDED
-#define FLTX_F256_DETAIL_BASIC_INCLUDED
-#include "fltx/detail/f256_math_exp_log.h"
+#ifndef F256_DETAIL_MATH_BASIC_INCLUDED
+#define F256_DETAIL_MATH_BASIC_INCLUDED
+#include "fltx/detail/f256_math_kernels.h"
 
 namespace bl {
 
-// norms
+// roots
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::sqrt(const f256_s& a)
+{
+    using namespace detail::_f256;
+
+    if (a.x0 <= 0.0)
+    {
+        if (iszero(a))
+            return a;
+        return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
+    }
+
+    if (isinf(a))
+        return a;
+
+    if (bl::use_constexpr_math())
+    {
+        return sqrt_constexpr_impl(a);
+    }
+
+    return sqrt_runtime_impl(a);
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::hypot(const f256_s& x, const f256_s& y)
 {
     if (isinf(x) || isinf(y))
@@ -65,7 +87,85 @@ namespace bl {
     return F256_CANONICALIZE_MATH_RESULT(mul_inline(ax, detail::_f256_impl::sqrt(add_raw5_value_inline(sqr_raw5_inline(r), f256_s{ 1.0 }))));
 }
 
-// integer rounding
+// rounding
+[[nodiscard]] inline constexpr f256_s detail::_f256_impl::floor(const f256_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a)) [[unlikely]]
+        return a;
+
+    constexpr double integer_x0_threshold = detail::fp::double_integer_threshold;
+
+    if (absd(a.x0) >= integer_x0_threshold)
+    {
+        if (a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
+            return f256_s{ a.x0, 0.0, 0.0, 0.0 };
+
+        return f256_s{ a.x0, 0.0, 0.0, 0.0 } + detail::_f256_impl::floor(f256_s{ a.x1, a.x2, a.x3, 0.0 });
+    }
+
+    f256_s r{ detail::fp::floor(a.x0), 0.0, 0.0, 0.0 };
+    if (r > a)
+        r -= 1.0;
+    return r;
+}
+
+[[nodiscard]] inline constexpr f256_s detail::_f256_impl::ceil(const f256_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a)) [[unlikely]]
+        return a;
+
+    constexpr double integer_x0_threshold = detail::fp::double_integer_threshold;
+
+    if (absd(a.x0) >= integer_x0_threshold)
+    {
+        if (a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
+            return f256_s{ a.x0, 0.0, 0.0, 0.0 };
+
+        return f256_s{ a.x0, 0.0, 0.0, 0.0 } + detail::_f256_impl::ceil(f256_s{ a.x1, a.x2, a.x3, 0.0 });
+    }
+
+    f256_s r{ detail::fp::ceil(a.x0), 0.0, 0.0, 0.0 };
+    if (r < a)
+        r += 1.0;
+    return r;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::trunc(const f256_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a)) [[unlikely]]
+        return a;
+
+    return (a.x0 < 0.0) ? detail::_f256_impl::ceil(a) : detail::_f256_impl::floor(a);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::nearbyint(const f256_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a))
+        return a;
+
+    f256_s t = detail::_f256_impl::floor(a);
+    const f256_s frac = sub_inline(a, t);
+
+    if (frac < f256_s{ 0.5 })
+        return t;
+
+    if (frac > f256_s{ 0.5 })
+    {
+        t = add_inline(t, f256_s{ 1.0 });
+        if (iszero(t))
+            return f256_s{ signbit(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+        return t;
+    }
+
+    if (is_odd_integer(t))
+        t = add_inline(t, f256_s{ 1.0 });
+
+    if (iszero(t))
+        return f256_s{ signbit(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+
+    return t;
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::rint(const f256_s& x)
 {
     return detail::_f256_impl::nearbyint(x);
@@ -224,73 +324,44 @@ namespace bl {
     return neg ? -out : out;
 }
 
-// roots
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::cbrt(const f256_s& x)
+// remainders
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fmod(const f256_s& x, const f256_s& y)
 {
-    if (isnan(x) || iszero(x) || isinf(x))
+    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (isinf(y) || iszero(x))
         return x;
 
-    const bool neg = signbit(x);
-    const f256_s ax = neg ? -x : x;
+    const f256_s ax = detail::_f256::mag(x);
+    const f256_s ay = detail::_f256::mag(y);
 
-    f256_s y{};
-    if (bl::use_constexpr_math())
-    {
-        y = detail::_f256_impl::exp(detail::_f256_impl::log(ax) / f256_s{ 3.0 });
-    }
-    else
-    {
-        int exp2 = 0;
-        double mantissa = std::frexp(ax.x0, &exp2);
-        int rem  = exp2 % 3;
-        if (rem < 0)
-            rem += 3;
-        if (rem != 0)
-        {
-            mantissa = std::ldexp(mantissa, rem);
-            exp2 -= rem;
-        }
+    if (ax < ay)
+        return x;
 
-        y = f256_s{ std::cbrt(mantissa), 0.0, 0.0, 0.0 };
-        if (exp2 != 0)
-            y = detail::_f256_impl::ldexp(y, exp2 / 3);
+    f256_s fast{};
+    if (y.x1 == 0.0 && y.x2 == 0.0 && y.x3 == 0.0 && fmod_fast_double_divisor_abs(ax, ay.x0, fast))
+    {
+        if (iszero(fast))
+            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+        const f256_s out = ispositive(x) ? fast : -fast;
+        return F256_CANONICALIZE_MATH_RESULT(out);
     }
 
-    const auto cbrt_newton_step = [&](const f256_s& current) constexpr -> f256_s
+    if (!bl::use_constexpr_math() && fmod_fast_small_quotient_abs(ax, ay, fast))
     {
-        const f256_s current_squared = sqr_inline(current);
-        const f256_s quotient = div_inline(ax, current_squared);
-        return div_double_inline(add_scaled_inline<2, 1>(current, quotient), 3.0);
-    };
-    const auto cbrt_tail_step = [&](const f256_s& current) constexpr -> f256_s
-    {
-        const double inv_derivative = 1.0 / (3.0 * current.x0 * current.x0);
-        const f256_s current_squared = sqr_inline(current);
-        const f256_s residual = value_sub_mul_inline(ax, current_squared, current);
-        return add_inline(current, mul_double_inline(residual, inv_derivative));
-    };
-
-    if (bl::use_constexpr_math())
-    {
-        y = cbrt_newton_step(y);
-        y = cbrt_newton_step(y);
-        y = cbrt_newton_step(y);
-    }
-    else
-    {
-        y = cbrt_tail_step(y);
-        y = cbrt_tail_step(y);
-        y = cbrt_tail_step(y);
-        y = cbrt_tail_step(y);
+        if (iszero(fast))
+            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+        const f256_s out = ispositive(x) ? fast : -fast;
+        return F256_CANONICALIZE_MATH_RESULT(out);
     }
 
-    if (neg)
-        y = -y;
+    const f256_s out = bl::use_constexpr_math()
+        ? fmod_exact(x, y)
+        : fmod_runtime(x, y);
 
-    return F256_CANONICALIZE_MATH_RESULT(y);
+    return F256_CANONICALIZE_MATH_RESULT(out);
 }
 
-// remainders
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::remquo(const f256_s& x, const f256_s& y, int* quo)
 {
     if (quo)
@@ -343,6 +414,54 @@ namespace bl {
 }
 
 // decomposition and scaling
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::ldexp(const f256_s& a, int e)
+{
+    return F256_CANONICALIZE_MATH_RESULT(_ldexp(a, e));
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::frexp(const f256_s& x, int* exp) noexcept
+{
+    if (exp)
+        *exp = 0;
+
+    if (isnan(x) || isinf(x) || iszero(x))
+        return x;
+
+    const double lead =
+        (x.x0 != 0.0) ? x.x0 :
+        (x.x1 != 0.0) ? x.x1 :
+        (x.x2 != 0.0) ? x.x2 : x.x3;
+    int e = 0;
+
+    if (bl::use_constexpr_math())
+    {
+        e = detail::fp::frexp_exponent(lead);
+    }
+    else
+    {
+        (void)std::frexp(lead, &e);
+    }
+
+    f256_s m = detail::_f256_impl::ldexp(x, -e);
+    const f256_s am = detail::_f256::mag(m);
+
+    if (am < f256_s{ 0.5 })
+    {
+        m *= f256_s{ 2.0 };
+        --e;
+    }
+    else if (am >= f256_s{ 1.0 })
+    {
+        m *= f256_s{ 0.5 };
+        ++e;
+    }
+
+    if (exp)
+        *exp = e;
+
+    return m;
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr int detail::_f256_impl::ilogb(const f256_s& x) noexcept
 {
     if (isnan(x))  return FP_ILOGBNAN;
@@ -371,6 +490,31 @@ namespace bl {
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::scalbln(const f256_s& x, long e) noexcept
 {
     return detail::_f256_impl::ldexp(x, static_cast<int>(e));
+}
+
+// adjacent values
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::nextafter(const f256_s& from, const f256_s& to) noexcept
+{
+    if (isnan(from) || isnan(to))
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (from == to)
+        return to;
+    if (iszero(from))
+        return signbit(to)
+        ? f256_s{ -std::numeric_limits<double>::denorm_min(), 0.0, 0.0, 0.0 }
+        : f256_s{ std::numeric_limits<double>::denorm_min(), 0.0, 0.0, 0.0 };
+    if (isinf(from))
+        return signbit(from)
+        ? -std::numeric_limits<f256_s>::max()
+        : std::numeric_limits<f256_s>::max();
+
+    const double toward = (from < to)
+        ? std::numeric_limits<double>::infinity()
+        : -std::numeric_limits<double>::infinity();
+
+    return normalize_nextafter_tail(
+        from,
+        detail::fp::nextafter(from.x3, toward));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::nexttoward(const f256_s& from, long double to) noexcept

@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef F128_CONSTS_INCLUDED
-#define F128_CONSTS_INCLUDED
+#ifndef F128_DETAIL_CONSTS_INCLUDED
+#define F128_DETAIL_CONSTS_INCLUDED
 #include "fltx/f128_type.h"
 
 namespace bl::detail::_f128 // primitives and kernels

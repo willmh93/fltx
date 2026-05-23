@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_CLASSIFICATION_INCLUDED
-#define FLTX_F128_CLASSIFICATION_INCLUDED
+#ifndef F128_CLASSIFICATION_INCLUDED
+#define F128_CLASSIFICATION_INCLUDED
 #include "fltx/f128_comparison.h"
 #include "fltx/f128_stl.h"
 

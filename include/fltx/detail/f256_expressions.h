@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef F256_EXPRESSIONS_INCLUDED
-#define F256_EXPRESSIONS_INCLUDED
+#ifndef F256_DETAIL_EXPRESSIONS_INCLUDED
+#define F256_DETAIL_EXPRESSIONS_INCLUDED
 #include <type_traits>
 #include <utility>
 

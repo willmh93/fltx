@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_TYPE_INCLUDED
-#define FLTX_F128_TYPE_INCLUDED
+#ifndef F128_TYPE_INCLUDED
+#define F128_TYPE_INCLUDED
 #include "fltx/detail/common_fp.h"
 #include "fltx/detail/simd.h"
 

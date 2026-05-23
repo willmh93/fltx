@@ -1,4 +1,4 @@
-#include <fltx/f256_rounding.h>
+#include <fltx/f256_math.h>
 #include "isolated_runtime.h"
 
 void isolated_f256_trunc()

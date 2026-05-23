@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_COMPARISON_INCLUDED
-#define FLTX_F128_COMPARISON_INCLUDED
+#ifndef F128_COMPARISON_INCLUDED
+#define F128_COMPARISON_INCLUDED
 #include <type_traits>
 
 #include "fltx/f128_type.h"

@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_ARITHMETIC_INCLUDED
-#define FLTX_F128_ARITHMETIC_INCLUDED
+#ifndef F128_ARITHMETIC_INCLUDED
+#define F128_ARITHMETIC_INCLUDED
 #include "fltx/detail/f128_arithmetic.h"
 
 namespace bl {

@@ -7,16 +7,11 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_MATH_INCLUDED
-#define FLTX_F128_MATH_INCLUDED
+#ifndef F128_MATH_INCLUDED
+#define F128_MATH_INCLUDED
 
 #include "fltx/detail/f128_math_basic.h"
-#include "fltx/detail/f128_math_exp_log.h"
-#include "fltx/detail/f128_math_pow.h"
-#include "fltx/detail/f128_math_trig.h"
-#include "fltx/detail/f128_math_hyperbolic.h"
-#include "fltx/detail/f128_math_erf.h"
-#include "fltx/detail/f128_math_gamma.h"
+#include "fltx/detail/f128_math_transcendental.h"
 
 namespace bl {
 
@@ -25,14 +20,24 @@ namespace bl {
     return abs(a);
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 round(const f128_s& a)
+// rounding
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 floor(const f128_s& a)
 {
-    return detail::_f128_impl::round(a);
+    return detail::_f128_impl::floor(a);
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 nearbyint(const f128_s& a)
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 ceil(const f128_s& a)
 {
-    return detail::_f128_impl::nearbyint(a);
+    return detail::_f128_impl::ceil(a);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 trunc(const f128_s& a)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::trunc(a),
+        detail::_f128_runtime::trunc(a)
+    );
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 rint(const f128_s& x)
@@ -72,6 +77,14 @@ namespace bl {
     );
 }
 
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 hypot(const f128_s& x, const f128_s& y)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::hypot(x, y),
+        detail::_f128_runtime::hypot(x, y)
+    );
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 fma(const f128_s& x, const f128_s& y, const f128_s& z)
 {
     return detail::_f128_impl::fma(x, y, z);
@@ -97,6 +110,82 @@ namespace bl {
     return detail::_f128_impl::copysign(x, y);
 }
 
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 fmod(const f128_s& x, const f128_s& y)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::fmod(x, y),
+        detail::_f128_runtime::fmod(x, y)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 round(const f128_s& a)
+{
+    return detail::_f128_impl::round(a);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 round_to_decimals(f128_s v, int prec)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::round_to_decimals(v, prec),
+        detail::_f128_runtime::round_to_decimals(v, prec)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 sqrt(f128_s a)
+{
+    return detail::_f128_impl::sqrt(a);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 nearbyint(const f128_s& a)
+{
+    return detail::_f128_impl::nearbyint(a);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 ldexp(const f128_s& x, int e)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::ldexp(x, e),
+        detail::_f128_runtime::ldexp(x, e)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 cbrt(const f128_s& x)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::cbrt(x),
+        detail::_f128_runtime::cbrt(x)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 remquo(const f128_s& x, const f128_s& y, int* quo)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::remquo(x, y, quo),
+        detail::_f128_runtime::remquo(x, y, quo)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 remainder(const f128_s& x, const f128_s& y)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::remainder(x, y),
+        detail::_f128_runtime::remainder(x, y)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 frexp(const f128_s& x, int* exp) noexcept
+{
+    return detail::_f128_impl::frexp(x, exp);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 modf(const f128_s& x, f128_s* iptr) noexcept
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::modf(x, iptr),
+        detail::_f128_runtime::modf(x, iptr)
+    );
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr int ilogb(const f128_s& x) noexcept
 {
     return detail::_f128_impl::ilogb(x);
@@ -117,6 +206,14 @@ namespace bl {
     return detail::_f128_impl::scalbln(x, e);
 }
 
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 nextafter(const f128_s& from, const f128_s& to) noexcept
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::nextafter(from, to),
+        detail::_f128_runtime::nextafter(from, to)
+    );
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 nexttoward(const f128_s& from, long double to) noexcept
 {
     return detail::_f128_impl::nexttoward(from, to);
@@ -125,88 +222,6 @@ namespace bl {
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 nexttoward(const f128_s& from, const f128_s& to) noexcept
 {
     return detail::_f128_impl::nexttoward(from, to);
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 fmod(const f128_s& x, const f128_s& y)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::fmod(x, y),
-        detail::_f128_runtime::fmod(x, y)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 round_to_decimals(f128_s v, int prec)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::round_to_decimals(v, prec),
-        detail::_f128_runtime::round_to_decimals(v, prec)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 remainder(const f128_s& x, const f128_s& y)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::remainder(x, y),
-        detail::_f128_runtime::remainder(x, y)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 sqrt(f128_s a)
-{
-    return detail::_f128_impl::sqrt(a);
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 ldexp(const f128_s& x, int e)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::ldexp(x, e),
-        detail::_f128_runtime::ldexp(x, e)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 cbrt(const f128_s& x)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::cbrt(x),
-        detail::_f128_runtime::cbrt(x)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 hypot(const f128_s& x, const f128_s& y)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::hypot(x, y),
-        detail::_f128_runtime::hypot(x, y)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 remquo(const f128_s& x, const f128_s& y, int* quo)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::remquo(x, y, quo),
-        detail::_f128_runtime::remquo(x, y, quo)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 frexp(const f128_s& x, int* exp) noexcept
-{
-    return detail::_f128_impl::frexp(x, exp);
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 modf(const f128_s& x, f128_s* iptr) noexcept
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::modf(x, iptr),
-        detail::_f128_runtime::modf(x, iptr)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 nextafter(const f128_s& from, const f128_s& to) noexcept
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::nextafter(from, to),
-        detail::_f128_runtime::nextafter(from, to)
-    );
 }
 
 // exp / log
@@ -274,6 +289,14 @@ namespace bl {
 
 // pow
 
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 pow10_128(int k)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::pow10_128(k),
+        detail::_f128_runtime::pow10_128(k)
+    );
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 pow(const f128_s& x, const f128_s& y)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -291,21 +314,6 @@ namespace bl {
 }
 
 // trig
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 atan(const f128_s& x)
-{
-    return detail::_f128_impl::atan(x);
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 asin(const f128_s& x)
-{
-    return detail::_f128_impl::asin(x);
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 acos(const f128_s& x)
-{
-    return detail::_f128_impl::acos(x);
-}
 
 [[nodiscard]] BL_FORCE_INLINE constexpr bool sincos(const f128_s& x, f128_s& s_out, f128_s& c_out)
 {
@@ -339,12 +347,27 @@ namespace bl {
     );
 }
 
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 atan(const f128_s& x)
+{
+    return detail::_f128_impl::atan(x);
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 atan2(const f128_s& y, const f128_s& x)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
         detail::_f128_impl::atan2(y, x),
         detail::_f128_runtime::atan2(y, x)
     );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 asin(const f128_s& x)
+{
+    return detail::_f128_impl::asin(x);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 acos(const f128_s& x)
+{
+    return detail::_f128_impl::acos(x);
 }
 
 template<class Vec>

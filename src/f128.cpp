@@ -1,5 +1,5 @@
 /**
- * fltx/f128.cpp - Runtime f128 conversion, rounding, and decimal power helpers.
+ * fltx/f128.cpp - Runtime f128 conversion and rounding helpers.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -7,7 +7,7 @@
  * See LICENSE for details.
  */
 
-#include "fltx/f128_rounding.h"
+#include "fltx/detail/f128_math_basic.h"
 
 namespace bl::detail::_f128_runtime
 {
@@ -34,11 +34,6 @@ namespace bl::detail::_f128_runtime
     f128_s trunc(const f128_s& a)
     {
         return detail::_f128_impl::trunc(a);
-    }
-
-    f128_s pow10_128(int k)
-    {
-        return detail::_f128_impl::pow10_128(k);
     }
 
 } // namespace bl::detail::_f128_runtime

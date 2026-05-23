@@ -1,8 +1,7 @@
 /**
  * fltx/detail/f128_math_basic.h - Basic math implementation details.
  *
- * f128 rounding, decomposition, remainder, cbrt, hypot, and adjacent-value implementations.
- * This core includes exp/log details because cbrt uses them in constant evaluation.
+ * f128 rounding, decomposition, remainder, hypot, and adjacent-value implementations.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -10,14 +9,162 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_BASIC_INCLUDED
-#define FLTX_F128_DETAIL_BASIC_INCLUDED
-#include "fltx/detail/f128_math_sqrt.h"
-#include "fltx/detail/f128_math_exp_log.h"
+#ifndef F128_DETAIL_MATH_BASIC_INCLUDED
+#define F128_DETAIL_MATH_BASIC_INCLUDED
+#include "fltx/detail/f128_math_kernels.h"
 
 namespace bl {
 
+// roots
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::sqrt(f128_s a)
+{
+    // Match std semantics for negative / zero quickly.
+    if (a.hi <= 0.0)
+    {
+        if (a.hi == 0.0 && a.lo == 0.0) return f128_s{ 0.0 };
+        return f128_s{ std::numeric_limits<double>::quiet_NaN() };
+    }
+
+    constexpr double fast_min = 0x1p-900;
+    constexpr double fast_max = 0x1p900;
+    if (!bl::use_constexpr_math() && a.hi >= fast_min && a.hi <= fast_max)
+        return F128_CANONICALIZE_MATH_RESULT(detail::_f128::sqrt_compensated(a, std::sqrt(a.hi)));
+
+    const int exp2 = frexp_exponent(a.hi);
+    const int result_scale = exp2 / 2;
+    const int input_scale = -2 * result_scale;
+    const f128_s scaled_a = input_scale == 0 ? a : ldexp_terms(a, input_scale);
+
+    double seed{};
+    if (bl::use_constexpr_math())
+    {
+        seed = detail::_f128::sqrt_constexpr_head(scaled_a.hi);
+    }
+    else
+    {
+        seed = std::sqrt(scaled_a.hi);
+    }
+
+    f128_s y = detail::_f128::sqrt_compensated(scaled_a, seed);
+
+    if (result_scale != 0)
+        y = ldexp_terms(y, result_scale);
+
+    return F128_CANONICALIZE_MATH_RESULT(y);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::hypot(const f128_s& x, const f128_s& y)
+{
+    using namespace detail::_f128;
+
+    if (isinf(x) || isinf(y))
+        return std::numeric_limits<f128_s>::infinity();
+    if (isnan(x))
+        return x;
+    if (isnan(y))
+        return y;
+
+    f128_s ax = detail::_f128::mag(x);
+    f128_s ay = detail::_f128::mag(y);
+    if (ax < ay)
+    {
+        const f128_s tmp = ax;
+        ax = ay;
+        ay = tmp;
+    }
+
+    if (iszero(ax))
+        return f128_s{ 0.0 };
+    if (iszero(ay))
+        return F128_CANONICALIZE_MATH_RESULT(ax);
+
+    int ex = 0;
+    int ey = 0;
+    if (bl::use_constexpr_math())
+    {
+        ex = detail::fp::frexp_exponent(ax.hi);
+        ey = detail::fp::frexp_exponent(ay.hi);
+    }
+    else
+    {
+        (void)std::frexp(ax.hi, &ex);
+        (void)std::frexp(ay.hi, &ey);
+    }
+
+    if ((ex - ey) > 55)
+        return F128_CANONICALIZE_MATH_RESULT(ax);
+
+    const f128_s r = div_inline(ay, ax);
+    return F128_CANONICALIZE_MATH_RESULT(mul_inline(ax, detail::_f128_impl::sqrt(add_inline(f128_s{ 1.0 }, mul_inline(r, r)))));
+}
+
 // rounding
+[[nodiscard]] BL_FORCE_INLINE constexpr double detail::_f128_impl::floor_limb(double x) noexcept
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128::floor(x),
+        std::floor(x)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr double detail::_f128_impl::ceil_limb(double x) noexcept
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128::ceil(x),
+        std::ceil(x)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::floor(const f128_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a)) [[unlikely]]
+        return a;
+
+    constexpr double integer_hi_threshold = detail::fp::double_integer_threshold;
+
+    if (detail::_f128::absd(a.hi) >= integer_hi_threshold)
+    {
+        if (a.lo == 0.0)
+            return f128_s{ a.hi, 0.0 };
+
+        return detail::_f128::renorm(a.hi, detail::_f128_impl::floor_limb(a.lo));
+    }
+
+    double hi = detail::_f128_impl::floor_limb(a.hi);
+    if (hi == a.hi && a.lo < 0.0)
+        hi -= 1.0;
+    return f128_s{ hi, 0.0 };
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::ceil(const f128_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a)) [[unlikely]]
+        return a;
+
+    constexpr double integer_hi_threshold = detail::fp::double_integer_threshold;
+
+    if (detail::_f128::absd(a.hi) >= integer_hi_threshold)
+    {
+        if (a.lo == 0.0)
+            return f128_s{ a.hi, 0.0 };
+
+        return detail::_f128::renorm(a.hi, detail::_f128_impl::ceil_limb(a.lo));
+    }
+
+    double hi = detail::_f128_impl::ceil_limb(a.hi);
+    if (hi == a.hi && a.lo > 0.0)
+        hi += 1.0;
+    return f128_s{ hi, 0.0 };
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::trunc(const f128_s& a)
+{
+    if (isnan(a) || isinf(a) || iszero(a)) [[unlikely]]
+        return a;
+
+    return (a.hi < 0.0) ? detail::_f128_impl::ceil(a) : detail::_f128_impl::floor(a);
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::round(const f128_s& a)
 {
     return round_half_away_zero(a);
@@ -115,6 +262,66 @@ namespace bl {
 }
 
 // decomposition and scaling
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::ldexp(const f128_s& x, int e)
+{
+    return F128_CANONICALIZE_MATH_RESULT(_ldexp(x, e));
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::frexp(const f128_s& x, int* exp) noexcept
+{
+    if (exp)
+        *exp = 0;
+
+    if (!detail::fp::isfinite(x.hi) || (x.hi == 0.0 && x.lo == 0.0))
+        return x;
+
+    int e = 0;
+    double scaled_hi = 0.0;
+    double scaled_lo = 0.0;
+
+    if (bl::use_constexpr_math())
+    {
+        const double lead = (x.hi != 0.0) ? x.hi : x.lo;
+        e = detail::fp::frexp_exponent(lead);
+        scaled_hi = detail::fp::ldexp(x.hi, -e);
+        scaled_lo = detail::fp::ldexp(x.lo, -e);
+    }
+    else
+    {
+        if (x.hi != 0.0)
+        {
+            scaled_hi = std::frexp(x.hi, &e);
+            scaled_lo = std::ldexp(x.lo, -e);
+        }
+        else
+        {
+            scaled_hi = std::frexp(x.lo, &e);
+        }
+    }
+
+    const double hi = scaled_hi + scaled_lo;
+    f128_s m{hi, (scaled_hi - hi) + scaled_lo};
+    f128_s am = (m.hi < 0.0) ? -m : m;
+
+    if (am.hi == 0.5 && am.lo < 0.0)
+    {
+        m.hi *= 2.0;
+        m.lo *= 2.0;
+        --e;
+    }
+    else if (am.hi == 1.0 && am.lo >= 0.0)
+    {
+        m.hi *= 0.5;
+        m.lo *= 0.5;
+        ++e;
+    }
+
+    if (exp)
+        *exp = e;
+
+    return m;
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr int detail::_f128_impl::ilogb(const f128_s& x) noexcept
 {
     if (isnan(x))
@@ -149,6 +356,32 @@ namespace bl {
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::scalbln(const f128_s& x, long e) noexcept
 {
     return detail::_f128_impl::ldexp(x, static_cast<int>(e));
+}
+
+// adjacent values
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::nextafter(const f128_s& from, const f128_s& to) noexcept
+{
+    if (isnan(from) || isnan(to))
+        return std::numeric_limits<f128_s>::quiet_NaN();
+    if (from == to)
+        return to;
+    if (iszero(from))
+        return signbit(to)
+            ? f128_s{ -std::numeric_limits<double>::denorm_min(), 0.0 }
+            : f128_s{  std::numeric_limits<double>::denorm_min(), 0.0 };
+    if (isinf(from))
+        return signbit(from)
+            ? -std::numeric_limits<f128_s>::max()
+            :  std::numeric_limits<f128_s>::max();
+
+    const double toward = (from < to)
+        ? std::numeric_limits<double>::infinity()
+        : -std::numeric_limits<double>::infinity();
+
+    return renorm(
+        from.hi,
+        detail::fp::nextafter(from.lo, toward)
+    );
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::nexttoward(const f128_s& from, long double to) noexcept
@@ -254,6 +487,30 @@ namespace bl {
 }
 
 // remainders
+[[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s detail::_f128_impl::fmod(const f128_s& x, const f128_s& y)
+{
+    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
+        return std::numeric_limits<f128_s>::quiet_NaN();
+    if (isinf(y) || iszero(x))
+        return x;
+
+    const f128_s ax = detail::_f128::mag(x);
+    const f128_s ay = detail::_f128::mag(y);
+
+    if (ax < ay)
+        return x;
+
+    f128_s fast{};
+    if (y.lo == 0.0 && fmod_fast_double_divisor_abs(ax, ay.hi, fast))
+    {
+        if (iszero(fast))
+            return f128_s{ signbit(x.hi) ? -0.0 : 0.0 };
+        return ispositive(x) ? fast : -fast;
+    }
+
+    return fmod_exact_fixed_limb(x, y);
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::remainder(const f128_s& x, const f128_s& y)
 {
     if (isnan(x) || isnan(y))
@@ -284,97 +541,6 @@ namespace bl {
         return f128_s{ signbit(x) ? -0.0 : 0.0, 0.0 };
 
     return F128_CANONICALIZE_MATH_RESULT(r);
-}
-
-// roots and norms
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::cbrt(const f128_s& x)
-{
-    using namespace detail::_f128;
-
-    if (isnan(x) || iszero(x) || isinf(x))
-        return x;
-
-    const bool neg = signbit(x);
-    const f128_s ax = neg ? -x : x;
-
-    f128_s y{};
-    if (bl::use_constexpr_math())
-    {
-        y = detail::_f128_impl::exp(div_inline(detail::_f128_impl::log(ax), f128_s{ 3.0 }));
-    }
-    else
-    {
-        int exp2 = 0;
-        double mantissa = std::frexp(ax.hi, &exp2);
-        int rem  = exp2 % 3;
-        if (rem < 0)
-            rem += 3;
-        if (rem != 0)
-        {
-            mantissa = std::ldexp(mantissa, rem);
-            exp2 -= rem;
-        }
-
-        y = f128_s{ std::cbrt(mantissa), 0.0 };
-        if (exp2 != 0)
-            y = _ldexp(y, exp2 / 3);
-    }
-
-    y = div_inline(add_inline(add_inline(y, y), div_inline(ax, mul_inline(y, y))), f128_s{ 3.0 });
-    y = div_inline(add_inline(add_inline(y, y), div_inline(ax, mul_inline(y, y))), f128_s{ 3.0 });
-
-    if (bl::use_constexpr_math())
-        y = div_inline(add_inline(add_inline(y, y), div_inline(ax, mul_inline(y, y))), f128_s{ 3.0 });
-
-    if (neg)
-        y = -y;
-
-    return F128_CANONICALIZE_MATH_RESULT(y);
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::hypot(const f128_s& x, const f128_s& y)
-{
-    using namespace detail::_f128;
-
-    if (isinf(x) || isinf(y))
-        return std::numeric_limits<f128_s>::infinity();
-    if (isnan(x))
-        return x;
-    if (isnan(y))
-        return y;
-
-    f128_s ax = detail::_f128::mag(x);
-    f128_s ay = detail::_f128::mag(y);
-    if (ax < ay)
-    {
-        const f128_s tmp = ax;
-        ax = ay;
-        ay = tmp;
-    }
-
-    if (iszero(ax))
-        return f128_s{ 0.0 };
-    if (iszero(ay))
-        return F128_CANONICALIZE_MATH_RESULT(ax);
-
-    int ex = 0;
-    int ey = 0;
-    if (bl::use_constexpr_math())
-    {
-        ex = detail::fp::frexp_exponent(ax.hi);
-        ey = detail::fp::frexp_exponent(ay.hi);
-    }
-    else
-    {
-        (void)std::frexp(ax.hi, &ex);
-        (void)std::frexp(ay.hi, &ey);
-    }
-
-    if ((ex - ey) > 55)
-        return F128_CANONICALIZE_MATH_RESULT(ax);
-
-    const f128_s r = div_inline(ay, ax);
-    return F128_CANONICALIZE_MATH_RESULT(mul_inline(ax, detail::_f128_impl::sqrt(add_inline(f128_s{ 1.0 }, mul_inline(r, r)))));
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::remquo(const f128_s& x, const f128_s& y, int* quo)

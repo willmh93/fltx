@@ -7,22 +7,43 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_MATH_INCLUDED
-#define FLTX_F256_MATH_INCLUDED
+#ifndef F256_MATH_INCLUDED
+#define F256_MATH_INCLUDED
 
 #include "fltx/detail/f256_math_basic.h"
-#include "fltx/detail/f256_math_exp_log.h"
-#include "fltx/detail/f256_math_pow.h"
-#include "fltx/detail/f256_math_trig.h"
-#include "fltx/detail/f256_math_hyperbolic.h"
-#include "fltx/detail/f256_math_erf.h"
-#include "fltx/detail/f256_math_gamma.h"
+#include "fltx/detail/f256_math_transcendental.h"
 
 namespace bl {
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 fabs(const f256_s& a) noexcept
 {
     return abs(a);
+}
+
+// rounding
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 floor(const f256_s& a)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::floor(a),
+        detail::_f256_runtime::floor(a)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 ceil(const f256_s& a)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::ceil(a),
+        detail::_f256_runtime::ceil(a)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 trunc(const f256_s& a)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::trunc(a),
+        detail::_f256_runtime::trunc(a)
+    );
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 rint(const f256_s& x)
@@ -303,6 +324,14 @@ namespace bl {
 }
 
 // pow
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 pow10_256(int k)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::pow10_256(k),
+        detail::_f256_runtime::pow10_256(k)
+    );
+}
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 pow(const f256_s& x, const f256_s& y)
 {

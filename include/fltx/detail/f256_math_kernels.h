@@ -1,7 +1,7 @@
 /**
- * fltx/detail/f256_math_shared.h - Shared f256 math implementation support.
+ * fltx/detail/f256_math_kernels.h - f256 math kernels and helper algorithms.
  *
- * Shared f256 helpers used by math implementation headers.
+ * Low-level f256 helper logic used by grouped math implementations.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -9,10 +9,9 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_MATH_SHARED_INCLUDED
-#define FLTX_F256_DETAIL_MATH_SHARED_INCLUDED
+#ifndef F256_DETAIL_MATH_KERNELS_INCLUDED
+#define F256_DETAIL_MATH_KERNELS_INCLUDED
 #include "fltx/detail/f256_declarations.h"
-#include "fltx/detail/f256_rounding.h"
 
 namespace bl {
 
@@ -787,108 +786,6 @@ namespace detail::_f256 // primitives and kernels
         return static_cast<int>(static_cast<long long>(nearbyint_ties_even(bits)));
     }
 
-    // polynomial evaluation
-    BL_FORCE_INLINE constexpr f256_s mul_add_horner_step_inline(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
-    {
-        return mul_add_inline(a, b, c);
-    }
-
-    BL_FORCE_INLINE constexpr f256_s mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
-    {
-        if (bl::use_constexpr_math())
-        {
-            return mul_add_horner_step_inline(a, b, c);
-        }
-
-        return detail::_f256_runtime::mul_add_horner_step(a, b, c);
-    }
-
-    BL_FORCE_INLINE constexpr f256_s horner_forward_inline(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
-    {
-        if (count == 0)
-            return {};
-
-        f256_s p = coeffs[0];
-        for (std::size_t i = 1; i < count; ++i)
-            p = mul_add_inline(p, x, coeffs[i]);
-        return p;
-    }
-
-    BL_FORCE_INLINE constexpr f256_s horner_forward(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
-    {
-        if (bl::use_constexpr_math())
-        {
-            return horner_forward_inline(coeffs, count, x);
-        }
-
-        return detail::_f256_runtime::horner_forward(coeffs, count, x);
-    }
-
-    BL_FORCE_INLINE constexpr f256_s horner_reverse_inline(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
-    {
-        if (count == 0)
-            return {};
-
-        f256_s p = coeffs[count - 1];
-        for (std::size_t i = count - 1; i > 0; --i)
-            p = mul_add_inline(p, x, coeffs[i - 1]);
-        return p;
-    }
-
-    BL_FORCE_INLINE constexpr f256_s horner_reverse(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
-    {
-        if (bl::use_constexpr_math())
-        {
-            return horner_reverse_inline(coeffs, count, x);
-        }
-
-        return detail::_f256_runtime::horner_reverse(coeffs, count, x);
-    }
-
-    BL_FORCE_INLINE constexpr void horner_pair_forward_inline(
-        const f256_s* left_coeffs,
-        const f256_s* right_coeffs,
-        std::size_t count,
-        const f256_s& x,
-        f256_s& left_out,
-        f256_s& right_out) noexcept
-    {
-        if (count == 0)
-        {
-            left_out = f256_s{};
-            right_out = f256_s{};
-            return;
-        }
-
-        f256_s left  = left_coeffs[0];
-        f256_s right = right_coeffs[0];
-        for (std::size_t i = 1; i < count; ++i)
-        {
-            left = mul_add_inline(left, x, left_coeffs[i]);
-            right = mul_add_inline(right, x, right_coeffs[i]);
-        }
-
-        left_out = left;
-        right_out = right;
-    }
-
-    BL_FORCE_INLINE constexpr void horner_pair_forward(
-        const f256_s* left_coeffs,
-        const f256_s* right_coeffs,
-        std::size_t count,
-        const f256_s& x,
-        f256_s& left_out,
-        f256_s& right_out) noexcept
-    {
-        if (bl::use_constexpr_math())
-        {
-            horner_pair_forward_inline(left_coeffs, right_coeffs, count, x, left_out, right_out);
-            return;
-        }
-
-        detail::_f256_runtime::horner_pair_forward(left_coeffs, right_coeffs, count, x, left_out, right_out);
-    }
-
     // sqrt kernels
     BL_FORCE_INLINE constexpr f256_s canonicalize_sqrt_result(f256_s value) noexcept
     {
@@ -1172,170 +1069,6 @@ namespace detail::_f256 // primitives and kernels
     }
 
 } // namespace detail::_f256
-
-// remainders
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fmod(const f256_s& x, const f256_s& y)
-{
-    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-    if (isinf(y) || iszero(x))
-        return x;
-
-    const f256_s ax = detail::_f256::mag(x);
-    const f256_s ay = detail::_f256::mag(y);
-
-    if (ax < ay)
-        return x;
-
-    f256_s fast{};
-    if (y.x1 == 0.0 && y.x2 == 0.0 && y.x3 == 0.0 && fmod_fast_double_divisor_abs(ax, ay.x0, fast))
-    {
-        if (iszero(fast))
-            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-        const f256_s out = ispositive(x) ? fast : -fast;
-        return F256_CANONICALIZE_MATH_RESULT(out);
-    }
-
-    if (!bl::use_constexpr_math() && fmod_fast_small_quotient_abs(ax, ay, fast))
-    {
-        if (iszero(fast))
-            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-        const f256_s out = ispositive(x) ? fast : -fast;
-        return F256_CANONICALIZE_MATH_RESULT(out);
-    }
-
-    const f256_s out = bl::use_constexpr_math()
-        ? fmod_exact(x, y)
-        : fmod_runtime(x, y);
-
-    return F256_CANONICALIZE_MATH_RESULT(out);
-}
-
-// roots
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::sqrt(const f256_s& a)
-{
-    using namespace detail::_f256;
-
-    if (a.x0 <= 0.0)
-    {
-        if (iszero(a))
-            return a;
-        return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
-    }
-
-    if (isinf(a))
-        return a;
-
-    if (bl::use_constexpr_math())
-    {
-        return sqrt_constexpr_impl(a);
-    }
-
-    return sqrt_runtime_impl(a);
-}
-
-// rounding
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::nearbyint(const f256_s& a)
-{
-    if (isnan(a) || isinf(a) || iszero(a))
-        return a;
-
-    f256_s t = detail::_f256_impl::floor(a);
-    const f256_s frac = sub_inline(a, t);
-
-    if (frac < f256_s{ 0.5 })
-        return t;
-
-    if (frac > f256_s{ 0.5 })
-    {
-        t = add_inline(t, f256_s{ 1.0 });
-        if (iszero(t))
-            return f256_s{ signbit(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-        return t;
-    }
-
-    if (is_odd_integer(t))
-        t = add_inline(t, f256_s{ 1.0 });
-
-    if (iszero(t))
-        return f256_s{ signbit(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-
-    return t;
-}
-
-// decomposition and scaling
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::ldexp(const f256_s& a, int e)
-{
-    return F256_CANONICALIZE_MATH_RESULT(_ldexp(a, e));
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::frexp(const f256_s& x, int* exp) noexcept
-{
-    if (exp)
-        *exp = 0;
-
-    if (isnan(x) || isinf(x) || iszero(x))
-        return x;
-
-    const double lead =
-        (x.x0 != 0.0) ? x.x0 :
-        (x.x1 != 0.0) ? x.x1 :
-        (x.x2 != 0.0) ? x.x2 : x.x3;
-    int e = 0;
-
-    if (bl::use_constexpr_math())
-    {
-        e = detail::fp::frexp_exponent(lead);
-    }
-    else
-    {
-        (void)std::frexp(lead, &e);
-    }
-
-    f256_s m = detail::_f256_impl::ldexp(x, -e);
-    const f256_s am = detail::_f256::mag(m);
-
-    if (am < f256_s{ 0.5 })
-    {
-        m *= f256_s{ 2.0 };
-        --e;
-    }
-    else if (am >= f256_s{ 1.0 })
-    {
-        m *= f256_s{ 0.5 };
-        ++e;
-    }
-
-    if (exp)
-        *exp = e;
-
-    return m;
-}
-
-// adjacent values
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::nextafter(const f256_s& from, const f256_s& to) noexcept
-{
-    if (isnan(from) || isnan(to))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-    if (from == to)
-        return to;
-    if (iszero(from))
-        return signbit(to)
-        ? f256_s{ -std::numeric_limits<double>::denorm_min(), 0.0, 0.0, 0.0 }
-        : f256_s{ std::numeric_limits<double>::denorm_min(), 0.0, 0.0, 0.0 };
-    if (isinf(from))
-        return signbit(from)
-        ? -std::numeric_limits<f256_s>::max()
-        : std::numeric_limits<f256_s>::max();
-
-    const double toward = (from < to)
-        ? std::numeric_limits<double>::infinity()
-        : -std::numeric_limits<double>::infinity();
-
-    return normalize_nextafter_tail(
-        from,
-        detail::fp::nextafter(from.x3, toward));
-}
 
 } // namespace bl
 

@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef TEMPLATE_DISPATCH_INCLUDED
-#define TEMPLATE_DISPATCH_INCLUDED
+#ifndef FLTX_TEMPLATE_DISPATCH_INCLUDED
+#define FLTX_TEMPLATE_DISPATCH_INCLUDED
 #include <array>
 #include <type_traits>
 #include <tuple>

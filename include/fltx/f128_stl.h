@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_STL_INCLUDED
-#define FLTX_F128_STL_INCLUDED
+#ifndef F128_STL_INCLUDED
+#define F128_STL_INCLUDED
 
 #include "fltx/f128_limits.h"
 #include "fltx/f128_numbers.h"

@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_ARITHMETIC_INCLUDED
-#define FLTX_F128_DETAIL_ARITHMETIC_INCLUDED
+#ifndef F128_DETAIL_ARITHMETIC_INCLUDED
+#define F128_DETAIL_ARITHMETIC_INCLUDED
 #include "fltx/f128_classification.h"
 #include "fltx/f128_conversions.h"
 #include "fltx/f128_stl.h"

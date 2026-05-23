@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_DECIMAL_INCLUDED
-#define FLTX_DECIMAL_INCLUDED
+#ifndef FLTX_DETAIL_COMMON_DECIMAL_INCLUDED
+#define FLTX_DETAIL_COMMON_DECIMAL_INCLUDED
 #include <bit>
 #include <cstdint>
 

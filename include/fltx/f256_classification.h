@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_CLASSIFICATION_INCLUDED
-#define FLTX_F256_CLASSIFICATION_INCLUDED
+#ifndef F256_CLASSIFICATION_INCLUDED
+#define F256_CLASSIFICATION_INCLUDED
 #include "fltx/f256_comparison.h"
 #include "fltx/f256_stl.h"
 

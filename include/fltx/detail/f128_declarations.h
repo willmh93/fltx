@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_DETAIL_DECLARATIONS_INCLUDED
-#define FLTX_F128_DETAIL_DECLARATIONS_INCLUDED
+#ifndef F128_DETAIL_DECLARATIONS_INCLUDED
+#define F128_DETAIL_DECLARATIONS_INCLUDED
 #include <cstddef>
 
 #include "fltx/f128_arithmetic.h"
@@ -24,6 +24,7 @@ namespace detail::_f128_runtime
 {
     // basic math
     BL_NO_INLINE f128_s fmod(const f128_s& x, const f128_s& y);
+    BL_NO_INLINE f128_s trunc(const f128_s& a);
     BL_NO_INLINE f128_s round_to_decimals(f128_s v, int prec);
     BL_NO_INLINE f128_s remainder(const f128_s& x, const f128_s& y);
     BL_NO_INLINE f128_s ldexp(const f128_s& x, int e);
@@ -34,6 +35,7 @@ namespace detail::_f128_runtime
     BL_NO_INLINE f128_s log(const f128_s& a);
     BL_NO_INLINE f128_s log2(const f128_s& a);
     BL_NO_INLINE f128_s log10(const f128_s& x);
+    BL_NO_INLINE f128_s pow10_128(int k);
     BL_NO_INLINE f128_s pow(const f128_s& x, const f128_s& y);
     BL_NO_INLINE f128_s pow(const f128_s& x, double y);
 
@@ -84,6 +86,11 @@ namespace detail::_f128_impl
 
     // basic math
     BL_FORCE_INLINE constexpr f128_s fmod(const f128_s& x, const f128_s& y);
+    BL_FORCE_INLINE constexpr double floor_limb(double x) noexcept;
+    BL_FORCE_INLINE constexpr double ceil_limb(double x) noexcept;
+    BL_FORCE_INLINE constexpr f128_s floor(const f128_s& a);
+    BL_FORCE_INLINE constexpr f128_s ceil(const f128_s& a);
+    BL_FORCE_INLINE constexpr f128_s trunc(const f128_s& a);
     BL_FORCE_INLINE constexpr f128_s round(const f128_s& a);
     BL_FORCE_INLINE constexpr f128_s nearbyint(const f128_s& a);
     BL_FORCE_INLINE constexpr f128_s rint(const f128_s& x);
@@ -98,6 +105,7 @@ namespace detail::_f128_impl
     BL_FORCE_INLINE constexpr f128_s log(const f128_s& a);
     BL_FORCE_INLINE constexpr f128_s log2(const f128_s& a);
     BL_FORCE_INLINE constexpr f128_s log10(const f128_s& x);
+    BL_FORCE_INLINE constexpr f128_s pow10_128(int k);
     BL_FORCE_INLINE constexpr f128_s pow(const f128_s& x, const f128_s& y);
     BL_FORCE_INLINE constexpr f128_s pow(const f128_s& x, double y);
 

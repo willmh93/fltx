@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_SIMD_INCLUDED
-#define FLTX_SIMD_INCLUDED
+#ifndef FLTX_DETAIL_SIMD_INCLUDED
+#define FLTX_DETAIL_SIMD_INCLUDED
 #include "fltx/config.h"
 
 #if !defined(BL_FLTX_HAS_SSE2)

@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_CONVERSIONS_INCLUDED
-#define FLTX_F256_CONVERSIONS_INCLUDED
+#ifndef F256_CONVERSIONS_INCLUDED
+#define F256_CONVERSIONS_INCLUDED
 #include "fltx/detail/f256_conversions.h"
 
 namespace bl {

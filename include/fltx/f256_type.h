@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_TYPE_INCLUDED
-#define FLTX_F256_TYPE_INCLUDED
+#ifndef F256_TYPE_INCLUDED
+#define F256_TYPE_INCLUDED
 #include <type_traits>
 
 #include "fltx/detail/common_fp.h"

@@ -13,7 +13,7 @@
 #include <string>
 
 #include "fltx/f128_limits.h"
-#include "fltx/f128_rounding.h"
+#include "fltx/f128_math.h"
 #include "fltx/detail/common_io.h"
 
 namespace bl {
@@ -471,7 +471,7 @@ namespace detail::_f128 // primitives and kernels
             return neg ? -inf : inf;
         }
 
-        static value_type quiet_nan() noexcept { return std::numeric_limits<value_type>::quiet_NaN(); }
+        static constexpr value_type quiet_nan() noexcept { return std::numeric_limits<value_type>::quiet_NaN(); }
         static constexpr void normalize10(const value_type& x, value_type& m, int& e10) { detail::_f128::normalize10(x, m, e10); }
         static constexpr chars_result to_chars_general(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
         {

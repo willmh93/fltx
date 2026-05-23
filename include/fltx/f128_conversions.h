@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F128_CONVERSIONS_INCLUDED
-#define FLTX_F128_CONVERSIONS_INCLUDED
+#ifndef F128_CONVERSIONS_INCLUDED
+#define F128_CONVERSIONS_INCLUDED
 #include "fltx/detail/f128_conversions.h"
 
 namespace bl {

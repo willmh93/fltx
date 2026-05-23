@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_COMPARISON_INCLUDED
-#define FLTX_F256_COMPARISON_INCLUDED
+#ifndef F256_COMPARISON_INCLUDED
+#define F256_COMPARISON_INCLUDED
 #include <type_traits>
 
 #include "fltx/f256_type.h"

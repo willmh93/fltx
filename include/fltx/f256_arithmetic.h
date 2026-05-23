@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_ARITHMETIC_INCLUDED
-#define FLTX_F256_ARITHMETIC_INCLUDED
+#ifndef F256_ARITHMETIC_INCLUDED
+#define F256_ARITHMETIC_INCLUDED
 #include "fltx/f256_conversions.h"
 #include "fltx/detail/f256_arithmetic.h"
 

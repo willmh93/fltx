@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef F256_CONSTS_INCLUDED
-#define F256_CONSTS_INCLUDED
+#ifndef F256_DETAIL_CONSTS_INCLUDED
+#define F256_DETAIL_CONSTS_INCLUDED
 #include <cstdint>
 
 #include "fltx/f256_type.h"

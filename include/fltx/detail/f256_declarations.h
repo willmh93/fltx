@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F256_DETAIL_DECLARATIONS_INCLUDED
-#define FLTX_F256_DETAIL_DECLARATIONS_INCLUDED
+#ifndef F256_DETAIL_DECLARATIONS_INCLUDED
+#define F256_DETAIL_DECLARATIONS_INCLUDED
 #include <cstddef>
 
 #include "fltx/detail/f256_expressions.h"
@@ -39,6 +39,7 @@ namespace detail::_f256_runtime
     BL_NO_INLINE f256_s log(const f256_s& a);
     BL_NO_INLINE f256_s log2(const f256_s& a);
     BL_NO_INLINE f256_s log10(const f256_s& a);
+    BL_NO_INLINE f256_s pow10_256(int k);
     BL_NO_INLINE f256_s pow(const f256_s& x, const f256_s& y);
     BL_NO_INLINE f256_s pow(const f256_s& x, double y);
 
@@ -97,6 +98,9 @@ namespace detail::_f256_impl
 
     // basic math
     BL_FORCE_INLINE constexpr f256_s fmod(const f256_s& x, const f256_s& y);
+    inline constexpr f256_s floor(const f256_s& a);
+    inline constexpr f256_s ceil(const f256_s& a);
+    BL_FORCE_INLINE constexpr f256_s trunc(const f256_s& a);
     BL_FORCE_INLINE constexpr f256_s round(const f256_s& a);
     BL_FORCE_INLINE constexpr f256_s round_to_decimals(f256_s v, int prec);
     BL_FORCE_INLINE constexpr f256_s sqrt(const f256_s& a);
@@ -120,6 +124,7 @@ namespace detail::_f256_impl
     BL_FORCE_INLINE constexpr f256_s log(const f256_s& a);
     BL_FORCE_INLINE constexpr f256_s log2(const f256_s& a);
     BL_FORCE_INLINE constexpr f256_s log10(const f256_s& a);
+    BL_FORCE_INLINE constexpr f256_s pow10_256(int k);
     BL_MSVC_NOINLINE constexpr f256_s pow(const f256_s& x, const f256_s& y);
     BL_MSVC_NOINLINE constexpr f256_s pow(const f256_s& x, double y);
 
@@ -139,8 +144,8 @@ namespace detail::_f256_impl
     BL_FORCE_INLINE constexpr f256_s sinh(const f256_s& x);
     BL_FORCE_INLINE constexpr f256_s cosh(const f256_s& x);
     BL_FORCE_INLINE constexpr f256_s tanh(const f256_s& x);
-    BL_FORCE_INLINE constexpr f256_s asinh(const f256_s& x);
-    BL_FORCE_INLINE constexpr f256_s acosh(const f256_s& x);
+    BL_MSVC_NOINLINE constexpr f256_s asinh(const f256_s& x);
+    BL_MSVC_NOINLINE constexpr f256_s acosh(const f256_s& x);
     BL_FORCE_INLINE constexpr f256_s atanh(const f256_s& x);
 
     // roots and decomposition
@@ -160,7 +165,7 @@ namespace detail::_f256_impl
 
     // erf/gamma
     BL_FORCE_INLINE constexpr f256_s erf(const f256_s& x);
-    BL_FORCE_INLINE constexpr f256_s erfc(const f256_s& x);
+    BL_MSVC_NOINLINE constexpr f256_s erfc(const f256_s& x);
     BL_FORCE_INLINE constexpr f256_s lgamma(const f256_s& x);
     BL_FORCE_INLINE constexpr f256_s tgamma(const f256_s& x);
 

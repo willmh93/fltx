@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_F32_MATH_INCLUDED
-#define FLTX_F32_MATH_INCLUDED
+#ifndef F32_MATH_INCLUDED
+#define F32_MATH_INCLUDED
 
 #include "fltx/f64_math.h"
 

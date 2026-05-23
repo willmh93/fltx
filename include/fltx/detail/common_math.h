@@ -7,8 +7,8 @@
  * See LICENSE for details.
  */
 
-#ifndef FLTX_COMMON_MATH_INCLUDED
-#define FLTX_COMMON_MATH_INCLUDED
+#ifndef FLTX_DETAIL_COMMON_MATH_INCLUDED
+#define FLTX_DETAIL_COMMON_MATH_INCLUDED
 #include <bit>
 #include <cstdint>
 #include <limits>
@@ -78,7 +78,6 @@ BL_FORCE_INLINE constexpr double log1p(double x) noexcept
 
     return log(1.0 + x);
 }
-
 
 BL_FORCE_INLINE constexpr double round_half_away_zero(double x) noexcept
 {
