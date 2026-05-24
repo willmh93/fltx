@@ -7,18 +7,26 @@ include(cmake/fltxOptions.cmake)
 include(cmake/fltxFastMath.cmake)
 include(cmake/fltxMsvcTiming.cmake)
 include(cmake/fltxSimd.cmake)
+include(cmake/fltxSources.cmake)
 
 set(FLTX_PUBLIC_SCOPE PUBLIC)
-add_library(fltx
-    src/f128.cpp
-    src/f128_math.cpp
-    src/f256.cpp
-    src/f256_math.cpp
-    src/f256_math_transcendental.cpp
-    src/f256_math_pow.cpp
-)
+add_library(fltx ${FLTX_LIBRARY_SOURCE_FILES})
 
 add_library(fltx::fltx ALIAS fltx)
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    PREFIX "Source Files"
+    FILES ${FLTX_LIBRARY_SOURCE_FILE_PATHS}
+)
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    PREFIX "Header Files"
+    FILES ${FLTX_LIBRARY_HEADER_FILES}
+)
+
+source_group("Resource Files"
+    FILES ${FLTX_NATVIS_FILE}
+)
 
 target_include_directories(fltx
     ${FLTX_PUBLIC_SCOPE}
@@ -28,8 +36,9 @@ target_include_directories(fltx
 
 # source-tree / VS-project style use
 target_sources(fltx
-    ${FLTX_PUBLIC_SCOPE}
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/fltx.natvis>
+    PRIVATE
+        ${FLTX_LIBRARY_HEADER_FILES}
+        ${FLTX_NATVIS_FILE}
 )
 
 if(MSVC)

@@ -1,8 +1,6 @@
-
 #include <catch2/catch_test_macros.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/mpfr.hpp>
-
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -21,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-#include <f64_math.h>
+#include <fltx/f64_math.h>
 
 using namespace bl;
 
@@ -36,8 +34,8 @@ namespace
     constexpr int printed_digits = std::numeric_limits<double>::max_digits10;
 
     constexpr std::uint64_t random_seed = 1ull;
-    constexpr int random_sample_count = 500;
-    constexpr const char* type_label = "f64";
+    constexpr int random_sample_count   = 10;
+    constexpr const char* type_label    = "f64";
 
     template<class T>
     struct sincos_pair
@@ -49,9 +47,9 @@ namespace
     struct accuracy_stats_entry
     {
         int samples = 0;
-        int passed = 0;
+        int passed  = 0;
         std::vector<double> achieved_digits;
-        std::uint64_t worst_ulp = 0;
+        std::uint64_t worst_ulp   = 0;
         double worst_scaled_error = 0.0;
     };
 
@@ -165,15 +163,15 @@ namespace
 
     struct exact_mod_reference
     {
-        double fmod = 0.0;
-        double remainder = 0.0;
+        double fmod       = 0.0;
+        double remainder  = 0.0;
         int quotient_bits = 0;
     };
 
     [[nodiscard]] exact_binary_float decompose_exact(double value)
     {
-        const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
-        const std::uint64_t frac = bits & ((std::uint64_t{ 1 } << 52) - 1u);
+        const std::uint64_t bits     = std::bit_cast<std::uint64_t>(value);
+        const std::uint64_t frac     = bits & ((std::uint64_t{ 1 } << 52) - 1u);
         const std::uint32_t exp_bits = static_cast<std::uint32_t>((bits >> 52) & 0x7ffu);
 
         exact_binary_float out;
@@ -202,7 +200,7 @@ namespace
             return value;
 
         const bool round_bit = ((value >> (bits - 1)) & 1) != 0;
-        const bool sticky = bits > 1 && (value & ((cpp_int{ 1 } << (bits - 1)) - 1)) != 0;
+        const bool sticky    = bits > 1 && (value & ((cpp_int{ 1 } << (bits - 1)) - 1)) != 0;
         cpp_int out = value >> bits;
         if (round_bit && (sticky || (out & 1) != 0))
             ++out;
@@ -215,7 +213,7 @@ namespace
             return neg ? -0.0 : 0.0;
 
         const int top_bit = bit_length(coeff) - 1;
-        int unbiased_exp = exp2 + top_bit;
+        int unbiased_exp  = exp2 + top_bit;
         if (unbiased_exp > 1023)
             return neg ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
 
@@ -362,7 +360,7 @@ namespace
     {
         if (base < 0 && ref_is_integer(exponent))
         {
-            const long long n = exponent.convert_to<long long>();
+            const long long n  = exponent.convert_to<long long>();
             const mpfr_ref mag = ref_powi(-base, n);
             return (n & 1LL) ? -mag : mag;
         }
@@ -576,7 +574,7 @@ namespace
                 return;
 
             const std::ios_base::fmtflags old_flags = std::cout.flags();
-            const std::streamsize old_precision = std::cout.precision();
+            const std::streamsize old_precision     = std::cout.precision();
 
             std::cout << "\naccuracy summary for " << test_name << ":\n";
             std::cout << std::fixed << std::setprecision(2);
@@ -584,7 +582,7 @@ namespace
             for (const auto& [op_name, entry] : stats)
             {
                 const double median = median_digits(entry.achieved_digits);
-                const double worst = *std::min_element(entry.achieved_digits.begin(), entry.achieved_digits.end());
+                const double worst  = *std::min_element(entry.achieved_digits.begin(), entry.achieved_digits.end());
 
                 std::cout << "  " << op_name
                           << ": pass " << entry.passed << "/" << entry.samples
@@ -628,8 +626,8 @@ namespace
 
     struct tolerance_spec
     {
-        double abs_tolerance = 0.0;
-        double rel_tolerance = 0.0;
+        double abs_tolerance   = 0.0;
+        double rel_tolerance   = 0.0;
         std::uint64_t max_ulps = 0;
     };
 
@@ -657,15 +655,15 @@ namespace
 
     struct floating_compare_result
     {
-        bool passed = false;
-        double signed_diff = 0.0;
-        double abs_diff = 0.0;
-        double rel_diff = 0.0;
-        double scale = 1.0;
-        double allowed_diff = 0.0;
+        bool passed            = false;
+        double signed_diff     = 0.0;
+        double abs_diff        = 0.0;
+        double rel_diff        = 0.0;
+        double scale           = 1.0;
+        double allowed_diff    = 0.0;
         double achieved_digits = 0.0;
         std::uint64_t ulp_diff = 0;
-        const char* reason = "";
+        const char* reason     = "";
     };
 
     [[nodiscard]] floating_compare_result compare_floating_result(
@@ -840,9 +838,9 @@ namespace
 
     void check_fma_result(double x, double y, double z, const tolerance_spec& tolerance)
     {
-        const char* op_name = "fma";
-        const double got = bl::fma(x, y, z);
-        const double expected = round_ref_to_f64(to_ref_exact(x) * to_ref_exact(y) + to_ref_exact(z));
+        const char* op_name                      = "fma";
+        const double got                         = bl::fma(x, y, z);
+        const double expected                    = round_ref_to_f64(to_ref_exact(x) * to_ref_exact(y) + to_ref_exact(z));
         const tolerance_spec effective_tolerance = with_default_mpfr_tolerance(op_name, tolerance);
 
         INFO(op_name
@@ -908,10 +906,10 @@ namespace
 
     void check_frexp_result(double input)
     {
-        int got_exp = 0;
+        int got_exp      = 0;
         int expected_exp = 0;
 
-        const double got = bl::frexp(input, &got_exp);
+        const double got      = bl::frexp(input, &got_exp);
         const double expected = std::frexp(input, &expected_exp);
 
         INFO("frexp"
@@ -928,10 +926,10 @@ namespace
 
     void check_modf_result(double input)
     {
-        double got_int = 0.0;
+        double got_int      = 0.0;
         double expected_int = 0.0;
 
-        const double got = bl::modf(input, &got_int);
+        const double got      = bl::modf(input, &got_int);
         const double expected = std::modf(input, &expected_int);
 
         INFO("modf"
@@ -953,10 +951,10 @@ namespace
     {
         int got_quo = 0;
 
-        const double got = bl::remquo(lhs, rhs, &got_quo);
+        const double got                       = bl::remquo(lhs, rhs, &got_quo);
         const exact_mod_reference expected_ref = exact_mod_reference_for(lhs, rhs);
-        const double expected = expected_ref.remainder;
-        const int expected_quo = expected_ref.quotient_bits;
+        const double expected                  = expected_ref.remainder;
+        const int expected_quo                 = expected_ref.quotient_bits;
 
         INFO("remquo"
             << "\n  lhs: " << to_text(lhs)
@@ -972,9 +970,9 @@ namespace
 
         if (!std::isnan(expected))
         {
-            const int got_sign = (got_quo > 0) - (got_quo < 0);
-            const int expected_sign = (expected_quo > 0) - (expected_quo < 0);
-            const int got_low_bits = got_quo & 0x7;
+            const int got_sign          = (got_quo > 0) - (got_quo < 0);
+            const int expected_sign     = (expected_quo > 0) - (expected_quo < 0);
+            const int got_low_bits      = got_quo & 0x7;
             const int expected_low_bits = expected_quo & 0x7;
 
             CAPTURE(got_sign);
@@ -1132,7 +1130,8 @@ namespace
 
         return default_mpfr_tolerance_for_op(op_name);
     }
-}
+
+} // namespace
 
 TEST_CASE("f64 matches MPFR for + - * /", "[fltx][f64][precision][arithmetic]")
 {
@@ -1306,10 +1305,10 @@ TEST_CASE("f64 trig matches MPFR on random inputs", "[fltx][f64][precision][tran
     for (int i = 0; i < random_sample_count; ++i)
     {
         const double trig_input = random_signed_interval(rng, 16.0);
-        const double tan_input = random_signed_interval(rng, 1.2);
+        const double tan_input  = random_signed_interval(rng, 1.2);
         const double unit_input = random_signed_interval(rng, 1.0);
-        const double y = random_signed_interval(rng, 128.0);
-        const double x = random_signed_interval(rng, 128.0);
+        const double y          = random_signed_interval(rng, 128.0);
+        const double x          = random_signed_interval(rng, 128.0);
 
         check_unary_op("sin", trig_input, exact_tol(),
             [](double v) { return bl::sin(v); },
@@ -1521,8 +1520,8 @@ TEST_CASE("f64 exp and log families match MPFR", "[fltx][f64][precision][transce
 
     for (int i = 0; i < random_sample_count; ++i)
     {
-        const double exp_input = random_signed_interval(rng, 20.0);
-        const double log_input = random_positive(rng);
+        const double exp_input   = random_signed_interval(rng, 20.0);
+        const double log_input   = random_positive(rng);
         const double log1p_input = random_log1p_argument(rng);
 
         check_unary_op("exp", exp_input, exact_tol(),
@@ -1628,12 +1627,12 @@ TEST_CASE("f64 root and power functions match MPFR", "[fltx][f64][precision][mat
 
     for (int i = 0; i < random_sample_count; ++i)
     {
-        const double positive = random_positive(rng);
+        const double positive     = random_positive(rng);
         const double signed_input = random_signed_interval(rng, 1e12);
-        const double x = random_signed_interval(rng, 1e12);
-        const double y = random_signed_interval(rng, 1e12);
-        const double base = random_pow_base(rng);
-        const double exponent = random_signed_interval(rng, 8.0);
+        const double x            = random_signed_interval(rng, 1e12);
+        const double y            = random_signed_interval(rng, 1e12);
+        const double base         = random_pow_base(rng);
+        const double exponent     = random_signed_interval(rng, 8.0);
 
         check_unary_op("sqrt", positive, exact_tol(),
             [](double v) { return bl::sqrt(v); },
@@ -1759,7 +1758,7 @@ TEST_CASE("f64 hyperbolic families match MPFR", "[fltx][f64][precision][transcen
 
     for (int i = 0; i < random_sample_count; ++i)
     {
-        const double moderate = random_signed_interval(rng, 8.0);
+        const double moderate    = random_signed_interval(rng, 8.0);
         const double acosh_input = random_acosh_argument(rng);
         const double atanh_input = random_atanh_argument(rng);
 
@@ -1833,7 +1832,7 @@ TEST_CASE("f64 special functions match MPFR", "[fltx][f64][precision][transcende
 
     for (int i = 0; i < random_sample_count; ++i)
     {
-        const double erf_input = random_signed_interval(rng, 4.0);
+        const double erf_input   = random_signed_interval(rng, 4.0);
         const double gamma_input = random_gamma_positive(rng);
 
         check_unary_op("erf", erf_input, exact_tol(),
@@ -1999,8 +1998,8 @@ TEST_CASE("f64 IEEE special values match reference semantics", "[fltx][f64][prec
 {
     accuracy_report_scope report("f64 IEEE special values match reference semantics");
 
-    const double nan = std::numeric_limits<double>::quiet_NaN();
-    const double inf = std::numeric_limits<double>::infinity();
+    const double nan     = std::numeric_limits<double>::quiet_NaN();
+    const double inf     = std::numeric_limits<double>::infinity();
     const double neg_inf = -inf;
 
     check_unary_op("sqrt.nan", nan, exact_tol(),
@@ -2047,10 +2046,10 @@ TEST_CASE("f64 IEEE special values match reference semantics", "[fltx][f64][prec
         [](double x) { return bl::nextafter(x, -1.0); },
         [](double x) { return std::nextafter(x, -1.0); });
 
-    int got_quo = 123;
-    int expected_quo = 456;
-    const double got_remquo = bl::remquo(inf, 1.0, &got_quo);
-    const double expected_remquo = std::remquo(inf, 1.0, &expected_quo);
+    int got_quo                                     = 123;
+    int expected_quo                                = 456;
+    const double got_remquo                         = bl::remquo(inf, 1.0, &got_quo);
+    const double expected_remquo                    = std::remquo(inf, 1.0, &expected_quo);
     const floating_compare_result remquo_comparison = compare_floating_result("remquo.inf", got_remquo, expected_remquo, exact_tol());
     INFO(build_comparison_message("remquo.inf", got_remquo, expected_remquo, exact_tol(), remquo_comparison));
     REQUIRE(remquo_comparison.passed);

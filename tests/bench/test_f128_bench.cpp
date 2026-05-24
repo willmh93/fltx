@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 #include <boost/multiprecision/mpfr.hpp>
-
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -16,38 +15,38 @@
 #include <type_traits>
 #include <utility>
 
-#include <f128_math.h>
-#include <f128_io.h>
+#include <fltx/f128_math.h>
+#include <fltx/f128_io.h>
 #include "benchmark_chart_writer.h"
 
 using namespace bl;
 
 namespace
 {
-    constexpr unsigned mpfr_digits10 = std::numeric_limits<f128>::digits10;
+    constexpr unsigned mpfr_digits10 = std::numeric_limits<f128>::max_digits10;
     using mpfr_ref = boost::multiprecision::number<boost::multiprecision::mpfr_float_backend<mpfr_digits10>>;
     using clock_type = std::chrono::steady_clock;
 
-    constexpr int benchmark_scale = 20;
-    constexpr bool only_bench_typical = true;
-    constexpr bool generate_compact_report = true;
-    constexpr std::size_t bucket_value_count = 64;
-    constexpr std::size_t bucket_count = 3;
-    constexpr std::size_t atan_typical_value_count = 4096;
-    constexpr double benchmark_pi = 3.141592653589793238462643383279502884;
-    constexpr int mandelbrot_kernel_width = 32;
-    constexpr int mandelbrot_kernel_height = 32;
-    constexpr const char* mixed_recurrence_square_diff_label = "((x*x - y*y) + a) / (c + scalar)";
-    constexpr const char* mixed_recurrence_product_sum_label = "((x*a + y*b) + c) / (c + scalar)";
+    constexpr int benchmark_scale                                   = 20;
+    constexpr bool only_bench_typical                               = true;
+    constexpr bool generate_compact_report                          = true;
+    constexpr std::size_t bucket_value_count                        = 64;
+    constexpr std::size_t bucket_count                              = 3;
+    constexpr std::size_t atan_typical_value_count                  = 4096;
+    constexpr double benchmark_pi                                   = 3.141592653589793238462643383279502884;
+    constexpr int mandelbrot_kernel_width                           = 32;
+    constexpr int mandelbrot_kernel_height                          = 32;
+    constexpr const char* mixed_recurrence_square_diff_label        = "((x*x - y*y) + a) / (c + scalar)";
+    constexpr const char* mixed_recurrence_product_sum_label        = "((x*a + y*b) + c) / (c + scalar)";
     constexpr const char* mixed_recurrence_scaled_product_sum_label = "((x*sa + y*sb) + a) / (c + scalar)";
-    constexpr const char* mixed_recurrence_shifted_sum_label = "((x + a) + b) / ((c + d) + scalar)";
-    constexpr const char* mixed_recurrence_three_product_sum_label = "((x*a + y*b) + c*d) / ((c + d) + scalar)";
-    constexpr const char* scalar_mixed_recurrence_label = "((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)";
-    constexpr const char* fused_mixed_expression_label = "((x*y + a*b) + c) / (c*c + scalar)";
-    constexpr const char* sum_products_helper_label = "sum_products_inline(x*a, y*b)";
-    constexpr const char* diff_products_helper_label = "diff_products_inline(x*a, y*b)";
-    constexpr const char* affine_trig_transform_label = bl::bench::mixed_affine_trig_transform_label;
-    constexpr const char* mandelbrot_kernel_label = bl::bench::mixed_mandelbrot_kernel_label;
+    constexpr const char* mixed_recurrence_shifted_sum_label        = "((x + a) + b) / ((c + d) + scalar)";
+    constexpr const char* mixed_recurrence_three_product_sum_label  = "((x*a + y*b) + c*d) / ((c + d) + scalar)";
+    constexpr const char* scalar_mixed_recurrence_label             = "((x + scalar)*scalar + a) * (scalar*(y + scalar) - b)";
+    constexpr const char* fused_mixed_expression_label              = "((x*y + a*b) + c) / (c*c + scalar)";
+    constexpr const char* sum_products_helper_label                 = "sum_products_inline(x*a, y*b)";
+    constexpr const char* diff_products_helper_label                = "diff_products_inline(x*a, y*b)";
+    constexpr const char* affine_trig_transform_label               = bl::bench::mixed_affine_trig_transform_label;
+    constexpr const char* mandelbrot_kernel_label                   = bl::bench::mixed_mandelbrot_kernel_label;
 
     bl::bench::benchmark_chart_writer chart_writer{
         "f128",
@@ -61,8 +60,8 @@ namespace
 
     struct bench_result
     {
-        double total_ms = 0.0;
-        double ns_per_iter = 0.0;
+        double total_ms              = 0.0;
+        double ns_per_iter           = 0.0;
         std::int64_t iteration_count = 0;
     };
 
@@ -234,7 +233,7 @@ namespace
         double lo_scale_hi = 0.95)
     {
         const double mantissa = random_real(rng, 0.5, 1.9999999999999998);
-        double hi = std::ldexp(mantissa, random_int(rng, exp_lo, exp_hi));
+        double hi             = std::ldexp(mantissa, random_int(rng, exp_lo, exp_hi));
         if (!positive)
             hi *= random_sign(rng);
 
@@ -252,8 +251,8 @@ namespace
     [[nodiscard]] value_spec make_positive_near_one_spec(std::mt19937_64& rng, bool with_lo)
     {
         const double delta = std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 18, 60));
-        const double hi = 1.0 + random_sign(rng) * delta;
-        double lo = 0.0;
+        const double hi    = 1.0 + random_sign(rng) * delta;
+        double lo          = 0.0;
         if (with_lo)
             lo = random_sign(rng) * random_real(rng, 0.05, 0.95) * ulp_of(hi);
 
@@ -273,18 +272,18 @@ namespace
     [[nodiscard]] value_spec make_trig_hard_spec(std::mt19937_64& rng)
     {
         const double pi_2 = std::acos(-1.0) * 0.5;
-        const double k = std::ldexp(random_real(rng, 0.75, 1.25), random_int(rng, 18, 42));
-        const double eps = random_sign(rng) * std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 12, 40));
-        const double hi = random_sign(rng) * (k * pi_2 + eps);
-        const double lo = random_sign(rng) * random_real(rng, 0.05, 0.95) * ulp_of(hi);
+        const double k    = std::ldexp(random_real(rng, 0.75, 1.25), random_int(rng, 18, 42));
+        const double eps  = random_sign(rng) * std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 12, 40));
+        const double hi   = random_sign(rng) * (k * pi_2 + eps);
+        const double lo   = random_sign(rng) * random_real(rng, 0.05, 0.95) * ulp_of(hi);
         return renorm_spec(hi, lo);
     }
 
     [[nodiscard]] value_spec make_inverse_trig_hard_spec(std::mt19937_64& rng)
     {
         const double margin = std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 18, 58));
-        const double hi = random_sign(rng) * (1.0 - margin);
-        double lo = random_sign(rng) * random_real(rng, 0.05, 0.95) * ulp_of(hi);
+        const double hi     = random_sign(rng) * (1.0 - margin);
+        double lo           = random_sign(rng) * random_real(rng, 0.05, 0.95) * ulp_of(hi);
         value_spec spec = renorm_spec(hi, lo);
         const double sum = spec.hi + spec.lo;
         if (sum >= 1.0)
@@ -297,10 +296,10 @@ namespace
     [[nodiscard]] value_spec make_exp_hard_spec(std::mt19937_64& rng)
     {
         const double ln2 = std::log(2.0);
-        const double k = static_cast<double>(random_int(rng, -128, 128));
+        const double k   = static_cast<double>(random_int(rng, -128, 128));
         const double eps = random_sign(rng) * std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 18, 50));
-        const double hi = k * ln2 + eps;
-        const double lo = random_sign(rng) * random_real(rng, 0.05, 0.95) * ulp_of(hi == 0.0 ? 1.0 : hi);
+        const double hi  = k * ln2 + eps;
+        const double lo  = random_sign(rng) * random_real(rng, 0.05, 0.95) * ulp_of(hi == 0.0 ? 1.0 : hi);
         return renorm_spec(hi, lo);
     }
 
@@ -321,11 +320,11 @@ namespace
 
     struct random_value_domain
     {
-        double min_value = std::numeric_limits<double>::infinity();
-        double max_value = -std::numeric_limits<double>::infinity();
-        double min_abs = std::numeric_limits<double>::infinity();
-        double max_abs = 0.0;
-        bool saw_value = false;
+        double min_value  = std::numeric_limits<double>::infinity();
+        double max_value  = -std::numeric_limits<double>::infinity();
+        double min_abs    = std::numeric_limits<double>::infinity();
+        double max_abs    = 0.0;
+        bool saw_value    = false;
         bool saw_negative = false;
         bool saw_positive = false;
     };
@@ -475,8 +474,8 @@ namespace
 
     [[nodiscard]] value_spec make_unit_random_value_spec(std::mt19937_64& rng, const random_value_domain& domain)
     {
-        const double lo = domain.saw_negative ? -std::nextafter(1.0, 0.0) : std::numeric_limits<double>::denorm_min();
-        const double hi = domain.saw_positive ? std::nextafter(1.0, 0.0) : -std::numeric_limits<double>::denorm_min();
+        const double lo   = domain.saw_negative ? -std::nextafter(1.0, 0.0) : std::numeric_limits<double>::denorm_min();
+        const double hi   = domain.saw_positive ? std::nextafter(1.0, 0.0) : -std::numeric_limits<double>::denorm_min();
         const double base = random_real(rng, lo, hi);
         const double tail = random_sign(rng) * random_real(rng, 0.05, 0.95) * ulp_of(base == 0.0 ? 1.0 : base);
         return clamp_random_value_to_domain(renorm_spec(base, tail), domain);
@@ -515,8 +514,8 @@ namespace
     {
         const double min_abs = std::max(domain.min_abs, std::numeric_limits<double>::denorm_min());
         const double max_abs = std::max(domain.max_abs, min_abs);
-        int exp_lo = static_cast<int>(std::floor(std::log2(min_abs))) - 1;
-        int exp_hi = static_cast<int>(std::ceil(std::log2(max_abs))) + 1;
+        int exp_lo           = static_cast<int>(std::floor(std::log2(min_abs))) - 1;
+        int exp_hi           = static_cast<int>(std::ceil(std::log2(max_abs))) + 1;
 
         if (!domain.saw_negative && domain.min_value >= 1.0)
             exp_lo = std::max(exp_lo, 0);
@@ -578,11 +577,11 @@ namespace
     {
         std::array<affine_transform_value_spec, bucket_value_count> out{};
         std::mt19937_64 rng{make_typical_seed(specs, "affine-transform")};
-        const random_value_domain x_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.x; });
-        const random_value_domain y_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.y; });
-        const random_value_domain angle_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.angle; });
-        const random_value_domain scale_x_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.scale_x; });
-        const random_value_domain scale_y_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.scale_y; });
+        const random_value_domain x_domain           = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.x; });
+        const random_value_domain y_domain           = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.y; });
+        const random_value_domain angle_domain       = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.angle; });
+        const random_value_domain scale_x_domain     = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.scale_x; });
+        const random_value_domain scale_y_domain     = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.scale_y; });
         const random_value_domain translate_x_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.translate_x; });
         const random_value_domain translate_y_domain = make_spec_domain(specs.medium, [](const affine_transform_value_spec& spec) { return spec.translate_y; });
 
@@ -611,26 +610,26 @@ namespace
     {
         static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
 
-        constexpr int max_exp = std::min<int>(62, std::numeric_limits<SignedInt>::digits - 1);
-        constexpr int fast_exp_hi = std::min(51, max_exp);
+        constexpr int max_exp             = std::min<int>(62, std::numeric_limits<SignedInt>::digits - 1);
+        constexpr int fast_exp_hi         = std::min(51, max_exp);
         constexpr bool has_fallback_range = max_exp >= 52;
 
         const bool use_fallback_range = has_fallback_range && random_real(rng, 0.0, 1.0) >= 0.75;
-        const int exp_lo = use_fallback_range ? 52 : 0;
-        const int exp_hi = use_fallback_range ? max_exp : fast_exp_hi;
-        const double weight = sample_bounded_normal_weight(rng);
-        const int exp = exp_lo + std::min(exp_hi - exp_lo, static_cast<int>(std::floor(weight * static_cast<double>(exp_hi - exp_lo + 1))));
+        const int exp_lo              = use_fallback_range ? 52 : 0;
+        const int exp_hi              = use_fallback_range ? max_exp : fast_exp_hi;
+        const double weight           = sample_bounded_normal_weight(rng);
+        const int exp                 = exp_lo + std::min(exp_hi - exp_lo, static_cast<int>(std::floor(weight * static_cast<double>(exp_hi - exp_lo + 1))));
 
         constexpr std::array<double, 6> fractions{{ 0.25, 0.499999999999, 0.5, 0.500000000001, 0.75, 0.9375 }};
         const double fraction = fractions[static_cast<std::size_t>(random_int(rng, 0, static_cast<int>(fractions.size() - 1)))];
-        const double whole = std::floor(std::ldexp(random_real(rng, 0.5, 1.75), exp));
-        const double sign = random_sign(rng);
+        const double whole    = std::floor(std::ldexp(random_real(rng, 0.5, 1.75), exp));
+        const double sign     = random_sign(rng);
 
         if (use_fallback_range)
             return renorm_spec(sign * whole, sign * fraction);
 
         const double value = sign * (whole + fraction);
-        const double tail = sign * random_real(rng, 0.05, 0.95) * ulp_of(value == 0.0 ? 1.0 : value);
+        const double tail  = sign * random_real(rng, 0.05, 0.95) * ulp_of(value == 0.0 ? 1.0 : value);
         return renorm_spec(value, tail);
     }
 
@@ -694,10 +693,10 @@ namespace
 
         for (binary_value_spec& spec : out)
         {
-            const double angle = angle_distribution(rng);
+            const double angle  = angle_distribution(rng);
             const double radius = std::pow(10.0, log_radius_distribution(rng));
-            const double x = radius * std::cos(angle);
-            const double y = radius * std::sin(angle);
+            const double x      = radius * std::cos(angle);
+            const double y      = radius * std::sin(angle);
 
             spec.lhs = make_typical_atan_value_spec(y, rng);
             spec.rhs = make_typical_atan_value_spec(x, rng);
@@ -864,8 +863,8 @@ namespace
             if (random_bool(hard_rng))
             {
                 const double margin = std::ldexp(random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 18, 60));
-                const double hi = -1.0 + margin;
-                const double lo = random_sign(hard_rng) * random_real(hard_rng, 0.05, 0.95) * ulp_of(1.0);
+                const double hi     = -1.0 + margin;
+                const double lo     = random_sign(hard_rng) * random_real(hard_rng, 0.05, 0.95) * ulp_of(1.0);
                 value = renorm_spec(hi, lo);
                 if ((value.hi + value.lo) <= -1.0)
                     value = renorm_spec(std::nextafter(-1.0, 0.0), 0.0);
@@ -988,7 +987,7 @@ namespace
         if (random_bool(rng))
         {
             const double anchor = static_cast<double>(random_int(rng, 1, 32));
-            const double delta = std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 18, 58));
+            const double delta  = std::ldexp(random_real(rng, 0.25, 0.95), -random_int(rng, 18, 58));
             return renorm_spec(anchor + random_sign(rng) * delta, 0.0);
         }
 
@@ -1240,9 +1239,9 @@ namespace
         for (auto& value : out.medium)
         {
             const value_spec y_spec = make_random_value_spec(medium_rng, true, true, -20, 20);
-            const double q = std::ldexp(random_real(medium_rng, 0.5, 1.9999999999999998), random_int(medium_rng, 0, 18));
-            const double frac = random_real(medium_rng, 0.0, 0.95);
-            double x_hi = (y_spec.hi + y_spec.lo) * (q + frac);
+            const double q          = std::ldexp(random_real(medium_rng, 0.5, 1.9999999999999998), random_int(medium_rng, 0, 18));
+            const double frac       = random_real(medium_rng, 0.0, 0.95);
+            double x_hi             = (y_spec.hi + y_spec.lo) * (q + frac);
             if (random_bool(medium_rng))
                 x_hi = -x_hi;
             value.lhs = renorm_spec(x_hi, 0.0);
@@ -1252,10 +1251,10 @@ namespace
         for (auto& value : out.hard)
         {
             const value_spec y_spec = make_random_value_spec(hard_rng, true, true, -100, 100);
-            const f128 y = f128{ y_spec.hi, y_spec.lo };
-            const double q = std::ldexp(random_real(hard_rng, 0.5, 1.9999999999999998), random_int(hard_rng, 0, 20));
-            const f128 eps = y * std::ldexp(random_sign(hard_rng) * random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 40, 90));
-            f128 x = y * q + eps;
+            const f128 y            = f128{ y_spec.hi, y_spec.lo };
+            const double q          = std::ldexp(random_real(hard_rng, 0.5, 1.9999999999999998), random_int(hard_rng, 0, 20));
+            const f128 eps          = y * std::ldexp(random_sign(hard_rng) * random_real(hard_rng, 0.25, 0.95), -random_int(hard_rng, 40, 90));
+            f128 x                  = y * q + eps;
             if (random_bool(hard_rng))
                 x = -x;
             value.lhs = spec_from_f128(x);
@@ -1470,9 +1469,9 @@ namespace
     template<typename T, typename Work>
     [[nodiscard]] bench_result run_benchmark(std::int64_t iteration_count, Work&& work)
     {
-        const auto start = clock_type::now();
+        const auto start       = clock_type::now();
         const auto final_value = work();
-        const auto end = clock_type::now();
+        const auto end         = clock_type::now();
 
         consume_result(final_value);
 
@@ -1549,10 +1548,10 @@ namespace
             chart_writer.record_result(group, label, results.typical.f128.ns_per_iter, results.typical.mpfr.ns_per_iter);
 
         const std::string label_prefix = std::string(group) + " / " + label;
-        std::string easy_label = label_prefix + " [easy]";
-        std::string medium_label = label_prefix + " [medium]";
-        std::string hard_label = label_prefix + " [hard]";
-        std::string typical_label = label_prefix + " [typical]";
+        std::string easy_label         = label_prefix + " [easy]";
+        std::string medium_label       = label_prefix + " [medium]";
+        std::string hard_label         = label_prefix + " [hard]";
+        std::string typical_label      = label_prefix + " [typical]";
 
         if constexpr (!only_bench_typical)
         {
@@ -2136,8 +2135,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -2165,8 +2164,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<std::pair<T, T>>(iteration_count, [&]()
         {
@@ -2198,8 +2197,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -2209,7 +2208,7 @@ namespace
             {
                 for (std::size_t i = 0; i < ValueCount; ++i)
                 {
-                    const Scalar scalar = scalars[i % ScalarCount];
+                    const Scalar scalar    = scalars[i % ScalarCount];
                     const bool scalar_left = ((static_cast<std::size_t>(outer) + i) & 1u) != 0u;
                     acc = blend_result(op(values[i], scalar, scalar_left), acc);
                 }
@@ -2232,8 +2231,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -2273,8 +2272,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(bucket_value_count);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -2319,8 +2318,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -2341,8 +2340,8 @@ namespace
 
                     if constexpr (Workload == mixed_recurrence_workload::one)
                     {
-                        auto xx = x * x;
-                        auto yy = y * y;
+                        auto xx  = x * x;
+                        auto yy  = y * y;
                         auto xy0 = x * y;
                         auto xy1 = x * y;
 
@@ -2410,8 +2409,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -2423,8 +2422,8 @@ namespace
             {
                 for (auto& item : state)
                 {
-                    const T sin_angle = apply_sin(item.angle);
-                    const T cos_angle = apply_cos(item.angle);
+                    const T sin_angle     = apply_sin(item.angle);
+                    const T cos_angle     = apply_cos(item.angle);
                     const T neg_sin_angle = -sin_angle;
 
                     const T m00 = cos_angle * item.scale_x;
@@ -2482,8 +2481,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -2502,26 +2501,26 @@ namespace
                     const T scalar_lhs_add = add_lhs[scalar_index] + item.y;
                     const T scalar_rhs_mul = scalar_rhs_add * mul_rhs[scalar_index];
                     const T scalar_lhs_mul = mul_lhs[scalar_index] * scalar_lhs_add;
-                    const T scalar_div = scalar_rhs_mul / div_rhs[scalar_index];
+                    const T scalar_div     = scalar_rhs_mul / div_rhs[scalar_index];
 
-                    const T qd_add = scalar_div + item.a;
-                    const T qd_sub = scalar_lhs_mul - item.b;
-                    const T qd_mul = qd_add * qd_sub;
-                    const T c2 = item.c * item.c;
-                    const T d2 = item.d * item.d;
+                    const T qd_add           = scalar_div + item.a;
+                    const T qd_sub           = scalar_lhs_mul - item.b;
+                    const T qd_mul           = qd_add * qd_sub;
+                    const T c2               = item.c * item.c;
+                    const T d2               = item.d * item.d;
                     const T denominator_base = c2 + d2;
-                    const T denominator = denominator_base + 1.0;
-                    const T qd_div = qd_mul / denominator;
+                    const T denominator      = denominator_base + 1.0;
+                    const T qd_div           = qd_mul / denominator;
 
-                    const T x_denominator = denominator + 2.0;
-                    const T c_half = item.c * 0.5;
+                    const T x_denominator      = denominator + 2.0;
+                    const T c_half             = item.c * 0.5;
                     const T y_denominator_base = denominator + c_half;
-                    const T y_denominator = y_denominator_base + 2.5;
+                    const T y_denominator      = y_denominator_base + 2.5;
 
-                    const T x_step = qd_div / x_denominator;
+                    const T x_step    = qd_div / x_denominator;
                     const T x_damping = 0.125 * item.a;
-                    const T y_delta = qd_add - qd_sub;
-                    const T y_step = y_delta / y_denominator;
+                    const T y_delta   = qd_add - qd_sub;
+                    const T y_step    = y_delta / y_denominator;
                     const T y_damping = item.b * 0.0625;
 
                     item.x = x_step + x_damping;
@@ -2565,8 +2564,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -2578,12 +2577,12 @@ namespace
             {
                 for (auto& item : state)
                 {
-                    const T sum_plus_value = ((item.x * item.y) + (item.a * item.b)) + item.c;
+                    const T sum_plus_value   = ((item.x * item.y) + (item.a * item.b)) + item.c;
                     const T diff_minus_value = ((item.x * item.a) - (item.b * item.c)) - item.d;
-                    const T c2 = item.c * item.c;
-                    const T d2 = item.d * item.d;
-                    const T denominator_x = c2 + T(2.0);
-                    const T denominator_y = d2 + T(2.5);
+                    const T c2               = item.c * item.c;
+                    const T d2               = item.d * item.d;
+                    const T denominator_x    = c2 + T(2.0);
+                    const T denominator_y    = d2 + T(2.5);
 
                     item.x = sum_plus_value / denominator_x;
                     item.y = diff_minus_value / denominator_y;
@@ -2641,8 +2640,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(static_cast<std::int64_t>(ValueCount), target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(ValueCount);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(ValueCount) - 1) / static_cast<std::int64_t>(ValueCount));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(ValueCount);
 
         return run_benchmark<T>(iteration_count, [&]()
         {
@@ -2653,7 +2652,7 @@ namespace
                 for (std::size_t i = 0; i < ValueCount; ++i)
                 {
                     const auto& item = values[i];
-                    const T value = apply_product_pair_helper<Difference>(item.a, item.b, item.c, item.d);
+                    const T value    = apply_product_pair_helper<Difference>(item.a, item.b, item.c, item.d);
                     acc = blend_result(value, acc);
                 }
             }
@@ -2675,8 +2674,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(bucket_value_count);
 
         return run_benchmark<Result>(iteration_count, [&]()
         {
@@ -2708,8 +2707,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(bucket_value_count);
 
         return run_benchmark<Result>(iteration_count, [&]()
         {
@@ -2748,8 +2747,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(bucket_value_count);
 
         return run_benchmark<Result>(iteration_count, [&]()
         {
@@ -2787,8 +2786,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(bucket_value_count);
 
         return run_benchmark<Result>(iteration_count, [&]()
         {
@@ -2828,8 +2827,8 @@ namespace
 
         const std::int64_t target_iterations = scale_to_bucket ? total_iterations / static_cast<std::int64_t>(bucket_count) : total_iterations;
         const std::int64_t bucket_iterations = std::max<std::int64_t>(bucket_value_count, target_iterations);
-        const std::int64_t outer_loops = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
-        const std::int64_t iteration_count = outer_loops * static_cast<std::int64_t>(bucket_value_count);
+        const std::int64_t outer_loops       = std::max<std::int64_t>(1, (bucket_iterations + static_cast<std::int64_t>(bucket_value_count) - 1) / static_cast<std::int64_t>(bucket_value_count));
+        const std::int64_t iteration_count   = outer_loops * static_cast<std::int64_t>(bucket_value_count);
 
         return run_benchmark<Result>(iteration_count, [&]()
         {
@@ -3201,7 +3200,7 @@ namespace
     struct mandelbrot_kernel_total
     {
         std::int64_t escape_iterations = 0;
-        std::int64_t escaped_pixels = 0;
+        std::int64_t escaped_pixels    = 0;
     };
 
     template<typename T>
@@ -3223,19 +3222,19 @@ namespace
     [[nodiscard]] mandelbrot_kernel_total<T> run_mandelbrot_kernel()
     {
         constexpr int max_iter = 20000;
-        constexpr int width = mandelbrot_kernel_width;
-        constexpr int height = mandelbrot_kernel_height;
+        constexpr int width    = mandelbrot_kernel_width;
+        constexpr int height   = mandelbrot_kernel_height;
 
         const T center_x = parse_mandelbrot_value<T>("-1.73200006480238126967529761198455");
         const T center_y = parse_mandelbrot_value<T>("0.00000019235376499049335337716270");
-        const T zoom = parse_mandelbrot_value<T>("2.0e+28");
+        const T zoom     = parse_mandelbrot_value<T>("2.0e+28");
 
-        const T width_value = T(width);
+        const T width_value  = T(width);
         const T height_value = T(height);
-        const T scale_x = T(4.0) / T(zoom * width_value);
-        const T scale_y = T(4.0) / T(zoom * height_value);
-        const T half_w = T(width) * 0.5;
-        const T half_h = T(height) * 0.5;
+        const T scale_x      = T(4.0) / T(zoom * width_value);
+        const T scale_y      = T(4.0) / T(zoom * height_value);
+        const T half_w       = T(width) * 0.5;
+        const T half_h       = T(height) * 0.5;
 
         mandelbrot_kernel_total<T> total{};
 
@@ -3275,9 +3274,9 @@ namespace
     template<typename T>
     [[nodiscard]] bench_result benchmark_mandelbrot_kernel()
     {
-        const auto start = clock_type::now();
+        const auto start                       = clock_type::now();
         const mandelbrot_kernel_total<T> total = run_mandelbrot_kernel<T>();
-        const auto end = clock_type::now();
+        const auto end                         = clock_type::now();
 
         consume_result(total.escape_iterations);
         consume_result(total.escaped_pixels);
@@ -3495,7 +3494,8 @@ namespace
         print_bucketed_results("f128 <-> i64", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_i64_scalars, total_iterations, op));
         print_bucketed_results("f128 <-> i32", label, run_bucketed_scalar_overload_value_benchmark(specs, arithmetic_i32_scalars, total_iterations, op));
     }
-}
+
+} // namespace
 
 TEST_CASE("f128 vs mpfr add performance", "[bench][fltx][f128][arithmetic][add]")
 {
@@ -3556,42 +3556,42 @@ TEST_CASE("f128 vs mpfr divide performance", "[bench][fltx][f128][arithmetic][di
 TEST_CASE("f128 vs mpfr square-difference mixed recurrence performance", "[bench][fltx][f128][mixed][mixed-workload]")
 {
     const std::int64_t total_iterations = 25000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::one>(mixed_recurrence_specs(), total_iterations);
+    const auto results                  = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::one>(mixed_recurrence_specs(), total_iterations);
     print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_square_diff_label, results);
 }
 
 TEST_CASE("f128 vs mpfr product-sum mixed recurrence performance", "[bench][fltx][f128][mixed][mixed-workload]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::two>(scalar_mixed_recurrence_specs(), total_iterations);
+    const auto results                  = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::two>(scalar_mixed_recurrence_specs(), total_iterations);
     print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_product_sum_label, results);
 }
 
 TEST_CASE("f128 vs mpfr scaled-product-sum mixed recurrence performance", "[bench][fltx][f128][mixed][mixed-workload]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::three>(scalar_mixed_recurrence_specs(), total_iterations);
+    const auto results                  = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::three>(scalar_mixed_recurrence_specs(), total_iterations);
     print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_scaled_product_sum_label, results);
 }
 
 TEST_CASE("f128 vs mpfr shifted-sum mixed recurrence performance", "[bench][fltx][f128][mixed][mixed-workload]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::four>(scalar_mixed_recurrence_specs(), total_iterations);
+    const auto results                  = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::four>(scalar_mixed_recurrence_specs(), total_iterations);
     print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_shifted_sum_label, results);
 }
 
 TEST_CASE("f128 vs mpfr three-product-sum mixed recurrence performance", "[bench][fltx][f128][mixed][mixed-workload]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::five>(scalar_mixed_recurrence_specs(), total_iterations);
+    const auto results                  = run_bucketed_mixed_recurrence_benchmark<mixed_recurrence_workload::five>(scalar_mixed_recurrence_specs(), total_iterations);
     print_bucketed_results(bl::bench::mixed_workloads_group_name, mixed_recurrence_three_product_sum_label, results);
 }
 
 TEST_CASE("f128 vs mpfr affine trig transform performance", "[bench][fltx][f128][mixed][mixed-workload][affine][trig]")
 {
     const std::int64_t total_iterations = 800ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_affine_trig_transform_benchmark(affine_transform_specs(), total_iterations);
+    const auto results                  = run_bucketed_affine_trig_transform_benchmark(affine_transform_specs(), total_iterations);
     print_bucketed_results(bl::bench::mixed_workloads_group_name, affine_trig_transform_label, results);
 }
 
@@ -3608,28 +3608,28 @@ TEST_CASE("f128 vs mpfr mandelbrot kernel performance", "[bench][fltx][f128][mix
 TEST_CASE("f128 vs mpfr scalar mixed recurrence performance", "[bench][fltx][f128][mixed][mixed-workload][scalar]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_scalar_mixed_recurrence_benchmark(scalar_mixed_recurrence_specs(), total_iterations);
+    const auto results                  = run_bucketed_scalar_mixed_recurrence_benchmark(scalar_mixed_recurrence_specs(), total_iterations);
     print_bucketed_results(bl::bench::mixed_workloads_group_name, scalar_mixed_recurrence_label, results);
 }
 
 TEST_CASE("f128 vs mpfr fused mixed expression performance", "[bench][fltx][f128][mixed][mixed-workload][fused]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_fused_mixed_expression_benchmark(scalar_mixed_recurrence_specs(), total_iterations);
+    const auto results                  = run_bucketed_fused_mixed_expression_benchmark(scalar_mixed_recurrence_specs(), total_iterations);
     print_bucketed_results(bl::bench::mixed_workloads_group_name, fused_mixed_expression_label, results);
 }
 
 TEST_CASE("f128 sum-products helper performance", "[bench][fltx][f128][internal][sum-products]")
 {
     const std::int64_t total_iterations = 12000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_product_pair_helper_benchmark<false>(scalar_mixed_recurrence_specs(), total_iterations);
+    const auto results                  = run_bucketed_product_pair_helper_benchmark<false>(scalar_mixed_recurrence_specs(), total_iterations);
     print_bucketed_results("f128 internals", sum_products_helper_label, results);
 }
 
 TEST_CASE("f128 diff-products helper performance", "[bench][fltx][f128][internal][diff-products]")
 {
     const std::int64_t total_iterations = 12000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_product_pair_helper_benchmark<true>(scalar_mixed_recurrence_specs(), total_iterations);
+    const auto results                  = run_bucketed_product_pair_helper_benchmark<true>(scalar_mixed_recurrence_specs(), total_iterations);
     print_bucketed_results("f128 internals", diff_products_helper_label, results);
 }
 
@@ -3637,203 +3637,203 @@ TEST_CASE("f128 diff-products helper performance", "[bench][fltx][f128][internal
 TEST_CASE("f128 vs mpfr abs performance", "[bench][fltx][f128][arithmetic][abs]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<f128, mpfr_ref>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_abs(x); });
+    const auto results                  = run_bucketed_value_benchmark_result<f128, mpfr_ref>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_abs(x); });
     print_bucketed_results("abs", results);
 }
 
 TEST_CASE("f128 vs mpfr fabs performance", "[bench][fltx][f128][arithmetic][fabs]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<f128, mpfr_ref>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_fabs(x); });
+    const auto results                  = run_bucketed_value_benchmark_result<f128, mpfr_ref>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_fabs(x); });
     print_bucketed_results("fabs", results);
 }
 
 TEST_CASE("f128 vs mpfr lround performance", "[bench][fltx][f128][rounding][lround]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_integer_rounding_benchmark_result<long, long>(integer_rounding_specs<long>(), total_iterations, [](const auto& x) { return apply_lround(x); });
+    const auto results                  = run_integer_rounding_benchmark_result<long, long>(integer_rounding_specs<long>(), total_iterations, [](const auto& x) { return apply_lround(x); });
     print_bucketed_results("lround", results);
 }
 
 TEST_CASE("f128 vs mpfr llround performance", "[bench][fltx][f128][rounding][llround]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_integer_rounding_benchmark_result<long long, long long>(integer_rounding_specs<long long>(), total_iterations, [](const auto& x) { return apply_llround(x); });
+    const auto results                  = run_integer_rounding_benchmark_result<long long, long long>(integer_rounding_specs<long long>(), total_iterations, [](const auto& x) { return apply_llround(x); });
     print_bucketed_results("llround", results);
 }
 
 TEST_CASE("f128 vs mpfr lrint performance", "[bench][fltx][f128][rounding][lrint]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_integer_rounding_benchmark_result<long, long>(integer_rounding_specs<long>(), total_iterations, [](const auto& x) { return apply_lrint(x); });
+    const auto results                  = run_integer_rounding_benchmark_result<long, long>(integer_rounding_specs<long>(), total_iterations, [](const auto& x) { return apply_lrint(x); });
     print_bucketed_results("lrint", results);
 }
 
 TEST_CASE("f128 vs mpfr llrint performance", "[bench][fltx][f128][rounding][llrint]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_integer_rounding_benchmark_result<long long, long long>(integer_rounding_specs<long long>(), total_iterations, [](const auto& x) { return apply_llrint(x); });
+    const auto results                  = run_integer_rounding_benchmark_result<long long, long long>(integer_rounding_specs<long long>(), total_iterations, [](const auto& x) { return apply_llrint(x); });
     print_bucketed_results("llrint", results);
 }
 
 TEST_CASE("f128 vs mpfr remquo performance", "[bench][fltx][f128][remquo]")
 {
     const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark_result<std::pair<f128, int>, std::pair<mpfr_ref, int>>(fmod_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_remquo(x, y); });
+    const auto results                  = run_bucketed_binary_benchmark_result<std::pair<f128, int>, std::pair<mpfr_ref, int>>(fmod_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_remquo(x, y); });
     print_bucketed_results("remquo", results);
 }
 
 TEST_CASE("f128 vs mpfr fma performance", "[bench][fltx][f128][fma]")
 {
     const std::int64_t total_iterations = 20000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_ternary_benchmark_result<f128, mpfr_ref>(mixed_recurrence_specs(), total_iterations, [](const auto& x, const auto& y, const auto& z) { return apply_fma(x, y, z); });
+    const auto results                  = run_bucketed_ternary_benchmark_result<f128, mpfr_ref>(mixed_recurrence_specs(), total_iterations, [](const auto& x, const auto& y, const auto& z) { return apply_fma(x, y, z); });
     print_bucketed_results("fma", results);
 }
 
 TEST_CASE("f128 vs mpfr fmin performance", "[bench][fltx][f128][fmin]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fmin(x, y); });
+    const auto results                  = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fmin(x, y); });
     print_bucketed_results("fmin", results);
 }
 
 TEST_CASE("f128 vs mpfr fmax performance", "[bench][fltx][f128][fmax]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fmax(x, y); });
+    const auto results                  = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fmax(x, y); });
     print_bucketed_results("fmax", results);
 }
 
 TEST_CASE("f128 vs mpfr fdim performance", "[bench][fltx][f128][fdim]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fdim(x, y); });
+    const auto results                  = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fdim(x, y); });
     print_bucketed_results("fdim", results);
 }
 
 TEST_CASE("f128 vs mpfr copysign performance", "[bench][fltx][f128][copysign]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_copysign(x, y); });
+    const auto results                  = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_copysign(x, y); });
     print_bucketed_results("copysign", results);
 }
 
 TEST_CASE("f128 vs mpfr scalbn performance", "[bench][fltx][f128][scalbn]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_exponent_benchmark_result<f128, mpfr_ref, int>(ldexp_specs(), total_iterations, [](const auto& x, int e) { return apply_scalbn(x, e); });
+    const auto results                  = run_bucketed_exponent_benchmark_result<f128, mpfr_ref, int>(ldexp_specs(), total_iterations, [](const auto& x, int e) { return apply_scalbn(x, e); });
     print_bucketed_results("scalbn", results);
 }
 
 TEST_CASE("f128 vs mpfr scalbln performance", "[bench][fltx][f128][scalbln]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_exponent_benchmark_result<f128, mpfr_ref, long>(ldexp_specs(), total_iterations, [](const auto& x, long e) { return apply_scalbln(x, e); });
+    const auto results                  = run_bucketed_exponent_benchmark_result<f128, mpfr_ref, long>(ldexp_specs(), total_iterations, [](const auto& x, long e) { return apply_scalbln(x, e); });
     print_bucketed_results("scalbln", results);
 }
 
 TEST_CASE("f128 vs mpfr frexp performance", "[bench][fltx][f128][frexp]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<std::pair<f128, int>, std::pair<mpfr_ref, int>>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_frexp(x); });
+    const auto results                  = run_bucketed_value_benchmark_result<std::pair<f128, int>, std::pair<mpfr_ref, int>>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_frexp(x); });
     print_bucketed_results("frexp", results);
 }
 
 TEST_CASE("f128 vs mpfr modf performance", "[bench][fltx][f128][modf]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<std::pair<f128, f128>, std::pair<mpfr_ref, mpfr_ref>>(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_modf(x); });
+    const auto results                  = run_bucketed_value_benchmark_result<std::pair<f128, f128>, std::pair<mpfr_ref, mpfr_ref>>(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_modf(x); });
     print_bucketed_results("modf", results);
 }
 
 TEST_CASE("f128 vs mpfr ilogb performance", "[bench][fltx][f128][ilogb]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<int, int>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_ilogb(x); });
+    const auto results                  = run_bucketed_value_benchmark_result<int, int>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_ilogb(x); });
     print_bucketed_results("ilogb", results);
 }
 
 TEST_CASE("f128 vs mpfr logb performance", "[bench][fltx][f128][logb]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_value_benchmark_result<f128, mpfr_ref>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_logb(x); });
+    const auto results                  = run_bucketed_value_benchmark_result<f128, mpfr_ref>(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_logb(x); });
     print_bucketed_results("logb", results);
 }
 
 TEST_CASE("f128 vs mpfr nextafter performance", "[bench][fltx][f128][nextafter]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& from, const auto& to) { return apply_nextafter(from, to); });
+    const auto results                  = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& from, const auto& to) { return apply_nextafter(from, to); });
     print_bucketed_results("nextafter", results);
 }
 
 TEST_CASE("f128 vs mpfr nexttoward(type) performance", "[bench][fltx][f128][nexttoward]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& from, const auto& to) { return apply_nexttoward(from, to); });
+    const auto results                  = run_bucketed_binary_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& from, const auto& to) { return apply_nexttoward(from, to); });
     print_bucketed_results("nexttoward(type)", results);
 }
 
 TEST_CASE("f128 vs mpfr nexttoward(long double) performance", "[bench][fltx][f128][nexttoward]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_long_double_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& from, long double to) { return apply_nexttoward_long_double(from, to); });
+    const auto results                  = run_bucketed_binary_long_double_benchmark_result<f128, mpfr_ref>(generic_binary_specs(), total_iterations, [](const auto& from, long double to) { return apply_nexttoward_long_double(from, to); });
     print_bucketed_results("nexttoward(long double)", results);
 }
 
 TEST_CASE("f128 vs mpfr floor performance", "[bench][fltx][f128][rounding]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_floor(x); });
+    const auto results                  = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_floor(x); });
     print_bucketed_results("floor", results);
 }
 
 TEST_CASE("f128 vs mpfr ceil performance", "[bench][fltx][f128][rounding]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_ceil(x); });
+    const auto results                  = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_ceil(x); });
     print_bucketed_results("ceil", results);
 }
 
 TEST_CASE("f128 vs mpfr trunc performance", "[bench][fltx][f128][rounding]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_trunc(x); });
+    const auto results                  = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_trunc(x); });
     print_bucketed_results("trunc", results);
 }
 
 TEST_CASE("f128 vs mpfr round performance", "[bench][fltx][f128][rounding]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_round(x); });
+    const auto results                  = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_round(x); });
     print_bucketed_results("round", results);
 }
 
 TEST_CASE("f128 vs mpfr sqrt performance", "[bench][fltx][f128][sqrt]")
 {
     const std::int64_t total_iterations = 12000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(positive_sqrt_specs(), total_iterations, [](const auto& x) { return apply_sqrt(x); });
+    const auto results                  = run_bucketed_unary_benchmark(positive_sqrt_specs(), total_iterations, [](const auto& x) { return apply_sqrt(x); });
     print_bucketed_results("sqrt", results);
 }
 
 TEST_CASE("f128 vs mpfr exp performance", "[bench][fltx][f128][exp]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(exponent_specs(), total_iterations, [](const auto& x) { return apply_exp(x); });
+    const auto results                  = run_bucketed_unary_benchmark(exponent_specs(), total_iterations, [](const auto& x) { return apply_exp(x); });
     print_bucketed_results("exp", results);
 }
 
 TEST_CASE("f128 vs mpfr exp2 performance", "[bench][fltx][f128][exp2]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(exponent_specs(), total_iterations, [](const auto& x) { return apply_exp2(x); });
+    const auto results                  = run_bucketed_unary_benchmark(exponent_specs(), total_iterations, [](const auto& x) { return apply_exp2(x); });
     print_bucketed_results("exp2", results);
 }
 
 TEST_CASE("f128 vs mpfr ldexp performance", "[bench][fltx][f128][ldexp]")
 {
     const std::int64_t total_iterations = 16000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_ldexp_benchmark(ldexp_specs(), total_iterations);
+    const auto results                  = run_bucketed_ldexp_benchmark(ldexp_specs(), total_iterations);
     print_bucketed_results("ldexp", results);
 }
 
@@ -3847,70 +3847,70 @@ TEST_CASE("f128 vs mpfr ldexp performance", "[bench][fltx][f128][ldexp]")
 TEST_CASE("f128 vs mpfr log performance", "[bench][fltx][f128][log]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(positive_log_specs(), total_iterations, [](const auto& x) { return apply_log(x); });
+    const auto results                  = run_bucketed_unary_benchmark(positive_log_specs(), total_iterations, [](const auto& x) { return apply_log(x); });
     print_bucketed_results("log", results);
 }
 
 TEST_CASE("f128 vs mpfr log2 performance", "[bench][fltx][f128][log2]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(positive_log_specs(), total_iterations, [](const auto& x) { return apply_log2(x); });
+    const auto results                  = run_bucketed_unary_benchmark(positive_log_specs(), total_iterations, [](const auto& x) { return apply_log2(x); });
     print_bucketed_results("log2", results);
 }
 
 TEST_CASE("f128 vs mpfr log10 performance", "[bench][fltx][f128][log10]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(positive_log_specs(), total_iterations, [](const auto& x) { return apply_log10(x); });
+    const auto results                  = run_bucketed_unary_benchmark(positive_log_specs(), total_iterations, [](const auto& x) { return apply_log10(x); });
     print_bucketed_results("log10", results);
 }
 
 TEST_CASE("f128 vs mpfr fmod performance", "[bench][fltx][f128][fmod]")
 {
     const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark(fmod_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fmod(x, y); });
+    const auto results                  = run_bucketed_binary_benchmark(fmod_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_fmod(x, y); });
     print_bucketed_results("fmod", results);
 }
 
 TEST_CASE("f128 vs mpfr pow performance", "[bench][fltx][f128][pow]")
 {
     const std::int64_t total_iterations = 3000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark(pow_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_pow(x, y); });
+    const auto results                  = run_bucketed_binary_benchmark(pow_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_pow(x, y); });
     print_bucketed_results("pow", results);
 }
 
 TEST_CASE("f128 vs mpfr sin performance", "[bench][fltx][f128][transcendental][trig][sin]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(trig_specs(), total_iterations, [](const auto& x) { return apply_sin(x); });
+    const auto results                  = run_bucketed_unary_benchmark(trig_specs(), total_iterations, [](const auto& x) { return apply_sin(x); });
     print_bucketed_results("sin", results);
 }
 
 TEST_CASE("f128 vs mpfr cos performance", "[bench][fltx][f128][transcendental][trig][cos]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(trig_specs(), total_iterations, [](const auto& x) { return apply_cos(x); });
+    const auto results                  = run_bucketed_unary_benchmark(trig_specs(), total_iterations, [](const auto& x) { return apply_cos(x); });
     print_bucketed_results("cos", results);
 }
 
 TEST_CASE("f128 vs mpfr sincos performance", "[bench][fltx][f128][transcendental][trig][sincos]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_sincos_benchmark(trig_specs(), total_iterations);
+    const auto results                  = run_bucketed_sincos_benchmark(trig_specs(), total_iterations);
     print_bucketed_results("sincos", results);
 }
 
 TEST_CASE("f128 vs mpfr tan performance", "[bench][fltx][f128][transcendental][trig][tan]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(trig_specs(), total_iterations, [](const auto& x) { return apply_tan(x); });
+    const auto results                  = run_bucketed_unary_benchmark(trig_specs(), total_iterations, [](const auto& x) { return apply_tan(x); });
     print_bucketed_results("tan", results);
 }
 
 TEST_CASE("f128 vs mpfr atan performance", "[bench][fltx][f128][transcendental][trig][atan]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto typical_specs = make_typical_atan_specs();
+    const auto typical_specs            = make_typical_atan_specs();
     bucketed_comparison_result results{};
     results.typical.f128 = benchmark_unary_bucket<f128>(typical_specs, total_iterations, [](const auto& x) { return apply_atan(x); }, false);
     results.typical.mpfr = benchmark_unary_bucket<mpfr_ref>(typical_specs, total_iterations, [](const auto& x) { return apply_atan(x); }, false);
@@ -3920,7 +3920,7 @@ TEST_CASE("f128 vs mpfr atan performance", "[bench][fltx][f128][transcendental][
 TEST_CASE("f128 vs mpfr atan2 performance", "[bench][fltx][f128][transcendental][trig][atan2]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto typical_specs = make_typical_atan2_specs();
+    const auto typical_specs            = make_typical_atan2_specs();
     bucketed_comparison_result results{};
     results.typical.f128 = benchmark_binary_bucket<f128>(typical_specs, total_iterations, [](const auto& y, const auto& x) { return apply_atan2(y, x); }, false);
     results.typical.mpfr = benchmark_binary_bucket<mpfr_ref>(typical_specs, total_iterations, [](const auto& y, const auto& x) { return apply_atan2(y, x); }, false);
@@ -3930,132 +3930,132 @@ TEST_CASE("f128 vs mpfr atan2 performance", "[bench][fltx][f128][transcendental]
 TEST_CASE("f128 vs mpfr asin performance", "[bench][fltx][f128][transcendental][trig][asin]")
 {
     const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(inverse_trig_specs(), total_iterations, [](const auto& x) { return apply_asin(x); });
+    const auto results                  = run_bucketed_unary_benchmark(inverse_trig_specs(), total_iterations, [](const auto& x) { return apply_asin(x); });
     print_bucketed_results("asin", results);
 }
 
 TEST_CASE("f128 vs mpfr acos performance", "[bench][fltx][f128][transcendental][trig][acos]")
 {
     const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(inverse_trig_specs(), total_iterations, [](const auto& x) { return apply_acos(x); });
+    const auto results                  = run_bucketed_unary_benchmark(inverse_trig_specs(), total_iterations, [](const auto& x) { return apply_acos(x); });
     print_bucketed_results("acos", results);
 }
 
 TEST_CASE("f128 vs mpfr nearbyint performance", "[bench][fltx][f128][rounding][nearbyint]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_nearbyint(x); });
+    const auto results                  = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_nearbyint(x); });
     print_bucketed_results("nearbyint", results);
 }
 
 TEST_CASE("f128 vs mpfr rint performance", "[bench][fltx][f128][rounding][rint]")
 {
     const std::int64_t total_iterations = 50000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_rint(x); });
+    const auto results                  = run_bucketed_unary_benchmark(rounding_unary_specs(), total_iterations, [](const auto& x) { return apply_rint(x); });
     print_bucketed_results("rint", results);
 }
 
 TEST_CASE("f128 vs mpfr cbrt performance", "[bench][fltx][f128][cbrt]")
 {
     const std::int64_t total_iterations = 8000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_cbrt(x); });
+    const auto results                  = run_bucketed_unary_benchmark(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_cbrt(x); });
     print_bucketed_results("cbrt", results);
 }
 
 TEST_CASE("f128 vs mpfr expm1 performance", "[bench][fltx][f128][expm1]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(exponent_specs(), total_iterations, [](const auto& x) { return apply_expm1(x); });
+    const auto results                  = run_bucketed_unary_benchmark(exponent_specs(), total_iterations, [](const auto& x) { return apply_expm1(x); });
     print_bucketed_results("expm1", results);
 }
 
 TEST_CASE("f128 vs mpfr log1p performance", "[bench][fltx][f128][log1p]")
 {
     const std::int64_t total_iterations = 6000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(log1p_specs(), total_iterations, [](const auto& x) { return apply_log1p(x); });
+    const auto results                  = run_bucketed_unary_benchmark(log1p_specs(), total_iterations, [](const auto& x) { return apply_log1p(x); });
     print_bucketed_results("log1p", results);
 }
 
 TEST_CASE("f128 vs mpfr remainder performance", "[bench][fltx][f128][remainder]")
 {
     const std::int64_t total_iterations = 4000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark(fmod_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_remainder(x, y); });
+    const auto results                  = run_bucketed_binary_benchmark(fmod_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_remainder(x, y); });
     print_bucketed_results("remainder", results);
 }
 
 TEST_CASE("f128 vs mpfr hypot performance", "[bench][fltx][f128][hypot]")
 {
     const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_binary_benchmark(hypot_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_hypot(x, y); });
+    const auto results                  = run_bucketed_binary_benchmark(hypot_specs(), total_iterations, [](const auto& x, const auto& y) { return apply_hypot(x, y); });
     print_bucketed_results("hypot", results);
 }
 
 TEST_CASE("f128 vs mpfr sinh performance", "[bench][fltx][f128][transcendental][hyperbolic][sinh]")
 {
     const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(hyperbolic_specs(), total_iterations, [](const auto& x) { return apply_sinh(x); });
+    const auto results                  = run_bucketed_unary_benchmark(hyperbolic_specs(), total_iterations, [](const auto& x) { return apply_sinh(x); });
     print_bucketed_results("sinh", results);
 }
 
 TEST_CASE("f128 vs mpfr cosh performance", "[bench][fltx][f128][transcendental][hyperbolic][cosh]")
 {
     const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(hyperbolic_specs(), total_iterations, [](const auto& x) { return apply_cosh(x); });
+    const auto results                  = run_bucketed_unary_benchmark(hyperbolic_specs(), total_iterations, [](const auto& x) { return apply_cosh(x); });
     print_bucketed_results("cosh", results);
 }
 
 TEST_CASE("f128 vs mpfr tanh performance", "[bench][fltx][f128][transcendental][hyperbolic][tanh]")
 {
     const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(hyperbolic_specs(), total_iterations, [](const auto& x) { return apply_tanh(x); });
+    const auto results                  = run_bucketed_unary_benchmark(hyperbolic_specs(), total_iterations, [](const auto& x) { return apply_tanh(x); });
     print_bucketed_results("tanh", results);
 }
 
 TEST_CASE("f128 vs mpfr asinh performance", "[bench][fltx][f128][transcendental][hyperbolic][asinh]")
 {
     const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_asinh(x); });
+    const auto results                  = run_bucketed_unary_benchmark(generic_unary_specs(), total_iterations, [](const auto& x) { return apply_asinh(x); });
     print_bucketed_results("asinh", results);
 }
 
 TEST_CASE("f128 vs mpfr acosh performance", "[bench][fltx][f128][transcendental][hyperbolic][acosh]")
 {
     const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(acosh_specs(), total_iterations, [](const auto& x) { return apply_acosh(x); });
+    const auto results                  = run_bucketed_unary_benchmark(acosh_specs(), total_iterations, [](const auto& x) { return apply_acosh(x); });
     print_bucketed_results("acosh", results);
 }
 
 TEST_CASE("f128 vs mpfr atanh performance", "[bench][fltx][f128][transcendental][hyperbolic][atanh]")
 {
     const std::int64_t total_iterations = 5000ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(atanh_specs(), total_iterations, [](const auto& x) { return apply_atanh(x); });
+    const auto results                  = run_bucketed_unary_benchmark(atanh_specs(), total_iterations, [](const auto& x) { return apply_atanh(x); });
     print_bucketed_results("atanh", results);
 }
 
 TEST_CASE("f128 vs mpfr erf performance", "[bench][fltx][f128][special][erf]")
 {
     const std::int64_t total_iterations = 600ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(erf_specs(), total_iterations, [](const auto& x) { return apply_erf(x); });
+    const auto results                  = run_bucketed_unary_benchmark(erf_specs(), total_iterations, [](const auto& x) { return apply_erf(x); });
     print_bucketed_results("erf", results);
 }
 
 TEST_CASE("f128 vs mpfr erfc performance", "[bench][fltx][f128][special][erfc]")
 {
     const std::int64_t total_iterations = 250ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(erf_specs(), total_iterations, [](const auto& x) { return apply_erfc(x); });
+    const auto results                  = run_bucketed_unary_benchmark(erf_specs(), total_iterations, [](const auto& x) { return apply_erfc(x); });
     print_bucketed_results("erfc", results);
 }
 
 TEST_CASE("f128 vs mpfr lgamma performance", "[bench][fltx][f128][special][gamma][lgamma]")
 {
     const std::int64_t total_iterations = 1200ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(gamma_specs(), total_iterations, [](const auto& x) { return apply_lgamma(x); });
+    const auto results                  = run_bucketed_unary_benchmark(gamma_specs(), total_iterations, [](const auto& x) { return apply_lgamma(x); });
     print_bucketed_results("lgamma", results);
 }
 
 TEST_CASE("f128 vs mpfr tgamma performance", "[bench][fltx][f128][special][gamma][tgamma]")
 {
     const std::int64_t total_iterations = 1200ll * benchmark_scale * 8ll;
-    const auto results = run_bucketed_unary_benchmark(gamma_specs(), total_iterations, [](const auto& x) { return apply_tgamma(x); });
+    const auto results                  = run_bucketed_unary_benchmark(gamma_specs(), total_iterations, [](const auto& x) { return apply_tgamma(x); });
     print_bucketed_results("tgamma", results);
 }

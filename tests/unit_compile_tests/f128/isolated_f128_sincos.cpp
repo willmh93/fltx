@@ -1,4 +1,4 @@
-#include <f128_math.h>
+#include <fltx/f128_math.h>
 #include "isolated_runtime.h"
 
 namespace
@@ -8,7 +8,8 @@ namespace
         bl::f128 c;
         bl::f128 s;
     };
-}
+
+} // namespace
 
 void isolated_f128_sincos()
 {

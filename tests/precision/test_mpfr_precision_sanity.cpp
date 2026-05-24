@@ -4,9 +4,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
-
 #include <boost/multiprecision/mpfr.hpp>
-
 #include <catch2/catch_test_macros.hpp>
 
 #include <fltx.h>
@@ -20,9 +18,9 @@ namespace
 
     struct scan_result
     {
-        int mpfr_digits10 = 0;
+        int mpfr_digits10           = 0;
         long double matching_digits = 0.0L;
-        bool found = false;
+        bool found                  = false;
     };
 
     template<class T>
@@ -274,19 +272,19 @@ namespace
     template<class Float, class Op>
     void check_precision_case(const char* float_name)
     {
-        constexpr int max_digits10 = std::numeric_limits<Float>::digits10;
-        constexpr int ref_digits10 = max_digits10 + 80;
+        constexpr int benchmark_digits10 = std::numeric_limits<Float>::max_digits10;
+        constexpr int ref_digits10 = benchmark_digits10 + 80;
 
         using ref_t = mpfr_number<ref_digits10>;
 
         const ref_t reference_y = Op::template apply<ref_t>();
-        const ref_t fltx_y = parse_as_ref<ref_t>(Op::template apply<Float>());
+        const ref_t fltx_y      = parse_as_ref<ref_t>(Op::template apply<Float>());
 
         const long double fltx_matching_digits =
             relative_matching_digits(fltx_y, reference_y);
 
         const scan_result result =
-            scan_mpfr_digits10<Op, max_digits10, 2, ref_digits10>(
+            scan_mpfr_digits10<Op, benchmark_digits10, 2, ref_digits10>(
                 fltx_matching_digits
             );
 
@@ -295,7 +293,7 @@ namespace
 
         std::cout
             << float_name << " / " << Op::name << '\n'
-            << "  std::numeric_limits<>::digits10:    " << max_digits10 << '\n'
+            << "  benchmark mpfr digits10:            " << benchmark_digits10 << '\n'
             << "  fltx matching digits vs high MPFR:  "
             << std::fixed << std::setprecision(2) << fltx_matching_digits << '\n';
 
@@ -324,7 +322,7 @@ namespace
         INFO("best mpfr matching digits: " << result.matching_digits);
         INFO("matching gap: " << matching_gap);
 
-        CHECK(result.mpfr_digits10 <= max_digits10);
+        CHECK(result.mpfr_digits10 <= benchmark_digits10);
         CHECK(matching_gap <= 1.5L);
     }
 
@@ -341,7 +339,8 @@ namespace
         check_precision_case<Float, lgamma_op>(float_name);
         check_precision_case<Float, fmod_op>(float_name);
     }
-}
+
+} // namespace
 
 TEST_CASE("MPFR benchmark precision is comparable to f128", "[fltx][mpfr][compare_precision]")
 {

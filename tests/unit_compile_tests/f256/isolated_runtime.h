@@ -1,11 +1,11 @@
-// isolated_runtime.h
 #pragma once
 
 namespace bl
 {
     struct f128;
     struct f256;
-}
+
+} // namespace bl
 
 namespace bl::isolated
 {
@@ -25,4 +25,5 @@ namespace bl::isolated
     {
         consume_address(static_cast<void const*>(&value));
     }
-}
+
+} // namespace bl::isolated

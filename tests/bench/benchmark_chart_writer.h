@@ -1,5 +1,4 @@
 #pragma once
-
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
@@ -91,7 +90,7 @@ namespace bl::bench
         std::string label{};
         double candidate_ns_per_iter = 0.0;
         double reference_ns_per_iter = 0.0;
-        double ratio = 0.0;
+        double ratio                 = 0.0;
     };
 
     [[nodiscard]] inline double calculate_ratio(double candidate_ns_per_iter, double reference_ns_per_iter)
@@ -412,7 +411,7 @@ namespace bl::bench
         std::string csv_output_path{};
         std::string svg_output_path{};
         std::vector<benchmark_chart_entry> entries{};
-        double visible_ratio_cap = 10.0;
+        double visible_ratio_cap     = 10.0;
         bool generate_compact_report = false;
 
         [[nodiscard]] std::vector<benchmark_chart_entry> make_sorted_entries() const
@@ -444,8 +443,8 @@ namespace bl::bench
 
             double mixed_candidate_total = 0.0;
             double mixed_reference_total = 0.0;
-            double mixed_ratio_total = 0.0;
-            std::size_t mixed_count = 0;
+            double mixed_ratio_total     = 0.0;
+            std::size_t mixed_count      = 0;
 
             for (const auto& entry : entries)
             {
@@ -537,7 +536,7 @@ namespace bl::bench
 
             //constexpr double visible_ratio_cap = 6.0;
 
-            double max_ratio = 1.0;
+            double max_ratio               = 1.0;
             std::size_t longest_label_size = 0;
             for (const auto& item : sorted_entries)
             {
@@ -545,26 +544,26 @@ namespace bl::bench
                 longest_label_size = std::max(longest_label_size, item.label.size());
             }
 
-            const auto layout_entries = make_layout_entries(sorted_entries);
-            const bool has_capped_ratios = max_ratio > visible_ratio_cap;
+            const auto layout_entries      = make_layout_entries(sorted_entries);
+            const bool has_capped_ratios   = max_ratio > visible_ratio_cap;
             const double visible_max_ratio = has_capped_ratios ? visible_ratio_cap : max_ratio;
-            const double padded_max_ratio = visible_max_ratio + std::max(0.2, visible_max_ratio * 0.08);
-            const double tick_step = padded_max_ratio <= 1.5 ? 0.25 : (padded_max_ratio <= 3.5 ? 0.5 : 1.0);
-            const double tick_max = has_capped_ratios ? visible_ratio_cap : std::ceil(padded_max_ratio / tick_step) * tick_step;
+            const double padded_max_ratio  = visible_max_ratio + std::max(0.2, visible_max_ratio * 0.08);
+            const double tick_step         = padded_max_ratio <= 1.5 ? 0.25 : (padded_max_ratio <= 3.5 ? 0.5 : 1.0);
+            const double tick_max          = has_capped_ratios ? visible_ratio_cap : std::ceil(padded_max_ratio / tick_step) * tick_step;
 
-            constexpr int group_heading_height = 32;
+            constexpr int group_heading_height   = 32;
             constexpr int group_separator_height = 8;
-            constexpr int row_height = 34;
-            constexpr int bar_height = 24;
-            constexpr int top_margin = 92;
-            constexpr int bottom_margin = 24;
-            const int left_margin = std::max(250, static_cast<int>(longest_label_size * 11) + 0);
-            const int right_margin = has_capped_ratios ? 224 : 160;
+            constexpr int row_height             = 34;
+            constexpr int bar_height             = 24;
+            constexpr int top_margin             = 92;
+            constexpr int bottom_margin          = 24;
+            const int left_margin                = std::max(250, static_cast<int>(longest_label_size * 11) + 0);
+            const int right_margin               = has_capped_ratios ? 224 : 160;
             //constexpr int plot_width = 1180;
             constexpr int plot_width = 400;
-            const int width = left_margin + plot_width + right_margin;
+            const int width          = left_margin + plot_width + right_margin;
 
-            int content_height = 0;
+            int content_height     = 0;
             bool has_group_heading = false;
             for (const auto& item : layout_entries)
             {
@@ -582,10 +581,10 @@ namespace bl::bench
                 }
             }
 
-            const int height = top_margin + bottom_margin + content_height;
-            const int plot_left = left_margin;
-            const int plot_right = left_margin + plot_width;
-            const int plot_top = top_margin - 10;
+            const int height      = top_margin + bottom_margin + content_height;
+            const int plot_left   = left_margin;
+            const int plot_right  = left_margin + plot_width;
+            const int plot_top    = top_margin - 10;
             const int plot_bottom = height - bottom_margin + 6;
 
             const auto map_ratio_to_x = [&](double ratio)
@@ -636,12 +635,12 @@ namespace bl::bench
                     continue;
                 }
 
-                const auto& value = item.value;
-                const double y = static_cast<double>(y_cursor) + (row_height - bar_height) * 0.5;
-                const bool is_capped = value.ratio > tick_max;
+                const auto& value          = item.value;
+                const double y             = static_cast<double>(y_cursor) + (row_height - bar_height) * 0.5;
+                const bool is_capped       = value.ratio > tick_max;
                 const double visible_ratio = is_capped ? tick_max : value.ratio;
-                const double x = map_ratio_to_x(visible_ratio);
-                const char* fill = value.ratio >= 1.0 ? "#89d88a" : "#2c7fb8";
+                const double x             = map_ratio_to_x(visible_ratio);
+                const char* fill           = value.ratio >= 1.0 ? "#89d88a" : "#2c7fb8";
 
                 out << "  <text x=\"" << (plot_left - 12) << "\" y=\"" << (y + bar_height * 0.5 + 6.0)
                     << "\" text-anchor=\"end\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"18\" fill=\"#222222\">"
@@ -679,4 +678,5 @@ namespace bl::bench
             out << "</svg>\n";
         }
     };
-}
+
+} // namespace bl::bench

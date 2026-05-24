@@ -13,6 +13,7 @@ endif()
 if (NOT COMMAND fltx_apply_simd_options)
     include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxSimd.cmake")
 endif()
+include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxSources.cmake")
 
 find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
@@ -31,10 +32,11 @@ if(NOT FLTX_BENCH_FAST_MATH_MODE MATCHES "^(DEFAULT|AUTO|ON|OFF)$")
     message(FATAL_ERROR "Invalid bench_tests fast-math mode '${FLTX_BENCH_FAST_MATH_MODE}'. Expected DEFAULT, AUTO, ON, or OFF.")
 endif()
 
-file(GLOB FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h")
+file(GLOB_RECURSE FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h")
 file(GLOB FLTX_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.cpp")
 
 file(GLOB FLTX_TESTS_PRECISION_SOURCE          CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/precision/*.cpp")
+file(GLOB FLTX_TESTS_ACCURACY_SOURCE           CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/accuracy/*.cpp")
 file(GLOB FLTX_TESTS_IO_SOURCE                 CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/io/*.cpp")
 file(GLOB FLTX_TESTS_CONSTEXPR_PARITY_SOURCE   CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/constexpr_parity/*.cpp")
 file(GLOB FLTX_TESTS_BENCH_HEADERS             CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/bench/*.h")
@@ -51,14 +53,10 @@ set(FLTX_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/../include")
 get_filename_component(FLTX_BENCH_OUTPUT_ROOT_NATIVE "${CMAKE_CURRENT_SOURCE_DIR}/../res/bench" REALPATH)
 file(TO_CMAKE_PATH "${FLTX_BENCH_OUTPUT_ROOT_NATIVE}" FLTX_BENCH_OUTPUT_ROOT)
 
-set(FLTX_LIBRARY_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f128.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f128_math.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256_math.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256_math_transcendental.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src/f256_math_pow.cpp"
-)
+set(FLTX_LIBRARY_SOURCES "")
+foreach(_FLTX_LIBRARY_SOURCE IN LISTS FLTX_LIBRARY_SOURCE_FILES)
+    list(APPEND FLTX_LIBRARY_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../${_FLTX_LIBRARY_SOURCE}")
+endforeach()
 
 function (addFltxTestLibrary _TARGET)
     cmake_parse_arguments(FLTX_TEST_LIB "" "FAST_MATH_MODE" "DEFINITIONS" ${ARGN})
@@ -131,6 +129,11 @@ add_executable(precision_tests
     ${FLTX_HEADERS}
     ${FLTX_SOURCE}
     ${FLTX_TESTS_PRECISION_SOURCE}
+)
+add_executable(accuracy_tests
+    ${FLTX_HEADERS}
+    ${FLTX_SOURCE}
+    ${FLTX_TESTS_ACCURACY_SOURCE}
 )
 add_executable(io_tests
     ${FLTX_HEADERS}
@@ -261,6 +264,7 @@ elseif(NOT FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
 endif()
 
 prepareTarget(precision_tests ${FLTX_PRECISION_TEST_LIBRARY})
+prepareTarget(accuracy_tests  fltx::fltx)
 prepareTarget(io_tests        fltx::fltx)
 prepareTarget(parity_tests    fltx_parity_test_lib)
 prepareTarget(bench_tests     ${FLTX_BENCH_TEST_LIBRARY})
@@ -289,6 +293,7 @@ else()
 endif()
 
 addFltxTestMacroStatus(io_tests)
+addFltxTestMacroStatus(accuracy_tests)
 
 if (FLTX_BENCH_TESTS_CONSTEXPR_PARITY)
     if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
