@@ -38,6 +38,8 @@ file(GLOB FLTX_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/
 file(GLOB FLTX_TESTS_PRECISION_SOURCE          CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/precision/*.cpp")
 file(GLOB FLTX_TESTS_ACCURACY_SOURCE           CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/accuracy/*.cpp")
 file(GLOB FLTX_TESTS_IO_SOURCE                 CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/io/*.cpp")
+file(GLOB FLTX_TESTS_RANDOM_SOURCE             CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/random/*.cpp")
+file(GLOB FLTX_TESTS_QUALITY_SOURCE            CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/quality/*.cpp")
 file(GLOB FLTX_TESTS_CONSTEXPR_PARITY_SOURCE   CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/constexpr_parity/*.cpp")
 file(GLOB FLTX_TESTS_BENCH_HEADERS             CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/bench/*.h")
 set(FLTX_TESTS_BENCH_SOURCE
@@ -140,6 +142,18 @@ add_executable(io_tests
     ${FLTX_SOURCE}
 
     ${FLTX_TESTS_IO_SOURCE}
+)
+add_executable(random_tests
+    ${FLTX_HEADERS}
+    ${FLTX_SOURCE}
+
+    ${FLTX_TESTS_RANDOM_SOURCE}
+)
+add_executable(quality_tests
+    ${FLTX_HEADERS}
+    ${FLTX_SOURCE}
+
+    ${FLTX_TESTS_QUALITY_SOURCE}
 )
 add_executable(parity_tests
     ${FLTX_HEADERS}
@@ -266,6 +280,8 @@ endif()
 prepareTarget(precision_tests ${FLTX_PRECISION_TEST_LIBRARY})
 prepareTarget(accuracy_tests  fltx::fltx)
 prepareTarget(io_tests        fltx::fltx)
+prepareTarget(random_tests    fltx::fltx)
+prepareTarget(quality_tests   fltx::fltx)
 prepareTarget(parity_tests    fltx_parity_test_lib)
 prepareTarget(bench_tests     ${FLTX_BENCH_TEST_LIBRARY})
 if(EMSCRIPTEN)
@@ -293,6 +309,8 @@ else()
 endif()
 
 addFltxTestMacroStatus(io_tests)
+addFltxTestMacroStatus(random_tests)
+addFltxTestMacroStatus(quality_tests)
 addFltxTestMacroStatus(accuracy_tests)
 
 if (FLTX_BENCH_TESTS_CONSTEXPR_PARITY)

@@ -21,7 +21,6 @@ namespace bl {
 }
 
 // rounding
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 floor(const f128_s& a)
 {
     return detail::_f128_impl::floor(a);
@@ -225,7 +224,6 @@ namespace bl {
 }
 
 // exp / log
-
 [[nodiscard]] BL_FORCE_INLINE constexpr double log_as_double(f128_s a)
 {
     return detail::_f128_impl::log_as_double(a);
@@ -288,7 +286,6 @@ namespace bl {
 }
 
 // pow
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 pow10_128(int k)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -314,7 +311,6 @@ namespace bl {
 }
 
 // trig
-
 [[nodiscard]] BL_FORCE_INLINE constexpr bool sincos(const f128_s& x, f128_s& s_out, f128_s& c_out)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -403,7 +399,6 @@ template<class Value> requires (std::same_as<std::remove_cvref_t<Value>, f128> |
 }
 
 // hyperbolic
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 sinh(const f128_s& x)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -453,7 +448,6 @@ template<class Value> requires (std::same_as<std::remove_cvref_t<Value>, f128> |
 }
 
 // erf / erfc
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 erf(const f128_s& x)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -471,7 +465,6 @@ template<class Value> requires (std::same_as<std::remove_cvref_t<Value>, f128> |
 }
 
 // gamma
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 lgamma(const f128_s& x)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(

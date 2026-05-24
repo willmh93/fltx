@@ -11,10 +11,25 @@
 
 namespace bl::detail::_f128_runtime
 {
-    BL_NO_INLINE f128_s fmod(const f128_s& x, const f128_s& y) { return detail::_f128_impl::fmod(x, y); }
-    BL_NO_INLINE f128_s round_to_decimals(f128_s v, int prec) { return detail::_f128_impl::round_to_decimals(v, prec); }
-    BL_NO_INLINE f128_s remainder(const f128_s& x, const f128_s& y) { return detail::_f128_impl::remainder(x, y); }
-    BL_NO_INLINE f128_s ldexp(const f128_s& x, int e) { return detail::_f128_impl::ldexp(x, e); }
+    BL_NO_INLINE f128_s fmod(const f128_s& x, const f128_s& y) 
+    { 
+        return detail::_f128_impl::fmod(x, y);
+    }
+
+    BL_NO_INLINE f128_s round_to_decimals(f128_s v, int prec) 
+    { 
+        return detail::_f128_impl::round_to_decimals(v, prec);
+    }
+
+    BL_NO_INLINE f128_s remainder(const f128_s& x, const f128_s& y) 
+    { 
+        return detail::_f128_impl::remainder(x, y); 
+    }
+
+    BL_NO_INLINE f128_s ldexp(const f128_s& x, int e) 
+    {
+        return detail::_f128_impl::ldexp(x, e);
+    }
 
     BL_NO_INLINE long lround(const f128_s& x)
     {
@@ -48,9 +63,24 @@ namespace bl::detail::_f128_runtime
         return detail::_f128_impl::llrint(x);
     }
 
-    BL_NO_INLINE f128_s hypot(const f128_s& x, const f128_s& y) { return detail::_f128_impl::hypot(x, y); }
-    BL_NO_INLINE f128_s remquo(const f128_s& x, const f128_s& y, int* quo) { return detail::_f128_impl::remquo(x, y, quo); }
-    BL_NO_INLINE f128_s modf(const f128_s& x, f128_s* iptr) noexcept { return detail::_f128_impl::modf(x, iptr); }
-    BL_NO_INLINE f128_s nextafter(const f128_s& from, const f128_s& to) noexcept { return detail::_f128_impl::nextafter(from, to); }
+    BL_NO_INLINE f128_s hypot(const f128_s& x, const f128_s& y) 
+    { 
+        return detail::_f128_impl::hypot(x, y); 
+    }
+
+    BL_NO_INLINE f128_s remquo(const f128_s& x, const f128_s& y, int* quo) 
+    { 
+        return detail::_f128_impl::remquo(x, y, quo); 
+    }
+
+    BL_NO_INLINE f128_s modf(const f128_s& x, f128_s* iptr) noexcept 
+    { 
+        return detail::_f128_impl::modf(x, iptr);
+    }
+
+    BL_NO_INLINE f128_s nextafter(const f128_s& from, const f128_s& to) noexcept 
+    { 
+        return detail::_f128_impl::nextafter(from, to); 
+    }
 
 } // namespace bl::detail::_f128_runtime

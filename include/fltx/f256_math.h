@@ -21,7 +21,6 @@ namespace bl {
 }
 
 // rounding
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 floor(const f256_s& a)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -261,7 +260,6 @@ namespace bl {
 }
 
 // exp / log
-
 [[nodiscard]] BL_FORCE_INLINE constexpr double log_as_double(f256_s a) noexcept
 {
     return detail::_f256_impl::log_as_double(a);
@@ -324,7 +322,6 @@ namespace bl {
 }
 
 // pow
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 pow10_256(int k)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -350,7 +347,6 @@ namespace bl {
 }
 
 // trig
-
 [[nodiscard]] BL_FORCE_INLINE constexpr bool sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -448,7 +444,6 @@ template<class Value> requires (std::same_as<std::remove_cvref_t<Value>, f256> |
 }
 
 // hyperbolic
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 sinh(const f256_s& x)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -498,7 +493,6 @@ template<class Value> requires (std::same_as<std::remove_cvref_t<Value>, f256> |
 }
 
 // erf / erfc
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 erf(const f256_s& x)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -516,7 +510,6 @@ template<class Value> requires (std::same_as<std::remove_cvref_t<Value>, f256> |
 }
 
 // gamma
-
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 lgamma(const f256_s& x)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
