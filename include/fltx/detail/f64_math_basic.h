@@ -1,5 +1,5 @@
 /**
- * fltx/f64_math_basic.h - constexpr <cmath>-style basic math functions for f64.
+ * fltx/detail/f64_math_basic.h - constexpr <cmath>-style basic math helpers for f64.
  *
  * f64 rounding, decomposition, remainder, min/max, and adjacent-value helpers.
  *
@@ -35,6 +35,7 @@ namespace detail::_f64_impl
     using detail::fp::to_signed_integer_or_zero;
     using detail::fp::frexp_exponent;
     using detail::fp::ldexp;
+    using detail::fp::bit_length_u64;
     using detail::fp::log;
     using detail::fp::log1p;
     using detail::fp::sin;
@@ -96,17 +97,6 @@ namespace detail::_f64_impl
         unsigned quotient_low_bits = 0;
         bool quotient_nonzero = false;
     };
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr int bit_length_u64(std::uint64_t value) noexcept
-    {
-        int bits = 0;
-        while (value != 0)
-        {
-            ++bits;
-            value >>= 1;
-        }
-        return bits;
-    }
 
     [[nodiscard]] BL_FORCE_INLINE constexpr dyadic_u64 decompose_normalized_abs(double value) noexcept
     {
@@ -259,7 +249,7 @@ namespace detail::_f64_impl
 
     [[nodiscard]] BL_FORCE_INLINE constexpr int normalized_remquo_bits(unsigned quotient_low_bits, bool quotient_nonzero, bool quotient_negative) noexcept
     {
-        int bits = static_cast<int>(quotient_low_bits & 0x7u);
+        int bits = detail::fp::remquo_low_quotient_bits(quotient_low_bits, false, 0x7u);
         if (bits == 0 && quotient_nonzero)
             bits = 8;
         return quotient_negative ? -bits : bits;
@@ -267,7 +257,7 @@ namespace detail::_f64_impl
 
     [[nodiscard]] BL_FORCE_INLINE constexpr double fmod_exact(double x, double y) noexcept
     {
-        if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
+        if (detail::fp::isinf_or_nan(x) || detail::fp::iszero_or_nan(y))
             return std::numeric_limits<double>::quiet_NaN();
         if (isinf(y) || x == 0.0)
             return x;
@@ -284,9 +274,9 @@ namespace detail::_f64_impl
         if (quo)
             *quo = 0;
 
-        if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
+        if (detail::fp::isinf_or_nan(x) || detail::fp::iszero_or_nan(y))
             return std::numeric_limits<double>::quiet_NaN();
-        if (isinf(y))
+        if (isinf(y) || x == 0.0)
             return x;
 
         const bool quotient_negative = signbit(x) != signbit(y);

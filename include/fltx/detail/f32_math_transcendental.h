@@ -1,5 +1,5 @@
 /**
- * fltx/f32_math_transcendental.h - constexpr <cmath>-style transcendental math functions for f32.
+ * fltx/detail/f32_math_transcendental.h - constexpr <cmath>-style transcendental math helpers for f32.
  *
  * f32 exp/log, roots, pow, trig, hyperbolic, erf, and gamma helpers.
  *
@@ -12,8 +12,8 @@
 #ifndef F32_MATH_TRANSCENDENTAL_INCLUDED
 #define F32_MATH_TRANSCENDENTAL_INCLUDED
 
-#include "fltx/f32_math_basic.h"
-#include "fltx/f64_math_transcendental.h"
+#include "fltx/detail/f32_math_basic.h"
+#include "fltx/detail/f64_math_transcendental.h"
 
 
 namespace bl {

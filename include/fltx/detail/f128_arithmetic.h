@@ -11,7 +11,7 @@
 #define F128_DETAIL_ARITHMETIC_INCLUDED
 #include "fltx/f128_classification.h"
 #include "fltx/f128_conversions.h"
-#include "fltx/f128_stl.h"
+#include "fltx/f128_limits.h"
 
 namespace bl {
 
@@ -36,7 +36,7 @@ namespace detail::_f128 // primitives and kernels
 
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s add_special(const f128_s& a, const f128_s& b) noexcept
     {
-        if (isnan(a.hi) || isnan(b.hi))
+        if (detail::fp::isnan(a.hi) || detail::fp::isnan(b.hi))
             return quiet_nan();
 
         const bool a_inf = isinf(a.hi);
@@ -55,7 +55,7 @@ namespace detail::_f128 // primitives and kernels
 
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s mul_special(const f128_s& a, const f128_s& b) noexcept
     {
-        if (isnan(a.hi) || isnan(b.hi))
+        if (detail::fp::isnan(a.hi) || detail::fp::isnan(b.hi))
             return quiet_nan();
 
         const bool a_inf = isinf(a.hi);
@@ -68,7 +68,7 @@ namespace detail::_f128 // primitives and kernels
 
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s div_special(const f128_s& a, const f128_s& b) noexcept
     {
-        if (isnan(a.hi) || isnan(b.hi))
+        if (detail::fp::isnan(a.hi) || detail::fp::isnan(b.hi))
             return quiet_nan();
 
         const bool a_zero = a.hi == 0.0;
@@ -94,7 +94,7 @@ namespace detail::_f128 // primitives and kernels
         e += b.lo * q;
 
         double s{}, t{};
-        two_sum_precise(r.hi, -p, s, t);
+        detail::fp::two_diff_precise(r.hi, p, s, t);
         t += r.lo - e;
 
         return renorm(s, t);
@@ -119,7 +119,7 @@ namespace detail::_f128 // primitives and kernels
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s div_compensated_inline(const f128_s& a, const f128_s& b) noexcept
     {
         const double q0 = a.hi / b.hi;
-        if (!detail::fp::isfinite(q0)) [[unlikely]]
+        if (detail::fp::isinf_or_nan(q0)) [[unlikely]]
             return { q0, 0.0 };
         if (q0 == 0.0 && a.hi == 0.0 && a.lo == 0.0) [[unlikely]]
             return signed_zero(bl::signbit(a) != bl::signbit(b));
@@ -152,38 +152,56 @@ namespace detail::_f128 // primitives and kernels
     BL_PUSH_PRECISE;
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s add_inline(const f128_s& a, const f128_s& b) noexcept
     {
-        // accurate sum of the high parts
-        double s{}, e{};
-        two_sum_precise(a.hi, b.hi, s, e);
+        double s1{}, s2{};
+        two_sum_precise(a.hi, b.hi, s1, s2);
 
-        // fold low parts into the error
-        double t = a.lo + b.lo;
-        e += t;
+        double t1{}, t2{};
+        two_sum_precise(a.lo, b.lo, t1, t2);
 
-        // renormalize
-        return renorm(s, e);
+        s2 += t1;
+        detail::fp::quick_two_sum_precise(s1, s2, s1, s2);
+        s2 += t2;
+        detail::fp::quick_two_sum_precise(s1, s2, s1, s2);
+        return { s1, s2 };
     }
 
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sub_inline(const f128_s& a, const f128_s& b) noexcept
     {
-        double s{}, e{};
-        two_sum_precise(a.hi, -b.hi, s, e);
+        double s1{}, s2{};
+        detail::fp::two_diff_precise(a.hi, b.hi, s1, s2);
 
-        double t = a.lo - b.lo;
-        e += t;
+        double t1{}, t2{};
+        detail::fp::two_diff_precise(a.lo, b.lo, t1, t2);
 
-        return renorm(s, e);
+        s2 += t1;
+        detail::fp::quick_two_sum_precise(s1, s2, s1, s2);
+        s2 += t2;
+        detail::fp::quick_two_sum_precise(s1, s2, s1, s2);
+        return { s1, s2 };
     }
     BL_POP_PRECISE;
 
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s mul_inline(const f128_s& a, const f128_s& b) noexcept
     {
-        double p, e;
+        double p{}, e{};
         two_prod_precise(a.hi, b.hi, p, e);
-
         e += a.hi * b.lo + a.lo * b.hi;
-        e += a.lo * b.lo;
-        return renorm(p, e);
+        detail::fp::quick_two_sum_precise(p, e, p, e);
+        return { p, e };
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s mul_dd_inline(const f128_s& a, const f128_s& b) noexcept
+    {
+        return mul_inline(a, b);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sqr_dd_inline(const f128_s& a) noexcept
+    {
+        double p{}, e{};
+        two_prod_precise(a.hi, a.hi, p, e);
+        e += (a.hi + a.hi) * a.lo;
+        detail::fp::quick_two_sum_precise(p, e, p, e);
+        return { p, e };
     }
 
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s div_inline(const f128_s& a, const f128_s& b) noexcept
@@ -228,11 +246,16 @@ namespace detail::_f128 // primitives and kernels
         return mul_double_inline(b, a);
     }
 
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s mul_pwr2_inline(const f128_s& a, double b) noexcept
+    {
+        return { a.hi * b, a.lo * b };
+    }
+
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s div_double_inline(const f128_s& a, double b) noexcept
     {
         if (bl::use_constexpr_math())
         {
-            if (isnan(a.hi) || isnan(b)) [[unlikely]]
+            if (detail::fp::isnan(a.hi) || detail::fp::isnan(b)) [[unlikely]]
                 return std::numeric_limits<f128_s>::quiet_NaN();
 
             if (isinf(b))

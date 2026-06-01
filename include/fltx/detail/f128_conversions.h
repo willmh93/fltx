@@ -29,7 +29,7 @@ namespace detail::_f128 // primitives and kernels
     }
 
     #if defined(FLTX_CONSTEXPR_PARITY)
-        #define F128_CANONICALIZE_MATH_RESULT(value) ::bl::detail::_f128::canonicalize_math_result(value)
+        #define F128_CANONICALIZE_MATH_RESULT(value) bl::detail::_f128::canonicalize_math_result(value)
     #else
         #define F128_CANONICALIZE_MATH_RESULT(value) (value)
     #endif

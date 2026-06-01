@@ -278,6 +278,10 @@ struct parse_token
     bool seen_nonzero = false;
 };
 
+using fltx_parse_token = parse_token<exact_decimal::biguint>;
+inline constexpr int fltx_max_parse_order = 330;
+inline constexpr int fltx_min_parse_order = -400;
+
 struct small_parse_token
 {
     std::uint64_t coeff = 0;
@@ -289,7 +293,13 @@ struct small_parse_token
     bool coeff_overflow = false;
 };
 
-template<typename CharsResult, typename String, typename Writer>
+struct fltx_char_result
+{
+    char* ptr = nullptr;
+    bool ok = false;
+};
+
+template<typename String, typename Writer>
 BL_MSVC_NOINLINE constexpr void write_chars_to_string(String& out, std::size_t cap, Writer&& writer)
 {
     out.resize(cap);
@@ -332,8 +342,7 @@ BL_FORCE_INLINE constexpr void copy_chars(char* dst, const char* src, std::size_
         dst[i] = src[i];
 }
 
-template<typename CharsResult>
-BL_FORCE_INLINE constexpr CharsResult emit_fixed_zero_to_chars(char* first, char* last, bool neg, int precision, bool strip_trailing_zeros) noexcept
+BL_FORCE_INLINE constexpr fltx_char_result emit_fixed_zero_to_chars(char* first, char* last, bool neg, int precision, bool strip_trailing_zeros) noexcept
 {
     if (precision < 0)
         precision = 0;
@@ -354,6 +363,30 @@ BL_FORCE_INLINE constexpr CharsResult emit_fixed_zero_to_chars(char* first, char
         for (int i = 0; i < frac_len; ++i)
             *p++ = '0';
     }
+
+    return { p, true };
+}
+
+BL_FORCE_INLINE constexpr fltx_char_result append_exp10_to_chars(char* p, char* end, int e10) noexcept
+{
+    if (p >= end) return { p, false };
+    *p++ = 'e';
+
+    if (p >= end) return { p, false };
+    if (e10 < 0) { *p++ = '-'; e10 = -e10; }
+    else { *p++ = '+'; }
+
+    char buf[8];
+    int n = 0;
+    do {
+        buf[n++] = char('0' + (e10 % 10));
+        e10 /= 10;
+    } while (e10);
+
+    if (n < 2) buf[n++] = '0';
+
+    if (p + n > end) return { p, false };
+    for (int i = n - 1; i >= 0; --i) *p++ = buf[i];
 
     return { p, true };
 }
@@ -459,7 +492,7 @@ constexpr inline void format_to_string(String& out, const typename Traits::value
     const std::size_t cap = ((kind == format_kind::general || kind == format_kind::fixed_frac) ? 1u + 309u : 1u + 1u)
         + 1u + static_cast<std::size_t>(precision) + 32u;
 
-    write_chars_to_string<typename Traits::chars_result>(out, cap, [&](char* first, char* last) {
+    write_chars_to_string(out, cap, [&](char* first, char* last) {
         switch (kind)
         {
         case format_kind::general:
@@ -471,7 +504,7 @@ constexpr inline void format_to_string(String& out, const typename Traits::value
         case format_kind::scientific_sig:
             return Traits::to_chars_scientific_sig(first, last, x, precision, strip_trailing_zeros);
         }
-        return typename Traits::chars_result{ first, false };
+        return fltx_char_result{ first, false };
     });
 }
 
@@ -693,8 +726,7 @@ BL_MSVC_NOINLINE constexpr bool parse_special(const char*& p, bool neg, typename
 template<class Traits>
 BL_MSVC_NOINLINE constexpr bool parse_flt(const char* s, typename Traits::value_type& out, const char** endptr = nullptr) noexcept
 {
-    using token_type = typename Traits::parse_token;
-    using coeff_type = typename token_type::coeff_type;
+    using coeff_type = fltx_parse_token::coeff_type;
 
     const char* p = skip_ascii_space(s);
     bool neg = false;
@@ -770,7 +802,7 @@ BL_MSVC_NOINLINE constexpr bool parse_flt(const char* s, typename Traits::value_
     }
 
     const char* exact_p = token_start;
-    token_type exact_token;
+    fltx_parse_token exact_token;
     if (!scan_decimal_token(exact_p, exact_token))
     {
         if (endptr)
@@ -926,17 +958,6 @@ template<class Traits, typename String>
     return true;
 }
 
-[[nodiscard]] constexpr inline int bit_length_u64(std::uint64_t value) noexcept
-{
-    int bits = 0;
-    while (value != 0)
-    {
-        ++bits;
-        value >>= 1;
-    }
-    return bits;
-}
-
 [[nodiscard]] constexpr inline bool pow5_u64(int exponent, std::uint64_t& out) noexcept
 {
     if (exponent < 0)
@@ -967,7 +988,7 @@ template<class Traits, typename String>
 
 [[nodiscard]] constexpr inline int floor_log2_ratio_u64(std::uint64_t numerator, std::uint64_t denominator) noexcept
 {
-    int k = bit_length_u64(numerator) - bit_length_u64(denominator);
+    int k = bl::detail::fp::bit_length_u64(numerator) - bl::detail::fp::bit_length_u64(denominator);
 
     if (k >= 0)
     {

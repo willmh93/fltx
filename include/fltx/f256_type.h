@@ -105,10 +105,7 @@ namespace detail::_f256 // primitives and kernels
     inline constexpr bool integer_type_fits_exact_double_v = detail::fp::integer_type_fits_exact_double_v<T>;
 
     // lightweight double-double type to avoid dragging in fltx/f128.h
-    struct dd_scalar
-    {
-        double hi, lo;
-    };
+    using dd_scalar = detail::fp::double_double;
 
     template<class T>
     [[nodiscard]] BL_FORCE_INLINE constexpr dd_scalar integer_to_double_double(T value) noexcept;
@@ -124,7 +121,7 @@ namespace detail::_f256 // primitives and kernels
     [[nodiscard]] BL_FORCE_INLINE constexpr f256_s div_dd(dd_scalar a, const f256_s& b) noexcept;
 
 #if BL_F256_ENABLE_SIMD
-    namespace simd = ::bl::detail::simd;
+    namespace simd = bl::detail::simd;
 #endif
 
 } // namespace detail::_f256

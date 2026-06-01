@@ -32,11 +32,6 @@ namespace detail::_f256 // primitives and kernels
     }
     BL_POP_PRECISE;
 
-    struct f256_chars_result
-    {
-        char* ptr = nullptr;
-        bool ok = false;
-    };
     struct f256_print_expansion
     {
         double terms[64]{}; // small -> large
@@ -155,32 +150,6 @@ namespace detail::_f256 // primitives and kernels
         return len;
     }
 
-    inline constexpr f256_chars_result append_exp10_to_chars_f256(char* p, char* end, int e10) noexcept
-    {
-        if (p >= end) return { p, false };
-        *p++ = 'e';
-
-        if (p >= end) return { p, false };
-        if (e10 < 0) { *p++ = '-'; e10 = -e10; }
-        else { *p++ = '+'; }
-
-        char buf[8];
-        int n = 0;
-        do {
-            buf[n++] = char('0' + (e10 % 10));
-            e10 /= 10;
-        } while (e10);
-
-        if (n < 2) buf[n++] = '0';
-
-        if (p + n > end) return { p, false };
-        for (int i = n - 1; i >= 0; --i) *p++ = buf[i];
-
-        return { p, true };
-    }
-
-    using biguint = detail::exact_decimal::biguint;
-
     struct exact_traits
     {
         using value_type = f256_s;
@@ -209,7 +178,7 @@ namespace detail::_f256 // primitives and kernels
             return neg ? -inf : inf;
         }
 
-        static constexpr value_type pack_from_significand(const biguint& q, int e2, bool neg) noexcept
+        static constexpr value_type pack_from_significand(const detail::exact_decimal::biguint& q, int e2, bool neg) noexcept
         {
             const std::uint64_t c3 = q.get_bits(0, 53);
             const std::uint64_t c2 = q.get_bits(53, 53);
@@ -234,22 +203,17 @@ namespace detail::_f256 // primitives and kernels
         return detail::exact_decimal::exact_scientific_digits<exact_traits>(x, sig, digits, exp10);
     }
 
-    constexpr inline f256_s exact_decimal_to_f256(const biguint& coeff, int dec_exp, bool neg) noexcept
-    {
-        return detail::exact_decimal::exact_decimal_to_value<exact_traits>(coeff, dec_exp, neg);
-    }
-
     inline constexpr double pow10_double_table[10] = {
         1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0,
         1000000.0, 10000000.0, 100000000.0, 1000000000.0
     };
 
-    inline constexpr f256_chars_result emit_fixed_dec_to_chars(char* first, char* last, f256_s x, int prec, bool strip_trailing_zeros) noexcept
+    inline constexpr detail::fltx_char_result emit_fixed_dec_to_chars(char* first, char* last, f256_s x, int prec, bool strip_trailing_zeros) noexcept
     {
         if (prec < 0) prec = 0;
 
         if (iszero(x))
-            return detail::emit_fixed_zero_to_chars<f256_chars_result>(first, last, detail::_f256::signbit(x.x0), prec, strip_trailing_zeros);
+            return detail::emit_fixed_zero_to_chars(first, last, detail::_f256::signbit(x.x0), prec, strip_trailing_zeros);
 
         const bool neg = (x.x0 < 0.0);
         if (neg) x = -x;
@@ -361,7 +325,7 @@ namespace detail::_f256 // primitives and kernels
         return { p, true };
     }
 
-    inline constexpr f256_chars_result emit_scientific_sig_to_chars(char* first, char* last, const f256_s& x, int sig_digits, bool strip_trailing_zeros) noexcept
+    inline constexpr detail::fltx_char_result emit_scientific_sig_to_chars(char* first, char* last, const f256_s& x, int sig_digits, bool strip_trailing_zeros) noexcept
     {
         if (iszero(x)) {
             if (first >= last) return { first, false };
@@ -391,7 +355,7 @@ namespace detail::_f256 // primitives and kernels
         char exp_buf[16];
         char* ep = exp_buf;
         char* eend = exp_buf + sizeof(exp_buf);
-        auto er = append_exp10_to_chars_f256(ep, eend, e);
+        auto er = detail::append_exp10_to_chars(ep, eend, e);
         if (!er.ok) return { first, false };
         const int exp_len = static_cast<int>(er.ptr - ep);
 
@@ -412,7 +376,7 @@ namespace detail::_f256 // primitives and kernels
         return { p, true };
     }
 
-    inline constexpr f256_chars_result emit_scientific_to_chars(char* first, char* last, const f256_s& x, int frac_digits, bool strip_trailing_zeros) noexcept
+    inline constexpr detail::fltx_char_result emit_scientific_to_chars(char* first, char* last, const f256_s& x, int frac_digits, bool strip_trailing_zeros) noexcept
     {
         if (frac_digits < 0) frac_digits = 0;
 
@@ -423,7 +387,7 @@ namespace detail::_f256 // primitives and kernels
             char exp_buf[16];
             char* ep = exp_buf;
             char* eend = exp_buf + sizeof(exp_buf);
-            auto er = append_exp10_to_chars_f256(ep, eend, 0);
+            auto er = detail::append_exp10_to_chars(ep, eend, 0);
             if (!er.ok) return { first, false };
             const int exp_len = static_cast<int>(er.ptr - ep);
 
@@ -447,7 +411,7 @@ namespace detail::_f256 // primitives and kernels
         return emit_scientific_sig_to_chars(first, last, x, frac_digits + 1, strip_trailing_zeros);
     }
 
-    inline constexpr f256_chars_result to_chars(char* first, char* last, const f256_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false) noexcept
+    inline constexpr detail::fltx_char_result to_chars(char* first, char* last, const f256_s& x, int precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false) noexcept
     {
         if (precision < 0) precision = 0;
 
@@ -482,17 +446,12 @@ namespace detail::_f256 // primitives and kernels
         return emit_scientific_sig_to_chars(first, last, x, sig, strip_trailing_zeros);
     }
 
-    using f256_format_kind = detail::format_kind;
-    using f256_parse_token = detail::parse_token<detail::_f256::biguint>;
-
     struct f256_io_traits
     {
         using value_type = f256_s;
-        using chars_result = f256_chars_result;
-        using parse_token = f256_parse_token;
 
-        static constexpr int max_parse_order = 330;
-        static constexpr int min_parse_order = -400;
+        static constexpr int max_parse_order = detail::fltx_max_parse_order;
+        static constexpr int min_parse_order = detail::fltx_min_parse_order;
 
         static constexpr bool isnan(const value_type& x)       noexcept { return bl::isnan(x); }
         static constexpr bool isinf(const value_type& x)       noexcept { return bl::isinf(x); }
@@ -508,22 +467,22 @@ namespace detail::_f256 // primitives and kernels
 
         static constexpr value_type quiet_nan() noexcept { return std::numeric_limits<value_type>::quiet_NaN(); }
         static constexpr void normalize10(const value_type& x, value_type& m, int& e10) { detail::_f256::normalize10(x, m, e10); }
-        static constexpr chars_result to_chars_general(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
+        static constexpr detail::fltx_char_result to_chars_general(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
         {
             return to_chars(first, last, x, precision, false, false, strip_trailing_zeros);
         }
 
-        static constexpr chars_result to_chars_fixed(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
+        static constexpr detail::fltx_char_result to_chars_fixed(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
         {
             return emit_fixed_dec_to_chars(first, last, x, precision, strip_trailing_zeros);
         }
 
-        static constexpr chars_result to_chars_scientific_frac(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
+        static constexpr detail::fltx_char_result to_chars_scientific_frac(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
         {
             return emit_scientific_to_chars(first, last, x, precision, strip_trailing_zeros);
         }
 
-        static constexpr chars_result to_chars_scientific_sig(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
+        static constexpr detail::fltx_char_result to_chars_scientific_sig(char* first, char* last, const value_type& x, int precision, bool strip_trailing_zeros)
         {
             return emit_scientific_sig_to_chars(first, last, x, precision, strip_trailing_zeros);
         }
@@ -539,9 +498,9 @@ namespace detail::_f256 // primitives and kernels
             return detail::exact_decimal::compact_decimal_to_value<detail::_f256::exact_traits>(coeff, dec_exp, neg, out);
         }
 
-        static constexpr value_type exact_decimal_to_value(const parse_token::coeff_type& coeff, int dec_exp, bool neg)
+        static constexpr value_type exact_decimal_to_value(const detail::fltx_parse_token::coeff_type& coeff, int dec_exp, bool neg)
         {
-            return detail::_f256::exact_decimal_to_f256(coeff, dec_exp, neg);
+            return detail::exact_decimal::exact_decimal_to_value<detail::_f256::exact_traits>(coeff, dec_exp, neg);
         }
     };
 

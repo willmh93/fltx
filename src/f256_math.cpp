@@ -11,14 +11,21 @@
 
 namespace bl::detail::_f256_runtime
 {
-    BL_NO_INLINE f256_s fmod(const f256_s& x, const f256_s& y)
+    // roots
+    BL_NO_INLINE f256_s sqrt(const f256_s& a)
     {
-        return detail::_f256_impl::fmod(x, y); 
+        return detail::_f256_impl::sqrt(a);
     }
 
-    BL_NO_INLINE f256_s round(const f256_s& a) 
+    BL_NO_INLINE f256_s hypot(const f256_s& x, const f256_s& y)
     {
-        return detail::_f256_impl::round(a);
+        return detail::_f256_impl::hypot(x, y);
+    }
+
+    // rounding and decimals
+    BL_NO_INLINE f256_s round(const f256_s& a)
+    {
+        return detail::_f256_impl::round_runtime(a);
     }
 
     BL_NO_INLINE f256_s round_to_decimals(f256_s v, int prec)
@@ -26,56 +33,45 @@ namespace bl::detail::_f256_runtime
         return detail::_f256_impl::round_to_decimals(v, prec);
     }
 
-    BL_NO_INLINE f256_s sqrt(const f256_s& a)
-    {
-        return detail::_f256_impl::sqrt(a);
-    }
-
     BL_NO_INLINE f256_s nearbyint(const f256_s& a)
     {
-        return detail::_f256_impl::nearbyint(a);
+        return detail::_f256_impl::nearbyint_runtime(a);
+    }
+
+    BL_NO_INLINE f256_s rint(const f256_s& x)
+    {
+        return detail::_f256_impl::rint(x);
     }
 
     BL_NO_INLINE long lround(const f256_s& x)
     {
-        long out = 0;
-        if (detail::_f256::try_round_to_signed_integer(x, false, out))
-            return out;
-        return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256::round_half_away_zero(x));
+        return detail::_f256_impl::lround(x);
     }
 
     BL_NO_INLINE long long llround(const f256_s& x)
     {
-        long long out = 0;
-        if (detail::_f256::try_round_to_signed_integer(x, false, out))
-            return out;
-        return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256::round_half_away_zero(x));
+        return detail::_f256_impl::llround(x);
     }
 
     BL_NO_INLINE long lrint(const f256_s& x)
     {
-        long out = 0;
-        if (detail::_f256::try_round_to_signed_integer(x, true, out))
-            return out;
-        return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256_impl::nearbyint(x));
+        return detail::_f256_impl::lrint(x);
     }
 
     BL_NO_INLINE long long llrint(const f256_s& x)
     {
-        long long out = 0;
-        if (detail::_f256::try_round_to_signed_integer(x, true, out))
-            return out;
-        return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256_impl::nearbyint(x));
+        return detail::_f256_impl::llrint(x);
     }
 
-    BL_NO_INLINE f256_s ldexp(const f256_s& a, int e)
-    { 
-        return detail::_f256_impl::ldexp(a, e); 
+    // remainders
+    BL_NO_INLINE f256_s fmod(const f256_s& x, const f256_s& y)
+    {
+        return detail::_f256_impl::fmod(x, y);
     }
 
-    BL_NO_INLINE f256_s hypot(const f256_s& x, const f256_s& y)
-    { 
-        return detail::_f256_impl::hypot(x, y); 
+    BL_NO_INLINE f256_s remainder(const f256_s& x, const f256_s& y)
+    {
+        return detail::_f256_impl::remainder(x, y);
     }
 
     BL_NO_INLINE f256_s remquo(const f256_s& x, const f256_s& y, int* quo)
@@ -83,19 +79,21 @@ namespace bl::detail::_f256_runtime
         return detail::_f256_impl::remquo(x, y, quo); 
     }
 
-    BL_NO_INLINE f256_s remainder(const f256_s& x, const f256_s& y)
-    { 
-        return detail::_f256_impl::remainder(x, y); 
+    // fractional decomposition
+    BL_NO_INLINE f256_s modf(const f256_s& x, f256_s* iptr) noexcept
+    {
+        return detail::_f256_impl::modf(x, iptr);
+    }
+
+    // decomposition and scaling
+    BL_NO_INLINE f256_s ldexp(const f256_s& a, int e)
+    {
+        return detail::_f256_impl::ldexp(a, e);
     }
 
     BL_NO_INLINE f256_s frexp(const f256_s& x, int* exp) noexcept
-    { 
-        return detail::_f256_impl::frexp(x, exp); 
-    }
-
-    BL_NO_INLINE f256_s modf(const f256_s& x, f256_s* iptr) noexcept
-    { 
-        return detail::_f256_impl::modf(x, iptr); 
+    {
+        return detail::_f256_impl::frexp(x, exp);
     }
 
     BL_NO_INLINE int ilogb(const f256_s& x) noexcept 
@@ -116,11 +114,6 @@ namespace bl::detail::_f256_runtime
     BL_NO_INLINE f256_s scalbln(const f256_s& x, long e) noexcept
     { 
         return detail::_f256_impl::scalbln(x, e); 
-    }
-
-    BL_NO_INLINE f256_s nextafter(const f256_s& from, const f256_s& to) noexcept 
-    {
-        return detail::_f256_impl::nextafter(from, to); 
     }
 
     BL_NO_INLINE f256_s nexttoward(const f256_s& from, long double to) noexcept

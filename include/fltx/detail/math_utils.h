@@ -105,7 +105,7 @@ namespace bl::detail::fp
 namespace bl
 {
     template<class T>
-    [[nodiscard]] constexpr T sq(T x) noexcept(noexcept(x* x))
+    [[nodiscard]] constexpr T sqr(T x) noexcept(noexcept(x* x))
     {
         return x * x;
     }

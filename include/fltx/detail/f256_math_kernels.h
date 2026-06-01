@@ -26,11 +26,18 @@ namespace detail::_f256 // primitives and kernels
     using detail::fp::nearbyint_ties_even;
     using detail::fp::sqrt_seed;
     using detail::fp::trunc;
+    using detail::fp::frexp_exponent_limb;
+    using detail::fp::ldexp_limb;
 
     BL_FORCE_INLINE constexpr f256_s add_inline(const f256_s& a, const f256_s& b) noexcept;
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s signed_zero_from(double sign_source) noexcept
+    {
+        return f256_s{ detail::fp::copysign(0.0, sign_source), 0.0, 0.0, 0.0 };
+    }
     BL_FORCE_INLINE constexpr f256_s sub_inline(const f256_s& a, const f256_s& b) noexcept;
 
-    // expression fallbacks
+    // expression evaluation
     BL_FORCE_INLINE constexpr f256_s add_eval(const f256_s& a, const f256_s& b) noexcept
     {
         BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -168,28 +175,6 @@ namespace detail::_f256 // primitives and kernels
     }
 
     // scaling helpers
-    BL_FORCE_INLINE constexpr int frexp_exponent(double value) noexcept
-    {
-        if (bl::use_constexpr_math())
-        {
-            return detail::fp::frexp_exponent(value);
-        }
-
-        int exponent = 0;
-        (void)std::frexp(value, &exponent);
-        return exponent;
-    }
-
-    BL_FORCE_INLINE constexpr double ldexp_limb(double value, int exponent) noexcept
-    {
-        if (bl::use_constexpr_math())
-        {
-            return detail::fp::ldexp(value, exponent);
-        }
-
-        return std::ldexp(value, exponent);
-    }
-
     BL_FORCE_INLINE constexpr f256_s ldexp_terms(const f256_s& value, int exponent) noexcept
     {
         return renorm(
@@ -459,7 +444,7 @@ namespace detail::_f256 // primitives and kernels
         const exact_dyadic_fmod dy = exact_from_f256_fmod(mag(y));
 
         if (dx.mant.is_zero() || dy.mant.is_zero())
-            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return signed_zero_from(x.x0);
 
         biguint remainder{};
         int out_exp = 0;
@@ -486,7 +471,7 @@ namespace detail::_f256 // primitives and kernels
 
         f256_s out = exact_dyadic_to_f256_fmod(remainder, out_exp, !ispositive(x));
         if (iszero(out))
-            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return signed_zero_from(x.x0);
         return out;
     }
 
@@ -503,6 +488,35 @@ namespace detail::_f256 // primitives and kernels
             if (r >= modulus)
             {
                 r -= modulus;
+                continue;
+            }
+
+            return true;
+        }
+
+        return r >= 0.0 && r < modulus;
+    }
+
+    BL_FORCE_INLINE constexpr bool fmod_normalize_remainder_with_quotient(
+        f256_s& r,
+        const f256_s& modulus,
+        std::uint64_t& quotient) noexcept
+    {
+        for (int i = 0; i < 4; ++i)
+        {
+            if (r < 0.0)
+            {
+                r += modulus;
+                if (quotient == 0u)
+                    return false;
+                --quotient;
+                continue;
+            }
+
+            if (r >= modulus)
+            {
+                r -= modulus;
+                ++quotient;
                 continue;
             }
 
@@ -544,32 +558,150 @@ namespace detail::_f256 // primitives and kernels
         return from_expansion_fast(diff_exp, diff_count);
     }
 
-    BL_MSVC_NOINLINE constexpr bool fmod_fast_small_quotient_abs(const f256_s& ax, const f256_s& ay, f256_s& out) noexcept
+    BL_FORCE_INLINE constexpr int fmod_compare_remainder_to_half(const f256_s& r_abs, const f256_s& half) noexcept
     {
-        if (!(ay.x0 > 0.0) || !isfinite(ay) || !(ax >= ay))
+        const f256_s delta = sub_inline(r_abs, half);
+        if (iszero(delta))
+            return 0;
+        return delta < 0.0 ? -1 : 1;
+    }
+
+    BL_MSVC_NOINLINE constexpr bool fmod_fast_small_quotient_abs_with_quotient(
+        const f256_s& ax,
+        const f256_s& ay,
+        f256_s& out,
+        std::uint64_t& quotient) noexcept
+    {
+        if (!(ay.x0 > 0.0) || detail::fp::isinf_or_nan(ay.x0) || !(ax >= ay))
             return false;
 
         const double q = detail::fp::trunc(ax.x0 / ay.x0);
         if (!(q > 0.0) || q >= 0x1p42)
             return false;
 
+        quotient = static_cast<std::uint64_t>(q);
         f256_s r = fmod_sub_mul_scalar_expansion(ax, ay, q);
-        if (!fmod_normalize_remainder(r, ay))
+        if (!fmod_normalize_remainder_with_quotient(r, ay, quotient))
+            return false;
+
+        const f256_s edge_slack = mul_double_inline(ay, 0x1p-160);
+        if (r <= edge_slack || sub_inline(ay, r) <= edge_slack)
             return false;
 
         out = r;
         return true;
     }
 
-    BL_MSVC_NOINLINE constexpr f256_s fmod_runtime(const f256_s& x, const f256_s& y)
+    BL_MSVC_NOINLINE constexpr bool fmod_fast_small_quotient_abs(const f256_s& ax, const f256_s& ay, f256_s& out) noexcept
+    {
+        std::uint64_t quotient = 0;
+        return fmod_fast_small_quotient_abs_with_quotient(ax, ay, out, quotient);
+    }
+
+    BL_FORCE_INLINE constexpr void biguint_mod_shift_subtract_with_quotient_mod(
+        const biguint& numerator,
+        const biguint& denominator,
+        biguint& remainder,
+        std::uint64_t& quotient_mod) noexcept
+    {
+        constexpr std::uint64_t quotient_mask = 0x7fffffffull;
+
+        remainder = numerator;
+        if (denominator.is_zero())
+            return;
+
+        while (remainder.compare(denominator) >= 0)
+        {
+            int shift = (remainder.bit_length() - 1) - (denominator.bit_length() - 1);
+            if (shift > 0 && detail::exact_decimal::compare_shifted(remainder, denominator, shift) < 0)
+                --shift;
+
+            detail::exact_decimal::sub_shifted_inplace(remainder, denominator, shift);
+            if (shift < 31)
+                quotient_mod = (quotient_mod + (std::uint64_t{ 1 } << shift)) & quotient_mask;
+        }
+    }
+
+    BL_FORCE_INLINE constexpr biguint biguint_double_mod_with_quotient_bit(
+        const biguint& value,
+        const biguint& modulus,
+        std::uint64_t& bit) noexcept
+    {
+        biguint out = value;
+        out.shl1();
+
+        bit = 0;
+        if (out.compare(modulus) >= 0)
+        {
+            out.sub_inplace(modulus);
+            bit = 1;
+        }
+
+        return out;
+    }
+
+    BL_FORCE_INLINE constexpr f256_s fmod_exact_abs_with_quotient_mod(
+        const f256_s& ax,
+        const f256_s& ay,
+        std::uint64_t& quotient_mod)
+    {
+        constexpr std::uint64_t quotient_mask = 0x7fffffffull;
+
+        const exact_dyadic_fmod dx = exact_from_f256_fmod(ax);
+        const exact_dyadic_fmod dy = exact_from_f256_fmod(ay);
+
+        biguint remainder{};
+        int out_exp = 0;
+
+        if (dx.exp2 < dy.exp2)
+        {
+            const int shift = dy.exp2 - dx.exp2;
+            biguint denominator = dy.mant;
+            denominator.shl_bits(shift);
+            biguint_mod_shift_subtract_with_quotient_mod(dx.mant, denominator, remainder, quotient_mod);
+            out_exp = dx.exp2;
+        }
+        else
+        {
+            biguint_mod_shift_subtract_with_quotient_mod(dx.mant, dy.mant, remainder, quotient_mod);
+            const int shift = dx.exp2 - dy.exp2;
+
+            int i = 0;
+            for (; i < shift && !remainder.is_zero(); ++i)
+            {
+                std::uint64_t bit = 0;
+                remainder = biguint_double_mod_with_quotient_bit(remainder, dy.mant, bit);
+                quotient_mod = ((quotient_mod << 1) | bit) & quotient_mask;
+            }
+
+            const int remaining = shift - i;
+            if (remaining >= 31)
+                quotient_mod = 0;
+            else if (remaining > 0)
+                quotient_mod = (quotient_mod << remaining) & quotient_mask;
+
+            out_exp = dy.exp2;
+        }
+
+        f256_s out = exact_dyadic_to_f256_fmod(remainder, out_exp, false);
+        if (iszero(out))
+            return f256_s{ 0.0 };
+        return out;
+    }
+
+    BL_MSVC_NOINLINE constexpr f256_s fmod_reduced_or_exact(const f256_s& x, const f256_s& y)
     {
         const f256_s ay = mag(y);
         f256_s r = mag(x);
 
+        constexpr int exact_reduction_exponent_gap = 96;
+        if (frexp_exponent_limb(r.x0) - frexp_exponent_limb(ay.x0) > exact_reduction_exponent_gap)
+            return fmod_exact(x, y);
+
         for (int iteration = 0; iteration < 128 && r >= ay; ++iteration)
         {
-            const int ex = frexp_exponent(r.x0);
-            const int ey = frexp_exponent(ay.x0);
+            const int ex = frexp_exponent_limb(r.x0);
+            const int ey = frexp_exponent_limb(ay.x0);
             int shift = ex - ey - 52;
             if (shift < 0)
                 shift = 0;
@@ -599,54 +731,9 @@ namespace detail::_f256 // primitives and kernels
             return fmod_exact(x, y);
 
         if (iszero(r))
-            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return signed_zero_from(x.x0);
 
         return ispositive(x) ? r : -r;
-    }
-
-    BL_MSVC_NOINLINE constexpr bool fmod_fast_double_divisor_abs(const f256_s& ax, double ay, f256_s& out)
-    {
-        if (!(ay > 0.0) || !isfinite(ay))
-            return false;
-
-        const f256_s mod{ ay, 0.0, 0.0, 0.0 };
-
-        if (ax.x1 == 0.0 && ax.x2 == 0.0 && ax.x3 == 0.0)
-        {
-            out = f256_s{ fmod(ax.x0, ay), 0.0, 0.0, 0.0 };
-            return true;
-        }
-
-        const double r0 = (ax.x0 < ay) ? ax.x0 : fmod(ax.x0, ay);
-        const double r1 = (absd(ax.x1) < ay) ? ax.x1 : fmod(ax.x1, ay);
-        const double r2 = (absd(ax.x2) < ay) ? ax.x2 : fmod(ax.x2, ay);
-        const double r3 = (absd(ax.x3) < ay) ? ax.x3 : fmod(ax.x3, ay);
-
-        f256_s r = f256_s{ r0, 0.0, 0.0, 0.0 } +
-            f256_s{ r1, 0.0, 0.0, 0.0 } +
-            f256_s{ r2, 0.0, 0.0, 0.0 } +
-            f256_s{ r3, 0.0, 0.0, 0.0 };
-
-        for (int i = 0; i < 4; ++i)
-        {
-            if (r < 0.0)
-                r += mod;
-            if (r >= mod)
-                r -= mod;
-        }
-
-        if (r < 0.0 || r >= mod)
-            return false;
-
-        // reject boundary-adjacent results so the exact fallback handles the
-        // cases where double-limb modular reduction is not strong enough
-        const f256_s ar    = mag(r);
-        const f256_s slack = mul_double_inline(mod, 0x1p-160);
-        if (ar <= slack || ar >= mod - slack)
-            return false;
-
-        out = r;
-        return true;
     }
 
     // decimal conversion
@@ -742,7 +829,7 @@ namespace detail::_f256 // primitives and kernels
     // quotient helpers
     BL_FORCE_INLINE constexpr double limb_mod2(double value) noexcept
     {
-        if (value == 0.0 || !isfinite(value) || absd(value) >= 0x1p53)
+        if (detail::fp::iszero_or_inf_or_nan(value) || absd(value) >= 0x1p53)
             return 0.0;
 
         return fmod(value, 2.0);
@@ -763,29 +850,6 @@ namespace detail::_f256 // primitives and kernels
         return detail::fp::double_integer_is_odd(nearbyint_ties_even(mod2));
     }
 
-    BL_FORCE_INLINE constexpr double limb_mod_power_of_two(double value, double modulus, double zero_threshold) noexcept
-    {
-        if (value == 0.0 || !isfinite(value) || absd(value) >= zero_threshold)
-            return 0.0;
-
-        return fmod(value, modulus);
-    }
-
-    BL_FORCE_INLINE constexpr int low_quotient_bits(const f256_s& x) noexcept
-    {
-        constexpr double modulus = 2147483648.0;
-        constexpr double zero_threshold = 0x1p83;
-
-        double bits =
-            limb_mod_power_of_two(x.x0, modulus, zero_threshold) +
-            limb_mod_power_of_two(x.x1, modulus, zero_threshold) +
-            limb_mod_power_of_two(x.x2, modulus, zero_threshold) +
-            limb_mod_power_of_two(x.x3, modulus, zero_threshold);
-
-        bits = fmod(bits, modulus);
-        return static_cast<int>(static_cast<long long>(nearbyint_ties_even(bits)));
-    }
-
     // sqrt kernels
     BL_FORCE_INLINE constexpr f256_s canonicalize_sqrt_result(f256_s value) noexcept
     {
@@ -794,19 +858,43 @@ namespace detail::_f256 // primitives and kernels
     }
 
     #if defined(FLTX_CONSTEXPR_PARITY)
-        #define F256_CANONICALIZE_SQRT_RESULT(value) ::bl::detail::_f256::canonicalize_sqrt_result(value)
+        #define F256_CANONICALIZE_SQRT_RESULT(value) bl::detail::_f256::canonicalize_sqrt_result(value)
     #else
         #define F256_CANONICALIZE_SQRT_RESULT(value) (value)
     #endif
 
-    BL_FORCE_INLINE constexpr void sqrt_step_seed_recip(const f256_s& scaled_a, f256_s& y, double half_inv_y0)
+    BL_FORCE_INLINE constexpr double sqrt_compress_sum16(const double* e) noexcept
     {
         using namespace detail::_f256;
-        const f256_s residual = sub_inline(scaled_a, sqr_inline(y));
-        y = add_inline(y, mul_double_inline(residual, half_inv_y0));
+
+        double g[16];
+        double q = e[15];
+        for (int i = 14; i >= 0; --i)
+        {
+            double q_new{};
+            double low{};
+            two_sum_precise(q, e[i], q_new, low);
+            q = q_new;
+            g[i + 1] = low;
+        }
+        g[0] = q;
+
+        double residual = 0.0;
+        q = g[0];
+        for (int i = 1; i < 16; ++i)
+        {
+            double q_new{};
+            double low{};
+            two_sum_precise(q, g[i], q_new, low);
+            if (low != 0.0)
+                residual += low;
+            q = q_new;
+        }
+
+        return residual + q;
     }
 
-    BL_FORCE_INLINE  double sqrt_tail_residual_head(const f256_s& scaled_a, const f256_s& y)
+    BL_FORCE_INLINE constexpr double sqrt_tail_residual_head(const f256_s& scaled_a, const f256_s& y)
     {
         using namespace detail::_f256;
 
@@ -860,71 +948,156 @@ namespace detail::_f256 // primitives and kernels
             scaled_a.x0, -p00
         };
 
-        double compressed[24];
-        const int count = compress_expansion_zeroelim(static_cast<int>(sizeof(terms) / sizeof(terms[0])), terms, compressed);
-        double residual = 0.0;
-        for (int i = 0; i < count; ++i)
-            residual += compressed[i];
-        return residual;
+        return sqrt_compress_sum16(terms);
     }
 
-    BL_FORCE_INLINE  f256_s sqrt_step_tail_head(const f256_s& scaled_a, const f256_s& y, double half_inv_y0)
+    BL_FORCE_INLINE constexpr f256_s sqrt_step_tail_head(const f256_s& scaled_a, const f256_s& y, double half_inv_y0)
     {
         using namespace detail::_f256;
         return add_double_inline(y, sqrt_tail_residual_head(scaled_a, y) * half_inv_y0);
     }
 
-    BL_MSVC_NOINLINE constexpr f256_s sqrt_constexpr_impl(const f256_s& a)
+    BL_PUSH_PRECISE
+    BL_FORCE_INLINE constexpr double sqrt_renorm4_head(double c0, double c1, double c2, double c3) noexcept
     {
-        const int exp2 = frexp_exponent(a.x0);
-        const int result_scale = exp2 / 2;
-        const int input_scale = -2 * result_scale;
-        const f256_s scaled_a = input_scale == 0 ? a : ldexp_terms(a, input_scale);
+        double s{}, e{};
+        s = c2 + c3;  e = c3 - (s - c2);  c2 = s;  c3 = e;
+        s = c1 + c2;  e = c2 - (s - c1);  c1 = s;  c2 = e;
+        s = c0 + c1;  e = c1 - (s - c0);  c0 = s;  c1 = e;
 
-        const double y0 = sqrt_seed(scaled_a.x0);
-        const double half_inv_y0 = 0.5 / y0;
-        f256_s y{ y0, 0.0, 0.0, 0.0 };
-        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
-        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
-        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
-        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
+        if (c1 == 0.0 && c2 != 0.0)
+            c0 += c2;
+        if (c1 == 0.0 && c3 != 0.0)
+            c0 += c3;
 
+        return c0;
+    }
+
+    BL_FORCE_INLINE constexpr double sqrt_renorm5_head(double c0, double c1, double c2, double c3, double c4) noexcept
+    {
+        double s{}, e{};
+        s = c3 + c4;  e = c4 - (s - c3);  c3 = s;  c4 = e;
+        s = c2 + c3;  e = c3 - (s - c2);  c2 = s;  c3 = e;
+        s = c1 + c2;  e = c2 - (s - c1);  c1 = s;  c2 = e;
+        s = c0 + c1;  e = c1 - (s - c0);  c0 = s;  c1 = e;
+
+        if (c1 == 0.0 && c2 != 0.0)
+            c0 += c2;
+        if (c1 == 0.0 && c3 != 0.0)
+            c0 += c3;
+        if (c1 == 0.0 && c4 != 0.0)
+            c0 += c4;
+
+        return c0;
+    }
+    BL_POP_PRECISE
+
+    BL_FORCE_INLINE constexpr double sqrt_raw_residual_head(const f256_s& scaled_a, const f256_s& y) noexcept
+    {
+        using namespace detail::_f256;
+
+        const f256_raw5 p = neg_raw5(sqr_raw5_inline(y));
+
+        double s0{}, e0{};
+        double s1{}, e1{};
+        double s2{}, e2{};
+        double s3{}, e3{};
+
+        two_sum_precise(p.x0, scaled_a.x0, s0, e0);
+        two_sum_precise(p.x1, scaled_a.x1, s1, e1);
+        two_sum_precise(p.x2, scaled_a.x2, s2, e2);
+        two_sum_precise(p.x3, scaled_a.x3, s3, e3);
+
+        two_sum_precise(s1, e0, s1, e0);
+        three_sum(s2, e0, e1);
+        three_sum2(s3, e0, e2);
+
+        e0 += e1 + e3 + p.x4;
+
+        if (e0 == 0.0)
+            return sqrt_renorm4_head(s0, s1, s2, s3);
+
+        return sqrt_renorm5_head(s0, s1, s2, s3, e0);
+    }
+
+    BL_FORCE_INLINE constexpr f256_s sqrt_step_full_recip(const f256_s& scaled_a, const f256_s& y)
+    {
+        using namespace detail::_f256;
+        return add_double_inline(y, sqrt_raw_residual_head(scaled_a, y) * (0.5 / y.x0));
+    }
+
+    BL_FORCE_INLINE constexpr double sqrt_limb_seed(double x) noexcept
+    {
+        BL_CONSTEXPR_RUNTIME_DISPATCH(
+            sqrt_seed(x),
+            std::sqrt(x)
+        );
+    }
+
+    BL_FORCE_INLINE constexpr int scale_sqrt_input(f256_s& scaled_a) noexcept
+    {
+        int result_scale = 0;
+        if (scaled_a.x0 < 0x1p-900 || scaled_a.x0 > 0x1p900)
+        {
+            const int exp2 = frexp_exponent_limb(scaled_a.x0);
+            result_scale = exp2 / 2;
+            const int input_scale = -2 * result_scale;
+            if (input_scale != 0)
+                scaled_a = ldexp_terms(scaled_a, input_scale);
+        }
+
+        return result_scale;
+    }
+
+    BL_FORCE_INLINE constexpr f256_s rescale_sqrt_result(f256_s y, int result_scale) noexcept
+    {
         if (result_scale != 0)
             y = ldexp_terms(y, result_scale);
 
         return F256_CANONICALIZE_SQRT_RESULT(y);
     }
 
-    BL_FORCE_INLINE  f256_s sqrt_runtime_impl(const f256_s& a)
+    BL_MSVC_NOINLINE constexpr f256_s sqrt_impl_fast(const f256_s& a)
     {
         f256_s scaled_a = a;
-        int result_scale = 0;
-        if (a.x0 < 0x1p-900 || a.x0 > 0x1p900)
+        const int result_scale = scale_sqrt_input(scaled_a);
+
+        const double y0 = sqrt_limb_seed(scaled_a.x0);
+        f256_s y{ y0, 0.0, 0.0, 0.0 };
+        y = sqrt_step_tail_head(scaled_a, y, 0.5 / y.x0);
+        y = sqrt_step_tail_head(scaled_a, y, 0.5 / y.x0);
+        if (scaled_a.x0 < 1.0)
         {
-            const int exp2 = frexp_exponent(a.x0);
-            result_scale = exp2 / 2;
-            const int input_scale = -2 * result_scale;
-            if (input_scale != 0)
-                scaled_a = ldexp_terms(a, input_scale);
+            y = sqrt_step_full_recip(scaled_a, y);
+        }
+        else
+        {
+            y = sqrt_step_tail_head(scaled_a, y, 0.5 / y.x0);
+            y = sqrt_step_tail_head(scaled_a, y, 0.5 / y.x0);
         }
 
-        const double y0 = std::sqrt(scaled_a.x0);
-        const double half_inv_y0 = 0.5 / y0;
+        return rescale_sqrt_result(y, result_scale);
+    }
+
+    BL_MSVC_NOINLINE constexpr f256_s sqrt_impl(const f256_s& a)
+    {
+        f256_s scaled_a = a;
+        const int result_scale = scale_sqrt_input(scaled_a);
+
+        const double y0 = sqrt_limb_seed(scaled_a.x0);
         f256_s y{ y0, 0.0, 0.0, 0.0 };
-        sqrt_step_seed_recip(scaled_a, y, half_inv_y0);
-        y = sqrt_step_tail_head(scaled_a, y, half_inv_y0);
-        y = sqrt_step_tail_head(scaled_a, y, half_inv_y0);
+        y = sqrt_step_tail_head(scaled_a, y, 0.5 / y.x0);
+        y = sqrt_step_tail_head(scaled_a, y, 0.5 / y.x0);
+        y = sqrt_step_tail_head(scaled_a, y, 0.5 / y.x0);
+        y = sqrt_step_full_recip(scaled_a, y);
 
-        if (result_scale != 0)
-            y = ldexp_terms(y, result_scale);
-
-        return F256_CANONICALIZE_SQRT_RESULT(y);
+        return rescale_sqrt_result(y, result_scale);
     }
 
     // rounding helpers
     BL_FORCE_INLINE constexpr f256_s round_half_away_zero(const f256_s& x) noexcept
     {
-        if (isnan(x) || isinf(x) || iszero(x))
+        if (detail::fp::iszero_or_inf_or_nan(x.x0))
             return x;
 
         if (bl::signbit(x))
@@ -960,7 +1133,7 @@ namespace detail::_f256 // primitives and kernels
         static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
         static_assert(sizeof(SignedInt) <= sizeof(std::int64_t));
 
-        if (bl::isnan(x) || bl::isinf(x))
+        if (detail::fp::isinf_or_nan(x.x0))
             return 0;
 
         constexpr auto lo_i = static_cast<std::int64_t>(std::numeric_limits<SignedInt>::lowest());
@@ -984,7 +1157,7 @@ namespace detail::_f256 // primitives and kernels
         static_assert(std::is_integral_v<SignedInt> && std::is_signed_v<SignedInt>);
         static_assert(sizeof(SignedInt) <= sizeof(std::int64_t));
 
-        if (bl::isnan(x) || bl::isinf(x) || absd(x.x0) >= 0x1p52)
+        if (detail::fp::isinf_or_nan(x.x0) || absd(x.x0) >= 0x1p52)
             return false;
 
         constexpr auto lo_i = static_cast<std::int64_t>(std::numeric_limits<SignedInt>::lowest());
@@ -1008,26 +1181,6 @@ namespace detail::_f256 // primitives and kernels
 
         out = static_cast<SignedInt>(rounded);
         return true;
-    }
-
-    BL_FORCE_INLINE constexpr f256_s nearest_integer_ties_even(const f256_s& q) noexcept
-    {
-        f256_s n = detail::_f256_impl::trunc(q);
-        const f256_s frac = sub_inline(q, n);
-        const f256_s half{ 0.5 };
-        const f256_s one{ 1.0 };
-
-        if (mag(frac) > half)
-        {
-            n = add_inline(n, bl::signbit(frac) ? -one : one);
-        }
-        else if (mag(frac) == half)
-        {
-            if (is_odd_integer(n))
-                n = add_inline(n, bl::signbit(frac) ? -one : one);
-        }
-
-        return n;
     }
 
     // scaling kernels

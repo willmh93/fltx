@@ -63,7 +63,7 @@ endfunction()
 fltx_define_cache_bool(
     FLTX_DEVELOPER_BUILD
     "${PROJECT_IS_TOP_LEVEL}"
-    "Build fltx developer targets: tests, benchmarks, examples, and isolated compile units."
+    "Build fltx developer targets: tests, examples, and isolated compile units."
 )
 
 fltx_define_cache_bool(
@@ -123,6 +123,12 @@ fltx_define_cache_bool(
     "Emit detailed MSVC frontend and codegen timing reports for fltx developer targets."
 )
 
+fltx_define_cache_bool(
+    VERBOSE_TESTS
+    ON
+    "Print quality/metrics console tables while running metrics_tests."
+)
+
 mark_as_advanced(
     FLTX_FAST_MATH_NATIVE
     FLTX_FMA_AVAILABLE
@@ -133,6 +139,3 @@ mark_as_advanced(
 
 fltx_import_transient_cache_value(FLTX_PRECISION_TESTS_CONSTEXPR_PARITY OFF)
 fltx_import_transient_cache_value(FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL OFF)
-fltx_import_transient_cache_value(FLTX_BENCH_TESTS_CONSTEXPR_PARITY OFF)
-fltx_import_transient_cache_value(FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL OFF)
-fltx_import_transient_cache_value(FLTX_BENCH_FAST_MATH_MODE DEFAULT)

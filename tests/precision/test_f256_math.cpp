@@ -12,7 +12,6 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
-#include <random>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -21,8 +20,7 @@
 #include <fltx/f128.h>
 #include <fltx/f256_math.h>
 #include <fltx/f256_io.h>
-
-using big = boost::multiprecision::mpfr_float_100;
+#include <fltx/random.h>
 
 using namespace bl;
 
@@ -32,7 +30,7 @@ namespace
         boost::multiprecision::mpfr_float_backend<320>,
         boost::multiprecision::et_off>;
 
-    constexpr int checked_digits = std::numeric_limits<f256>::digits10 - 4;
+    constexpr int checked_digits = std::numeric_limits<f256>::digits10 - 1;
     constexpr int printed_digits = std::numeric_limits<f256>::max_digits10;
 
     constexpr std::uint64_t random_seed     = 1ull;
@@ -297,37 +295,17 @@ namespace
         return ulp_distance(got, round_ref_to_f256(expected));
     }
 
-    [[nodiscard]] big random_finite_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] f256 random_finite_for_f256(bl::mt19937_64& rng)
     {
-        std::uniform_int_distribution<int> sign_dist(0, 1);
-        std::uniform_int_distribution<int> exponent_dist(-100, 100);
-        std::uniform_int_distribution<std::uint32_t> chunk_dist(0, 999999999);
+        bl::uniform_int_distribution<int> sign_dist(0, 1);
+        bl::uniform_int_distribution<int> exponent_dist(-100, 100);
+        bl::uniform_real_distribution<f256> mantissa_dist{ f256{ 0.5 }, f256{ 1.0 } };
 
-        std::ostringstream mantissa_text;
-        mantissa_text << (sign_dist(rng) != 0 ? "-0." : "0.");
+        f256 mantissa = mantissa_dist(rng);
+        if (sign_dist(rng) != 0)
+            mantissa = -mantissa;
 
-        for (int i = 0; i < 8; ++i)
-        {
-            const std::uint32_t chunk = chunk_dist(rng);
-            mantissa_text << std::setw(9) << std::setfill('0') << chunk;
-        }
-
-        big mantissa{ mantissa_text.str() };
-
-        if (mantissa == 0)
-            mantissa = big{ "0.5" };
-
-        if (mantissa < 0)
-            mantissa -= 0.5;
-        else
-            mantissa += 0.5;
-
-        return ldexp(mantissa, exponent_dist(rng));
-    }
-
-    [[nodiscard]] std::string to_scientific_string(const big& value, int digits)
-    {
-        return value.str(digits, std::ios_base::scientific);
+        return bl::ldexp(mantissa, exponent_dist(rng));
     }
 
 
@@ -875,22 +853,15 @@ namespace
         return value.str(digits, std::ios_base::scientific);
     }
 
-    [[nodiscard]] mpfr_ref random_unit_interval_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_unit_interval_for_f256(bl::mt19937_64& rng)
     {
-        std::uniform_int_distribution<std::uint32_t> chunk_dist(0, 999999999);
-
-        std::ostringstream text;
-        text << "0.";
-
-        for (int i = 0; i < 8; ++i)
-            text << std::setw(9) << std::setfill('0') << chunk_dist(rng);
-
-        return mpfr_ref{ text.str() };
+        bl::uniform_real_distribution<f256> dist{ f256{ 0.0 }, f256{ 1.0 } };
+        return to_ref_exact(dist(rng));
     }
 
-    [[nodiscard]] mpfr_ref random_sine_kernel_argument_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_sine_kernel_argument_for_f256(bl::mt19937_64& rng)
     {
-        std::uniform_int_distribution<int> sign_dist(0, 1);
+        bl::uniform_int_distribution<int> sign_dist(0, 1);
 
         mpfr_ref value = random_unit_interval_for_f256(rng) * (pi_ref() / 4);
         if (sign_dist(rng) != 0)
@@ -899,9 +870,9 @@ namespace
         return value;
     }
 
-    [[nodiscard]] mpfr_ref random_sine_reduction_argument_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_sine_reduction_argument_for_f256(bl::mt19937_64& rng)
     {
-        std::uniform_int_distribution<long long> multiple_dist(-1000000LL, 1000000LL);
+        bl::uniform_int_distribution<long long> multiple_dist(-1000000LL, 1000000LL);
 
         const mpfr_ref half_pi    = pi_ref() / 2;
         const mpfr_ref quarter_pi = pi_ref() / 4;
@@ -952,9 +923,9 @@ namespace
             [](const mpfr_ref& value) { return boost::multiprecision::cos(value); });
     }
 
-    [[nodiscard]] mpfr_ref random_signed_interval_for_f256(std::mt19937_64& rng, const mpfr_ref& limit)
+    [[nodiscard]] mpfr_ref random_signed_interval_for_f256(bl::mt19937_64& rng, const mpfr_ref& limit)
     {
-        std::uniform_int_distribution<int> sign_dist(0, 1);
+        bl::uniform_int_distribution<int> sign_dist(0, 1);
 
         mpfr_ref value = random_unit_interval_for_f256(rng) * limit;
         if (sign_dist(rng) != 0)
@@ -964,11 +935,11 @@ namespace
     }
 
     [[nodiscard]] mpfr_ref random_signed_interval_away_from_zero_for_f256(
-        std::mt19937_64& rng,
+        bl::mt19937_64& rng,
         const mpfr_ref& minimum,
         const mpfr_ref& width)
     {
-        std::uniform_int_distribution<int> sign_dist(0, 1);
+        bl::uniform_int_distribution<int> sign_dist(0, 1);
 
         mpfr_ref value = minimum + random_unit_interval_for_f256(rng) * width;
         if (sign_dist(rng) != 0)
@@ -977,23 +948,23 @@ namespace
         return value;
     }
 
-    [[nodiscard]] mpfr_ref random_positive_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_positive_for_f256(bl::mt19937_64& rng)
     {
-        mpfr_ref value = abs_ref(mpfr_ref{ random_finite_for_f256(rng) });
+        mpfr_ref value = abs_ref(to_ref_exact(random_finite_for_f256(rng)));
         if (value == 0)
             value = mpfr_ref{ "0.5" };
         return value;
     }
 
-    [[nodiscard]] mpfr_ref random_nonzero_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_nonzero_for_f256(bl::mt19937_64& rng)
     {
-        mpfr_ref value = mpfr_ref{ random_finite_for_f256(rng) };
+        mpfr_ref value = to_ref_exact(random_finite_for_f256(rng));
         if (value == 0)
             value = mpfr_ref{ "0.5" };
         return value;
     }
 
-    [[nodiscard]] mpfr_ref random_pow_base_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_pow_base_for_f256(bl::mt19937_64& rng)
     {
         return mpfr_ref{ "0.125" } + random_unit_interval_for_f256(rng) * mpfr_ref{ "7.875" };
     }
@@ -1087,32 +1058,32 @@ namespace
         return ref_powi(mpfr_ref{ 10 }, exponent);
     }
 
-    [[nodiscard]] mpfr_ref random_unit_symmetric_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_unit_symmetric_for_f256(bl::mt19937_64& rng)
     {
         return random_signed_interval_for_f256(rng, mpfr_ref{ 1.0 });
     }
 
-    [[nodiscard]] mpfr_ref random_atanh_argument_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_atanh_argument_for_f256(bl::mt19937_64& rng)
     {
         return random_signed_interval_for_f256(rng, mpfr_ref{ "0.95" });
     }
 
-    [[nodiscard]] mpfr_ref random_acosh_argument_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_acosh_argument_for_f256(bl::mt19937_64& rng)
     {
         return mpfr_ref{ 1.0 } + random_unit_interval_for_f256(rng) * mpfr_ref{ 64.0 };
     }
 
-    [[nodiscard]] mpfr_ref random_log1p_argument_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_log1p_argument_for_f256(bl::mt19937_64& rng)
     {
         return mpfr_ref{ "-0.95" } + random_unit_interval_for_f256(rng) * mpfr_ref{ "16.95" };
     }
 
-    [[nodiscard]] mpfr_ref random_gamma_positive_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_gamma_positive_for_f256(bl::mt19937_64& rng)
     {
         return mpfr_ref{ "0.125" } + random_unit_interval_for_f256(rng) * mpfr_ref{ "15.875" };
     }
 
-    [[nodiscard]] mpfr_ref random_erf_argument_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] mpfr_ref random_erf_argument_for_f256(bl::mt19937_64& rng)
     {
         return random_signed_interval_for_f256(rng, mpfr_ref{ 4.0 });
     }
@@ -1911,7 +1882,7 @@ namespace
         return to_scientific_text(value, printed_digits + 6);
     }
 
-    [[nodiscard]] fused_expression_case random_fused_expression_case(std::mt19937_64& rng)
+    [[nodiscard]] fused_expression_case random_fused_expression_case(bl::mt19937_64& rng)
     {
         constexpr std::array<double, 12> scalars{{
             0.5, -0.75, 1.125, -1.375, 1.625, -1.875,
@@ -1924,8 +1895,8 @@ namespace
             2.0, 2.375, 2.75, 3.125, 3.5, 3.875, 4.25, 4.625
         }};
 
-        std::uniform_int_distribution<std::size_t> scalar_dist(0, scalars.size() - 1);
-        std::uniform_int_distribution<std::size_t> denominator_dist(0, add_denominators.size() - 1);
+        bl::uniform_int_distribution<std::size_t> scalar_dist(0, scalars.size() - 1);
+        bl::uniform_int_distribution<std::size_t> denominator_dist(0, add_denominators.size() - 1);
 
         return {
             fused_expression_random_text(random_signed_interval_for_f256(rng, mpfr_ref{ 2.0 })),
@@ -1980,19 +1951,18 @@ TEST_CASE("f256 matches MPFR for + - * /", "[fltx][f256][precision][arithmetic]"
 TEST_CASE("f256 brute-force random arithmetic matches MPFR within tolerance", "[fltx][f256][precision][arithmetic]")
 {
     accuracy_report_scope report_scope{ "f256 brute-force random arithmetic matches MPFR within tolerance" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
-    const int digits = printed_digits;
-    const int count  = 1000;
+    const int count = 1000;
     print_random_run("random arithmetic cases", count);
 
     for (int i = 0; i < count; ++i)
     {
-        const big lhs_big = random_finite_for_f256(rng);
-        const big rhs_big = random_finite_for_f256(rng);
+        const f256 lhs_value = random_finite_for_f256(rng);
+        const f256 rhs_value = random_finite_for_f256(rng);
 
-        const std::string lhs_text = to_scientific_string(lhs_big, digits);
-        const std::string rhs_text = to_scientific_string(rhs_big, digits);
+        const std::string lhs_text = to_text(lhs_value);
+        const std::string rhs_text = to_text(rhs_value);
 
         INFO("iteration: " << i);
         INFO("lhs_text: " << lhs_text);
@@ -2010,7 +1980,7 @@ TEST_CASE("f256 brute-force random arithmetic matches MPFR within tolerance", "[
             [](const f256& a, const f256& b) { return a * b; },
             [](const mpfr_ref& a, const mpfr_ref& b) { return a * b; });
 
-        if (rhs_big != 0)
+        if (!bl::iszero(rhs_value))
         {
             check_binary_op("divide", lhs_text.c_str(), rhs_text.c_str(),
                 [](const f256& a, const f256& b) { return a / b; },
@@ -2334,7 +2304,7 @@ TEST_CASE("f256 fused expression evaluator matches MPFR for routed shapes", "[fl
 TEST_CASE("f256 fused expression evaluator matches MPFR on random routed shapes", "[fltx][f256][precision][arithmetic][fused][random]")
 {
     accuracy_report_scope report_scope{ "f256 fused expression evaluator matches MPFR on random routed shapes" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 48;
     print_random_run("random fused expression cases", count);
@@ -2399,7 +2369,7 @@ TEST_CASE("f256 sin matches MPFR for fixed argument-reduction stress values", "[
 TEST_CASE("f256 sin matches MPFR on random reduced-range inputs", "[fltx][f256][precision][transcendental][trig][sin]")
 {
     accuracy_report_scope report_scope{ "f256 sin matches MPFR on random reduced-range inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-67" };
@@ -2427,7 +2397,7 @@ TEST_CASE("f256 sin matches MPFR on random reduced-range inputs", "[fltx][f256][
 TEST_CASE("f256 sin matches MPFR on random range-reduced inputs away from zero-crossings", "[fltx][f256][precision][transcendental][trig][sin][reduction]")
 {
     accuracy_report_scope report_scope{ "f256 sin matches MPFR on random range-reduced inputs away from zero-crossings" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -2463,7 +2433,7 @@ TEST_CASE("f256 sin matches MPFR on random range-reduced inputs away from zero-c
 TEST_CASE("f256 sin matches MPFR on random range-reduced zero-crossing stress inputs", "[fltx][f256][precision][transcendental][trig][sin][reduction][zero-crossing]")
 {
     accuracy_report_scope report_scope{ "f256 sin matches MPFR on random range-reduced zero-crossing stress inputs", false };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 64 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -2548,7 +2518,7 @@ TEST_CASE("f256 cos matches MPFR for fixed argument-reduction stress values", "[
 TEST_CASE("f256 cos matches MPFR on random reduced-range inputs", "[fltx][f256][precision][transcendental][trig][cos]")
 {
     accuracy_report_scope report_scope{ "f256 cos matches MPFR on random reduced-range inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-67" };
@@ -2576,7 +2546,7 @@ TEST_CASE("f256 cos matches MPFR on random reduced-range inputs", "[fltx][f256][
 TEST_CASE("f256 cos matches MPFR on random range-reduced inputs away from zero-crossings", "[fltx][f256][precision][transcendental][trig][cos][reduction]")
 {
     accuracy_report_scope report_scope{ "f256 cos matches MPFR on random range-reduced inputs away from zero-crossings" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -2612,7 +2582,7 @@ TEST_CASE("f256 cos matches MPFR on random range-reduced inputs away from zero-c
 TEST_CASE("f256 cos matches MPFR on random range-reduced zero-crossing stress inputs", "[fltx][f256][precision][transcendental][trig][cos][reduction][zero-crossing]")
 {
     accuracy_report_scope report_scope{ "f256 cos matches MPFR on random range-reduced zero-crossing stress inputs", false };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 64 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -2706,14 +2676,14 @@ TEST_CASE("f256 floor ceil trunc and round match MPFR for large-limb regression 
 TEST_CASE("f256 floor ceil trunc and round match MPFR on random finite inputs", "[fltx][f256][precision][math][rounding]")
 {
     accuracy_report_scope report_scope{ "f256 floor ceil trunc and round match MPFR on random finite inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     print_random_run("random floor/ceil/trunc/round cases", count);
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input         = mpfr_ref{ random_finite_for_f256(rng) };
+        const mpfr_ref input         = to_ref_exact(random_finite_for_f256(rng));
         const std::string input_text = to_scientific_text(input, printed_digits + 6);
 
         INFO("iteration: " << i);
@@ -2770,19 +2740,48 @@ TEST_CASE("f256 fmod matches MPFR for huge-quotient regression cases", "[fltx][f
         "2.9410562077176174010123838366180003482e+02",
         [](const f256& lhs, const f256& rhs) { return bl::fmod(lhs, rhs); },
         [](const mpfr_ref& lhs, const mpfr_ref& rhs) { return boost::multiprecision::fmod(lhs, rhs); });
+
+    // Domain sweep regression: 0x1.fffffffffffffp+899 mod -7.5 is exactly 0.5.
+    const f256 lhs = f256{ std::nextafter(std::ldexp(1.0, 900), 0.0), 0.0, 0.0, 0.0 };
+    const f256 rhs = f256{ -7.5, 0.0, 0.0, 0.0 };
+    require_exact_value("fmod.domain.max-p899.mod7p5", bl::fmod(lhs, rhs), f256{ 0.5, 0.0, 0.0, 0.0 });
+}
+
+TEST_CASE("f256 remainder handles huge double-divisor quotient regression", "[fltx][f256][precision][math][remainder]")
+{
+    accuracy_report_scope report_scope{ "f256 remainder handles huge double-divisor quotient regression" };
+
+    // Domain sweep regression: remainder(0x1.fffffffffffffp+899, -7.5) is exactly 0.5.
+    const f256 lhs = f256{ std::nextafter(std::ldexp(1.0, 900), 0.0), 0.0, 0.0, 0.0 };
+    const f256 rhs = f256{ -7.5, 0.0, 0.0, 0.0 };
+    require_exact_value("remainder.domain.max-p899.mod7p5", bl::remainder(lhs, rhs), f256{ 0.5, 0.0, 0.0, 0.0 });
+}
+
+TEST_CASE("f256 remainder and remquo handle exact half ties with noncanonical halves", "[fltx][f256][precision][math][remainder][remquo]")
+{
+    accuracy_report_scope report_scope{ "f256 remainder and remquo handle exact half ties with noncanonical halves" };
+
+    const f256 lhs{ 0x1.8000000000000p+0, 0x1.0000000000000p-60, -0x1.0000000000000p-113, 0x1.0000000000000p-166 };
+    const f256 rhs{ -0x1.8000000000000p+1, -0x1.0000000000000p-59, 0x1.0000000000000p-112, -0x1.0000000000000p-165 };
+
+    require_exact_value("remainder.domain.exact-half.tie-even", bl::remainder(lhs, rhs), lhs);
+
+    int quotient = 12345;
+    require_exact_value("remquo.domain.exact-half.tie-even", bl::remquo(lhs, rhs, &quotient), lhs);
+    REQUIRE(quotient == 0);
 }
 
 TEST_CASE("f256 fmod matches MPFR on random finite inputs", "[fltx][f256][precision][math][fmod]")
 {
     accuracy_report_scope report_scope{ "f256 fmod matches MPFR on random finite inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 10000;
     print_random_run("random fmod cases", count);
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref lhs = mpfr_ref{ random_finite_for_f256(rng) };
+        const mpfr_ref lhs = to_ref_exact(random_finite_for_f256(rng));
         const mpfr_ref rhs = random_nonzero_for_f256(rng);
 
         const std::string lhs_text = to_scientific_text(lhs, printed_digits + 6);
@@ -2828,7 +2827,7 @@ TEST_CASE("f256 sqrt matches MPFR for fixed values", "[fltx][f256][precision][ma
 TEST_CASE("f256 sqrt matches MPFR on random positive inputs", "[fltx][f256][precision][math][sqrt]")
 {
     accuracy_report_scope report_scope{ "f256 sqrt matches MPFR on random positive inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     print_random_run("random sqrt cases", count);
@@ -2870,15 +2869,15 @@ TEST_CASE("f256 ldexp matches MPFR for fixed values", "[fltx][f256][precision][m
 TEST_CASE("f256 ldexp matches MPFR on random finite inputs", "[fltx][f256][precision][math][ldexp]")
 {
     accuracy_report_scope report_scope{ "f256 ldexp matches MPFR on random finite inputs" };
-    std::mt19937_64 rng{ random_seed };
-    std::uniform_int_distribution<int> exponent_dist(-180, 180);
+    bl::mt19937_64 rng{ random_seed };
+    bl::uniform_int_distribution<int> exponent_dist(-180, 180);
 
     constexpr int count = 128 * random_sample_count_scale;
     print_random_run("random ldexp cases", count);
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input = mpfr_ref{ random_finite_for_f256(rng) };
+        const mpfr_ref input = to_ref_exact(random_finite_for_f256(rng));
         const int exponent   = exponent_dist(rng);
 
         INFO("iteration: " << i);
@@ -2918,7 +2917,7 @@ TEST_CASE("f256 exp matches MPFR for fixed values", "[fltx][f256][precision][tra
 TEST_CASE("f256 exp matches MPFR on random moderate inputs", "[fltx][f256][precision][transcendental][exp]")
 {
     accuracy_report_scope report_scope{ "f256 exp matches MPFR on random moderate inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -2975,7 +2974,7 @@ TEST_CASE("f256 exp2 matches MPFR for fixed values", "[fltx][f256][precision][tr
 TEST_CASE("f256 exp2 matches MPFR on random moderate inputs", "[fltx][f256][precision][transcendental][exp2]")
 {
     accuracy_report_scope report_scope{ "f256 exp2 matches MPFR on random moderate inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3032,7 +3031,7 @@ TEST_CASE("f256 log matches MPFR for fixed values", "[fltx][f256][precision][tra
 TEST_CASE("f256 log matches MPFR on random positive inputs", "[fltx][f256][precision][transcendental][log]")
 {
     accuracy_report_scope report_scope{ "f256 log matches MPFR on random positive inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3089,7 +3088,7 @@ TEST_CASE("f256 log2 matches MPFR for fixed values", "[fltx][f256][precision][tr
 TEST_CASE("f256 log2 matches MPFR on random positive inputs", "[fltx][f256][precision][transcendental][log2]")
 {
     accuracy_report_scope report_scope{ "f256 log2 matches MPFR on random positive inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3146,7 +3145,7 @@ TEST_CASE("f256 log10 matches MPFR for fixed values", "[fltx][f256][precision][t
 TEST_CASE("f256 log10 matches MPFR on random positive inputs", "[fltx][f256][precision][transcendental][log10]")
 {
     accuracy_report_scope report_scope{ "f256 log10 matches MPFR on random positive inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3195,7 +3194,7 @@ TEST_CASE("f256 pow matches MPFR for fixed values", "[fltx][f256][precision][tra
 TEST_CASE("f256 pow matches MPFR on random positive-base inputs", "[fltx][f256][precision][transcendental][pow]")
 {
     accuracy_report_scope report_scope{ "f256 pow matches MPFR on random positive-base inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3485,7 +3484,7 @@ TEST_CASE("f256 tan matches MPFR for fixed values", "[fltx][f256][precision][tra
 TEST_CASE("f256 tan matches MPFR on random moderate inputs", "[fltx][f256][precision][transcendental][trig][tan]")
 {
     accuracy_report_scope report_scope{ "f256 tan matches MPFR on random moderate inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3542,7 +3541,7 @@ TEST_CASE("f256 atan matches MPFR for fixed values", "[fltx][f256][precision][tr
 TEST_CASE("f256 atan matches MPFR on random moderate inputs", "[fltx][f256][precision][transcendental][trig][atan]")
 {
     accuracy_report_scope report_scope{ "f256 atan matches MPFR on random moderate inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3602,7 +3601,7 @@ TEST_CASE("f256 atan2 matches MPFR for fixed values", "[fltx][f256][precision][t
 TEST_CASE("f256 atan2 matches MPFR on random moderate inputs", "[fltx][f256][precision][transcendental][trig][atan2]")
 {
     accuracy_report_scope report_scope{ "f256 atan2 matches MPFR on random moderate inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3675,7 +3674,7 @@ TEST_CASE("f256 asin and acos match MPFR for fixed values", "[fltx][f256][precis
 TEST_CASE("f256 asin and acos match MPFR on random unit inputs", "[fltx][f256][precision][transcendental][trig][asin][acos]")
 {
     accuracy_report_scope report_scope{ "f256 asin and acos match MPFR on random unit inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3756,14 +3755,14 @@ TEST_CASE("f256 nearbyint and rint match ties-to-even references", "[fltx][f256]
 TEST_CASE("f256 nearbyint and rint match ties-to-even references on random inputs", "[fltx][f256][precision][math][nearbyint][rint]")
 {
     accuracy_report_scope report_scope{ "f256 nearbyint and rint match ties-to-even references on random inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     print_random_run("random nearbyint/rint cases", count);
 
     for (int i = 0; i < count; ++i)
     {
-        const mpfr_ref input         = mpfr_ref{ random_finite_for_f256(rng) };
+        const mpfr_ref input         = to_ref_exact(random_finite_for_f256(rng));
         const std::string input_text = to_scientific_text(input, printed_digits + 6);
 
         INFO("iteration: " << i);
@@ -3812,7 +3811,7 @@ TEST_CASE("f256 expm1 matches MPFR for fixed values", "[fltx][f256][precision][t
 TEST_CASE("f256 expm1 matches MPFR on random moderate inputs", "[fltx][f256][precision][transcendental][expm1]")
 {
     accuracy_report_scope report_scope{ "f256 expm1 matches MPFR on random moderate inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3870,7 +3869,7 @@ TEST_CASE("f256 log1p matches MPFR for fixed values", "[fltx][f256][precision][t
 TEST_CASE("f256 log1p matches MPFR on random valid inputs", "[fltx][f256][precision][transcendental][log1p]")
 {
     accuracy_report_scope report_scope{ "f256 log1p matches MPFR on random valid inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -3943,7 +3942,7 @@ TEST_CASE("f256 hyperbolic functions match MPFR for fixed values", "[fltx][f256]
 TEST_CASE("f256 hyperbolic functions match MPFR on random moderate inputs", "[fltx][f256][precision][transcendental][hyperbolic]")
 {
     accuracy_report_scope report_scope{ "f256 hyperbolic functions match MPFR on random moderate inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -4031,7 +4030,7 @@ TEST_CASE("f256 inverse hyperbolic functions match MPFR for fixed values", "[flt
 TEST_CASE("f256 inverse hyperbolic functions match MPFR on random valid inputs", "[fltx][f256][precision][transcendental][inverse_hyperbolic]")
 {
     accuracy_report_scope report_scope{ "f256 inverse hyperbolic functions match MPFR on random valid inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -4121,7 +4120,7 @@ TEST_CASE("f256 cbrt and hypot match MPFR for fixed values", "[fltx][f256][preci
 TEST_CASE("f256 cbrt and hypot match MPFR on random moderate inputs", "[fltx][f256][precision][math][cbrt][hypot]")
 {
     accuracy_report_scope report_scope{ "f256 cbrt and hypot match MPFR on random moderate inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 256;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -4245,7 +4244,9 @@ TEST_CASE("f256 decomposition and stepping functions behave correctly", "[fltx][
 TEST_CASE("f256 erf and erfc match MPFR for fixed values", "[fltx][f256][precision][transcendental][erf][erfc]")
 {
     accuracy_report_scope report_scope{ "f256 erf and erfc match MPFR for fixed values" };
-    const std::array<const char*, 9> cases = {{
+    const std::array<const char*, 13> cases = {{
+        "-1e100",
+        "-13",
         "-4",
         "-1",
         "-0.125",
@@ -4254,7 +4255,9 @@ TEST_CASE("f256 erf and erfc match MPFR for fixed values", "[fltx][f256][precisi
         "1e-10",
         "0.125",
         "1",
-        "4"
+        "4",
+        "13",
+        "1e100"
     }};
 
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -4283,7 +4286,7 @@ TEST_CASE("f256 erf and erfc match MPFR for fixed values", "[fltx][f256][precisi
 TEST_CASE("f256 erf and erfc match MPFR on random moderate inputs", "[fltx][f256][precision][transcendental][erf][erfc]")
 {
     accuracy_report_scope report_scope{ "f256 erf and erfc match MPFR on random moderate inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };
@@ -4356,7 +4359,7 @@ TEST_CASE("f256 lgamma and tgamma match MPFR for fixed values", "[fltx][f256][pr
 TEST_CASE("f256 lgamma and tgamma match MPFR on random positive inputs", "[fltx][f256][precision][transcendental][gamma]")
 {
     accuracy_report_scope report_scope{ "f256 lgamma and tgamma match MPFR on random positive inputs" };
-    std::mt19937_64 rng{ random_seed };
+    bl::mt19937_64 rng{ random_seed };
 
     constexpr int count = 128 * random_sample_count_scale;
     const mpfr_ref abs_tolerance{ "1e-59" };

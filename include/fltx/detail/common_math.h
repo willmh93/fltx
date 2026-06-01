@@ -81,7 +81,7 @@ BL_FORCE_INLINE constexpr double log1p(double x) noexcept
 
 BL_FORCE_INLINE constexpr double round_half_away_zero(double x) noexcept
 {
-    if (isnan(x) || isinf(x) || x == 0.0)
+    if (iszero_or_inf_or_nan(x))
         return x;
 
     constexpr double integer_threshold = double_integer_threshold;
@@ -135,13 +135,23 @@ BL_FORCE_INLINE constexpr long long llround(double x) noexcept
 
 BL_FORCE_INLINE constexpr double fmod(double x, double y) noexcept
 {
-    if (isnan(x) || isnan(y) || y == 0.0 || isinf(x))
+    if (isinf_or_nan(x) || iszero_or_nan(y))
         return std::numeric_limits<double>::quiet_NaN();
     if (isinf(y) || x == 0.0)
         return x;
 
     const double q = trunc(x / y);
     return x - q * y;
+}
+
+BL_FORCE_INLINE constexpr int remquo_low_quotient_bits(
+    std::uint64_t quotient_abs,
+    bool negative,
+    std::uint64_t mask = 0x7fffffffull) noexcept
+{
+    const std::uint64_t low = quotient_abs & mask;
+    const int bits = static_cast<int>(low);
+    return negative ? -bits : bits;
 }
 
 BL_FORCE_INLINE constexpr double nextafter(double from, double to) noexcept
@@ -190,7 +200,7 @@ BL_FORCE_INLINE constexpr float nextafter(float from, float to) noexcept
 
 BL_FORCE_INLINE constexpr double nearbyint_ties_even(double x) noexcept
 {
-    if (isnan(x) || isinf(x) || x == 0.0)
+    if (iszero_or_inf_or_nan(x))
         return x;
 
     const double t = floor(x);

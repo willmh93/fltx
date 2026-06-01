@@ -12,7 +12,8 @@
 
 #include "fltx/aliases.h"
 #include "fltx/f256_type.h"
-#include "fltx/f256_stl.h"
+#include "fltx/f256_limits.h"
+#include "fltx/f256_numbers.h"
 #include "fltx/f256_conversions.h"
 #include "fltx/f256_comparison.h"
 #include "fltx/f256_classification.h"

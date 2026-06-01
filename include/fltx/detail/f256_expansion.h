@@ -176,7 +176,7 @@ namespace detail::_f256 // primitives and kernels
     }
 
     #if defined(FLTX_CONSTEXPR_PARITY)
-        #define F256_CANONICALIZE_MATH_RESULT(value) ::bl::detail::_f256::canonicalize_math_result(value)
+        #define F256_CANONICALIZE_MATH_RESULT(value) bl::detail::_f256::canonicalize_math_result(value)
     #else
         #define F256_CANONICALIZE_MATH_RESULT(value) (value)
     #endif

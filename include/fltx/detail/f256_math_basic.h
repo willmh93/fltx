@@ -12,8 +12,344 @@
 #ifndef F256_DETAIL_MATH_BASIC_INCLUDED
 #define F256_DETAIL_MATH_BASIC_INCLUDED
 #include "fltx/detail/f256_math_kernels.h"
+#include "fltx/detail/simd.h"
 
 namespace bl {
+
+namespace detail::_f256
+{
+    [[nodiscard]] BL_FORCE_INLINE constexpr double floor_limb(double x) noexcept
+    {
+        BL_CONSTEXPR_RUNTIME_DISPATCH(
+            detail::fp::floor(x),
+            std::floor(x)
+        );
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr double ceil_limb(double x) noexcept
+    {
+        BL_CONSTEXPR_RUNTIME_DISPATCH(
+            detail::fp::ceil(x),
+            -std::floor(-x)
+        );
+    }
+}
+
+namespace detail::_f256_runtime
+{
+    [[nodiscard]] BL_FORCE_INLINE double trunc_limb(double x) noexcept
+    {
+        if (detail::fp::iszero_or_inf_or_nan(x))
+            return x;
+
+        const double ax = detail::fp::absd(x);
+        if (ax >= detail::fp::double_integer_threshold)
+            return x;
+
+        const double out = static_cast<double>(static_cast<long long>(x));
+        return out == 0.0 ? (detail::fp::signbit(x) ? -0.0 : 0.0) : out;
+    }
+}
+
+namespace detail::_f256
+{
+    [[nodiscard]] BL_FORCE_INLINE constexpr double trunc_limb(double x) noexcept
+    {
+        BL_CONSTEXPR_RUNTIME_DISPATCH(
+            detail::fp::trunc(x),
+            detail::_f256_runtime::trunc_limb(x)
+        );
+    }
+}
+
+namespace detail::_f256_runtime
+{
+    [[nodiscard]] BL_FORCE_INLINE double nearbyint_limb(double x) noexcept
+    {
+        if (detail::fp::iszero_or_inf_or_nan(x))
+            return x;
+
+        const double t = detail::_f256::floor_limb(x);
+        const double frac = x - t;
+        double out = t;
+        if (frac > 0.5 || (frac == 0.5 && detail::fp::double_integer_is_odd(t)))
+            out = t + 1.0;
+
+        return out == 0.0 ? (detail::fp::signbit(x) ? -0.0 : 0.0) : out;
+    }
+}
+
+namespace detail::_f256
+{
+    [[nodiscard]] BL_FORCE_INLINE constexpr double nearbyint_limb(double x) noexcept
+    {
+        BL_CONSTEXPR_RUNTIME_DISPATCH(
+            detail::fp::nearbyint(x),
+            detail::_f256_runtime::nearbyint_limb(x)
+        );
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE double nearbyint_limb_finite_small(double x) noexcept
+    {
+        #if BL_FLTX_HAS_SSE2
+        return static_cast<double>(_mm_cvtsd_si64(_mm_set_sd(x)));
+        #else
+        return nearbyint_limb(x);
+        #endif
+    }
+}
+
+namespace detail::_f256_runtime
+{
+    [[nodiscard]] BL_FORCE_INLINE double round_half_away_zero_limb(double x) noexcept
+    {
+        if (detail::fp::iszero_or_inf_or_nan(x))
+            return x;
+
+        const double ax = detail::fp::absd(x);
+        if (ax >= detail::fp::double_integer_threshold)
+            return x;
+
+        double out = static_cast<double>(static_cast<long long>(ax + 0.5));
+        if (detail::fp::signbit(x))
+            out = -out;
+        return out == 0.0 ? (detail::fp::signbit(x) ? -0.0 : 0.0) : out;
+    }
+}
+
+namespace detail::_f256
+{
+    [[nodiscard]] BL_FORCE_INLINE constexpr double round_half_away_zero_limb(double x) noexcept
+    {
+        BL_CONSTEXPR_RUNTIME_DISPATCH(
+            detail::fp::round_half_away_zero(x),
+            detail::_f256_runtime::round_half_away_zero_limb(x)
+        );
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE double round_half_away_zero_limb_finite_small(double x) noexcept
+    {
+        double out = static_cast<double>(static_cast<long long>(detail::fp::absd(x) + 0.5));
+        if (detail::fp::signbit(x))
+            out = -out;
+        return out;
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr bool has_negative_tail(double x1, double x2, double x3) noexcept
+    {
+        return x1 < 0.0 || (x1 == 0.0 && (x2 < 0.0 || (x2 == 0.0 && x3 < 0.0)));
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr bool has_positive_tail(double x1, double x2, double x3) noexcept
+    {
+        return x1 > 0.0 || (x1 == 0.0 && (x2 > 0.0 || (x2 == 0.0 && x3 > 0.0)));
+    }
+
+    BL_FORCE_INLINE constexpr void adjust_rounded_limb_for_tail(
+        double& rounded,
+        double value,
+        double next1,
+        double next2,
+        double next3) noexcept
+    {
+        const double delta = rounded - value;
+        if (detail::fp::absd(delta) != 0.5)
+            return;
+
+        if (delta > 0.0)
+        {
+            if (has_negative_tail(next1, next2, next3))
+                rounded -= 1.0;
+        }
+        else if (has_positive_tail(next1, next2, next3))
+        {
+            rounded += 1.0;
+        }
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s signed_zero_like(const f256_s& a) noexcept
+    {
+        return signed_zero_from(a.x0);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s canonicalize_rounded_zero(f256_s out, const f256_s& a) noexcept
+    {
+        return out.x0 == 0.0 ? signed_zero_like(a) : out;
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s floor_limbwise(const f256_s& a) noexcept
+    {
+        double x0 = floor_limb(a.x0);
+        double x1 = 0.0;
+        double x2 = 0.0;
+        double x3 = 0.0;
+
+        if (!detail::fp::isfinite(x0))
+            return f256_s{ x0, 0.0, 0.0, 0.0 };
+
+        if (x0 == a.x0)
+        {
+            x1 = floor_limb(a.x1);
+            if (x1 == a.x1)
+            {
+                x2 = floor_limb(a.x2);
+                if (x2 == a.x2)
+                    x3 = floor_limb(a.x3);
+            }
+
+            return canonicalize_rounded_zero(renorm(x0, x1, x2, x3), a);
+        }
+
+        return f256_s{ x0 };
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s ceil_limbwise(const f256_s& a) noexcept
+    {
+        double x0 = ceil_limb(a.x0);
+        double x1 = 0.0;
+        double x2 = 0.0;
+        double x3 = 0.0;
+
+        if (!detail::fp::isfinite(x0))
+            return f256_s{ x0, 0.0, 0.0, 0.0 };
+
+        if (x0 == a.x0)
+        {
+            x1 = ceil_limb(a.x1);
+            if (x1 == a.x1)
+            {
+                x2 = ceil_limb(a.x2);
+                if (x2 == a.x2)
+                    x3 = ceil_limb(a.x3);
+            }
+
+            return canonicalize_rounded_zero(renorm(x0, x1, x2, x3), a);
+        }
+
+        return x0 == 0.0 ? signed_zero_like(a) : f256_s{ x0 };
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s trunc_limbwise(const f256_s& a) noexcept
+    {
+        const double x0 = trunc_limb(a.x0);
+
+        if (!detail::fp::isfinite(x0))
+            return f256_s{ x0, 0.0, 0.0, 0.0 };
+
+        if (x0 != a.x0)
+            return x0 == 0.0 ? signed_zero_like(a) : f256_s{ x0 };
+
+        if (a.x0 == 0.0)
+            return signed_zero_like(a);
+
+        return a.x0 < 0.0 ? ceil_limbwise(a) : floor_limbwise(a);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s nearbyint_limbwise(const f256_s& a) noexcept
+    {
+        double x0 = nearbyint_limb(a.x0);
+        double x1 = 0.0;
+        double x2 = 0.0;
+        double x3 = 0.0;
+
+        if (x0 == a.x0)
+        {
+            x1 = nearbyint_limb(a.x1);
+            if (x1 == a.x1)
+            {
+                x2 = nearbyint_limb(a.x2);
+                if (x2 == a.x2)
+                    x3 = nearbyint_limb(a.x3);
+                else
+                    adjust_rounded_limb_for_tail(x2, a.x2, a.x3, 0.0, 0.0);
+            }
+            else
+                adjust_rounded_limb_for_tail(x1, a.x1, a.x2, a.x3, 0.0);
+        }
+        else
+        {
+            adjust_rounded_limb_for_tail(x0, a.x0, a.x1, a.x2, a.x3);
+            return x0 == 0.0 ? signed_zero_like(a) : f256_s{ x0 };
+        }
+
+        return canonicalize_rounded_zero(renorm(x0, x1, x2, x3), a);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr f256_s round_half_away_zero_limbwise(const f256_s& a) noexcept
+    {
+        double x0 = round_half_away_zero_limb(a.x0);
+        double x1 = 0.0;
+        double x2 = 0.0;
+        double x3 = 0.0;
+
+        if (x0 == a.x0)
+        {
+            x1 = round_half_away_zero_limb(a.x1);
+            if (x1 == a.x1)
+            {
+                x2 = round_half_away_zero_limb(a.x2);
+                if (x2 == a.x2)
+                    x3 = round_half_away_zero_limb(a.x3);
+                else
+                    adjust_rounded_limb_for_tail(x2, a.x2, a.x3, 0.0, 0.0);
+            }
+            else
+                adjust_rounded_limb_for_tail(x1, a.x1, a.x2, a.x3, 0.0);
+        }
+        else
+        {
+            adjust_rounded_limb_for_tail(x0, a.x0, a.x1, a.x2, a.x3);
+            return f256_s{ x0 };
+        }
+
+        return canonicalize_rounded_zero(renorm(x0, x1, x2, x3), a);
+    }
+
+}
+
+namespace detail::_f256_impl
+{
+    [[nodiscard]] BL_FORCE_INLINE f256_s round_runtime(const f256_s& a) noexcept
+    {
+        if (detail::fp::isinf_or_nan(a.x0)) [[unlikely]]
+            return a;
+
+        if (detail::fp::absd(a.x0) < detail::fp::double_integer_threshold)
+        {
+            double x0 = detail::_f256::round_half_away_zero_limb_finite_small(a.x0);
+            detail::_f256::adjust_rounded_limb_for_tail(x0, a.x0, a.x1, a.x2, a.x3);
+            return x0 == 0.0 ? detail::_f256::signed_zero_like(a) : f256_s{ x0 };
+        }
+
+        return detail::_f256::round_half_away_zero_limbwise(a);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE f256_s nearbyint_runtime(const f256_s& a) noexcept
+    {
+        if (detail::fp::absd(a.x0) < detail::fp::double_integer_threshold)
+        {
+            double x0 = detail::_f256::nearbyint_limb_finite_small(a.x0);
+
+            const double delta = x0 - a.x0;
+            if (delta == 0.5)
+            {
+                if (detail::_f256::has_negative_tail(a.x1, a.x2, a.x3))
+                    x0 -= 1.0;
+            }
+            else if (delta == -0.5 && detail::_f256::has_positive_tail(a.x1, a.x2, a.x3))
+            {
+                x0 += 1.0;
+            }
+
+            return x0 == 0.0 ? detail::_f256::signed_zero_like(a) : f256_s{ x0 };
+        }
+
+        if (detail::fp::iszero_or_inf_or_nan(a.x0))
+            return a;
+
+        return detail::_f256::nearbyint_limbwise(a);
+    }
+}
 
 // roots
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::sqrt(const f256_s& a)
@@ -30,12 +366,24 @@ namespace bl {
     if (isinf(a))
         return a;
 
-    if (bl::use_constexpr_math())
+    return sqrt_impl_fast(a);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::sqrt_accurate(const f256_s& a)
+{
+    using namespace detail::_f256;
+
+    if (a.x0 <= 0.0)
     {
-        return sqrt_constexpr_impl(a);
+        if (iszero(a))
+            return a;
+        return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
     }
 
-    return sqrt_runtime_impl(a);
+    if (isinf(a))
+        return a;
+
+    return sqrt_impl(a);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::hypot(const f256_s& x, const f256_s& y)
@@ -61,178 +409,44 @@ namespace bl {
     if (iszero(ay))
         return F256_CANONICALIZE_MATH_RESULT(ax);
 
-    int ex = 0;
-    int ey = 0;
-    if (bl::use_constexpr_math())
-    {
-        ex = frexp_exponent(ax.x0);
-        ey = frexp_exponent(ay.x0);
-    }
-    else
-    {
-        (void)std::frexp(ax.x0, &ex);
-        (void)std::frexp(ay.x0, &ey);
-    }
+    const int ex = detail::fp::frexp_exponent_limb(ax.x0);
+    const int ey = detail::fp::frexp_exponent_limb(ay.x0);
 
     if ((ex - ey) > 110)
         return F256_CANONICALIZE_MATH_RESULT(ax);
 
-    if (!bl::use_constexpr_math())
-    {
-        if (ex > -450 && ex < 450)
-            return F256_CANONICALIZE_MATH_RESULT(detail::_f256_impl::sqrt(add_raw5_raw5_inline(sqr_raw5_inline(ax), sqr_raw5_inline(ay))));
-    }
+    if (ex > -450 && ex < 450)
+        return F256_CANONICALIZE_MATH_RESULT(detail::_f256_impl::sqrt_accurate(add_raw5_raw5_inline(sqr_raw5_inline(ax), sqr_raw5_inline(ay))));
 
     const f256_s r = div_inline(ay, ax);
-    return F256_CANONICALIZE_MATH_RESULT(mul_inline(ax, detail::_f256_impl::sqrt(add_raw5_value_inline(sqr_raw5_inline(r), f256_s{ 1.0 }))));
+    return F256_CANONICALIZE_MATH_RESULT(mul_inline(ax, detail::_f256_impl::sqrt_accurate(add_raw5_value_inline(sqr_raw5_inline(r), f256_s{ 1.0 }))));
 }
 
-// rounding
-[[nodiscard]] inline constexpr f256_s detail::_f256_impl::floor(const f256_s& a)
+// rounding and decimals
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::floor(const f256_s& a)
 {
-    if (isnan(a) || isinf(a) || iszero(a)) [[unlikely]]
-        return a;
-
-    constexpr double integer_x0_threshold = detail::fp::double_integer_threshold;
-
-    if (absd(a.x0) >= integer_x0_threshold)
-    {
-        if (a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
-            return f256_s{ a.x0, 0.0, 0.0, 0.0 };
-
-        return f256_s{ a.x0, 0.0, 0.0, 0.0 } + detail::_f256_impl::floor(f256_s{ a.x1, a.x2, a.x3, 0.0 });
-    }
-
-    f256_s r{ detail::fp::floor(a.x0), 0.0, 0.0, 0.0 };
-    if (r > a)
-        r -= 1.0;
-    return r;
+    return detail::_f256::floor_limbwise(a);
 }
 
-[[nodiscard]] inline constexpr f256_s detail::_f256_impl::ceil(const f256_s& a)
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::ceil(const f256_s& a)
 {
-    if (isnan(a) || isinf(a) || iszero(a)) [[unlikely]]
-        return a;
-
-    constexpr double integer_x0_threshold = detail::fp::double_integer_threshold;
-
-    if (absd(a.x0) >= integer_x0_threshold)
-    {
-        if (a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
-            return f256_s{ a.x0, 0.0, 0.0, 0.0 };
-
-        return f256_s{ a.x0, 0.0, 0.0, 0.0 } + detail::_f256_impl::ceil(f256_s{ a.x1, a.x2, a.x3, 0.0 });
-    }
-
-    f256_s r{ detail::fp::ceil(a.x0), 0.0, 0.0, 0.0 };
-    if (r < a)
-        r += 1.0;
-    return r;
+    return -detail::_f256_impl::floor(-a);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::trunc(const f256_s& a)
 {
-    if (isnan(a) || isinf(a) || iszero(a)) [[unlikely]]
+    if (detail::fp::isinf_or_nan(a.x0)) [[unlikely]]
         return a;
 
-    return (a.x0 < 0.0) ? detail::_f256_impl::ceil(a) : detail::_f256_impl::floor(a);
+    return detail::fp::signbit(a.x0) ? detail::_f256_impl::ceil(a) : detail::_f256_impl::floor(a);
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::nearbyint(const f256_s& a)
-{
-    if (isnan(a) || isinf(a) || iszero(a))
-        return a;
-
-    f256_s t = detail::_f256_impl::floor(a);
-    const f256_s frac = sub_inline(a, t);
-
-    if (frac < f256_s{ 0.5 })
-        return t;
-
-    if (frac > f256_s{ 0.5 })
-    {
-        t = add_inline(t, f256_s{ 1.0 });
-        if (iszero(t))
-            return f256_s{ signbit(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-        return t;
-    }
-
-    if (is_odd_integer(t))
-        t = add_inline(t, f256_s{ 1.0 });
-
-    if (iszero(t))
-        return f256_s{ signbit(a.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-
-    return t;
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::rint(const f256_s& x)
-{
-    return detail::_f256_impl::nearbyint(x);
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr long detail::_f256_impl::lround(const f256_s& x)
-{
-    return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256::round_half_away_zero(x));
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr long long detail::_f256_impl::llround(const f256_s& x)
-{
-    return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256::round_half_away_zero(x));
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr long detail::_f256_impl::lrint(const f256_s& x)
-{
-    return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256_impl::nearbyint(x));
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr long long detail::_f256_impl::llrint(const f256_s& x)
-{
-    return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256_impl::nearbyint(x));
-}
-
-// arithmetic and comparisons
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fma(const f256_s& x, const f256_s& y, const f256_s& z)
-{
-    return F256_CANONICALIZE_MATH_RESULT(mul_add_inline(x, y, z));
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fmin(const f256_s& a, const f256_s& b)
-{
-    if (isnan(a)) return b;
-    if (isnan(b)) return a;
-    if (a < b) return a;
-    if (b < a) return b;
-    if (iszero(a) && iszero(b))
-        return bl::signbit(a) ? a : b;
-    return a;
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fmax(const f256_s& a, const f256_s& b)
-{
-    if (isnan(a)) return b;
-    if (isnan(b)) return a;
-    if (a > b) return a;
-    if (b > a) return b;
-    if (iszero(a) && iszero(b))
-        return bl::signbit(a) ? b : a;
-    return a;
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fdim(const f256_s& x, const f256_s& y)
-{
-    return (x > y) ? F256_CANONICALIZE_MATH_RESULT(x - y) : f256_s{ 0.0 };
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::copysign(const f256_s& x, const f256_s& y)
-{
-    return bl::signbit(x) == bl::signbit(y) ? x : -x;
-}
-
-// rounding and decimals
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::round(const f256_s& a)
 {
-    return round_half_away_zero(a);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256::round_half_away_zero_limbwise(a),
+        detail::_f256_impl::round_runtime(a)
+    );
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::round_to_decimals(f256_s v, int prec)
@@ -324,12 +538,139 @@ namespace bl {
     return neg ? -out : out;
 }
 
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::nearbyint(const f256_s& a)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256::nearbyint_limbwise(a),
+        detail::_f256_impl::nearbyint_runtime(a)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::rint(const f256_s& x)
+{
+    return detail::_f256_impl::nearbyint(x);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr long detail::_f256_impl::lround(const f256_s& x)
+{
+    long out = 0;
+    if (detail::_f256::try_round_to_signed_integer(x, false, out))
+        return out;
+
+    return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256::round_half_away_zero(x));
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr long long detail::_f256_impl::llround(const f256_s& x)
+{
+    long long out = 0;
+    if (detail::_f256::try_round_to_signed_integer(x, false, out))
+        return out;
+
+    return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256::round_half_away_zero(x));
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr long detail::_f256_impl::lrint(const f256_s& x)
+{
+    long out = 0;
+    if (detail::_f256::try_round_to_signed_integer(x, true, out))
+        return out;
+
+    return detail::_f256::to_signed_integer_or_zero<long>(detail::_f256_impl::nearbyint(x));
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr long long detail::_f256_impl::llrint(const f256_s& x)
+{
+    long long out = 0;
+    if (detail::_f256::try_round_to_signed_integer(x, true, out))
+        return out;
+
+    return detail::_f256::to_signed_integer_or_zero<long long>(detail::_f256_impl::nearbyint(x));
+}
+
+// arithmetic and comparisons
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fma(const f256_s& x, const f256_s& y, const f256_s& z)
+{
+    if (detail::fp::isinf_or_nan(x.x0) || detail::fp::isinf_or_nan(y.x0) || detail::fp::isinf_or_nan(z.x0)) [[unlikely]]
+        return f256_s{ std::fma(x.x0, y.x0, z.x0), 0.0, 0.0, 0.0 };
+
+    return F256_CANONICALIZE_MATH_RESULT(mul_add_inline(x, y, z));
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fmin(const f256_s& a, const f256_s& b)
+{
+    if (a.x0 != b.x0)
+    {
+        if (detail::fp::isnan(a.x0)) [[unlikely]]
+            return b;
+        if (detail::fp::isnan(b.x0)) [[unlikely]]
+            return a;
+        return a.x0 < b.x0 ? a : b;
+    }
+
+    if (a.x1 != b.x1)
+        return a.x1 < b.x1 ? a : b;
+    if (a.x2 != b.x2)
+        return a.x2 < b.x2 ? a : b;
+    if (a.x3 != b.x3)
+        return a.x3 < b.x3 ? a : b;
+
+    if (a.x0 == 0.0 && a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
+        return detail::fp::signbit(a.x0) ? a : b;
+
+    return a;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fmax(const f256_s& a, const f256_s& b)
+{
+    if (a.x0 != b.x0)
+    {
+        if (detail::fp::isnan(a.x0)) [[unlikely]]
+            return b;
+        if (detail::fp::isnan(b.x0)) [[unlikely]]
+            return a;
+        return a.x0 > b.x0 ? a : b;
+    }
+
+    if (a.x1 != b.x1)
+        return a.x1 > b.x1 ? a : b;
+    if (a.x2 != b.x2)
+        return a.x2 > b.x2 ? a : b;
+    if (a.x3 != b.x3)
+        return a.x3 > b.x3 ? a : b;
+
+    if (a.x0 == 0.0 && a.x1 == 0.0 && a.x2 == 0.0 && a.x3 == 0.0)
+        return detail::fp::signbit(a.x0) ? b : a;
+
+    return a;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fdim(const f256_s& x, const f256_s& y)
+{
+    if (isnan(x) || isnan(y)) [[unlikely]]
+        return std::numeric_limits<f256_s>::quiet_NaN();
+    if (isinf(x)) [[unlikely]]
+    {
+        if (signbit(x))
+            return f256_s{ 0.0 };
+        return (isinf(y) && !signbit(y)) ? f256_s{ 0.0 } : std::numeric_limits<f256_s>::infinity();
+    }
+    if (isinf(y)) [[unlikely]]
+        return signbit(y) ? std::numeric_limits<f256_s>::infinity() : f256_s{ 0.0 };
+
+    return (x > y) ? F256_CANONICALIZE_MATH_RESULT(x - y) : f256_s{ 0.0 };
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::copysign(const f256_s& x, const f256_s& y)
+{
+    return bl::signbit(x) == bl::signbit(y) ? x : -x;
+}
+
 // remainders
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::fmod(const f256_s& x, const f256_s& y)
 {
-    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
+    if (detail::fp::isinf_or_nan(x.x0) || detail::fp::iszero_or_nan(y.x0))
         return std::numeric_limits<f256_s>::quiet_NaN();
-    if (isinf(y) || iszero(x))
+    if (detail::fp::isinf(y.x0) || x.x0 == 0.0)
         return x;
 
     const f256_s ax = detail::_f256::mag(x);
@@ -339,27 +680,20 @@ namespace bl {
         return x;
 
     f256_s fast{};
-    if (y.x1 == 0.0 && y.x2 == 0.0 && y.x3 == 0.0 && fmod_fast_double_divisor_abs(ax, ay.x0, fast))
+    if (fmod_fast_small_quotient_abs(ax, ay, fast))
     {
         if (iszero(fast))
-            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+            return detail::_f256::signed_zero_like(x);
         const f256_s out = ispositive(x) ? fast : -fast;
         return F256_CANONICALIZE_MATH_RESULT(out);
     }
 
-    if (!bl::use_constexpr_math() && fmod_fast_small_quotient_abs(ax, ay, fast))
-    {
-        if (iszero(fast))
-            return f256_s{ signbit(x.x0) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-        const f256_s out = ispositive(x) ? fast : -fast;
-        return F256_CANONICALIZE_MATH_RESULT(out);
-    }
+    return F256_CANONICALIZE_MATH_RESULT(fmod_reduced_or_exact(x, y));
+}
 
-    const f256_s out = bl::use_constexpr_math()
-        ? fmod_exact(x, y)
-        : fmod_runtime(x, y);
-
-    return F256_CANONICALIZE_MATH_RESULT(out);
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::remainder(const f256_s& x, const f256_s& y)
+{
+    return detail::_f256_impl::remquo(x, y, nullptr);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::remquo(const f256_s& x, const f256_s& y, int* quo)
@@ -367,35 +701,72 @@ namespace bl {
     if (quo)
         *quo = 0;
 
-    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
+    if (detail::fp::isinf_or_nan(x.x0) || detail::fp::iszero_or_nan(y.x0))
         return std::numeric_limits<f256_s>::quiet_NaN();
-    if (isinf(y))
+    if (detail::fp::isinf(y.x0) || x.x0 == 0.0)
         return x;
 
-    const f256_s n = nearest_integer_ties_even(x / y);
-    f256_s r = value_sub_mul_inline(x, n, y);
+    const bool x_negative = signbit(x);
+    const bool quotient_negative = x_negative != signbit(y);
+    const f256_s ax = detail::_f256::mag(x);
+    const f256_s ay = detail::_f256::mag(y);
+
+    f256_s r_abs{};
+    std::uint64_t quotient_abs = 0;
+    bool fast = false;
+
+    if (ax < ay)
+    {
+        r_abs = ax;
+        fast = true;
+    }
+    else
+    {
+        fast = fmod_fast_small_quotient_abs_with_quotient(ax, ay, r_abs, quotient_abs);
+    }
+
+    if (fast)
+    {
+        const f256_s half = mul_double_inline(ay, 0.5);
+        const int half_cmp = detail::_f256::fmod_compare_remainder_to_half(r_abs, half);
+        if (half_cmp > 0 || (half_cmp == 0 && ((quotient_abs & 1u) != 0u)))
+        {
+            r_abs = sub_inline(r_abs, ay);
+            ++quotient_abs;
+        }
+
+        if (quo)
+            *quo = detail::fp::remquo_low_quotient_bits(quotient_abs, quotient_negative);
+
+        f256_s r = x_negative ? -r_abs : r_abs;
+        if (iszero(r))
+            return detail::_f256::signed_zero_like(x);
+
+        return F256_CANONICALIZE_MATH_RESULT(r);
+    }
+
+    std::uint64_t quotient_mod = 0;
+    r_abs = fmod_exact_abs_with_quotient_mod(ax, ay, quotient_mod);
+    const f256_s half = mul_double_inline(ay, 0.5);
+    const int half_cmp = detail::_f256::fmod_compare_remainder_to_half(r_abs, half);
+
+    if (half_cmp > 0)
+    {
+        r_abs = sub_inline(r_abs, ay);
+        ++quotient_mod;
+    }
+    else if (half_cmp == 0 && ((quotient_mod & 1u) != 0u))
+    {
+        r_abs = sub_inline(r_abs, ay);
+        ++quotient_mod;
+    }
 
     if (quo)
-        *quo = low_quotient_bits(n);
+        *quo = detail::fp::remquo_low_quotient_bits(quotient_mod, quotient_negative);
 
+    f256_s r = x_negative ? -r_abs : r_abs;
     if (iszero(r))
-        return f256_s{ signbit(x) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
-
-    return F256_CANONICALIZE_MATH_RESULT(r);
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::remainder(const f256_s& x, const f256_s& y)
-{
-    if (isnan(x) || isnan(y) || iszero(y) || isinf(x))
-        return std::numeric_limits<f256_s>::quiet_NaN();
-    if (isinf(y))
-        return x;
-
-    const f256_s n = nearest_integer_ties_even(x / y);
-    f256_s r = value_sub_mul_inline(x, n, y);
-
-    if (iszero(r))
-        return f256_s{ signbit(x) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+        return detail::_f256::signed_zero_like(x);
 
     return F256_CANONICALIZE_MATH_RESULT(r);
 }
@@ -403,19 +774,35 @@ namespace bl {
 // fractional decomposition
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::modf(const f256_s& x, f256_s* iptr) noexcept
 {
+    if (isnan(x))
+    {
+        if (iptr)
+            *iptr = x;
+        return x;
+    }
+    if (isinf(x))
+    {
+        if (iptr)
+            *iptr = x;
+        return detail::_f256::signed_zero_like(x);
+    }
+
     const f256_s i = detail::_f256_impl::trunc(x);
     if (iptr)
         *iptr = i;
 
     f256_s frac = sub_inline(x, i);
     if (iszero(frac))
-        frac = f256_s{ signbit(x) ? -0.0 : 0.0, 0.0, 0.0, 0.0 };
+        frac = detail::_f256::signed_zero_like(x);
     return frac;
 }
 
 // decomposition and scaling
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::ldexp(const f256_s& a, int e)
 {
+    if (detail::fp::iszero_or_inf_or_nan(a.x0)) [[unlikely]]
+        return a;
+
     return F256_CANONICALIZE_MATH_RESULT(_ldexp(a, e));
 }
 
@@ -424,35 +811,39 @@ namespace bl {
     if (exp)
         *exp = 0;
 
-    if (isnan(x) || isinf(x) || iszero(x))
+    if (detail::fp::iszero_or_inf_or_nan(x.x0))
         return x;
 
-    const double lead =
-        (x.x0 != 0.0) ? x.x0 :
-        (x.x1 != 0.0) ? x.x1 :
-        (x.x2 != 0.0) ? x.x2 : x.x3;
     int e = 0;
 
     if (bl::use_constexpr_math())
     {
-        e = detail::fp::frexp_exponent(lead);
+        e = detail::fp::frexp_exponent(x.x0);
     }
     else
     {
-        (void)std::frexp(lead, &e);
+        (void)std::frexp(x.x0, &e);
     }
 
-    f256_s m = detail::_f256_impl::ldexp(x, -e);
-    const f256_s am = detail::_f256::mag(m);
-
-    if (am < f256_s{ 0.5 })
+    const bool safe_fast_scale =
+        detail::fp::absd(x.x0) >= std::numeric_limits<double>::min();
+    f256_s m = safe_fast_scale
+        ? detail::_f256::_ldexp(x, -e)
+        : detail::_f256::ldexp_terms(x, -e);
+    if ((m.x0 == 0.5 && detail::_f256::has_negative_tail(m.x1, m.x2, m.x3))
+        || (m.x0 == -0.5 && detail::_f256::has_positive_tail(m.x1, m.x2, m.x3)))
     {
-        m *= f256_s{ 2.0 };
+        m = safe_fast_scale
+            ? detail::_f256::_ldexp(m, 1)
+            : detail::_f256::ldexp_terms(m, 1);
         --e;
     }
-    else if (am >= f256_s{ 1.0 })
+    else if ((m.x0 == 1.0 && !detail::_f256::has_negative_tail(m.x1, m.x2, m.x3))
+        || (m.x0 == -1.0 && !detail::_f256::has_positive_tail(m.x1, m.x2, m.x3)))
     {
-        m *= f256_s{ 0.5 };
+        m = safe_fast_scale
+            ? detail::_f256::_ldexp(m, -1)
+            : detail::_f256::ldexp_terms(m, -1);
         ++e;
     }
 
@@ -468,9 +859,11 @@ namespace bl {
     if (iszero(x)) return FP_ILOGB0;
     if (isinf(x))  return std::numeric_limits<int>::max();
 
-    int e = 0;
-    (void)detail::_f256_impl::frexp(detail::_f256::mag(x), &e);
-    return e - 1;
+    const double lead =
+        (x.x0 != 0.0) ? x.x0 :
+        (x.x1 != 0.0) ? x.x1 :
+        (x.x2 != 0.0) ? x.x2 : x.x3;
+    return detail::fp::frexp_exponent(detail::fp::absd(lead)) - 1;
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::logb(const f256_s& x) noexcept
@@ -495,7 +888,7 @@ namespace bl {
 // adjacent values
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::nextafter(const f256_s& from, const f256_s& to) noexcept
 {
-    if (isnan(from) || isnan(to))
+    if (detail::fp::isnan(from.x0) || detail::fp::isnan(to.x0))
         return std::numeric_limits<f256_s>::quiet_NaN();
     if (from == to)
         return to;

@@ -11,6 +11,11 @@
 
 namespace bl::detail::_f128_runtime
 {
+    f128_s trunc(const f128_s& a)
+    {
+        return detail::_f128_impl::trunc(a);
+    }
+
     f128_s to_f128(uint64_t u) noexcept
     {
         return detail::_f128_impl::to_f128(u);
@@ -29,11 +34,6 @@ namespace bl::detail::_f128_runtime
     f128_s& assign(f128_s& out, int64_t v) noexcept
     {
         return detail::_f128_impl::assign(out, v);
-    }
-
-    f128_s trunc(const f128_s& a)
-    {
-        return detail::_f128_impl::trunc(a);
     }
 
 } // namespace bl::detail::_f128_runtime

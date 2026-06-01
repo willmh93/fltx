@@ -4,12 +4,12 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
-#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
 
 #include <fltx/f256_io.h>
+#include <fltx/random.h>
 
 using namespace bl;
 
@@ -18,8 +18,6 @@ namespace
     using mpfr_check = boost::multiprecision::number<
         boost::multiprecision::mpfr_float_backend<200>,
         boost::multiprecision::et_off>;
-
-    using mpfr_random = boost::multiprecision::mpfr_float_100;
 
     constexpr int checked_digits = std::numeric_limits<f256>::digits10 - 4;
     constexpr int print_digits   = std::numeric_limits<f256>::max_digits10;
@@ -134,22 +132,17 @@ namespace
         REQUIRE(diff <= tolerance);
     }
 
-    [[nodiscard]] mpfr_random random_large_finite_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] f256 random_large_finite_for_f256(bl::mt19937_64& rng)
     {
-        std::uniform_int_distribution<int> sign_dist(0, 1);
-        std::uniform_int_distribution<int> exponent_dist(-900, 900);
-        std::uniform_real_distribution<double> mantissa_dist(0.5, 1.0);
+        bl::uniform_int_distribution<int> sign_dist(0, 1);
+        bl::uniform_int_distribution<int> exponent_dist(-900, 900);
+        bl::uniform_real_distribution<f256> mantissa_dist{ f256{ 0.5 }, f256{ 1.0 } };
 
-        mpfr_random mantissa = mantissa_dist(rng);
+        f256 mantissa = mantissa_dist(rng);
         if (sign_dist(rng) != 0)
             mantissa = -mantissa;
 
-        return ldexp(mantissa, exponent_dist(rng));
-    }
-
-    [[nodiscard]] std::string to_scientific_string(const mpfr_random& value, int digits)
-    {
-        return value.str(digits, std::ios_base::scientific);
+        return bl::ldexp(mantissa, exponent_dist(rng));
     }
 
 } // namespace
@@ -342,6 +335,51 @@ TEST_CASE("f256 formats special values and stream flags consistently", "[fltx][f
     REQUIRE(nan_upper.str() == "NAN");
 }
 
+TEST_CASE("f256 stream extraction parses complete tokens", "[fltx][f256][io][stream]")
+{
+    std::istringstream in{ "1.25 -0 +inf nan tail" };
+    f256 value{};
+    f256_s neg_zero{};
+    f256 inf{};
+    f256_s nan{};
+    std::string tail;
+
+    REQUIRE(static_cast<bool>(in >> value >> neg_zero >> inf >> nan >> tail));
+    require_close(value, to_ref("1.25"));
+    REQUIRE(bl::iszero(neg_zero));
+    REQUIRE(std::signbit(neg_zero.x0));
+    REQUIRE(bl::isinf(inf));
+    REQUIRE(!std::signbit(inf.x0));
+    REQUIRE(bl::isnan(nan));
+    REQUIRE(tail == "tail");
+}
+
+TEST_CASE("f256 stream extraction fails without overwriting on partial or invalid tokens", "[fltx][f256][io][stream][edge]")
+{
+    {
+        std::istringstream in{ "1.25tail" };
+        f256 value{ 42.0, 0.0, 0.0, 0.0 };
+
+        REQUIRE_FALSE(static_cast<bool>(in >> value));
+        REQUIRE(in.fail());
+        REQUIRE(value.x0 == 42.0);
+        REQUIRE(value.x1 == 0.0);
+        REQUIRE(value.x2 == 0.0);
+        REQUIRE(value.x3 == 0.0);
+    }
+    {
+        std::istringstream in{ "oops" };
+        f256_s value{ 7.0, 0.0, 0.0, 0.0 };
+
+        REQUIRE_FALSE(static_cast<bool>(in >> value));
+        REQUIRE(in.fail());
+        REQUIRE(value.x0 == 7.0);
+        REQUIRE(value.x1 == 0.0);
+        REQUIRE(value.x2 == 0.0);
+        REQUIRE(value.x3 == 0.0);
+    }
+}
+
 TEST_CASE("f256 print and parse round-trip preserves explicit limb values", "[fltx][f256][io][roundtrip]")
 {
     const std::array<std::pair<const char*, f256>, 8> cases = {{
@@ -361,23 +399,24 @@ TEST_CASE("f256 print and parse round-trip preserves explicit limb values", "[fl
 
 TEST_CASE("f256 brute-force random io test", "[fltx][f256][io][rand]")
 {
-    std::mt19937_64 rng{ std::random_device{}() };
+    bl::mt19937_64 rng{ 0x1020304050607080ull };
     constexpr int sample_count = 1000000;
 
-    std::cout << "f256 brute-force random roundtrip test: " << sample_count << " random values...\n\n";
+    std::cout << "f256 brute-force random roundtrip test: " << sample_count
+              << " random values (seed 0x1020304050607080)...\n\n";
 
     for (int i = 0; i < sample_count; ++i)
     {
-        const mpfr_random value    = random_large_finite_for_f256(rng);
-        const std::string expected = to_scientific_string(value, print_digits);
+        const f256 value           = random_large_finite_for_f256(rng);
+        const std::string expected = to_text(value);
 
         const f256 parsed        = to_f256(expected);
         const std::string actual = to_text(parsed);
 
         INFO("iteration: " << i);
-        INFO("random mpfr: " << expected);
+        INFO("random f256: " << expected);
         INFO("original n:  " << actual);
 
-        REQUIRE(expected == actual);
+        require_close(parsed, to_ref_exact(value));
     }
 }

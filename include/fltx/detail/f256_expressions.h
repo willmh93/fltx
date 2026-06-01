@@ -22,39 +22,15 @@ namespace detail::_f256 // primitives and kernels
 {
     // raw expansion helpers
     struct f256_raw5 { double x0, x1, x2, x3, x4; };
-    struct pow2_scale_info { bool valid; bool negative; int exponent; };
-
-    BL_FORCE_INLINE constexpr pow2_scale_info exact_pow2_scale_info(double value) noexcept
-    {
-        constexpr std::uint64_t sign_mask     = 0x8000000000000000ull;
-        constexpr std::uint64_t exponent_mask = 0x7ff0000000000000ull;
-        constexpr std::uint64_t fraction_mask = 0x000fffffffffffffull;
-
-        const std::uint64_t bits     = std::bit_cast<std::uint64_t>(value);
-        const std::uint64_t abs_bits = bits & ~sign_mask;
-        const bool negative = (bits & sign_mask) != 0;
-
-        if (abs_bits == 0 || abs_bits >= exponent_mask)
-            return { false, negative, 0 };
-
-        const std::uint32_t exponent_bits = static_cast<std::uint32_t>((abs_bits & exponent_mask) >> 52);
-        const std::uint64_t fraction = abs_bits & fraction_mask;
-
-        if (exponent_bits != 0)
-            return { fraction == 0, negative, static_cast<int>(exponent_bits) - 1023 };
-
-        if ((fraction & (fraction - 1)) != 0)
-            return { false, negative, 0 };
-
-        return { true, negative, bl::detail::fp::highest_bit_index(fraction) - 1074 };
-    }
+    using detail::fp::exact_pow2_scale_info;
+    using detail::fp::pow2_scale_info;
 
     BL_FORCE_INLINE constexpr bool finite_scaled_limb_is_safe(double value, double scaled) noexcept
     {
-        if (value == 0.0 || !bl::detail::fp::isfinite(value))
+        if (bl::detail::fp::iszero_or_inf_or_nan(value))
             return true;
 
-        if (!bl::detail::fp::isfinite(scaled) || scaled == 0.0)
+        if (bl::detail::fp::iszero_or_inf_or_nan(scaled))
             return false;
 
         constexpr std::uint64_t exponent_mask = 0x7ff0000000000000ull;
@@ -285,11 +261,11 @@ namespace detail::_f256 // primitives and kernels
 
     BL_FORCE_INLINE constexpr f256_s mul_pow2_or_double_checked_inline(const f256_s& a, double b) noexcept
     {
-        if (!isfinite(a.x0) || !isfinite(b)) [[unlikely]]
+        if (bl::detail::fp::isinf_or_nan(a.x0) || bl::detail::fp::isinf_or_nan(b)) [[unlikely]]
             return mul_special(a, f256_s{ b, 0.0, 0.0, 0.0 });
 
         const f256_s out = mul_pow2_or_double_inline(a, b);
-        if (!isfinite(out.x0)) [[unlikely]]
+        if (bl::detail::fp::isinf_or_nan(out.x0)) [[unlikely]]
             return signed_infinity(bl::signbit(a) != signbit(b));
         return out;
     }

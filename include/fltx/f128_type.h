@@ -57,7 +57,7 @@ namespace detail::_f128 // primitives and kernels
     }
 
     #if BL_F128_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
-    namespace simd = ::bl::detail::simd;
+    namespace simd = bl::detail::simd;
     #endif
 
     template<class T>

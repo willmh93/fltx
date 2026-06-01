@@ -1,5 +1,5 @@
 /**
- * fltx/f32_math_basic.h - constexpr <cmath>-style basic math functions for f32.
+ * fltx/detail/f32_math_basic.h - constexpr <cmath>-style basic math helpers for f32.
  *
  * f32 rounding, decomposition, remainder, min/max, and adjacent-value helpers.
  *
@@ -13,7 +13,7 @@
 #define F32_MATH_BASIC_INCLUDED
 
 #include "fltx/f32_classification.h"
-#include "fltx/f64_math_basic.h"
+#include "fltx/detail/f64_math_basic.h"
 
 
 namespace bl {
@@ -37,10 +37,13 @@ namespace detail::_f32_impl
     BL_FORCE_INLINE constexpr int normalize_remquo_bits(int q) noexcept
     {
         const int magnitude = q < 0 ? -q : q;
-        const int low_bits  = magnitude & 0x7;
-        if (low_bits == 0)
+        const int bits = detail::fp::remquo_low_quotient_bits(
+            static_cast<std::uint64_t>(magnitude),
+            q < 0,
+            0x7u);
+        if (bits == 0)
             return 0;
-        return q < 0 ? -low_bits : low_bits;
+        return bits;
     }
 
     [[nodiscard]] BL_FORCE_INLINE constexpr float remquo(float x, float y, int* quo) noexcept

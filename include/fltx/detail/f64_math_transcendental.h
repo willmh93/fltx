@@ -1,5 +1,5 @@
 /**
- * fltx/f64_math_transcendental.h - constexpr <cmath>-style transcendental math functions for f64.
+ * fltx/detail/f64_math_transcendental.h - constexpr <cmath>-style transcendental math helpers for f64.
  *
  * f64 exp/log, roots, pow, trig, hyperbolic, erf, and gamma helpers.
  *
@@ -12,7 +12,7 @@
 #ifndef F64_MATH_TRANSCENDENTAL_INCLUDED
 #define F64_MATH_TRANSCENDENTAL_INCLUDED
 
-#include "fltx/f64_math_basic.h"
+#include "fltx/detail/f64_math_basic.h"
 
 
 namespace bl {

@@ -20,34 +20,77 @@ namespace bl {
     return abs(a);
 }
 
-// rounding
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 floor(const f256_s& a)
+// roots
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 sqrt(const f256_s& a)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::floor(a),
-        detail::_f256_runtime::floor(a)
+        detail::_f256_impl::sqrt(a),
+        detail::_f256_runtime::sqrt(a)
     );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 cbrt(const f256_s& x)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::cbrt(x),
+        detail::_f256_runtime::cbrt(x)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 hypot(const f256_s& x, const f256_s& y)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::hypot(x, y),
+        detail::_f256_runtime::hypot(x, y)
+    );
+}
+
+// rounding and decimals
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 floor(const f256_s& a)
+{
+    return detail::_f256_impl::floor(a);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 ceil(const f256_s& a)
 {
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::ceil(a),
-        detail::_f256_runtime::ceil(a)
-    );
+    return detail::_f256_impl::ceil(a);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 trunc(const f256_s& a)
 {
+    return detail::_f256_impl::trunc(a);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 round(const f256_s& a)
+{
     BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::trunc(a),
-        detail::_f256_runtime::trunc(a)
+        detail::_f256_impl::round(a),
+        detail::_f256_runtime::round(a)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 round_to_decimals(f256_s v, int prec)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::round_to_decimals(v, prec),
+        detail::_f256_runtime::round_to_decimals(v, prec)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 nearbyint(const f256_s& a)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::nearbyint(a),
+        detail::_f256_runtime::nearbyint(a)
     );
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 rint(const f256_s& x)
 {
-    return detail::_f256_impl::rint(x);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::rint(x),
+        detail::_f256_runtime::rint(x)
+    );
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr long lround(const f256_s& x)
@@ -82,14 +125,7 @@ namespace bl {
     );
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 hypot(const f256_s& x, const f256_s& y)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::hypot(x, y),
-        detail::_f256_runtime::hypot(x, y)
-    );
-}
-
+// arithmetic and comparisons
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 fma(const f256_s& x, const f256_s& y, const f256_s& z)
 {
     return detail::_f256_impl::fma(x, y, z);
@@ -115,67 +151,12 @@ namespace bl {
     return detail::_f256_impl::copysign(x, y);
 }
 
+// remainders
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 fmod(const f256_s& x, const f256_s& y)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
         detail::_f256_impl::fmod(x, y),
         detail::_f256_runtime::fmod(x, y)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 round(const f256_s& a)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::round(a),
-        detail::_f256_runtime::round(a)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 round_to_decimals(f256_s v, int prec)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::round_to_decimals(v, prec),
-        detail::_f256_runtime::round_to_decimals(v, prec)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 sqrt(const f256_s& a)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::sqrt(a),
-        detail::_f256_runtime::sqrt(a)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 nearbyint(const f256_s& a)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::nearbyint(a),
-        detail::_f256_runtime::nearbyint(a)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 ldexp(const f256_s& a, int e)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::ldexp(a, e),
-        detail::_f256_runtime::ldexp(a, e)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 cbrt(const f256_s& x)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::cbrt(x),
-        detail::_f256_runtime::cbrt(x)
-    );
-}
-
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 remquo(const f256_s& x, const f256_s& y, int* quo)
-{
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::remquo(x, y, quo),
-        detail::_f256_runtime::remquo(x, y, quo)
     );
 }
 
@@ -187,14 +168,15 @@ namespace bl {
     );
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 frexp(const f256_s& x, int* exp) noexcept
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 remquo(const f256_s& x, const f256_s& y, int* quo)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::frexp(x, exp),
-        detail::_f256_runtime::frexp(x, exp)
+        detail::_f256_impl::remquo(x, y, quo),
+        detail::_f256_runtime::remquo(x, y, quo)
     );
 }
 
+// fractional decomposition
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 modf(const f256_s& x, f256_s* iptr) noexcept
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -203,44 +185,41 @@ namespace bl {
     );
 }
 
+// decomposition and scaling
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 ldexp(const f256_s& a, int e)
+{
+    return detail::_f256_impl::ldexp(a, e);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 frexp(const f256_s& x, int* exp) noexcept
+{
+    return detail::_f256_impl::frexp(x, exp);
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr int ilogb(const f256_s& x) noexcept
 {
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::ilogb(x),
-        detail::_f256_runtime::ilogb(x)
-    );
+    return detail::_f256_impl::ilogb(x);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 logb(const f256_s& x) noexcept
 {
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::logb(x),
-        detail::_f256_runtime::logb(x)
-    );
+    return detail::_f256_impl::logb(x);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 scalbn(const f256_s& x, int e) noexcept
 {
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::scalbn(x, e),
-        detail::_f256_runtime::scalbn(x, e)
-    );
+    return detail::_f256_impl::scalbn(x, e);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 scalbln(const f256_s& x, long e) noexcept
 {
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::scalbln(x, e),
-        detail::_f256_runtime::scalbln(x, e)
-    );
+    return detail::_f256_impl::scalbln(x, e);
 }
 
+// adjacent values
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 nextafter(const f256_s& from, const f256_s& to) noexcept
 {
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::nextafter(from, to),
-        detail::_f256_runtime::nextafter(from, to)
-    );
+    return detail::_f256_impl::nextafter(from, to);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 nexttoward(const f256_s& from, long double to) noexcept

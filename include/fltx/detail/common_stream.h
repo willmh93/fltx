@@ -1,5 +1,5 @@
 /**
- * fltx/detail/common_stream.h - Shared ostream formatting support.
+ * fltx/detail/common_stream.h - Shared stream formatting support.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -11,6 +11,7 @@
 #define FLTX_DETAIL_COMMON_STREAM_INCLUDED
 
 #include <ios>
+#include <istream>
 #include <ostream>
 #include <string>
 
@@ -110,6 +111,25 @@ BL_NO_INLINE std::ostream& write_to_stream(std::ostream& os, const typename Trai
     apply_stream_decorations(s, showpos, uppercase);
     os << s;
     return os;
+}
+
+template<class Value, class ParseFn>
+BL_FORCE_INLINE std::istream& read_from_stream(std::istream& is, Value& x, ParseFn parse)
+{
+    std::string token;
+    if (!(is >> token))
+        return is;
+
+    Value parsed{};
+    const char* end = nullptr;
+    if (!(parse(token.c_str(), parsed, &end) && end != nullptr && *end == '\0'))
+    {
+        is.setstate(std::ios_base::failbit);
+        return is;
+    }
+
+    x = parsed;
+    return is;
 }
 
 } // namespace bl::detail

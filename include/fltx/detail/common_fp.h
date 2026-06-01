@@ -30,6 +30,11 @@ inline constexpr bool is_integer_scalar_v = std::is_integral_v<std::remove_cv_t<
 template<class T>
 inline constexpr bool integer_type_fits_exact_double_v = std::is_integral_v<std::remove_cv_t<T>> && (sizeof(std::remove_cv_t<T>) < 8);
 
+struct double_double
+{
+    double hi, lo;
+};
+
 BL_FORCE_INLINE constexpr bool isinf(double value) noexcept
 {
     static_assert(std::numeric_limits<double>::is_iec559,
@@ -66,6 +71,33 @@ BL_FORCE_INLINE constexpr bool isfinite(float value) noexcept
     return (bits & 0x7f800000u) != 0x7f800000u;
 }
 
+BL_FORCE_INLINE constexpr bool isinf_or_nan(double value) noexcept
+{
+    static_assert(std::numeric_limits<double>::is_iec559,
+        "isinf_or_nan bit-pattern check requires IEEE 754 / IEC 559 double");
+
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
+    return (bits & 0x7ff0000000000000ULL) == 0x7ff0000000000000ULL;
+}
+
+BL_FORCE_INLINE constexpr bool iszero_or_nan(double value) noexcept
+{
+    static_assert(std::numeric_limits<double>::is_iec559,
+        "iszero_or_nan bit-pattern check requires IEEE 754 / IEC 559 double");
+
+    const std::uint64_t abs_bits = std::bit_cast<std::uint64_t>(value) & 0x7fffffffffffffffULL;
+    return (abs_bits - 1ULL) > 0x7fefffffffffffffULL;
+}
+
+BL_FORCE_INLINE constexpr bool iszero_or_inf_or_nan(double value) noexcept
+{
+    static_assert(std::numeric_limits<double>::is_iec559,
+        "iszero_or_inf_or_nan bit-pattern check requires IEEE 754 / IEC 559 double");
+
+    const std::uint64_t abs_bits = std::bit_cast<std::uint64_t>(value) & 0x7fffffffffffffffULL;
+    return (abs_bits - 1ULL) >= 0x7fefffffffffffffULL;
+}
+
 template<int bits_to_clear>
 BL_FORCE_INLINE constexpr double zero_low_fraction_bits_finite(double value) noexcept
 {
@@ -74,7 +106,7 @@ BL_FORCE_INLINE constexpr double zero_low_fraction_bits_finite(double value) noe
     if constexpr (bits_to_clear == 0)
         return value;
 
-    if (!isfinite(value) || value == 0.0)
+    if (iszero_or_inf_or_nan(value))
         return value;
 
     constexpr std::uint64_t fraction_mask = (std::uint64_t{ 1 } << 52) - 1ULL;
@@ -109,7 +141,7 @@ BL_FORCE_INLINE constexpr double absd(double x) noexcept { return (x < 0.0) ? -x
 
 BL_FORCE_INLINE constexpr int frexp_exponent(double x) noexcept
 {
-    if (x == 0.0 || !isfinite(x))
+    if (iszero_or_inf_or_nan(x))
         return 0;
 
     const std::uint64_t bits = std::bit_cast<std::uint64_t>(x);
@@ -127,6 +159,18 @@ BL_FORCE_INLINE constexpr int frexp_exponent(double x) noexcept
     return e + 1;
 }
 
+BL_FORCE_INLINE constexpr int frexp_exponent_limb(double value) noexcept
+{
+    if (bl::use_constexpr_math())
+    {
+        return frexp_exponent(value);
+    }
+
+    int exponent = 0;
+    (void)std::frexp(value, &exponent);
+    return exponent;
+}
+
 BL_FORCE_INLINE constexpr int highest_bit_index(std::uint64_t value) noexcept
 {
     int index = -1;
@@ -138,9 +182,57 @@ BL_FORCE_INLINE constexpr int highest_bit_index(std::uint64_t value) noexcept
     return index;
 }
 
+[[nodiscard]] BL_FORCE_INLINE constexpr int bit_length_u64(std::uint64_t value) noexcept
+{
+    int bits = 0;
+    while (value != 0)
+    {
+        ++bits;
+        value >>= 1;
+    }
+    return bits;
+}
+
+struct pow2_scale_info
+{
+    bool valid = false;
+    bool negative = false;
+    int exponent = 0;
+};
+
+BL_FORCE_INLINE constexpr pow2_scale_info exact_pow2_scale_info(double value) noexcept
+{
+    constexpr std::uint64_t sign_mask     = 0x8000000000000000ull;
+    constexpr std::uint64_t exponent_mask = 0x7ff0000000000000ull;
+    constexpr std::uint64_t fraction_mask = 0x000fffffffffffffull;
+
+    const std::uint64_t bits     = std::bit_cast<std::uint64_t>(value);
+    const std::uint64_t abs_bits = bits & ~sign_mask;
+    const bool negative = (bits & sign_mask) != 0;
+
+    if (abs_bits == 0 || abs_bits >= exponent_mask)
+        return { false, negative, 0 };
+
+    const std::uint32_t exponent_bits = static_cast<std::uint32_t>((abs_bits & exponent_mask) >> 52);
+    const std::uint64_t fraction = abs_bits & fraction_mask;
+
+    if (exponent_bits != 0)
+        return { fraction == 0, negative, static_cast<int>(exponent_bits) - 1023 };
+
+    if ((fraction & (fraction - 1)) != 0)
+        return { false, negative, 0 };
+
+    return { true, negative, highest_bit_index(fraction) - 1074 };
+}
+
+BL_FORCE_INLINE constexpr bool abs_double_is_power_of_two(double value) noexcept
+{
+    return exact_pow2_scale_info(value).valid;
+}
+
 BL_FORCE_INLINE constexpr double scalbn(double value, int exp) noexcept
 {
-    if (value == 0.0 || isnan(value) || isinf(value) || exp == 0)
+    if (exp == 0 || iszero_or_inf_or_nan(value))
         return value;
 
     constexpr std::uint64_t sign_mask     = 0x8000000000000000ull;
@@ -219,6 +311,16 @@ BL_FORCE_INLINE constexpr double ldexp(double value, int exp) noexcept
     return scalbn(value, exp);
 }
 
+BL_FORCE_INLINE constexpr double ldexp_limb(double value, int exponent) noexcept
+{
+    if (bl::use_constexpr_math())
+    {
+        return ldexp(value, exponent);
+    }
+
+    return std::ldexp(value, exponent);
+}
+
 BL_FORCE_INLINE constexpr bool signbit(double x) noexcept
 {
     const std::uint64_t bits = std::bit_cast<std::uint64_t>(x);
@@ -256,7 +358,7 @@ BL_FORCE_INLINE constexpr float copysign(float magnitude, float sign_source) noe
 
 BL_FORCE_INLINE constexpr double floor(double x) noexcept
 {
-    if (isnan(x) || isinf(x) || x == 0.0)
+    if (iszero_or_inf_or_nan(x))
         return x;
 
     const double ax = absd(x);
@@ -272,7 +374,7 @@ BL_FORCE_INLINE constexpr double floor(double x) noexcept
 
 BL_FORCE_INLINE constexpr double ceil(double x) noexcept
 {
-    if (isnan(x) || isinf(x) || x == 0.0)
+    if (iszero_or_inf_or_nan(x))
         return x;
 
     const double ax = absd(x);
@@ -308,6 +410,13 @@ BL_FORCE_INLINE constexpr void two_sum_precise(double a, double b, double& s, do
     s = a + b;
     double bv = s - a;
     e = (a - (s - bv)) + (b - bv);
+}
+
+BL_FORCE_INLINE constexpr void two_diff_precise(double a, double b, double& s, double& e) noexcept
+{
+    s = a - b;
+    double bv = s - a;
+    e = (a - (s - bv)) - (b + bv);
 }
 
 BL_FORCE_INLINE constexpr void quick_two_sum_precise(double a, double b, double& s, double& e) noexcept
@@ -382,7 +491,8 @@ BL_FORCE_INLINE constexpr void int64_to_exact_double_pair(std::int64_t value, do
     }
 }
 
-template<class T> [[nodiscard]] BL_FORCE_INLINE constexpr bool integer_fits_exact_double(T value) noexcept
+template<class T> [[nodiscard]]
+BL_FORCE_INLINE constexpr bool integer_fits_exact_double(T value) noexcept
 {
     using clean_t = std::remove_cv_t<T>;
     static_assert(is_integer_scalar_v<clean_t>);

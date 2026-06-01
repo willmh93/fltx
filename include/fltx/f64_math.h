@@ -10,7 +10,7 @@
 #ifndef F64_MATH_INCLUDED
 #define F64_MATH_INCLUDED
 
-#include "fltx/f64_math_basic.h"
-#include "fltx/f64_math_transcendental.h"
+#include "fltx/detail/f64_math_basic.h"
+#include "fltx/detail/f64_math_transcendental.h"
 
 #endif

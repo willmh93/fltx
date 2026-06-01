@@ -10,7 +10,7 @@
 #ifndef F128_CLASSIFICATION_INCLUDED
 #define F128_CLASSIFICATION_INCLUDED
 #include "fltx/f128_comparison.h"
-#include "fltx/f128_stl.h"
+#include "fltx/f128_limits.h"
 
 namespace bl {
 
@@ -18,19 +18,38 @@ namespace detail::_f128 // primitives and kernels
 {
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s mag(const f128_s& a) noexcept
     {
-        return (a.hi < 0.0) ? -a : a;
+        return detail::fp::signbit(a.hi) ? -a : a;
     }
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bool isnan(const f128_s& x)      noexcept { return detail::fp::isnan(x.hi); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool isinf(const f128_s& x)      noexcept { return detail::fp::isinf(x.hi); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool isfinite(const f128_s& x)   noexcept { return detail::fp::isfinite(x.hi); }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool iszero(const f128_s& x)     noexcept { return x.hi == 0.0 && x.lo == 0.0; }
-[[nodiscard]] BL_FORCE_INLINE constexpr bool ispositive(const f128_s& x) noexcept { return x.hi > 0.0 || (x.hi == 0.0 && x.lo > 0.0); }
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isnan(const f128_s& x) noexcept
+{
+    return detail::fp::isnan(x.hi);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isinf(const f128_s& x) noexcept
+{
+    return detail::fp::isinf(x.hi);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr bool isfinite(const f128_s& x) noexcept
+{
+    return detail::fp::isfinite(x.hi);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr bool iszero(const f128_s& x) noexcept
+{
+    return x.hi == 0.0 && x.lo == 0.0;
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr bool ispositive(const f128_s& x) noexcept
+{
+    return x.hi > 0.0;
+}
 
 [[nodiscard]] BL_FORCE_INLINE constexpr bool signbit(const f128_s& x) noexcept
 {
-    return detail::_f128::signbit(x.hi) || (x.hi == 0.0 && detail::_f128::signbit(x.lo));
+    return detail::_f128::signbit(x.hi);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s abs(const f128_s& a) noexcept

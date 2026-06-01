@@ -10,7 +10,7 @@
 #ifndef F32_MATH_INCLUDED
 #define F32_MATH_INCLUDED
 
-#include "fltx/f32_math_basic.h"
-#include "fltx/f32_math_transcendental.h"
+#include "fltx/detail/f32_math_basic.h"
+#include "fltx/detail/f32_math_transcendental.h"
 
 #endif
