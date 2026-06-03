@@ -372,6 +372,18 @@ struct f256 : public f256_s
     constexpr f256(uint64_t u) noexcept : f256_s{} { static_cast<f256_s&>(*this) = static_cast<uint64_t>(u); }
     constexpr f256(int32_t  v) noexcept : f256((int64_t)v) {}
     constexpr f256(uint32_t u) noexcept : f256((int64_t)u) {}
+    template<class T, std::enable_if_t<std::is_integral_v<T> &&
+                                       std::is_signed_v<T> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, bool> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, int32_t> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, int64_t>, int> = 0>
+    constexpr f256(T v) noexcept : f256(static_cast<int64_t>(v)) {}
+    template<class T, std::enable_if_t<std::is_integral_v<T> &&
+                                       std::is_unsigned_v<T> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, bool> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, uint32_t> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, uint64_t>, int> = 0>
+    constexpr f256(T u) noexcept : f256(static_cast<uint64_t>(u)) {}
     constexpr f256(const char*);
 
     constexpr f256(f128_s f) noexcept;

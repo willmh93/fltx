@@ -59,6 +59,8 @@ namespace
     static_assert(std::is_same_v<std::common_type_t<bl::f256, bl::f256, std::intmax_t>, bl::f256>);
     static_assert(std::is_same_v<std::common_type_t<bl::f128_s, std::intmax_t>, bl::f128>);
     static_assert(std::is_same_v<std::common_type_t<bl::f128, bl::f256>, bl::f256>);
+    static_assert(static_cast<bl::f128>(std::intmax_t{ 1000 }) == bl::f128{ 1000.0 });
+    static_assert(static_cast<bl::f256>(std::intmax_t{ 1000000 }) == bl::f256{ 1000000.0 });
 
 } // namespace
 

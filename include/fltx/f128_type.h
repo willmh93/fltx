@@ -263,6 +263,18 @@ struct f128 : public f128_s
     constexpr f128(uint64_t u) noexcept : f128_s{} { static_cast<f128_s&>(*this) = static_cast<uint64_t>(u); }
     constexpr f128(int32_t  v) noexcept : f128((int64_t)v) {}
     constexpr f128(uint32_t u) noexcept : f128((int64_t)u) {}
+    template<class T, std::enable_if_t<std::is_integral_v<T> &&
+                                       std::is_signed_v<T> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, bool> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, int32_t> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, int64_t>, int> = 0>
+    constexpr f128(T v) noexcept : f128(static_cast<int64_t>(v)) {}
+    template<class T, std::enable_if_t<std::is_integral_v<T> &&
+                                       std::is_unsigned_v<T> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, bool> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, uint32_t> &&
+                                       !std::is_same_v<std::remove_cv_t<T>, uint64_t>, int> = 0>
+    constexpr f128(T u) noexcept : f128(static_cast<uint64_t>(u)) {}
     constexpr f128(const char*);
 
     constexpr f128(const f128_s& f) noexcept : f128_s{ f.hi, f.lo } {}
