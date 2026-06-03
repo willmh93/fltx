@@ -1577,7 +1577,7 @@ namespace detail::_f128
         return signbit(x) ? f128_s{ -1.0 } : f128_s{ 1.0 };
 
     const f128_s ax = detail::_f128::mag(x);
-    if (ax > f128_s{ 20.0 })
+    if (ax > f128_s{ 40.0 })
         return signbit(x) ? f128_s{ -1.0 } : f128_s{ 1.0 };
 
     if (ax >= f128_s{ 0.5 })

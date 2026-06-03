@@ -1186,6 +1186,9 @@ namespace detail::_f256 // primitives and kernels
     // scaling kernels
     BL_FORCE_INLINE constexpr f256_s _ldexp(const f256_s& a, int e)
     {
+        if (e > 1023 || e < -1074) [[unlikely]]
+            return ldexp_terms(a, e);
+
         double s;
         if (bl::use_constexpr_math())
         {

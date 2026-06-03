@@ -23,37 +23,44 @@ if(FLTX_PRECISION_TESTS_CONSTEXPR_PARITY AND FLTX_PRECISION_TESTS_SIMULATE_CONST
     message(FATAL_ERROR "FLTX_PRECISION_TESTS_CONSTEXPR_PARITY and FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL are separate modes; enable only one.")
 endif()
 
-if(FLTX_BENCH_TESTS_CONSTEXPR_PARITY AND FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL)
-    message(FATAL_ERROR "FLTX_BENCH_TESTS_CONSTEXPR_PARITY and FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL are separate modes; enable only one.")
-endif()
-
-string(TOUPPER "${FLTX_BENCH_FAST_MATH_MODE}" FLTX_BENCH_FAST_MATH_MODE)
-if(NOT FLTX_BENCH_FAST_MATH_MODE MATCHES "^(DEFAULT|AUTO|ON|OFF)$")
-    message(FATAL_ERROR "Invalid bench_tests fast-math mode '${FLTX_BENCH_FAST_MATH_MODE}'. Expected DEFAULT, AUTO, ON, or OFF.")
-endif()
-
 file(GLOB_RECURSE FLTX_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h")
+file(GLOB FLTX_ROOT_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h")
+file(GLOB_RECURSE FLTX_PUBLIC_TREE_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/fltx/*.h")
 file(GLOB FLTX_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.cpp")
 
 file(GLOB FLTX_TESTS_PRECISION_SOURCE          CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/precision/*.cpp")
-file(GLOB FLTX_TESTS_ACCURACY_SOURCE           CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/accuracy/*.cpp")
 file(GLOB FLTX_TESTS_IO_SOURCE                 CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/io/*.cpp")
 file(GLOB FLTX_TESTS_RANDOM_SOURCE             CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/random/*.cpp")
-file(GLOB FLTX_TESTS_QUALITY_SOURCE            CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/quality/*.cpp")
+file(GLOB FLTX_TESTS_METRICS_HEADERS           CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/metrics/*.h")
+file(GLOB FLTX_TESTS_METRICS_SOURCE            CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/metrics/*.cpp")
+file(GLOB_RECURSE FLTX_TESTS_QDPP_HEADERS      CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/extern/qdpp/include/*.h")
 file(GLOB FLTX_TESTS_CONSTEXPR_PARITY_SOURCE   CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/constexpr_parity/*.cpp")
-file(GLOB FLTX_TESTS_BENCH_HEADERS             CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/bench/*.h")
-set(FLTX_TESTS_BENCH_SOURCE
-    "${CMAKE_CURRENT_SOURCE_DIR}/bench/test_f32_bench.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/bench/test_f64_bench.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/bench/test_f256_parse_bench.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/bench/test_f128_bench.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/bench/test_f256_bench.cpp"
-)
 
 set(FLTX_TEST_MACRO_STATUS_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/test_macro_status.cpp")
 set(FLTX_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/../include")
-get_filename_component(FLTX_BENCH_OUTPUT_ROOT_NATIVE "${CMAKE_CURRENT_SOURCE_DIR}/../res/bench" REALPATH)
-file(TO_CMAKE_PATH "${FLTX_BENCH_OUTPUT_ROOT_NATIVE}" FLTX_BENCH_OUTPUT_ROOT)
+set(FLTX_PUBLIC_TREE_INCLUDE_DIR "${FLTX_INCLUDE_DIR}/fltx")
+get_filename_component(FLTX_METRICS_OUTPUT_ROOT_NATIVE "${CMAKE_CURRENT_SOURCE_DIR}/../res/metrics" ABSOLUTE)
+file(TO_CMAKE_PATH "${FLTX_METRICS_OUTPUT_ROOT_NATIVE}" FLTX_METRICS_OUTPUT_ROOT)
+
+function (organizeMetricsTestsSourceGroups)
+    source_group(TREE "${FLTX_PUBLIC_TREE_INCLUDE_DIR}"
+        PREFIX "fltx"
+        FILES ${FLTX_PUBLIC_TREE_HEADERS}
+    )
+    source_group("fltx"
+        FILES ${FLTX_ROOT_HEADERS}
+    )
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/metrics"
+        PREFIX "metrics"
+        FILES
+            ${FLTX_TESTS_METRICS_HEADERS}
+            ${FLTX_TESTS_METRICS_SOURCE}
+    )
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/extern/qdpp/include"
+        PREFIX "extern\\qdpp"
+        FILES ${FLTX_TESTS_QDPP_HEADERS}
+    )
+endfunction()
 
 set(FLTX_LIBRARY_SOURCES "")
 foreach(_FLTX_LIBRARY_SOURCE IN LISTS FLTX_LIBRARY_SOURCE_FILES)
@@ -109,21 +116,11 @@ set(FLTX_PARITY_TEST_DEFINITIONS
 
 addFltxTestLibrary(fltx_parity_test_lib ${FLTX_PARITY_TEST_DEFINITIONS})
 
-set(FLTX_NEEDS_CONSTEXPR_PARITY_LIB "${FLTX_BENCH_TESTS_CONSTEXPR_PARITY}")
 if(FLTX_PRECISION_TESTS_CONSTEXPR_PARITY)
-    set(FLTX_NEEDS_CONSTEXPR_PARITY_LIB ON)
-endif()
-
-if(FLTX_NEEDS_CONSTEXPR_PARITY_LIB)
     addFltxTestLibrary(fltx_constexpr_parity_lib FLTX_CONSTEXPR_PARITY)
 endif()
 
-set(FLTX_NEEDS_SIMULATE_CONSTEVAL_LIB "${FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL}")
 if(FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL)
-    set(FLTX_NEEDS_SIMULATE_CONSTEVAL_LIB ON)
-endif()
-
-if(FLTX_NEEDS_SIMULATE_CONSTEVAL_LIB)
     addFltxTestLibrary(fltx_simulate_consteval_lib FLTX_SIMULATE_CONSTEVAL_MODE)
 endif()
 
@@ -131,11 +128,6 @@ add_executable(precision_tests
     ${FLTX_HEADERS}
     ${FLTX_SOURCE}
     ${FLTX_TESTS_PRECISION_SOURCE}
-)
-add_executable(accuracy_tests
-    ${FLTX_HEADERS}
-    ${FLTX_SOURCE}
-    ${FLTX_TESTS_ACCURACY_SOURCE}
 )
 add_executable(io_tests
     ${FLTX_HEADERS}
@@ -149,36 +141,21 @@ add_executable(random_tests
 
     ${FLTX_TESTS_RANDOM_SOURCE}
 )
-add_executable(quality_tests
+add_executable(metrics_tests
     ${FLTX_HEADERS}
     ${FLTX_SOURCE}
 
-    ${FLTX_TESTS_QUALITY_SOURCE}
+    ${FLTX_TESTS_METRICS_HEADERS}
+    ${FLTX_TESTS_METRICS_SOURCE}
+    ${FLTX_TESTS_QDPP_HEADERS}
 )
+organizeMetricsTestsSourceGroups()
 add_executable(parity_tests
     ${FLTX_HEADERS}
     ${FLTX_SOURCE}
 
     ${FLTX_TESTS_CONSTEXPR_PARITY_SOURCE}
 )
-add_executable(bench_tests
-    ${FLTX_HEADERS} 
-    ${FLTX_SOURCE}
-
-    ${FLTX_TESTS_BENCH_HEADERS}
-    ${FLTX_TESTS_BENCH_SOURCE}
-)
-
-if(EMSCRIPTEN)
-    add_executable(bench_tests_browser
-        ${FLTX_HEADERS}
-        ${FLTX_SOURCE}
-
-        ${FLTX_TESTS_BENCH_HEADERS}
-        ${FLTX_TESTS_BENCH_SOURCE}
-    )
-endif()
-
 
 
 find_path(MPFR_INCLUDE_DIR NAMES mpfr.h REQUIRED)
@@ -200,9 +177,14 @@ function (prepareTarget _TARGET _FLTX_LIBRARY)
         ${FLTX_INCLUDE_DIR}
     )
 
+    set(_CATCH_TARGET Catch2::Catch2WithMain)
+    if(_TARGET STREQUAL "metrics_tests")
+        set(_CATCH_TARGET Catch2::Catch2)
+    endif()
+
     target_link_libraries(${_TARGET} PRIVATE
         ${_FLTX_LIBRARY}
-        Catch2::Catch2WithMain
+        ${_CATCH_TARGET}
     )
 
     target_include_directories(${_TARGET} PRIVATE
@@ -218,25 +200,8 @@ function (prepareTarget _TARGET _FLTX_LIBRARY)
     target_compile_features(${_TARGET} PRIVATE cxx_std_23)
     fltx_apply_simd_options(${_TARGET})
 
-    if(EMSCRIPTEN AND _TARGET STREQUAL "bench_tests")
-        target_compile_definitions(${_TARGET} PRIVATE FLTX_BENCH_RUNTIME_NODE)
-        target_compile_definitions(${_TARGET} PRIVATE "FLTX_BENCH_OUTPUT_ROOT=\"${FLTX_BENCH_OUTPUT_ROOT}\"")
-        # f256 atan/atan2 benchmarks build large generated sample arrays; the
-        # Emscripten default 64 KiB C++ stack is too small for those tests.
-        target_link_options(${_TARGET} PRIVATE
-            -sNODERAWFS=1
-            -sSTACK_SIZE=1048576
-        )
-    elseif(EMSCRIPTEN AND _TARGET STREQUAL "bench_tests_browser")
-        target_compile_definitions(${_TARGET} PRIVATE FLTX_BENCH_RUNTIME_CHROME)
-        target_compile_definitions(${_TARGET} PRIVATE "FLTX_BENCH_OUTPUT_ROOT=\"/res/bench\"")
-        target_link_options(${_TARGET} PRIVATE
-            -sSTACK_SIZE=1048576
-            -sENVIRONMENT=web
-            -sEXPORTED_RUNTIME_METHODS=FS
-        )
-    elseif(_TARGET STREQUAL "bench_tests")
-        target_compile_definitions(${_TARGET} PRIVATE "FLTX_BENCH_OUTPUT_ROOT=\"${FLTX_BENCH_OUTPUT_ROOT}\"")
+    if(_TARGET STREQUAL "metrics_tests")
+        target_compile_definitions(${_TARGET} PRIVATE "FLTX_METRICS_OUTPUT_ROOT=\"${FLTX_METRICS_OUTPUT_ROOT}\"")
     endif()
 
     fltx_apply_msvc_timing_reports(${_TARGET})
@@ -249,56 +214,24 @@ elseif(FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL)
     set(FLTX_PRECISION_TEST_LIBRARY fltx_simulate_consteval_lib)
 endif()
 
-set(FLTX_BENCH_TEST_LIBRARY fltx::fltx)
-if (FLTX_BENCH_TESTS_CONSTEXPR_PARITY)
-    if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-        set(FLTX_BENCH_TEST_LIBRARY fltx_constexpr_parity_lib)
-    else()
-        addFltxTestLibrary(fltx_bench_test_lib
-            FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
-            DEFINITIONS FLTX_CONSTEXPR_PARITY
-        )
-        set(FLTX_BENCH_TEST_LIBRARY fltx_bench_test_lib)
-    endif()
-elseif(FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL)
-    if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-        set(FLTX_BENCH_TEST_LIBRARY fltx_simulate_consteval_lib)
-    else()
-        addFltxTestLibrary(fltx_bench_test_lib
-            FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
-            DEFINITIONS FLTX_SIMULATE_CONSTEVAL_MODE
-        )
-        set(FLTX_BENCH_TEST_LIBRARY fltx_bench_test_lib)
-    endif()
-elseif(NOT FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-    addFltxTestLibrary(fltx_bench_test_lib
-        FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
-    )
-    set(FLTX_BENCH_TEST_LIBRARY fltx_bench_test_lib)
-endif()
-
 prepareTarget(precision_tests ${FLTX_PRECISION_TEST_LIBRARY})
-prepareTarget(accuracy_tests  fltx::fltx)
+if(TARGET accuracy_tests)
+    prepareTarget(accuracy_tests  fltx::fltx)
+endif()
 prepareTarget(io_tests        fltx::fltx)
 prepareTarget(random_tests    fltx::fltx)
-prepareTarget(quality_tests   fltx::fltx)
+prepareTarget(metrics_tests   fltx::fltx)
 prepareTarget(parity_tests    fltx_parity_test_lib)
-prepareTarget(bench_tests     ${FLTX_BENCH_TEST_LIBRARY})
-if(EMSCRIPTEN)
-    prepareTarget(bench_tests_browser ${FLTX_BENCH_TEST_LIBRARY})
+
+if(VERBOSE_TESTS)
+    target_compile_definitions(metrics_tests PRIVATE VERBOSE_TESTS=1)
+else()
+    target_compile_definitions(metrics_tests PRIVATE VERBOSE_TESTS=0)
 endif()
 
-if(FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-    fltx_apply_fast_math_options(bench_tests)
-    if(EMSCRIPTEN)
-        fltx_apply_fast_math_options(bench_tests_browser)
-    endif()
-else()
-    fltx_apply_fast_math_options(bench_tests MODE ${FLTX_BENCH_FAST_MATH_MODE})
-    if(EMSCRIPTEN)
-        fltx_apply_fast_math_options(bench_tests_browser MODE ${FLTX_BENCH_FAST_MATH_MODE})
-    endif()
-endif()
+target_include_directories(metrics_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/extern/qdpp/include"
+)
 
 if (FLTX_PRECISION_TESTS_CONSTEXPR_PARITY)
     addFltxTestMacroStatus(precision_tests DEFINITIONS FLTX_CONSTEXPR_PARITY)
@@ -310,57 +243,9 @@ endif()
 
 addFltxTestMacroStatus(io_tests)
 addFltxTestMacroStatus(random_tests)
-addFltxTestMacroStatus(quality_tests)
-addFltxTestMacroStatus(accuracy_tests)
-
-if (FLTX_BENCH_TESTS_CONSTEXPR_PARITY)
-    if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-        addFltxTestMacroStatus(bench_tests DEFINITIONS FLTX_CONSTEXPR_PARITY)
-    else()
-        addFltxTestMacroStatus(bench_tests
-            FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
-            DEFINITIONS FLTX_CONSTEXPR_PARITY
-        )
-    endif()
-elseif(FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL)
-    if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-        addFltxTestMacroStatus(bench_tests DEFINITIONS FLTX_SIMULATE_CONSTEVAL_MODE FLTX_TEST_FORCE_SIMULATED_CONSTEVAL)
-    else()
-        addFltxTestMacroStatus(bench_tests
-            FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
-            DEFINITIONS FLTX_SIMULATE_CONSTEVAL_MODE FLTX_TEST_FORCE_SIMULATED_CONSTEVAL
-        )
-    endif()
-elseif(FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-    addFltxTestMacroStatus(bench_tests)
-else()
-    addFltxTestMacroStatus(bench_tests FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE})
-endif()
-
-if(EMSCRIPTEN)
-    if (FLTX_BENCH_TESTS_CONSTEXPR_PARITY)
-        if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-            addFltxTestMacroStatus(bench_tests_browser DEFINITIONS FLTX_CONSTEXPR_PARITY)
-        else()
-            addFltxTestMacroStatus(bench_tests_browser
-                FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
-                DEFINITIONS FLTX_CONSTEXPR_PARITY
-            )
-        endif()
-    elseif(FLTX_BENCH_TESTS_SIMULATE_CONSTEVAL)
-        if (FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-            addFltxTestMacroStatus(bench_tests_browser DEFINITIONS FLTX_SIMULATE_CONSTEVAL_MODE FLTX_TEST_FORCE_SIMULATED_CONSTEVAL)
-        else()
-            addFltxTestMacroStatus(bench_tests_browser
-                FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE}
-                DEFINITIONS FLTX_SIMULATE_CONSTEVAL_MODE FLTX_TEST_FORCE_SIMULATED_CONSTEVAL
-            )
-        endif()
-    elseif(FLTX_BENCH_FAST_MATH_MODE STREQUAL "DEFAULT")
-        addFltxTestMacroStatus(bench_tests_browser)
-    else()
-        addFltxTestMacroStatus(bench_tests_browser FAST_MATH_MODE ${FLTX_BENCH_FAST_MATH_MODE})
-    endif()
+addFltxTestMacroStatus(metrics_tests)
+if(TARGET accuracy_tests)
+    addFltxTestMacroStatus(accuracy_tests)
 endif()
 
 addFltxTestMacroStatus(parity_tests ${FLTX_PARITY_TEST_DEFINITIONS})

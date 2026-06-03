@@ -126,7 +126,7 @@ fltx_define_cache_bool(
 fltx_define_cache_bool(
     VERBOSE_TESTS
     ON
-    "Print quality/metrics console tables while running metrics_tests."
+    "Print metrics console tables while running metrics_tests."
 )
 
 mark_as_advanced(

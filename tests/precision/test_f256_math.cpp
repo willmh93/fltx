@@ -2864,6 +2864,11 @@ TEST_CASE("f256 ldexp matches MPFR for fixed values", "[fltx][f256][precision][m
 
     for (const auto& [input, exponent] : cases)
         check_ldexp_case("fixed", mpfr_ref{ input }, exponent);
+
+    const mpfr_ref two_denorms =
+        mpfr_ref{ std::numeric_limits<double>::denorm_min() } * 2;
+    check_ldexp_case("subnormal up", two_denorms, 1024);
+    check_ldexp_case("negative subnormal up", -two_denorms, 1024);
 }
 
 TEST_CASE("f256 ldexp matches MPFR on random finite inputs", "[fltx][f256][precision][math][ldexp]")

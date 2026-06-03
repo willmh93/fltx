@@ -268,9 +268,18 @@ namespace detail::_f256 // primitives and kernels
         if (mag(frac) < f256_s{ 0.5 })
             return log1p_newton_small(frac);
 
-        int exp2 = detail::fp::frexp_exponent_limb(a.x0);
+        f256_s scaled_a = a;
+        int exp2_adjust = 0;
+        if (detail::fp::absd(a.x0) < std::numeric_limits<double>::min())
+        {
+            scaled_a = ldexp_terms(a, 64);
+            exp2_adjust = -64;
+        }
 
-        f256_s m = _ldexp(a, -exp2);
+        const int mantissa_exp2 = detail::fp::frexp_exponent_limb(scaled_a.x0);
+        int exp2 = mantissa_exp2 + exp2_adjust;
+
+        f256_s m = _ldexp(scaled_a, -mantissa_exp2);
         if (m < sqrt_half)
         {
             m *= 2.0;
@@ -306,11 +315,15 @@ namespace detail::_f256 // primitives and kernels
         for (std::size_t i = 11; i > 0; --i)
             p = mul_add_inline(p, u2, log_atanh_coeffs[i - 1]);
 
-        const f256_s table_log = mul_double_inline(std::numbers::ln2_v<f256_s>, static_cast<double>(exp2) + static_cast<double>(j) / 64.0);
-        f256_s y = add_inline(table_log, mul_inline(u, p));
+        const f256_s log_m = add_inline(
+            mul_double_inline(std::numbers::ln2_v<f256_s>, static_cast<double>(j) / 64.0),
+            mul_inline(u, p));
+        f256_s y = add_inline(
+            mul_double_inline(std::numbers::ln2_v<f256_s>, static_cast<double>(exp2)),
+            log_m);
         for (int i = 0; i < 1; ++i)
         {
-            const f256_s correction = add_scalar_precise(mul_inline(a, exp_general_scaled(-y, false)), -1.0);
+            const f256_s correction = add_scalar_precise(mul_inline(m, exp_general_scaled(-log_m, false)), -1.0);
             y = add_inline(y, correction);
             if (mag(correction) <= mul_inline(f256_s::eps(), mag(y)))
                 break;
@@ -1128,7 +1141,7 @@ namespace detail::_f256 // primitives and kernels
             mul_inline(std::numbers::inv_sqrtpi_v<f256_s>, h));
     }
 
-    // erfc(13) is below the f256 quality target, so the tails round to 0/1/2.
+    // erfc(13) is below the f256 accuracy target, so the tails round to 0/1/2.
     inline constexpr f256_s erf_saturation_cutoff{ 13.0 };
 
     // gamma functions
