@@ -1,0 +1,201 @@
+/**
+ * fltx/detail/f256_declarations.h - Shared f256 math declarations.
+ *
+ * Copyright (c) 2026 William Hemsworth
+ *
+ * This software is released under the MIT License.
+ * See LICENSE for details.
+ */
+
+#ifndef F256_DETAIL_DECLARATIONS_INCLUDED
+#define F256_DETAIL_DECLARATIONS_INCLUDED
+#include <cstddef>
+
+#include "fltx/detail/f256_expressions.h"
+#include "fltx/detail/f256_consts.h"
+#include "fltx/detail/common_math.h"
+#include "fltx/detail/common_decimal.h"
+#include "fltx/detail/math_utils.h"
+
+namespace bl {
+
+namespace detail::_f256_runtime
+{
+    // roots
+    BL_NO_INLINE f256_s sqrt(const f256_s& a);
+    BL_NO_INLINE f256_s cbrt(const f256_s& x);
+    BL_NO_INLINE f256_s hypot(const f256_s& x, const f256_s& y);
+
+    // rounding and decimals
+    BL_NO_INLINE f256_s round(const f256_s& a);
+    BL_NO_INLINE f256_s round_to_decimals(f256_s v, int prec);
+    BL_NO_INLINE f256_s nearbyint(const f256_s& a);
+    BL_NO_INLINE f256_s rint(const f256_s& x);
+    BL_NO_INLINE long lround(const f256_s& x);
+    BL_NO_INLINE long long llround(const f256_s& x);
+    BL_NO_INLINE long lrint(const f256_s& x);
+    BL_NO_INLINE long long llrint(const f256_s& x);
+
+    // remainders
+    BL_NO_INLINE f256_s fmod(const f256_s& x, const f256_s& y);
+    BL_NO_INLINE f256_s remainder(const f256_s& x, const f256_s& y);
+    BL_NO_INLINE f256_s remquo(const f256_s& x, const f256_s& y, int* quo);
+
+    // fractional decomposition
+    BL_NO_INLINE f256_s modf(const f256_s& x, f256_s* iptr) noexcept;
+
+    // decomposition and scaling
+    BL_NO_INLINE f256_s ldexp(const f256_s& a, int e);
+    BL_NO_INLINE f256_s frexp(const f256_s& x, int* exp) noexcept;
+    BL_NO_INLINE int ilogb(const f256_s& x) noexcept;
+    BL_NO_INLINE f256_s logb(const f256_s& x) noexcept;
+    BL_NO_INLINE f256_s scalbn(const f256_s& x, int e) noexcept;
+    BL_NO_INLINE f256_s scalbln(const f256_s& x, long e) noexcept;
+
+    // adjacent values
+    BL_NO_INLINE f256_s nexttoward(const f256_s& from, long double to) noexcept;
+    BL_NO_INLINE f256_s nexttoward(const f256_s& from, const f256_s& to) noexcept;
+
+    // exp / log
+    BL_NO_INLINE f256_s exp(const f256_s& x);
+    BL_NO_INLINE f256_s exp2(const f256_s& x);
+    BL_NO_INLINE f256_s log(const f256_s& a);
+    BL_NO_INLINE f256_s log2(const f256_s& a);
+    BL_NO_INLINE f256_s log10(const f256_s& a);
+    BL_NO_INLINE f256_s expm1(const f256_s& x);
+    BL_NO_INLINE f256_s log1p(const f256_s& x);
+
+    // pow
+    BL_NO_INLINE f256_s pow10_256(int k);
+    BL_NO_INLINE f256_s pow(const f256_s& x, const f256_s& y);
+    BL_NO_INLINE f256_s pow(const f256_s& x, double y);
+
+    // trig
+    BL_NO_INLINE bool sincos(const f256_s& x, f256_s& s_out, f256_s& c_out);
+    BL_NO_INLINE f256_s sin(const f256_s& x);
+    BL_NO_INLINE f256_s cos(const f256_s& x);
+    BL_NO_INLINE f256_s tan(const f256_s& x);
+    BL_NO_INLINE f256_s atan(const f256_s& x);
+    BL_NO_INLINE f256_s atan2(const f256_s& y, const f256_s& x);
+    BL_NO_INLINE f256_s asin(const f256_s& x);
+    BL_NO_INLINE f256_s acos(const f256_s& x);
+
+    // hyperbolic
+    BL_NO_INLINE f256_s sinh(const f256_s& x);
+    BL_NO_INLINE f256_s cosh(const f256_s& x);
+    BL_NO_INLINE f256_s tanh(const f256_s& x);
+    BL_NO_INLINE f256_s asinh(const f256_s& x);
+    BL_NO_INLINE f256_s acosh(const f256_s& x);
+    BL_NO_INLINE f256_s atanh(const f256_s& x);
+
+    // erf/gamma and polynomials
+    BL_NO_INLINE f256_s erf(const f256_s& x);
+    BL_NO_INLINE f256_s erfc(const f256_s& x);
+    BL_NO_INLINE f256_s lgamma(const f256_s& x);
+    BL_NO_INLINE f256_s tgamma(const f256_s& x);
+    BL_NO_INLINE f256_s mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept;
+    BL_NO_INLINE f256_s horner_forward(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept;
+    BL_NO_INLINE f256_s horner_reverse(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept;
+    BL_NO_INLINE void horner_pair_forward(const f256_s* left_coeffs, const f256_s* right_coeffs, std::size_t count, const f256_s& x, f256_s& left_out, f256_s& right_out) noexcept;
+    BL_NO_INLINE f256_s cheb_eval(const f256_s& x, const f256_s* coeffs, std::size_t count, double shift) noexcept;
+    BL_NO_INLINE f256_s log1p_series_reduced(const f256_s& x) noexcept;
+
+} // namespace detail::_f256_runtime
+
+namespace detail::_f256_impl
+{
+    using namespace detail::_f256;
+
+    // roots
+    BL_FORCE_INLINE constexpr f256_s sqrt(const f256_s& a);
+    BL_FORCE_INLINE constexpr f256_s sqrt_accurate(const f256_s& a);
+    BL_FORCE_INLINE constexpr f256_s cbrt(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s hypot(const f256_s& x, const f256_s& y);
+
+    // rounding and decimals
+    inline constexpr f256_s floor(const f256_s& a);
+    inline constexpr f256_s ceil(const f256_s& a);
+    BL_FORCE_INLINE constexpr f256_s trunc(const f256_s& a);
+    BL_FORCE_INLINE constexpr f256_s round(const f256_s& a);
+    BL_FORCE_INLINE f256_s round_runtime(const f256_s& a) noexcept;
+    BL_FORCE_INLINE constexpr f256_s round_to_decimals(f256_s v, int prec);
+    BL_FORCE_INLINE constexpr f256_s nearbyint(const f256_s& a);
+    BL_FORCE_INLINE f256_s nearbyint_runtime(const f256_s& a) noexcept;
+    BL_FORCE_INLINE constexpr f256_s rint(const f256_s& x);
+    BL_FORCE_INLINE constexpr long lround(const f256_s& x);
+    BL_FORCE_INLINE constexpr long long llround(const f256_s& x);
+    BL_FORCE_INLINE constexpr long lrint(const f256_s& x);
+    BL_FORCE_INLINE constexpr long long llrint(const f256_s& x);
+
+    // arithmetic and comparisons
+    BL_FORCE_INLINE constexpr f256_s fma(const f256_s& x, const f256_s& y, const f256_s& z);
+    BL_FORCE_INLINE constexpr f256_s fmin(const f256_s& a, const f256_s& b);
+    BL_FORCE_INLINE constexpr f256_s fmax(const f256_s& a, const f256_s& b);
+    BL_FORCE_INLINE constexpr f256_s fdim(const f256_s& x, const f256_s& y);
+    BL_FORCE_INLINE constexpr f256_s copysign(const f256_s& x, const f256_s& y);
+
+    // remainders
+    BL_FORCE_INLINE constexpr f256_s fmod(const f256_s& x, const f256_s& y);
+    BL_FORCE_INLINE constexpr f256_s remainder(const f256_s& x, const f256_s& y);
+    BL_FORCE_INLINE constexpr f256_s remquo(const f256_s& x, const f256_s& y, int* quo);
+
+    // fractional decomposition
+    BL_FORCE_INLINE constexpr f256_s modf(const f256_s& x, f256_s* iptr) noexcept;
+
+    // decomposition and scaling
+    BL_FORCE_INLINE constexpr f256_s ldexp(const f256_s& a, int e);
+    BL_FORCE_INLINE constexpr f256_s frexp(const f256_s& x, int* exp) noexcept;
+    BL_FORCE_INLINE constexpr int ilogb(const f256_s& x) noexcept;
+    BL_FORCE_INLINE constexpr f256_s logb(const f256_s& x) noexcept;
+    BL_FORCE_INLINE constexpr f256_s scalbn(const f256_s& x, int e) noexcept;
+    BL_FORCE_INLINE constexpr f256_s scalbln(const f256_s& x, long e) noexcept;
+
+    // adjacent values
+    BL_FORCE_INLINE constexpr f256_s nextafter(const f256_s& from, const f256_s& to) noexcept;
+    BL_FORCE_INLINE constexpr f256_s nexttoward(const f256_s& from, long double to) noexcept;
+    BL_FORCE_INLINE constexpr f256_s nexttoward(const f256_s& from, const f256_s& to) noexcept;
+
+    // exp / log
+    BL_FORCE_INLINE constexpr double log_as_double(f256_s a) noexcept;
+    BL_FORCE_INLINE constexpr f256_s exp(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s exp2(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s log(const f256_s& a);
+    BL_FORCE_INLINE constexpr f256_s log2(const f256_s& a);
+    BL_FORCE_INLINE constexpr f256_s log10(const f256_s& a);
+    BL_FORCE_INLINE constexpr f256_s expm1(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s log1p(const f256_s& x);
+
+    // pow
+    BL_FORCE_INLINE constexpr f256_s pow10_256(int k);
+    BL_MSVC_NOINLINE constexpr f256_s pow(const f256_s& x, const f256_s& y);
+    BL_MSVC_NOINLINE constexpr f256_s pow(const f256_s& x, double y);
+
+    // trig
+    BL_FORCE_INLINE constexpr bool sincos(const f256_s& x, f256_s& s_out, f256_s& c_out);
+    BL_FORCE_INLINE constexpr f256_s sin(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s cos(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s tan(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s atan(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s atan2(const f256_s& y, const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s asin(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s acos(const f256_s& x);
+
+    // hyperbolic
+    BL_FORCE_INLINE constexpr f256_s sinh(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s cosh(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s tanh(const f256_s& x);
+    BL_MSVC_NOINLINE constexpr f256_s asinh(const f256_s& x);
+    BL_MSVC_NOINLINE constexpr f256_s acosh(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s atanh(const f256_s& x);
+
+    // erf/gamma
+    BL_FORCE_INLINE constexpr f256_s erf(const f256_s& x);
+    BL_MSVC_NOINLINE constexpr f256_s erfc(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s lgamma(const f256_s& x);
+    BL_FORCE_INLINE constexpr f256_s tgamma(const f256_s& x);
+
+} // namespace detail::_f256_impl
+
+} // namespace bl
+
+#endif

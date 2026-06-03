@@ -1,20 +1,20 @@
 #include <catch2/catch_test_macros.hpp>
-
-#include <f128_math.h>
-#include <f128_io.h>
-
 #include <array>
 #include <bit>
 #include <cmath>
+#include <cstdio>
 #include <cstdint>
 #include <iomanip>
 #include <limits>
-#include <random>
 #include <sstream>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
+
+#include <fltx/f128_math.h>
+#include <fltx/f128_io.h>
+#include <fltx/random.h>
 
 namespace
 {
@@ -28,6 +28,7 @@ constexpr int kSamplesPerBucket = 1000;
 #endif
 
 constexpr int kBucketCount = 4;
+constexpr const char* kTypeName = "f128";
 constexpr std::array<const char*, kBucketCount> kBucketNames =
 {
     "scalar_only",
@@ -78,44 +79,66 @@ auto eval_runtime_path(Function&& function)
     return hash;
 }
 
-[[nodiscard]] std::mt19937_64 make_rng(const char* test_name, int bucket) noexcept
+[[nodiscard]] bl::mt19937_64 make_rng(const char* test_name, int bucket) noexcept
 {
-    return std::mt19937_64{
+    return bl::mt19937_64{
         0x94d049bb133111ebull ^
         hash_name(test_name) ^
         (0xbf58476d1ce4e5b9ull * static_cast<std::uint64_t>(bucket + 1))
     };
 }
 
-[[nodiscard]] double unit_01(std::mt19937_64& rng) noexcept
+[[nodiscard]] sample_type unit_01(bl::mt19937_64& rng) noexcept
+{
+    return bl::uniform_real_distribution<sample_type>{
+        sample_type{ 0.0 },
+        sample_type{ 1.0 }
+    }(rng);
+}
+
+[[nodiscard]] double unit_01_double(bl::mt19937_64& rng) noexcept
 {
     const std::uint64_t mantissa = (rng() >> 11) | 1ull;
     return static_cast<double>(mantissa) * (1.0 / 9007199254740992.0);
 }
 
-[[nodiscard]] double signed_unit(std::mt19937_64& rng) noexcept
+[[nodiscard]] sample_type signed_unit(bl::mt19937_64& rng) noexcept
 {
-    const double value = unit_01(rng);
-    return (rng() & 1ull) == 0 ? value : -value;
+    const sample_type value = unit_01(rng);
+    if ((rng() & 1ull) == 0)
+        return value;
+    return sample_type{ -value };
 }
 
-[[nodiscard]] int random_int(std::mt19937_64& rng, int lo, int hi) noexcept
+[[nodiscard]] int random_int(bl::mt19937_64& rng, int lo, int hi) noexcept
 {
-    return std::uniform_int_distribution<int>(lo, hi)(rng);
+    return bl::uniform_int_distribution<int>(lo, hi)(rng);
 }
 
-[[nodiscard]] long long random_long_long(std::mt19937_64& rng, long long lo, long long hi) noexcept
+[[nodiscard]] long long random_long_long(bl::mt19937_64& rng, long long lo, long long hi) noexcept
 {
-    return std::uniform_int_distribution<long long>(lo, hi)(rng);
+    return bl::uniform_int_distribution<long long>(lo, hi)(rng);
 }
 
-[[nodiscard]] double scaled_double(std::mt19937_64& rng, int exp_lo, int exp_hi, bool force_positive = false) noexcept
+[[nodiscard]] double scaled_double(bl::mt19937_64& rng, int exp_lo, int exp_hi, bool force_positive = false) noexcept
 {
-    const int exponent = random_int(rng, exp_lo, exp_hi);
-    const double magnitude = std::ldexp(unit_01(rng), exponent);
+    const int exponent     = random_int(rng, exp_lo, exp_hi);
+    const double magnitude = std::ldexp(unit_01_double(rng), exponent);
     if (force_positive)
         return magnitude;
     return (rng() & 1ull) == 0 ? magnitude : -magnitude;
+}
+
+[[nodiscard]] sample_type scaled_value(bl::mt19937_64& rng, int exp_lo, int exp_hi, bool force_positive = false)
+{
+    const int exponent = random_int(rng, exp_lo, exp_hi);
+    const sample_type magnitude =
+        unit_01(rng) * sample_type{ std::ldexp(1.0, exponent) };
+    if (force_positive)
+        return magnitude;
+    if ((rng() & 1ull) == 0)
+        return magnitude;
+    return sample_type{ -magnitude };
 }
 
 [[nodiscard]] value_type special_value(int index)
@@ -148,19 +171,19 @@ auto eval_runtime_path(Function&& function)
     }
 }
 
-[[nodiscard]] sample_type compose_terms(std::mt19937_64& rng, int term_count, int exp_lo, int exp_hi, int gap_lo, int gap_hi, bool positive_lead = false)
+[[nodiscard]] sample_type compose_terms(bl::mt19937_64& rng, int term_count, int exp_lo, int exp_hi, int gap_lo, int gap_hi, bool positive_lead = false)
 {
     int exponent = random_int(rng, exp_lo, exp_hi);
-    sample_type value{ scaled_double(rng, exponent, exponent, positive_lead) };
+    sample_type value = scaled_value(rng, exponent, exponent, positive_lead);
     for (int index = 1; index < term_count; ++index)
     {
         exponent -= random_int(rng, gap_lo, gap_hi);
-        value += sample_type{ scaled_double(rng, exponent, exponent) };
+        value += scaled_value(rng, exponent, exponent);
     }
     return value;
 }
 
-[[nodiscard]] sample_type gen_any_value(std::mt19937_64& rng, int bucket)
+[[nodiscard]] sample_type gen_any_value(bl::mt19937_64& rng, int bucket)
 {
     if ((rng() & 31ull) == 0)
         return sample_type{ special_value(bucket + static_cast<int>(rng())) };
@@ -168,7 +191,7 @@ auto eval_runtime_path(Function&& function)
     switch (bucket)
     {
     case 0:
-        return sample_type{ scaled_double(rng, -20, 20) };
+        return scaled_value(rng, -20, 20);
 
     case 1:
         return compose_terms(rng, 2, -250, 250, 30, 60);
@@ -179,22 +202,22 @@ auto eval_runtime_path(Function&& function)
     default:
     {
         const int lead_exp = random_int(rng, -950, 950);
-        sample_type lead{ scaled_double(rng, lead_exp, lead_exp) };
+        sample_type lead = scaled_value(rng, lead_exp, lead_exp);
         const int tail_exp = lead_exp - random_int(rng, 40, 100);
-        sample_type tail{ scaled_double(rng, tail_exp, tail_exp) };
+        sample_type tail = scaled_value(rng, tail_exp, tail_exp);
         return (lead + tail) - lead;
     }
     }
 }
 
-[[nodiscard]] sample_type gen_classification_value(std::mt19937_64& rng, int bucket)
+[[nodiscard]] sample_type gen_classification_value(bl::mt19937_64& rng, int bucket)
 {
     if ((rng() & 3ull) == 0)
         return sample_type{ special_classification_value(bucket + static_cast<int>(rng())) };
     return gen_any_value(rng, bucket);
 }
 
-[[nodiscard]] sample_type gen_nonzero_value(std::mt19937_64& rng, int bucket)
+[[nodiscard]] sample_type gen_nonzero_value(bl::mt19937_64& rng, int bucket)
 {
     sample_type value = gen_any_value(rng, bucket);
     if (bl::iszero(value))
@@ -202,20 +225,20 @@ auto eval_runtime_path(Function&& function)
     return value;
 }
 
-[[nodiscard]] sample_type gen_positive_nonzero_value(std::mt19937_64& rng, int bucket)
+[[nodiscard]] sample_type gen_positive_nonzero_value(bl::mt19937_64& rng, int bucket)
 {
     sample_type value = sample_type{ bl::abs(gen_nonzero_value(rng, bucket)) };
     value += sample_type{ std::numeric_limits<double>::denorm_min() };
     return value;
 }
 
-[[nodiscard]] sample_type gen_unit_value(std::mt19937_64& rng, int bucket)
+[[nodiscard]] sample_type gen_unit_value(bl::mt19937_64& rng, int bucket)
 {
-    sample_type value{ signed_unit(rng) * (bucket == 0 ? 0.75 : 0.95) };
+    sample_type value = signed_unit(rng) * sample_type{ bucket == 0 ? 0.75 : 0.95 };
     if (bucket >= 1)
-        value += sample_type{ std::ldexp(signed_unit(rng), -40) };
+        value += signed_unit(rng) * sample_type{ std::ldexp(1.0, -40) };
     if (bucket >= 2)
-        value += sample_type{ std::ldexp(signed_unit(rng), -80) };
+        value += signed_unit(rng) * sample_type{ std::ldexp(1.0, -80) };
     if (bucket >= 3)
         value = (sample_type{ 1.0 } + value) - sample_type{ 1.0 };
 
@@ -226,7 +249,7 @@ auto eval_runtime_path(Function&& function)
     return value;
 }
 
-[[nodiscard]] sample_type gen_gt_minus_one_value(std::mt19937_64& rng, int bucket)
+[[nodiscard]] sample_type gen_gt_minus_one_value(bl::mt19937_64& rng, int bucket)
 {
     if ((rng() & 3ull) == 0)
         return gen_unit_value(rng, bucket);
@@ -237,21 +260,22 @@ auto eval_runtime_path(Function&& function)
     return value;
 }
 
-[[nodiscard]] sample_type gen_ge_one_value(std::mt19937_64& rng, int bucket)
+[[nodiscard]] sample_type gen_ge_one_value(bl::mt19937_64& rng, int bucket)
 {
     return sample_type{ 1.0 } + gen_positive_nonzero_value(rng, bucket);
 }
 
-[[nodiscard]] sample_type gen_gamma_value(std::mt19937_64& rng, int bucket)
+[[nodiscard]] sample_type gen_gamma_value(bl::mt19937_64& rng, int bucket)
 {
-    sample_type value{ static_cast<double>(random_int(rng, -20, 20)) + signed_unit(rng) };
+    sample_type value{ static_cast<double>(random_int(rng, -20, 20)) };
+    value += signed_unit(rng);
     if (bl::abs(value - sample_type{ std::round(static_cast<double>(value)) }) < sample_type{ 0.125 } && value <= sample_type{ 0.0 })
         value += sample_type{ 0.375 };
 
     if (bucket >= 1)
-        value += sample_type{ std::ldexp(signed_unit(rng), -40) };
+        value += signed_unit(rng) * sample_type{ std::ldexp(1.0, -40) };
     if (bucket >= 2)
-        value += sample_type{ std::ldexp(signed_unit(rng), -80) };
+        value += signed_unit(rng) * sample_type{ std::ldexp(1.0, -80) };
     if (bucket >= 3)
         value = (sample_type{ 2.0 } + value) - sample_type{ 2.0 };
 
@@ -261,7 +285,7 @@ auto eval_runtime_path(Function&& function)
     return value;
 }
 
-[[nodiscard]] int gen_exponent_value(std::mt19937_64& rng, int bucket) noexcept
+[[nodiscard]] int gen_exponent_value(bl::mt19937_64& rng, int bucket) noexcept
 {
     switch (bucket)
     {
@@ -272,7 +296,7 @@ auto eval_runtime_path(Function&& function)
     }
 }
 
-[[nodiscard]] int gen_round_digits_value(std::mt19937_64& rng, int bucket) noexcept
+[[nodiscard]] int gen_round_digits_value(bl::mt19937_64& rng, int bucket) noexcept
 {
     switch (bucket)
     {
@@ -283,7 +307,7 @@ auto eval_runtime_path(Function&& function)
     }
 }
 
-[[nodiscard]] int gen_pow10_exponent(std::mt19937_64& rng, int bucket) noexcept
+[[nodiscard]] int gen_pow10_exponent(bl::mt19937_64& rng, int bucket) noexcept
 {
     switch (bucket)
     {
@@ -617,6 +641,7 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
 {
     bl::_fltx_debug::set_forced_runtime_path();
 
+    int checked = 0;
     for (int bucket = 0; bucket < kBucketCount; ++bucket)
     {
         auto rng = make_rng(test_name, bucket);
@@ -627,103 +652,111 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
                 continue;
 
             const auto constexpr_result = eval_constexpr_path([&]() { return std::apply(function, args); });
-            const auto runtime_result = eval_runtime_path([&]() { return std::apply(function, args); });
+            const auto runtime_result   = eval_runtime_path([&]() { return std::apply(function, args); });
+            const bool matches          = equal(constexpr_result, runtime_result);
+            ++checked;
 
-            INFO("function=" << test_name << ", bucket=" << kBucketNames[static_cast<std::size_t>(bucket)] << ", iteration=" << iteration);
-            INFO("args=" << describe_tuple(args));
-            INFO("constexpr=" << describe(constexpr_result));
-            INFO("runtime=" << describe(runtime_result));
-            REQUIRE(equal(constexpr_result, runtime_result));
+            if (!matches)
+            {
+                INFO("function=" << test_name << ", bucket=" << kBucketNames[static_cast<std::size_t>(bucket)] << ", iteration=" << iteration);
+                INFO("args=" << describe_tuple(args));
+                INFO("constexpr=" << describe(constexpr_result));
+                INFO("runtime=" << describe(runtime_result));
+            }
+            REQUIRE(matches);
         }
     }
+
+    std::fprintf(stderr, "[fltx parity] %s %s passed (%d samples)\n", kTypeName, test_name, checked);
+    std::fflush(stderr);
 }
 
-[[nodiscard]] auto gen_unary_any(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_unary_any(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_any_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_unary_classification(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_unary_classification(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_classification_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_unary_nonzero(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_unary_nonzero(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_nonzero_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_unary_positive(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_unary_positive(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_positive_nonzero_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_unary_unit(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_unary_unit(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_unit_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_unary_gt_minus_one(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_unary_gt_minus_one(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_gt_minus_one_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_unary_ge_one(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_unary_ge_one(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_ge_one_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_unary_gamma(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_unary_gamma(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_gamma_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_binary_any(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_binary_any(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_any_value(rng, bucket), gen_any_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_binary_classification(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_binary_classification(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_classification_value(rng, bucket), gen_classification_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_binary_rhs_nonzero(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_binary_rhs_nonzero(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_any_value(rng, bucket), gen_nonzero_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_fma_args(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_fma_args(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_any_value(rng, bucket), gen_any_value(rng, bucket), gen_any_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_ldexp_args(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_ldexp_args(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_any_value(rng, bucket), gen_exponent_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_scalbln_args(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_scalbln_args(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_any_value(rng, bucket), static_cast<long>(gen_exponent_value(rng, bucket)) };
 }
 
-[[nodiscard]] auto gen_round_digits_args(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_round_digits_args(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_any_value(rng, bucket), gen_round_digits_value(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_pow10_args(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_pow10_args(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_pow10_exponent(rng, bucket) };
 }
 
-[[nodiscard]] auto gen_nexttoward_args(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_nexttoward_args(bl::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_any_value(rng, bucket), static_cast<long double>(scaled_double(rng, -300, 300)) };
 }
 
-[[nodiscard]] auto gen_clamp_args(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_clamp_args(bl::mt19937_64& rng, int bucket)
 {
     sample_type a = gen_any_value(rng, bucket);
     sample_type b = gen_any_value(rng, bucket);
@@ -732,7 +765,7 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
     return std::tuple{ gen_any_value(rng, bucket), a, b };
 }
 
-[[nodiscard]] auto gen_pow_args(std::mt19937_64& rng, int bucket)
+[[nodiscard]] auto gen_pow_args(bl::mt19937_64& rng, int bucket)
 {
     if ((rng() & 3ull) == 0)
     {
@@ -822,6 +855,7 @@ TEST_CASE("f128 constexpr parity: round_to_decimals", "[fltx][constexpr][parity]
         return bl::round_to_decimals(x, digits);
     });
 }
+
 FLTX_TEST_BINARY(remainder, gen_binary_rhs_nonzero)
 FLTX_TEST_UNARY(sqrt, gen_unary_positive)
 FLTX_TEST_UNARY(nearbyint, gen_unary_any)
@@ -836,6 +870,7 @@ TEST_CASE("f128 constexpr parity: pow", "[fltx][constexpr][parity][f128][pow]")
 {
     run_tuple_test("pow", gen_pow_args, [](const value_type& x, const value_type& y) { return bl::pow(x, y); });
 }
+
 TEST_CASE("f128 constexpr parity: pow10_128", "[fltx][constexpr][parity][f128][pow10_128]")
 {
     run_tuple_test("pow10_128", gen_pow10_args, [](int exponent) { return bl::pow10_128(exponent); });
@@ -941,4 +976,5 @@ TEST_CASE("f128 constexpr parity harness switches forced path", "[fltx][constexp
 #undef FLTX_TEST_TERNARY
 #undef FLTX_TEST_VALUE_INT
 #undef FLTX_TEST_VALUE_LONG
+
 } // namespace

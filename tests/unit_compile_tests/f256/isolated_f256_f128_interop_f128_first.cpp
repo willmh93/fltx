@@ -1,5 +1,5 @@
-#include <f128.h>
-#include <f256.h>
+#include <fltx/f128.h>
+#include <fltx/f256.h>
 
 namespace
 {
@@ -7,7 +7,7 @@ namespace
     {
         bl::f128_s narrow{ 1.0, 0x1p-60 };
         bl::f256 wide{ narrow };
-        bl::f256_s sum = narrow + wide;
+        bl::f256_s sum     = narrow + wide;
         bl::f256_s product = wide * narrow;
         wide += narrow;
 
@@ -18,7 +18,8 @@ namespace
     }
 
     static_assert(check_f128_first_interop());
-}
+
+} // namespace
 
 void isolated_f256_f128_interop_f128_first()
 {

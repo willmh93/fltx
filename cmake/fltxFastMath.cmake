@@ -1,30 +1,11 @@
+if(NOT DEFINED FLTX_OPTIONS_INCLUDED)
+    include("${CMAKE_CURRENT_LIST_DIR}/fltxOptions.cmake")
+endif()
+
 set(_FLTX_FAST_MATH_SUPPORTED OFF)
-if(NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    if(MSVC OR CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
-        set(_FLTX_FAST_MATH_SUPPORTED ON)
-    endif()
+if(MSVC OR CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+    set(_FLTX_FAST_MATH_SUPPORTED ON)
 endif()
-
-if(NOT DEFINED FLTX_FAST_MATH_MODE)
-    if(DEFINED FLTX_ENABLE_FAST_MATH)
-        if(FLTX_ENABLE_FAST_MATH)
-            set(_FLTX_FAST_MATH_MODE_DEFAULT "ON")
-        else()
-            set(_FLTX_FAST_MATH_MODE_DEFAULT "OFF")
-        endif()
-    else()
-        set(_FLTX_FAST_MATH_MODE_DEFAULT "AUTO")
-    endif()
-
-    set(FLTX_FAST_MATH_MODE "${_FLTX_FAST_MATH_MODE_DEFAULT}" CACHE STRING "fltx fast-math mode: AUTO, ON, or OFF")
-endif()
-
-set(FLTX_FAST_MATH_MODE "${FLTX_FAST_MATH_MODE}" CACHE STRING "fltx fast-math mode: AUTO, ON, or OFF" FORCE)
-set_property(CACHE FLTX_FAST_MATH_MODE PROPERTY STRINGS AUTO ON OFF)
-
-option(FLTX_FAST_MATH_NATIVE "Tune fast-math builds for the local host CPU with -march=native/-mtune=native where supported" OFF)
-option(FLTX_FMA_AVAILABLE "Use FMA-based error-free transforms where the source checks FMA_AVAILABLE" ON)
-option(FLTX_F256_FMA_TWO_PROD "Use hardware FMA for f256 SIMD two-product error terms when available" ON)
 
 set(_FLTX_FAST_MATH_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR};${CMAKE_VS_PLATFORM_NAME}")
 string(TOLOWER "${_FLTX_FAST_MATH_PROCESSOR}" _FLTX_FAST_MATH_PROCESSOR)
@@ -83,8 +64,8 @@ function(fltx_apply_fast_math_options _TARGET)
         $<$<CONFIG:Release>:BL_FAST_MATH>
         $<$<AND:$<CONFIG:Release>,$<BOOL:${FLTX_FMA_AVAILABLE}>>:FMA_AVAILABLE>
         $<$<AND:$<CONFIG:Release>,$<NOT:$<BOOL:${FLTX_FMA_AVAILABLE}>>>:FLTX_DISABLE_FMA_AVAILABLE=1>
-        $<$<AND:$<CONFIG:Release>,$<BOOL:${FLTX_F256_FMA_TWO_PROD}>>:BL_F256_USE_FMA_TWO_PROD=1>
-        $<$<AND:$<CONFIG:Release>,$<NOT:$<BOOL:${FLTX_F256_FMA_TWO_PROD}>>>:BL_F256_USE_FMA_TWO_PROD=0>
+        $<$<AND:$<CONFIG:Release>,$<BOOL:${FLTX_SIMD_FMA_TWO_PROD}>>:BL_FLTX_SIMD_USE_FMA_TWO_PROD=1>
+        $<$<AND:$<CONFIG:Release>,$<NOT:$<BOOL:${FLTX_SIMD_FMA_TWO_PROD}>>>:BL_FLTX_SIMD_USE_FMA_TWO_PROD=0>
     )
 
     if(MSVC)

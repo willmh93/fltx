@@ -1,5 +1,5 @@
 /**
- * fltx.h - Main public interface for FLTX.
+ * fltx.h - Main public interface.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -10,8 +10,10 @@
 #ifndef FLTX_INCLUDED
 #define FLTX_INCLUDED
 
-#include "fltx_io.h"
-#include "fltx_math.h"
-#include "fltx_dispatch.h"
+#include "fltx/core.h"
+#include "fltx/io.h"
+#include "fltx/math.h"
+#include "fltx/dispatch.h"
+#include "fltx/random.h"
 
 #endif

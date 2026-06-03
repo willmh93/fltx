@@ -1,16 +1,15 @@
 #include <catch2/catch_test_macros.hpp>
 #include <boost/multiprecision/mpfr.hpp>
-
 #include <array>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
-#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
 
-#include <f256_io.h>
+#include <fltx/f256_io.h>
+#include <fltx/random.h>
 
 using namespace bl;
 
@@ -20,10 +19,8 @@ namespace
         boost::multiprecision::mpfr_float_backend<200>,
         boost::multiprecision::et_off>;
 
-    using mpfr_random = boost::multiprecision::mpfr_float_100;
-
     constexpr int checked_digits = std::numeric_limits<f256>::digits10 - 4;
-    constexpr int print_digits = std::numeric_limits<f256>::max_digits10;
+    constexpr int print_digits   = std::numeric_limits<f256>::max_digits10;
 
     [[nodiscard]] mpfr_check abs_check(const mpfr_check& value)
     {
@@ -78,9 +75,9 @@ namespace
 
     void require_close(const f256& actual, const mpfr_check& expected)
     {
-        const mpfr_check got = to_ref_exact(actual);
+        const mpfr_check got       = to_ref_exact(actual);
         const mpfr_check tolerance = comparison_tolerance(expected);
-        const mpfr_check diff = abs_check(got - expected);
+        const mpfr_check diff      = abs_check(got - expected);
 
         CAPTURE(to_text(actual));
         CAPTURE(to_text(expected));
@@ -98,7 +95,7 @@ namespace
     {
         f256 parsed{};
         const char* end = nullptr;
-        const bool ok = parse_flt256(text, parsed, &end);
+        const bool ok   = parse_flt256(text, parsed, &end);
 
         CAPTURE(text);
         REQUIRE(ok);
@@ -110,12 +107,12 @@ namespace
 
     void check_roundtrip_case(const char* label, const f256& value)
     {
-        const std::string text = to_text(value);
-        const f256 reparsed = to_f256(text);
-        const mpfr_check expected = to_ref_exact(value);
-        const mpfr_check got = to_ref_exact(reparsed);
+        const std::string text     = to_text(value);
+        const f256 reparsed        = to_f256(text);
+        const mpfr_check expected  = to_ref_exact(value);
+        const mpfr_check got       = to_ref_exact(reparsed);
         const mpfr_check tolerance = comparison_tolerance(expected);
-        const mpfr_check diff = abs_check(got - expected);
+        const mpfr_check diff      = abs_check(got - expected);
 
         CAPTURE(label);
         CAPTURE(text);
@@ -135,24 +132,20 @@ namespace
         REQUIRE(diff <= tolerance);
     }
 
-    [[nodiscard]] mpfr_random random_large_finite_for_f256(std::mt19937_64& rng)
+    [[nodiscard]] f256 random_large_finite_for_f256(bl::mt19937_64& rng)
     {
-        std::uniform_int_distribution<int> sign_dist(0, 1);
-        std::uniform_int_distribution<int> exponent_dist(-900, 900);
-        std::uniform_real_distribution<double> mantissa_dist(0.5, 1.0);
+        bl::uniform_int_distribution<int> sign_dist(0, 1);
+        bl::uniform_int_distribution<int> exponent_dist(-900, 900);
+        bl::uniform_real_distribution<f256> mantissa_dist{ f256{ 0.5 }, f256{ 1.0 } };
 
-        mpfr_random mantissa = mantissa_dist(rng);
+        f256 mantissa = mantissa_dist(rng);
         if (sign_dist(rng) != 0)
             mantissa = -mantissa;
 
-        return ldexp(mantissa, exponent_dist(rng));
+        return bl::ldexp(mantissa, exponent_dist(rng));
     }
 
-    [[nodiscard]] std::string to_scientific_string(const mpfr_random& value, int digits)
-    {
-        return value.str(digits, std::ios_base::scientific);
-    }
-}
+} // namespace
 
 TEST_CASE("f256 parses decimal and scientific strings accurately", "[fltx][f256][io][parse]")
 {
@@ -196,10 +189,10 @@ TEST_CASE("f256 literals parse numeric and string source text", "[fltx][f256][io
 {
     using namespace bl::literals;
 
-    constexpr f256 integer = 1_qd;
-    constexpr f256 numeric = 0.123456789012345678901234567890123456789_qd;
+    constexpr f256 integer    = 1_qd;
+    constexpr f256 numeric    = 0.123456789012345678901234567890123456789_qd;
     constexpr f256 scientific = 1.25e-50_qd;
-    constexpr f256 text = "3.1415926535897932384626433832795028841971"_qd;
+    constexpr f256 text       = "3.1415926535897932384626433832795028841971"_qd;
 
     require_close(integer, to_ref("1"));
     require_close(numeric, to_ref("0.123456789012345678901234567890123456789"));
@@ -211,7 +204,7 @@ TEST_CASE("f256 parser handles special values, partial tokens, and invalid input
 {
     {
         const char* text = " \t+infinity;";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f256 parsed{};
         REQUIRE(parse_flt256(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -221,7 +214,7 @@ TEST_CASE("f256 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "-inf tail";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f256 parsed{};
         REQUIRE(parse_flt256(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -231,7 +224,7 @@ TEST_CASE("f256 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "NaN(payload)";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f256 parsed{};
         REQUIRE(parse_flt256(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -240,7 +233,7 @@ TEST_CASE("f256 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "1.25tail";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f256 parsed{};
         REQUIRE(parse_flt256(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -249,7 +242,7 @@ TEST_CASE("f256 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "1e+oops";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f256 parsed{};
         REQUIRE(parse_flt256(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -258,7 +251,7 @@ TEST_CASE("f256 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "1e100000000";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f256 parsed{};
         REQUIRE(parse_flt256(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -268,7 +261,7 @@ TEST_CASE("f256 parser handles special values, partial tokens, and invalid input
     }
     {
         const char* text = "-1e-100000000";
-        const char* end = nullptr;
+        const char* end  = nullptr;
         f256 parsed{ 1.0, 0.0, 0.0, 0.0 };
         REQUIRE(parse_flt256(text, parsed, &end));
         REQUIRE(end != nullptr);
@@ -320,9 +313,9 @@ TEST_CASE("f256 fixed zero formatting respects precision", "[fltx][f256][io][for
 
 TEST_CASE("f256 formats special values and stream flags consistently", "[fltx][f256][io][format][edge]")
 {
-    const f256 inf = std::numeric_limits<f256>::infinity();
+    const f256 inf     = std::numeric_limits<f256>::infinity();
     const f256 neg_inf = -inf;
-    const f256 nan = std::numeric_limits<f256>::quiet_NaN();
+    const f256 nan     = std::numeric_limits<f256>::quiet_NaN();
 
     REQUIRE(bl::to_std_string(inf) == "inf");
     REQUIRE(bl::to_std_string(neg_inf) == "-inf");
@@ -340,6 +333,51 @@ TEST_CASE("f256 formats special values and stream flags consistently", "[fltx][f
     std::ostringstream nan_upper;
     nan_upper << std::uppercase << nan;
     REQUIRE(nan_upper.str() == "NAN");
+}
+
+TEST_CASE("f256 stream extraction parses complete tokens", "[fltx][f256][io][stream]")
+{
+    std::istringstream in{ "1.25 -0 +inf nan tail" };
+    f256 value{};
+    f256_s neg_zero{};
+    f256 inf{};
+    f256_s nan{};
+    std::string tail;
+
+    REQUIRE(static_cast<bool>(in >> value >> neg_zero >> inf >> nan >> tail));
+    require_close(value, to_ref("1.25"));
+    REQUIRE(bl::iszero(neg_zero));
+    REQUIRE(std::signbit(neg_zero.x0));
+    REQUIRE(bl::isinf(inf));
+    REQUIRE(!std::signbit(inf.x0));
+    REQUIRE(bl::isnan(nan));
+    REQUIRE(tail == "tail");
+}
+
+TEST_CASE("f256 stream extraction fails without overwriting on partial or invalid tokens", "[fltx][f256][io][stream][edge]")
+{
+    {
+        std::istringstream in{ "1.25tail" };
+        f256 value{ 42.0, 0.0, 0.0, 0.0 };
+
+        REQUIRE_FALSE(static_cast<bool>(in >> value));
+        REQUIRE(in.fail());
+        REQUIRE(value.x0 == 42.0);
+        REQUIRE(value.x1 == 0.0);
+        REQUIRE(value.x2 == 0.0);
+        REQUIRE(value.x3 == 0.0);
+    }
+    {
+        std::istringstream in{ "oops" };
+        f256_s value{ 7.0, 0.0, 0.0, 0.0 };
+
+        REQUIRE_FALSE(static_cast<bool>(in >> value));
+        REQUIRE(in.fail());
+        REQUIRE(value.x0 == 7.0);
+        REQUIRE(value.x1 == 0.0);
+        REQUIRE(value.x2 == 0.0);
+        REQUIRE(value.x3 == 0.0);
+    }
 }
 
 TEST_CASE("f256 print and parse round-trip preserves explicit limb values", "[fltx][f256][io][roundtrip]")
@@ -361,23 +399,24 @@ TEST_CASE("f256 print and parse round-trip preserves explicit limb values", "[fl
 
 TEST_CASE("f256 brute-force random io test", "[fltx][f256][io][rand]")
 {
-    std::mt19937_64 rng{ std::random_device{}() };
+    bl::mt19937_64 rng{ 0x1020304050607080ull };
     constexpr int sample_count = 1000000;
 
-    std::cout << "f256 brute-force random roundtrip test: " << sample_count << " random values...\n\n";
+    std::cout << "f256 brute-force random roundtrip test: " << sample_count
+              << " random values (seed 0x1020304050607080)...\n\n";
 
     for (int i = 0; i < sample_count; ++i)
     {
-        const mpfr_random value = random_large_finite_for_f256(rng);
-        const std::string expected = to_scientific_string(value, print_digits);
+        const f256 value           = random_large_finite_for_f256(rng);
+        const std::string expected = to_text(value);
 
-        const f256 parsed = to_f256(expected);
+        const f256 parsed        = to_f256(expected);
         const std::string actual = to_text(parsed);
 
         INFO("iteration: " << i);
-        INFO("random mpfr: " << expected);
+        INFO("random f256: " << expected);
         INFO("original n:  " << actual);
 
-        REQUIRE(expected == actual);
+        require_close(parsed, to_ref_exact(value));
     }
 }

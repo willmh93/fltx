@@ -1,27 +1,32 @@
 cmake_minimum_required(VERSION 3.21)
 project(fltx VERSION 0.1.0 LANGUAGES CXX)
 
-# Project-owned default for fltx's compiled runtime sources: AUTO, ON, or OFF.
-set(FLTX_FAST_MATH_MODE ON)
-
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+include(cmake/fltxOptions.cmake)
 include(cmake/fltxFastMath.cmake)
-
-#
-option(FLTX_BUILD_TESTS    "Build fltx tests"          ${PROJECT_IS_TOP_LEVEL})
-option(FLTX_BUILD_EXAMPLES "Build fltx examples"       ${PROJECT_IS_TOP_LEVEL})
-option(FLTX_BUILD_ISOLATED "Build fltx isolated units" ${PROJECT_IS_TOP_LEVEL})
+include(cmake/fltxMsvcTiming.cmake)
+include(cmake/fltxSimd.cmake)
+include(cmake/fltxSources.cmake)
 
 set(FLTX_PUBLIC_SCOPE PUBLIC)
-add_library(fltx
-    src/f128.cpp
-    src/f128_math.cpp
-    src/f256.cpp
-    src/f256_math.cpp
-)
+add_library(fltx ${FLTX_LIBRARY_SOURCE_FILES})
 
 add_library(fltx::fltx ALIAS fltx)
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    PREFIX "Source Files"
+    FILES ${FLTX_LIBRARY_SOURCE_FILE_PATHS}
+)
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    PREFIX "Header Files"
+    FILES ${FLTX_LIBRARY_HEADER_FILES}
+)
+
+source_group("Resource Files"
+    FILES ${FLTX_NATVIS_FILE}
+)
 
 target_include_directories(fltx
     ${FLTX_PUBLIC_SCOPE}
@@ -31,8 +36,9 @@ target_include_directories(fltx
 
 # source-tree / VS-project style use
 target_sources(fltx
-    ${FLTX_PUBLIC_SCOPE}
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/fltx.natvis>
+    PRIVATE
+        ${FLTX_LIBRARY_HEADER_FILES}
+        ${FLTX_NATVIS_FILE}
 )
 
 if(MSVC)
@@ -44,7 +50,9 @@ if(MSVC)
 endif()
 
 target_compile_features(fltx ${FLTX_PUBLIC_SCOPE} cxx_std_23)
+fltx_apply_simd_options(fltx ${FLTX_PUBLIC_SCOPE})
 fltx_apply_fast_math_options(fltx)
+fltx_apply_msvc_timing_reports(fltx)
 
 install(TARGETS fltx
     EXPORT fltxTargets
@@ -82,16 +90,14 @@ install(FILES
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/fltx"
 )
 
-include(CTest)
+if(FLTX_DEVELOPER_BUILD)
+    include(CTest)
 
-if(FLTX_BUILD_EXAMPLES)
     add_subdirectory(examples)
-endif()
-
-if(FLTX_BUILD_TESTS)
     add_subdirectory(tests)
-endif()
-
-if(FLTX_BUILD_ISOLATED)
     add_subdirectory(tests/unit_compile_tests)
+
+    if(NOT TARGET f256_expression_compile_bench)
+        add_subdirectory(tests/expressions/f256)
+    endif()
 endif()

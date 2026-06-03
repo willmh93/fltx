@@ -1,6 +1,6 @@
 <p align="center">
   <img src="res/logo.webp" alt="fltx logo" width="80"><br>
-  Extended-precision floating point and constexpr math for C++20<br>
+  Extended-precision floating point and constexpr math for C++23<br>
   Fast · Precise · Lightweight
 </p>
 
@@ -18,14 +18,15 @@
 
 ## Highlights
 
-- Fixed-size extended-precision scalar types: [`bl::f128`](include/f128.h) and [`bl::f256`](include/f256.h)
-- `constexpr` arithmetic, comparisons, conversions, parsing, formatting, and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath)-style math
+- Fixed-size extended-precision scalar types: [`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h)
+- Portable `constexpr` arithmetic, comparisons, conversions, parsing, formatting, and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath) style API
 - Accuracy and performance validated against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at equivalent precision
-- [`bl::f256`](include/f256.h) has an expression node system which recognises and fuses common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations. This reduces intermediate rounding and temporary value materialisation, allowing those shapes to run through specialised fused evaluation paths.
+- [`bl::f256`](include/fltx/f256.h) has an expression node system which recognises and fuses common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations. This reduces intermediate rounding and temporary value materialisation, allowing those shapes to run through specialised fused evaluation paths.
+- Selected [`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h) kernels use platform SIMD by default where supported: x86/x64 SSE2 with FMA when available, AArch64 NEON, and WebAssembly `wasm128` SIMD via Emscripten
+- Compatible with fast-math builds; compiled runtime sources default to fast-math for speed, while `FLTX_CONSTEXPR_PARITY` remains available when bitwise-identical runtime and `constexpr` results matter
 - No required runtime dependencies
 - Standard-library integration for streams, `std::numeric_limits`, `std::numbers`, and common stream manipulators
-- Runtime code favors native performance by default; define `FLTX_CONSTEXPR_PARITY` when you need bitwise-identical runtime and `constexpr` results
-- Test builds can define `FLTX_SIMULATE_CONSTEVAL_MODE` to run runtime samples through the branches used during constant evaluation without enabling `FLTX_CONSTEXPR_PARITY`
+- Runtime code favors native performance by default
 - Suitable for lightweight native builds, WebAssembly / Emscripten
 - Optional runtime-to-compile-time dispatch helper for template-specialized kernels
 
@@ -33,10 +34,10 @@
 
 | Type | Representation | Accuracy |
 |---|---|---|
-| [`bl::f32`](include/fltx_types.h) | Alias for native [`float`](https://en.cppreference.com/w/cpp/language/types) | Native [`float`](https://en.cppreference.com/w/cpp/language/types) precision |
-| [`bl::f64`](include/fltx_types.h) | Alias for native [`double`](https://en.cppreference.com/w/cpp/language/types) | Native [`double`](https://en.cppreference.com/w/cpp/language/types) precision |
-| [`bl::f128`](include/f128.h) | Double-double, stored as two [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | Minimum 29 decimal digits across arithmetic and math functions |
-| [`bl::f256`](include/f256.h) | Quad-double, stored as four [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | Minimum 59 decimal digits across arithmetic and math functions |
+| [`bl::f32`](include/fltx/types.h) | Alias for native [`float`](https://en.cppreference.com/w/cpp/language/types) | Native [`float`](https://en.cppreference.com/w/cpp/language/types) precision |
+| [`bl::f64`](include/fltx/types.h) | Alias for native [`double`](https://en.cppreference.com/w/cpp/language/types) | Native [`double`](https://en.cppreference.com/w/cpp/language/types) precision |
+| [`bl::f128`](include/fltx/f128.h) | Double-double, stored as two [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | Minimum 29 decimal digits across arithmetic and math functions |
+| [`bl::f256`](include/fltx/f256.h) | Quad-double, stored as four [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | Minimum 59 decimal digits across arithmetic and math functions |
 
 The names refer to storage size:
 
@@ -45,11 +46,11 @@ sizeof(bl::f128) == 16
 sizeof(bl::f256) == 32
 ```
 
-[`bl::f128`](include/f128.h) and [`bl::f256`](include/f256.h) are not IEEE [binary128](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#IEEE_754_quadruple-precision_binary_floating-point_format:_binary128) / [binary256](https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format#IEEE_754_octuple-precision_binary_floating-point_format:_binary256) types, and they are not arbitrary-precision numbers. They provide more precision than native `double` while preserving a fixed-width, scalar-friendly floating-point model. Values are still approximate, so conditioning, cancellation, argument reduction, and algorithm design still matter.
+[`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h) are not IEEE [binary128](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#IEEE_754_quadruple-precision_binary_floating-point_format:_binary128) / [binary256](https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format#IEEE_754_octuple-precision_binary_floating-point_format:_binary256) types, and they are not arbitrary-precision numbers. They provide more precision than native `double` while preserving a fixed-width, scalar-friendly floating-point model. Values are still approximate, so conditioning, cancellation, argument reduction, and algorithm design still matter.
 
 ## f256 Expression Fusion
 
-[`bl::f256`](include/f256.h) has an expression node system which recognises common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations.
+[`bl::f256`](include/fltx/f256.h) has an expression node system which recognises common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations.
 
 For example:
 
@@ -117,20 +118,20 @@ It is a good fit when you want an extended-precision type that can still be pass
 | Header | Provides |
 |---|---|
 | [`fltx.h`](include/fltx.h) | Full library interface |
-| [`fltx_core.h`](include/fltx_core.h) | Core numeric types, storage types, arithmetic, conversions, and standard numeric integration |
-| [`fltx_math.h`](include/fltx_math.h) | Core types plus the `constexpr` `<cmath>`-style API |
-| [`fltx_io.h`](include/fltx_io.h) | Core types plus parsing, formatting, string conversion, stream output, and literals |
+| [`fltx/core.h`](include/fltx/core.h) | Core numeric types, storage types, arithmetic, conversions, and standard numeric integration |
+| [`fltx/math.h`](include/fltx/math.h) | Core types plus the `constexpr` `<cmath>`-style API |
+| [`fltx/io.h`](include/fltx/io.h) | Core types plus parsing, formatting, string conversion, stream output, and literals |
 
 Individual headers are also available when you want a smaller include surface:
 
 | Header | Provides |
 |---|---|
-| [`f128.h`](include/f128.h), [`f256.h`](include/f256.h) | Individual extended-precision types, storage types, and core operations |
-| [`f32_math.h`](include/f32_math.h), [`f64_math.h`](include/f64_math.h), [`f128_math.h`](include/f128_math.h), [`f256_math.h`](include/f256_math.h) | Math APIs for individual floating-point types |
-| [`f128_io.h`](include/f128_io.h), [`f256_io.h`](include/f256_io.h) | IO and literals for individual extended-precision types |
-| [`fltx_types.h`](include/fltx_types.h) | Type aliases, concepts, `FloatType`, and enum helpers |
-| [`template_dispatch.h`](include/template_dispatch.h) | Standalone runtime-to-compile-time dispatch-table utility |
-| [`fltx_dispatch.h`](include/fltx_dispatch.h) | Dispatch helpers for mapping `FloatType` values to `f32`, `f64`, `f128`, or `f256` |
+| [`fltx/f128.h`](include/fltx/f128.h), [`fltx/f256.h`](include/fltx/f256.h) | Individual extended-precision types, storage types, and core operations |
+| [`fltx/f32/math.h`](include/fltx/f32/math.h), [`fltx/f64/math.h`](include/fltx/f64/math.h), [`fltx/f128/math.h`](include/fltx/f128/math.h), [`fltx/f256/math.h`](include/fltx/f256/math.h) | Math APIs for individual floating-point types |
+| [`fltx/f128/io.h`](include/fltx/f128/io.h), [`fltx/f256/io.h`](include/fltx/f256/io.h) | IO and literals for individual extended-precision types |
+| [`fltx/types.h`](include/fltx/types.h) | Type aliases, concepts, `FloatType`, and enum helpers |
+| [`fltx/template_dispatch.h`](include/fltx/template_dispatch.h) | Standalone runtime-to-compile-time dispatch-table utility |
+| [`fltx/dispatch.h`](include/fltx/dispatch.h) | Dispatch helpers for mapping `FloatType` values to `f32`, `f64`, `f128`, or `f256` |
 
 ## Numeric Types
 
@@ -156,7 +157,7 @@ bl::f128   c = a + b;
 bl::f128_s d = c;
 ```
 
-Common type traits are available from [`fltx_types.h`](include/fltx_types.h):
+Common type traits are available from [`fltx/types.h`](include/fltx/types.h):
 
 ```cpp
 bl::is_f32_v<T>
@@ -171,7 +172,7 @@ bl::is_arithmetic_v<T>
 
 ## Math API
 
-[`fltx_math.h`](include/fltx_math.h) provides a `constexpr` math interface modeled after C++ <cmath> API across [`bl::f32`](include/fltx_types.h), [`bl::f64`](include/fltx_types.h), [`bl::f128`](include/f128.h), and [`bl::f256`](include/f256.h).
+[`fltx/math.h`](include/fltx/math.h) provides a `constexpr` math interface modeled after C++ <cmath> API across [`bl::f32`](include/fltx/types.h), [`bl::f64`](include/fltx/types.h), [`bl::f128`](include/fltx/f128.h), and [`bl::f256`](include/fltx/f256.h).
 
 This lets generic numeric code switch precision without changing its math calls:
 
@@ -208,7 +209,7 @@ Supported function groups:
 
 ## IO and Literals
 
-[`fltx_io.h`](include/fltx_io.h) adds `constexpr`-capable parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
+[`fltx/io.h`](include/fltx/io.h) adds `constexpr`-capable parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
 
 ```cpp
 using namespace bl;
@@ -225,9 +226,9 @@ Stream output supports `std::setprecision`, `std::fixed`, `std::scientific`, `st
 
 ## Template Dispatch
 
-[`fltx_dispatch.h`](include/fltx_dispatch.h) includes a small runtime-to-template dispatch layer.
+[`fltx/dispatch.h`](include/fltx/dispatch.h) includes a small runtime-to-template dispatch layer.
 
-This lets runtime values such as [`FloatType::F128`](include/fltx_types.h) or [`FloatType::F256`](include/fltx_types.h) select a compile-time type, so the called function still compiles as a normal template specialization.
+This lets runtime values such as [`FloatType::F128`](include/fltx/types.h) or [`FloatType::F256`](include/fltx/types.h) select a compile-time type, so the called function still compiles as a normal template specialization.
 
 ```cpp
 #include <iostream>
@@ -259,10 +260,10 @@ int main()
 <details>
 <summary>Mapping a custom enum to a compile-time type</summary>
 
-[`template_dispatch.h`](include/template_dispatch.h) is the lower-level dispatch utility used by [`fltx_dispatch.h`](include/fltx_dispatch.h). It can also be used directly when you want your own runtime enum to select one of several compile-time types:
+[`fltx/template_dispatch.h`](include/fltx/template_dispatch.h) is the lower-level dispatch utility used by [`fltx/dispatch.h`](include/fltx/dispatch.h). It can also be used directly when you want your own runtime enum to select one of several compile-time types:
 
 ```cpp
-#include <template_dispatch.h>
+#include <fltx/template_dispatch.h>
 
 enum struct Backend { Cpu, Gpu, COUNT };
 
@@ -438,7 +439,7 @@ cmake --preset ninja-release
 cmake --build --preset ninja-release
 ```
 
-Other distributions should use equivalent packages for a C++20 compiler, CMake, Ninja, pkg-config, and the autotools used by the GMP/MPFR vcpkg ports.
+Other distributions should use equivalent packages for a C++23 compiler, CMake, Ninja, pkg-config, and the autotools used by the GMP/MPFR vcpkg ports.
 
 </details>
 
