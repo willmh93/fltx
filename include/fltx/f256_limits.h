@@ -43,6 +43,7 @@ struct std::numeric_limits<bl::f256_s>
     static constexpr bool has_infinity      = true;
     static constexpr bool has_quiet_NaN     = true;
     static constexpr bool has_signaling_NaN = true;
+    static constexpr float_denorm_style has_denorm = denorm_present;
     static constexpr bool has_denorm_loss   = false;
 
     static constexpr bl::f256_s infinity()      noexcept { return { numeric_limits<double>::infinity(), 0.0, 0.0, 0.0 }; }

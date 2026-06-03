@@ -1,5 +1,5 @@
 /**
- * fltx/aliases.h - Cheap scalar aliases and FLTX type forward declarations.
+ * fltx/aliases.h - Cheap scalar aliases and fltx type forward declarations.
  *
  * Copyright (c) 2026 William Hemsworth
  *

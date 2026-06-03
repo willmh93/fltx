@@ -157,17 +157,29 @@ bl::f128   c = a + b;
 bl::f128_s d = c;
 ```
 
-Common type traits are available from [`fltx/types.h`](include/fltx/types.h):
+Common type concepts and traits are available from [`fltx/traits.h`](include/fltx/traits.h):
 
 ```cpp
+bl::fltx_f32<T>
+bl::fltx_f64<T>
+bl::fltx_f128<T>
+bl::fltx_f256<T>
+
+bl::fltx_extended_float<T>
+bl::fltx_float<T>
+bl::fltx_floating_point<T>
+bl::fltx_arithmetic<T>
+
 bl::is_f32_v<T>
 bl::is_f64_v<T>
 bl::is_f128_v<T>
 bl::is_f256_v<T>
 
-bl::is_fltx_v<T>
+bl::is_fltx_extended_float_v<T>
+bl::is_fltx_float_v<T>
 bl::is_floating_point_v<T>
 bl::is_arithmetic_v<T>
+bl::is_integral_v<T>
 ```
 
 ## Math API
@@ -442,6 +454,28 @@ cmake --build --preset ninja-release
 Other distributions should use equivalent packages for a C++23 compiler, CMake, Ninja, pkg-config, and the autotools used by the GMP/MPFR vcpkg ports.
 
 </details>
+
+### Running Tests
+
+Test executables are registered with CTest. After building, you can run the registered test cases from the command line:
+
+```bash
+ctest --preset native-release
+```
+
+For a multi-config Visual Studio build, include the configuration:
+
+```powershell
+ctest --preset vs2026-release
+```
+
+Visual Studio's Test Explorer can discover the same CTest tests when the repository is opened as a CMake project, for example with **File > Open > Folder**. Opening the generated `build\vs2026\fltx.slnx` uses Visual Studio's project-system test adapters instead of the CMake/CTest integration path. For that generated solution route, the Visual Studio generator writes `build\vs2026\.runsettings` for the Test Adapter for Catch2; install that adapter and make sure the solution runsettings file is selected if Test Explorer does not pick it up automatically.
+
+Non-benchmark metrics cases are registered and discovered by default. Metrics benchmark cases are excluded from default discovery; run `metrics_tests [bench]` explicitly when you only want timing benchmark cases. To run the full combined metrics suite and write the CSV reports, run the metrics executable directly with all three primary phases selected:
+
+```powershell
+.\build\vs2026\tests\Release\metrics_tests.exe "[precision],[domain],[bench]"
+```
 
 ## Benchmarks
 

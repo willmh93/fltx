@@ -1,5 +1,5 @@
 /**
- * fltx/detail/interop.h - Cross-type conversions and arithmetic for FLTX types.
+ * fltx/detail/interop.h - Cross-type conversions and arithmetic for fltx types.
  *
  * Copyright (c) 2026 William Hemsworth
  *

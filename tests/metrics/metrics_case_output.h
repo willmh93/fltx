@@ -35,50 +35,6 @@ namespace bl::test::metrics
         metrics_filter_arguments() = std::move(filters);
     }
 
-    [[nodiscard]] inline bool metrics_filter_has_tag(std::string_view tag)
-    {
-        std::string bracketed;
-        bracketed.reserve(tag.size() + 2);
-        bracketed += "[";
-        bracketed += tag;
-        bracketed += "]";
-
-        for (const std::string& filter : metrics_filter_arguments())
-        {
-            if (filter.find(bracketed) != std::string::npos)
-                return true;
-        }
-        return false;
-    }
-
-    [[nodiscard]] inline bool metrics_filter_has_explicit_phase()
-    {
-        return metrics_filter_has_tag("precision") ||
-            metrics_filter_has_tag("accuracy") ||
-            metrics_filter_has_tag("bench") ||
-            metrics_filter_has_tag("domain");
-    }
-
-    [[nodiscard]] inline bool metrics_case_phase_enabled(std::string_view phase)
-    {
-        if (!metrics_filter_has_explicit_phase())
-            return true;
-
-        if (phase == "precision")
-            return metrics_filter_has_tag("precision") || metrics_filter_has_tag("accuracy");
-        if (phase == "bench")
-            return metrics_filter_has_tag("bench");
-        if (phase == "domain")
-            return metrics_filter_has_tag("domain");
-
-        return true;
-    }
-
-    [[nodiscard]] inline bool metrics_case_assertions_enabled()
-    {
-        return true;
-    }
-
     [[nodiscard]] inline std::string normalized_metrics_filter(std::string_view filter)
     {
         std::string normalized;
@@ -91,27 +47,170 @@ namespace bl::test::metrics
         return normalized;
     }
 
-    [[nodiscard]] inline bool metrics_filter_is_exact_tag(std::string_view tag)
+    [[nodiscard]] inline bool metrics_filter_has_tag(std::string_view tag)
     {
+        std::string bracketed;
+        bracketed.reserve(tag.size() + 2);
+        bracketed += "[";
+        bracketed += tag;
+        bracketed += "]";
+
+        for (const std::string& filter : metrics_filter_arguments())
+        {
+            const std::string normalized = normalized_metrics_filter(filter);
+            std::string::size_type pos = normalized.find(bracketed);
+            while (pos != std::string::npos)
+            {
+                if (pos == 0 || normalized[pos - 1] != '~')
+                    return true;
+
+                pos = normalized.find(bracketed, pos + bracketed.size());
+            }
+        }
+        return false;
+    }
+
+    [[nodiscard]] inline bool metrics_filter_has_explicit_phase()
+    {
+        return metrics_filter_has_tag("precision") ||
+            metrics_filter_has_tag("accuracy") ||
+            metrics_filter_has_tag("bench") ||
+            metrics_filter_has_tag("domain");
+    }
+
+    [[nodiscard]] inline std::vector<std::string> metrics_normalized_filter_clauses()
+    {
+        std::vector<std::string> clauses;
         if (metrics_filter_arguments().size() != 1)
+            return clauses;
+
+        const std::string normalized = normalized_metrics_filter(metrics_filter_arguments().front());
+        if (normalized.empty())
+            return clauses;
+
+        std::string::size_type first = 0;
+        while (first < normalized.size())
+        {
+            std::string::size_type last = normalized.find(',', first);
+            if (last == std::string::npos)
+                last = normalized.size();
+            if (last == first)
+                return {};
+
+            clauses.push_back(normalized.substr(first, last - first));
+            first = last + 1;
+        }
+
+        return clauses;
+    }
+
+    [[nodiscard]] inline bool metrics_filter_clause_matches_tags(
+        std::string_view clause,
+        std::string_view first_tag,
+        std::string_view second_tag = {})
+    {
+        std::vector<std::string_view> tags;
+        std::string::size_type pos = 0;
+        while (pos < clause.size())
+        {
+            if (clause[pos] != '[')
+                return false;
+
+            const std::string::size_type close = clause.find(']', pos + 1);
+            if (close == std::string::npos || close == pos + 1)
+                return false;
+
+            tags.push_back(clause.substr(pos + 1, close - pos - 1));
+            pos = close + 1;
+        }
+
+        const std::size_t expected_size = second_tag.empty() ? 1u : 2u;
+        if (tags.size() != expected_size)
             return false;
 
-        std::string expected;
-        expected.reserve(tag.size() + 2);
-        expected += "[";
-        expected += tag;
-        expected += "]";
+        const auto has_tag =
+            [&tags](std::string_view tag)
+            {
+                return std::find(tags.begin(), tags.end(), tag) != tags.end();
+            };
+        return has_tag(first_tag) && (second_tag.empty() || has_tag(second_tag));
+    }
 
-        return normalized_metrics_filter(metrics_filter_arguments().front()) == expected;
+    [[nodiscard]] inline bool metrics_filter_has_exact_phase_clause(
+        const std::vector<std::string>& clauses,
+        std::string_view phase_tag,
+        std::string_view precision_tag = {})
+    {
+        return std::any_of(
+            clauses.begin(),
+            clauses.end(),
+            [phase_tag, precision_tag](const std::string& clause)
+            {
+                if (precision_tag.empty())
+                    return metrics_filter_clause_matches_tags(clause, phase_tag);
+                return metrics_filter_clause_matches_tags(clause, precision_tag, phase_tag);
+            });
+    }
+
+    [[nodiscard]] inline bool metrics_filter_has_exact_precision_phase_clause(
+        const std::vector<std::string>& clauses,
+        std::string_view precision_tag = {})
+    {
+        return metrics_filter_has_exact_phase_clause(clauses, "precision", precision_tag) ||
+            metrics_filter_has_exact_phase_clause(clauses, "accuracy", precision_tag);
+    }
+
+    [[nodiscard]] inline bool metrics_filter_is_complete_report_filter_for(
+        std::string_view precision_tag = {})
+    {
+        const std::vector<std::string> clauses = metrics_normalized_filter_clauses();
+        if (clauses.size() != 3)
+            return false;
+
+        return metrics_filter_has_exact_precision_phase_clause(clauses, precision_tag) &&
+            metrics_filter_has_exact_phase_clause(clauses, "bench", precision_tag) &&
+            metrics_filter_has_exact_phase_clause(clauses, "domain", precision_tag);
+    }
+
+    [[nodiscard]] inline bool metrics_filter_is_complete_report_filter()
+    {
+        return metrics_filter_is_complete_report_filter_for() ||
+            metrics_filter_is_complete_report_filter_for("f128") ||
+            metrics_filter_is_complete_report_filter_for("f256");
+    }
+
+    [[nodiscard]] inline bool metrics_case_phase_enabled(std::string_view phase)
+    {
+        if (phase == "precision")
+        {
+            if (!metrics_filter_has_explicit_phase())
+                return true;
+            return metrics_filter_has_tag("precision") || metrics_filter_has_tag("accuracy");
+        }
+        if (phase == "bench")
+            return metrics_filter_has_tag("bench");
+        if (phase == "domain")
+        {
+            if (!metrics_filter_has_explicit_phase())
+                return true;
+            return metrics_filter_has_tag("domain");
+        }
+
+        return true;
+    }
+
+    [[nodiscard]] inline bool metrics_case_assertions_enabled()
+    {
+        return true;
     }
 
     [[nodiscard]] inline bool metrics_should_generate_report_for(precision_type precision)
     {
-        if (metrics_filter_arguments().empty())
+        if (metrics_filter_is_complete_report_filter_for())
             return true;
         return precision == precision_type::f128
-            ? metrics_filter_is_exact_tag("f128")
-            : metrics_filter_is_exact_tag("f256");
+            ? metrics_filter_is_complete_report_filter_for("f128")
+            : metrics_filter_is_complete_report_filter_for("f256");
     }
 
     struct metrics_case_report_entry
@@ -566,7 +665,8 @@ namespace bl::test::metrics
         if (!metrics_verbose_enabled())
             return;
 
-        if (metrics_filter_has_explicit_phase())
+        if (metrics_filter_has_explicit_phase() &&
+            !metrics_filter_is_complete_report_filter())
         {
             write_realtime_metrics_record(out, "selected metrics results", record);
             return;

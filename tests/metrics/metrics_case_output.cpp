@@ -14,15 +14,16 @@ namespace bl::test::metrics
                 return;
 
             out << "\n[metrics legend]\n"
-                << "bits accurate = estimated matching binary bits versus the MPFR oracle; exact sampled matches are shown as exact.\n"
-                << "Inf/NaN = whether the backend matches the std/libm oracle on a small Inf/NaN/signed-zero probe set.\n"
-                << "domain score = normal finite-domain magnitude quality: 50% mean sample score, 30% 1st-percentile sample score, 20% worst sample score.\n"
-                << "sample score = clamp(finite-domain bits / target bits, 0, 1); targets: f128=106 bits, f256=212 bits.\n"
-                << "VS preferred available reference = preferred backend picked from faster comparable results.\n"
-                << "cppdd = boost::multiprecision::cpp_double_double\n"
-                << "mpfr<64> = boost::multiprecision::mpfr_float_backend<64>\n"
-                << "dd_real = qdpp double-double type\n"
-                << "qd_real = qdpp quad-double type\n";
+                << "bits accurate       = estimated matching binary bits versus the MPFR oracle; exact sampled matches are shown as exact.\n"
+                << "Inf/NaN             = whether the backend matches the std/libm oracle on a small Inf/NaN/signed-zero probe set.\n"
+                << "domain score        = normal finite-domain magnitude quality: 50% mean sample score, 30% 1st-percentile sample score, 20% worst sample score.\n"
+                << "sample score        = clamp(finite-domain bits / target bits, 0, 1); targets: f128=106 bits, f256=212 bits.\n\n"
+
+                << "preferred reference = preferred backend picked from faster comparable results.\n"
+                << "cppdd               = boost::multiprecision::cpp_double_double\n"
+                << "mpfr<64>            = boost::multiprecision::mpfr_float_backend<64>\n"
+                << "dd_real             = qdpp double-double type\n"
+                << "qd_real             = qdpp quad-double type\n\n";
         }
     }
 

@@ -9,6 +9,7 @@
 
 #ifndef F256_COMPARISON_INCLUDED
 #define F256_COMPARISON_INCLUDED
+#include <compare>
 #include <type_traits>
 
 #include "fltx/f256_type.h"
@@ -64,6 +65,27 @@ namespace detail::_f256 // primitives and kernels
             return false;
 
         return ax0 == bx0 && ax1 == bx1 && ax2 == bx2 && ax3 == bx3;
+    }
+
+    BL_FORCE_INLINE constexpr bool compare_unordered(
+        double ax0, double ax1, double ax2, double ax3,
+        double bx0, double bx1, double bx2, double bx3) noexcept
+    {
+        return isnan(ax0) || isnan(ax1) || isnan(ax2) || isnan(ax3) ||
+               isnan(bx0) || isnan(bx1) || isnan(bx2) || isnan(bx3);
+    }
+
+    BL_FORCE_INLINE constexpr std::partial_ordering compare_three_way(
+        double ax0, double ax1, double ax2, double ax3,
+        double bx0, double bx1, double bx2, double bx3) noexcept
+    {
+        if (compare_unordered(ax0, ax1, ax2, ax3, bx0, bx1, bx2, bx3))
+            return std::partial_ordering::unordered;
+        if (compare_less(ax0, ax1, ax2, ax3, bx0, bx1, bx2, bx3))
+            return std::partial_ordering::less;
+        if (compare_less(bx0, bx1, bx2, bx3, ax0, ax1, ax2, ax3))
+            return std::partial_ordering::greater;
+        return std::partial_ordering::equivalent;
     }
 
     template<class T>
@@ -122,6 +144,11 @@ namespace detail::_f256 // primitives and kernels
 [[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f256_s& a, const f256_s& b)
 {
     return !(a == b);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr std::partial_ordering operator<=>(const f256_s& a, const f256_s& b) noexcept
+{
+    return detail::_f256::compare_three_way(a.x0, a.x1, a.x2, a.x3, b.x0, b.x1, b.x2, b.x3);
 }
 
 
@@ -213,6 +240,24 @@ template<detail::_f256::compare_scalar T>
 [[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(T a, const f256_s& b)
 {
     return !(a == b);
+}
+
+template<detail::_f256::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr std::partial_ordering operator<=>(const f256_s& a, T b) noexcept
+{
+    double bx0{}, bx1{}, bx2{}, bx3{};
+    detail::_f256::compare_terms(b, bx0, bx1, bx2, bx3);
+
+    return detail::_f256::compare_three_way(a.x0, a.x1, a.x2, a.x3, bx0, bx1, bx2, bx3);
+}
+
+template<detail::_f256::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr std::partial_ordering operator<=>(T a, const f256_s& b) noexcept
+{
+    double ax0{}, ax1{}, ax2{}, ax3{};
+    detail::_f256::compare_terms(a, ax0, ax1, ax2, ax3);
+
+    return detail::_f256::compare_three_way(ax0, ax1, ax2, ax3, b.x0, b.x1, b.x2, b.x3);
 }
 
 } // namespace bl
