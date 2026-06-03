@@ -15,13 +15,6 @@
 
 namespace
 {
-    static_assert(std::numeric_limits<bl::f128>::has_denorm == std::denorm_present);
-    static_assert(std::numeric_limits<bl::f128_s>::has_denorm == std::denorm_present);
-    static_assert(!std::numeric_limits<bl::f128>::has_denorm_loss);
-    static_assert(std::numeric_limits<bl::f256>::has_denorm == std::denorm_present);
-    static_assert(std::numeric_limits<bl::f256_s>::has_denorm == std::denorm_present);
-    static_assert(!std::numeric_limits<bl::f256>::has_denorm_loss);
-
     static_assert((bl::f128{ 1.0 } <=> bl::f128{ 2.0 }) == std::partial_ordering::less);
     static_assert((bl::f128{ 1.0 } <=> 2.0) == std::partial_ordering::less);
     static_assert((2.0 <=> bl::f128{ 1.0 }) == std::partial_ordering::greater);

@@ -212,9 +212,6 @@ struct std::numeric_limits<wrapper_type>                                        
     static constexpr bool has_infinity      = base::has_infinity;                                            \
     static constexpr bool has_quiet_NaN     = base::has_quiet_NaN;                                           \
     static constexpr bool has_signaling_NaN = base::has_signaling_NaN;                                       \
-    static constexpr std::float_denorm_style has_denorm = base::has_denorm;                                  \
-    static constexpr bool has_denorm_loss = base::has_denorm_loss;                                           \
-                                                                                                             \
     static constexpr int digits       = base::digits;                                                        \
     static constexpr int digits10     = base::digits10;                                                      \
     static constexpr int max_digits10 = base::max_digits10;                                                  \
