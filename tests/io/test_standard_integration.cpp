@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <type_traits>
 #include <unordered_map>
 
 #include <fltx.h>
@@ -53,6 +54,11 @@ namespace
     static_assert(std::chrono::treat_as_floating_point_v<bl::f128_s>);
     static_assert(std::chrono::treat_as_floating_point_v<bl::f256>);
     static_assert(std::chrono::treat_as_floating_point_v<bl::f256_s>);
+
+    static_assert(std::is_same_v<std::common_type_t<bl::f128, bl::f128, std::intmax_t>, bl::f128>);
+    static_assert(std::is_same_v<std::common_type_t<bl::f256, bl::f256, std::intmax_t>, bl::f256>);
+    static_assert(std::is_same_v<std::common_type_t<bl::f128_s, std::intmax_t>, bl::f128>);
+    static_assert(std::is_same_v<std::common_type_t<bl::f128, bl::f256>, bl::f256>);
 
 } // namespace
 
