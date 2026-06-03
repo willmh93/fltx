@@ -9,6 +9,7 @@
 
 #ifndef F128_COMPARISON_INCLUDED
 #define F128_COMPARISON_INCLUDED
+#include <compare>
 #include <type_traits>
 
 #include "fltx/f128_type.h"
@@ -37,6 +38,27 @@ namespace detail::_f128 // primitives and kernels
     BL_FORCE_INLINE constexpr bool compare_equal(double ahi, double alo, double bhi, double blo) noexcept
     {
         return ahi == bhi && alo == blo;
+    }
+
+    BL_FORCE_INLINE constexpr bool compare_unordered(double ahi, double alo, double bhi, double blo) noexcept
+    {
+        return detail::fp::isnan(ahi) || detail::fp::isnan(alo) ||
+               detail::fp::isnan(bhi) || detail::fp::isnan(blo);
+    }
+
+    BL_FORCE_INLINE constexpr std::partial_ordering compare_three_way(
+        double ahi,
+        double alo,
+        double bhi,
+        double blo) noexcept
+    {
+        if (compare_unordered(ahi, alo, bhi, blo))
+            return std::partial_ordering::unordered;
+        if (compare_less(ahi, alo, bhi, blo))
+            return std::partial_ordering::less;
+        if (compare_less(bhi, blo, ahi, alo))
+            return std::partial_ordering::greater;
+        return std::partial_ordering::equivalent;
     }
 
     template<class T>
@@ -92,6 +114,11 @@ namespace detail::_f128 // primitives and kernels
 [[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(const f128_s& a, const f128_s& b)
 {
     return !(a == b);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr std::partial_ordering operator<=>(const f128_s& a, const f128_s& b) noexcept
+{
+    return detail::_f128::compare_three_way(a.hi, a.lo, b.hi, b.lo);
 }
 
 
@@ -183,6 +210,24 @@ template<detail::_f128::compare_scalar T>
 [[nodiscard]] BL_FORCE_INLINE constexpr bool operator!=(T a, const f128_s& b)
 {
     return !(a == b);
+}
+
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr std::partial_ordering operator<=>(const f128_s& a, T b) noexcept
+{
+    double bhi{}, blo{};
+    detail::_f128::compare_terms(b, bhi, blo);
+
+    return detail::_f128::compare_three_way(a.hi, a.lo, bhi, blo);
+}
+
+template<detail::_f128::compare_scalar T>
+[[nodiscard]] BL_FORCE_INLINE constexpr std::partial_ordering operator<=>(T a, const f128_s& b) noexcept
+{
+    double ahi{}, alo{};
+    detail::_f128::compare_terms(a, ahi, alo);
+
+    return detail::_f128::compare_three_way(ahi, alo, b.hi, b.lo);
 }
 
 } // namespace bl

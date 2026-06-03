@@ -1,6 +1,43 @@
 cmake_minimum_required(VERSION 3.21)
 project(fltx VERSION 0.1.0 LANGUAGES CXX)
 
+if(CMAKE_GENERATOR MATCHES "Visual Studio")
+    file(WRITE "${CMAKE_BINARY_DIR}/.runsettings" [=[
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <MaxCpuCount>1</MaxCpuCount>
+  </RunConfiguration>
+  <Catch2Adapter disabled="false">
+    <FilenameFilter>^(accuracy_tests|hash_tests|io_tests|metrics_tests|parity_tests|precision_tests|random_tests)$</FilenameFilter>
+    <DiscoverCommandLine>--verbosity high --list-tests --reporter xml ~[bench]</DiscoverCommandLine>
+    <Environment>
+      <FLTX_TEST_SUPPRESS_MACRO_STATUS>1</FLTX_TEST_SUPPRESS_MACRO_STATUS>
+    </Environment>
+    <WorkingDirectoryRoot>Executable</WorkingDirectoryRoot>
+    <DiscoverTimeout>60000</DiscoverTimeout>
+    <ExecutionMode>Combine</ExecutionMode>
+    <Logging>normal</Logging>
+  </Catch2Adapter>
+</RunSettings>
+]=])
+
+    file(WRITE "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.gta.runsettings" [=[
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <GoogleTestAdapterSettings>
+    <SolutionSettings>
+      <Settings>
+        <TestDiscoveryRegex>a^</TestDiscoveryRegex>
+        <ParseSymbolInformation>false</ParseSymbolInformation>
+      </Settings>
+    </SolutionSettings>
+    <ProjectSettings/>
+  </GoogleTestAdapterSettings>
+</RunSettings>
+]=])
+endif()
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(cmake/fltxOptions.cmake)

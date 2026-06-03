@@ -19,6 +19,8 @@ find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
 include(CTest)
 
+option(FLTX_REGISTER_METRICS_CTESTS "Register fltx non-benchmark metrics cases with CTest." ON)
+
 if(FLTX_PRECISION_TESTS_CONSTEXPR_PARITY AND FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL)
     message(FATAL_ERROR "FLTX_PRECISION_TESTS_CONSTEXPR_PARITY and FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL are separate modes; enable only one.")
 endif()
@@ -30,6 +32,7 @@ file(GLOB FLTX_SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../include/
 
 file(GLOB FLTX_TESTS_PRECISION_SOURCE          CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/precision/*.cpp")
 file(GLOB FLTX_TESTS_IO_SOURCE                 CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/io/*.cpp")
+file(GLOB FLTX_TESTS_HASH_SOURCE               CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/hash/*.cpp")
 file(GLOB FLTX_TESTS_RANDOM_SOURCE             CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/random/*.cpp")
 file(GLOB FLTX_TESTS_METRICS_HEADERS           CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/metrics/*.h")
 file(GLOB FLTX_TESTS_METRICS_SOURCE            CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/metrics/*.cpp")
@@ -109,6 +112,32 @@ function (addFltxTestMacroStatus _TARGET)
     target_sources(${_TARGET} PRIVATE $<TARGET_OBJECTS:${_STATUS_TARGET}>)
 endfunction()
 
+function (registerFltxCatchTests _TARGET)
+    cmake_parse_arguments(FLTX_CATCH "" "" "TEST_SPEC" ${ARGN})
+
+    if(NOT BUILD_TESTING)
+        return()
+    endif()
+
+    if(EMSCRIPTEN)
+        add_test(NAME ${_TARGET} COMMAND ${_TARGET})
+        set_tests_properties(${_TARGET} PROPERTIES LABELS "fltx;${_TARGET}")
+        return()
+    endif()
+
+    set(_DISCOVERY_ARGS)
+    if(FLTX_CATCH_TEST_SPEC)
+        list(APPEND _DISCOVERY_ARGS TEST_SPEC ${FLTX_CATCH_TEST_SPEC})
+    endif()
+
+    catch_discover_tests(${_TARGET}
+        ${_DISCOVERY_ARGS}
+        TEST_PREFIX "${_TARGET}::"
+        PROPERTIES LABELS "fltx;${_TARGET}"
+        DISCOVERY_MODE POST_BUILD
+    )
+endfunction()
+
 set(FLTX_PARITY_TEST_DEFINITIONS
     FLTX_CONSTEXPR_PARITY
     FLTX_SIMULATE_CONSTEVAL_MODE
@@ -134,6 +163,12 @@ add_executable(io_tests
     ${FLTX_SOURCE}
 
     ${FLTX_TESTS_IO_SOURCE}
+)
+add_executable(hash_tests
+    ${FLTX_HEADERS}
+    ${FLTX_SOURCE}
+
+    ${FLTX_TESTS_HASH_SOURCE}
 )
 add_executable(random_tests
     ${FLTX_HEADERS}
@@ -215,10 +250,8 @@ elseif(FLTX_PRECISION_TESTS_SIMULATE_CONSTEVAL)
 endif()
 
 prepareTarget(precision_tests ${FLTX_PRECISION_TEST_LIBRARY})
-if(TARGET accuracy_tests)
-    prepareTarget(accuracy_tests  fltx::fltx)
-endif()
 prepareTarget(io_tests        fltx::fltx)
+prepareTarget(hash_tests      fltx::fltx)
 prepareTarget(random_tests    fltx::fltx)
 prepareTarget(metrics_tests   fltx::fltx)
 prepareTarget(parity_tests    fltx_parity_test_lib)
@@ -242,6 +275,7 @@ else()
 endif()
 
 addFltxTestMacroStatus(io_tests)
+addFltxTestMacroStatus(hash_tests)
 addFltxTestMacroStatus(random_tests)
 addFltxTestMacroStatus(metrics_tests)
 if(TARGET accuracy_tests)
@@ -249,6 +283,15 @@ if(TARGET accuracy_tests)
 endif()
 
 addFltxTestMacroStatus(parity_tests ${FLTX_PARITY_TEST_DEFINITIONS})
+
+registerFltxCatchTests(precision_tests)
+registerFltxCatchTests(io_tests)
+registerFltxCatchTests(hash_tests)
+registerFltxCatchTests(random_tests)
+registerFltxCatchTests(parity_tests)
+if(FLTX_REGISTER_METRICS_CTESTS)
+    registerFltxCatchTests(metrics_tests TEST_SPEC "~[bench]")
+endif()
 
 if(NOT TARGET f256_expression_compile_bench)
     add_subdirectory(expressions/f256)

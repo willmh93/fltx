@@ -1,5 +1,5 @@
 /**
- * fltx/io.h - Convenience include for FLTX limits, numbers, string, and stream support.
+ * fltx/io.h - Convenience include for fltx limits, numbers, string, and stream support.
  *
  * Copyright (c) 2026 William Hemsworth
  *
@@ -12,6 +12,7 @@
 
 #include "fltx/limits.h"
 #include "fltx/numbers.h"
+#include "fltx/charconv.h"
 #include "fltx/string.h"
 #include "fltx/stream.h"
 

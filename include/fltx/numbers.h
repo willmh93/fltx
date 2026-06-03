@@ -1,5 +1,5 @@
 /**
- * fltx/numbers.h - std::numbers specializations for FLTX types.
+ * fltx/numbers.h - std::numbers specializations for fltx types.
  *
  * Copyright (c) 2026 William Hemsworth
  *

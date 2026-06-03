@@ -5,8 +5,8 @@
 
 namespace bl::test::metrics::config
 {
-    constexpr double sample_count_scale = 2.0;// 20.0; // precision/domain sample scale (fixed, no function-local scaling)
-    constexpr double bench_iters_scale  = 0.5;  // benchmark iterations scale    (on top of function-local scaling)
+    constexpr double sample_count_scale = 5.0;// 20.0; // precision/domain sample scale (fixed, no function-local scaling)
+    constexpr double bench_iters_scale  = 2.0;  // benchmark iterations scale    (on top of function-local scaling)
 
     [[nodiscard]] constexpr std::size_t scale_count(std::size_t count, double scale) noexcept
     {
