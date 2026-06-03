@@ -1,14 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <charconv>
-#include <chrono>
 #include <compare>
 #include <limits>
 #include <numbers>
 #include <string>
 #include <string_view>
 #include <system_error>
-#include <type_traits>
 #include <unordered_map>
 
 #include <fltx.h>
@@ -49,18 +47,6 @@ namespace
     static_assert(bl::is_arithmetic_v<bl::f128>);
     static_assert(bl::is_integral_v<int>);
     static_assert(!bl::is_integral_v<bl::f128>);
-
-    static_assert(std::chrono::treat_as_floating_point_v<bl::f128>);
-    static_assert(std::chrono::treat_as_floating_point_v<bl::f128_s>);
-    static_assert(std::chrono::treat_as_floating_point_v<bl::f256>);
-    static_assert(std::chrono::treat_as_floating_point_v<bl::f256_s>);
-
-    static_assert(std::is_same_v<std::common_type_t<bl::f128, bl::f128, std::intmax_t>, bl::f128>);
-    static_assert(std::is_same_v<std::common_type_t<bl::f256, bl::f256, std::intmax_t>, bl::f256>);
-    static_assert(std::is_same_v<std::common_type_t<bl::f128_s, std::intmax_t>, bl::f128>);
-    static_assert(std::is_same_v<std::common_type_t<bl::f128, bl::f256>, bl::f256>);
-    static_assert(static_cast<bl::f128>(std::intmax_t{ 1000 }) == bl::f128{ 1000.0 });
-    static_assert(static_cast<bl::f256>(std::intmax_t{ 1000000 }) == bl::f256{ 1000000.0 });
 
 } // namespace
 
@@ -203,25 +189,6 @@ TEST_CASE("fltx hash specializations support unordered containers", "[fltx][hash
     const auto found = values.find(bl::f128{ 1.5 });
     REQUIRE(found != values.end());
     REQUIRE(found->second == 42);
-}
-
-TEST_CASE("fltx chrono floating duration reps are enabled", "[fltx][chrono]")
-{
-    using seconds = std::chrono::duration<bl::f128>;
-    using milliseconds = std::chrono::duration<bl::f128, std::milli>;
-
-    const seconds duration{ bl::f128{ 1.5 } };
-    const milliseconds converted{ duration };
-
-    REQUIRE(converted.count() == bl::f128{ 1500.0 });
-
-    using f256_seconds = std::chrono::duration<bl::f256>;
-    using f256_microseconds = std::chrono::duration<bl::f256, std::micro>;
-
-    const f256_seconds f256_duration{ bl::f256{ 0.25 } };
-    const f256_microseconds f256_converted{ f256_duration };
-
-    REQUIRE(f256_converted.count() == bl::f256{ 250000.0 });
 }
 
 #if FLTX_HAS_STD_FORMAT

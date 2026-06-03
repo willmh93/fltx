@@ -16,6 +16,5 @@
 #include "fltx/dispatch.h"
 #include "fltx/random.h"
 #include "fltx/hash.h"
-#include "fltx/chrono.h"
 
 #endif
