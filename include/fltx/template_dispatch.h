@@ -30,8 +30,8 @@
 ///
 ///  format:
 ///
-///    table_invoke<bool, float>(                                 // real template types first
-///        cd_dispatch_table(func, runtime_arg1, runtime_arg2),   // arg-1: dispatch table (or dispatch_table_targ if obj method)
+///    bl_table_invoke<bool, float>(                              // real template types first
+///        bl_dispatch_table(func, runtime_arg1, runtime_arg2),   // arg-1: dispatch table
 ///        FloatType::F32, MyEnum::FOO, (MyEnum)m_bar             // arg-N: mapped types (e.g. FloatType) THEN template non-types
 ///    );
 ///
@@ -51,20 +51,20 @@
 ///
 ///    void MyClass::foo()
 ///    {
-///        table_invoke<f32,f128>( dispatch_table(testFunc, true) );
-///        table_invoke(           dispatch_table(testFunc, true), FloatType::F32, FloatType::F128 );
-///        table_invoke<f32>(      dispatch_table(testFunc, true), FloatType::F128);
+///        bl_table_invoke<f32,f128>( bl_dispatch_table(testFunc, true) );
+///        bl_table_invoke(           bl_dispatch_table(testFunc, true), FloatType::F32, FloatType::F128 );
+///        bl_table_invoke<f32>(      bl_dispatch_table(testFunc, true), FloatType::F128);
 ///
 ///        // local method
-///        table_invoke<f32,f128>( dispatch_table(testMethod, true) );
-///        table_invoke(           dispatch_table(testMethod, true), FloatType::F32, FloatType::F128 );
-///        table_invoke<f32>(      dispatch_table(testMethod, true), FloatType::F128 );
+///        bl_table_invoke<f32,f128>( bl_dispatch_table(testMethod, true) );
+///        bl_table_invoke(           bl_dispatch_table(testMethod, true), FloatType::F32, FloatType::F128 );
+///        bl_table_invoke<f32>(      bl_dispatch_table(testMethod, true), FloatType::F128 );
 ///    }
 ///
 ///
 /// ────────── usage: targetted method ──────────
 ///
-///    table_invoke( dispatch_table_targ(obj, MyClass::testMethod, arg1, arg2), template_arg1, template_arg2 );
+///    bl_table_invoke( bl_dispatch_table_memfn(obj, MyClass::testMethod, arg1, arg2), template_arg1, template_arg2 );
 ///
 ///
 
@@ -473,36 +473,30 @@ namespace bl
         return template_dispatch_detail::table_invoke_parse<Fun, template_dispatch_detail::type_list<Ts...>, Args...>::invoke(func, args...);
     }
 
-    /// --- dummy functions to make below macros appear visible inside bl::namespace ---
-
-    // create dispatch table for given function + arguments
-    template<typename Fn, typename... Ts>
-    void dispatch_table(Fn&& f, Ts... args) {}
-
-    template<typename Obj, typename Fn, typename... Ts>
-    void dispatch_table_memfn(Obj& obj, Fn&& f, Ts... args) {}
-
-    template<typename Fn, typename... Ts>
-    void dispatch_table_callable(Fn&& f, Ts... args) {}
-
-    namespace detail {
-
-        template<class F>
-        constexpr std::remove_cvref_t<F> passthrough(F&& f) {
-            return std::forward<F>(f);
-        }
-
-    } // namespace detail
-
 } // namespace bl
+
+template<typename... Ts, typename F, typename... Args>
+BL_FORCE_INLINE decltype(auto) bl_table_invoke(F&& f, Args... args)
+{
+    return bl::table_invoke<Ts...>(std::forward<F>(f), args...);
+}
+
+template<class T>
+inline constexpr bl::type_tag<T> bl_type{};
+
+template<class E>
+BL_FORCE_INLINE constexpr bl::mapped_enum<E> bl_enum_type(E v)
+{
+    return bl::enum_type(v);
+}
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // macro helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-#define dispatch_table(func, ...)                                                     \
-    detail::passthrough([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                  \
+#define bl_dispatch_table(func, ...)                                                  \
+    ([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                             \
         return [&]<typename... Us>(std::tuple<Us...>*) {                              \
             if constexpr (sizeof...(Ts) == 0)                                         \
                 return func<Us::value...>(__VA_ARGS__);                               \
@@ -511,8 +505,8 @@ namespace bl
         }((std::tuple<decltype(Cs)...>*)nullptr);                                     \
     })
 
-#define dispatch_table_memfn(obj, method, ...)                                        \
-    detail::passthrough([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                  \
+#define bl_dispatch_table_memfn(obj, method, ...)                                     \
+    ([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                             \
         auto&& _obj = (obj);                                                          \
         return [&]<typename... Us>(std::tuple<Us...>*) {                              \
             if constexpr (sizeof...(Ts) == 0) {                                       \
@@ -523,8 +517,8 @@ namespace bl
         }((std::tuple<decltype(Cs)...>*)nullptr);                                     \
     })
 
-#define dispatch_table_callable(func, ...)                                            \
-    detail::passthrough([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                  \
+#define bl_dispatch_table_callable(func, ...)                                         \
+    ([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                             \
         return [&]<typename... Us>(std::tuple<Us...>*) {                              \
             if constexpr (sizeof...(Ts) == 0)                                         \
                 return func.template operator()<Us::value...>(__VA_ARGS__);           \

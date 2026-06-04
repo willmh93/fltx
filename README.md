@@ -262,9 +262,9 @@ int main()
 {
     FloatType precision = FloatType::F256;
 
-    table_invoke(
-        dispatch_table(run_kernel, 1920, 1080),
-        enum_type(precision)
+    bl_table_invoke(
+        bl_dispatch_table(run_kernel, 1920, 1080),
+        bl_enum_type(precision)
     );
 }
 ```
@@ -299,9 +299,9 @@ int main()
     Backend backend = Backend::Gpu;
     bool debug = true;
 
-    bl::table_invoke(
-        bl::dispatch_table(run),
-        bl::enum_type(backend),
+    bl_table_invoke(
+        bl_dispatch_table(run),
+        bl_enum_type(backend),
         debug
     );
 }
