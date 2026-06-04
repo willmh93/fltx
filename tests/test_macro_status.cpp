@@ -55,6 +55,24 @@ namespace
         return true;
     }
 
+    [[nodiscard]] bool env_requests_macro_status_suppression() noexcept
+    {
+        const char* value = std::getenv("FLTX_TEST_SUPPRESS_MACRO_STATUS");
+        if (value == nullptr || *value == '\0')
+            return false;
+
+        if (std::strcmp(value, "0") == 0 ||
+            std::strcmp(value, "false") == 0 ||
+            std::strcmp(value, "FALSE") == 0 ||
+            std::strcmp(value, "off") == 0 ||
+            std::strcmp(value, "OFF") == 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     struct fltx_test_macro_status_printer
     {
         fltx_test_macro_status_printer() noexcept
@@ -67,6 +85,9 @@ namespace
             simulated_consteval_enabled = env_requests_simulated_consteval(simulated_consteval_enabled);
             bl::_fltx_debug::set_simulated_consteval_path(simulated_consteval_enabled);
             #endif
+
+            if (env_requests_macro_status_suppression())
+                return;
 
             std::fputs("[fltx ", stderr);
             std::fputs(FLTX_TEST_NAME, stderr);

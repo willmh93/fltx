@@ -1,5 +1,5 @@
 /**
- * fltx/limits.h - std::numeric_limits specializations for FLTX types.
+ * fltx/limits.h - std::numeric_limits specializations for fltx types.
  *
  * Copyright (c) 2026 William Hemsworth
  *

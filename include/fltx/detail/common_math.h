@@ -1,5 +1,5 @@
 /**
- * fltx/detail/common_math.h - Shared constexpr scalar math helpers used by FLTX math headers.
+ * fltx/detail/common_math.h - Shared constexpr scalar math helpers used by fltx math headers.
  *
  * Copyright (c) 2026 William Hemsworth
  *

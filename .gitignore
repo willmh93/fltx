@@ -42,5 +42,7 @@
 
 # project
 .vs
+.idea
 build/
+TestResults/
 CMakeUserPresets.json
