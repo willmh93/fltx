@@ -51,9 +51,17 @@ namespace bl::detail
         }
     }
 
+    [[nodiscard]] BL_FORCE_INLINE constexpr std::size_t hash_seed(std::uint64_t seed64, std::uint32_t seed32) noexcept
+    {
+        if constexpr (sizeof(std::size_t) >= sizeof(std::uint64_t))
+            return static_cast<std::size_t>(seed64);
+        else
+            return static_cast<std::size_t>(seed32);
+    }
+
     [[nodiscard]] BL_FORCE_INLINE constexpr std::size_t hash_f128(const f128_s& value) noexcept
     {
-        std::size_t seed = 0x4ddc2d0f5b0d3911ull;
+        std::size_t seed = hash_seed(0x4ddc2d0f5b0d3911ull, 0x5b0d3911u);
         seed = hash_mix(seed, hash_double_bits(value.hi));
         seed = hash_mix(seed, hash_double_bits(value.lo));
         return seed;
@@ -61,7 +69,7 @@ namespace bl::detail
 
     [[nodiscard]] BL_FORCE_INLINE constexpr std::size_t hash_f256(const f256_s& value) noexcept
     {
-        std::size_t seed = 0x94d049bb133111ebull;
+        std::size_t seed = hash_seed(0x94d049bb133111ebull, 0x133111ebu);
         seed = hash_mix(seed, hash_double_bits(value.x0));
         seed = hash_mix(seed, hash_double_bits(value.x1));
         seed = hash_mix(seed, hash_double_bits(value.x2));

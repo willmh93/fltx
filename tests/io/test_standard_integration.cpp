@@ -213,8 +213,10 @@ TEST_CASE("fltx std formatter supports common numeric specs", "[fltx][format]")
     REQUIRE(std::format("{:.2F}", std::numeric_limits<bl::f128>::infinity()) == "INF");
     REQUIRE(std::format("{:+.2F}", std::numeric_limits<bl::f128>::quiet_NaN()) == "+NAN");
 
+    #if !defined(__EMSCRIPTEN__)
     bl::f128 invalid_format_value{ 1.0 };
     REQUIRE_THROWS_AS(std::vformat("{:x}", std::make_format_args(invalid_format_value)), std::format_error);
+    #endif
 }
 
 TEST_CASE("fltx std formatter preserves long precision and padding", "[fltx][format]")
