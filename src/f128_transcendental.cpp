@@ -57,12 +57,6 @@ namespace bl::detail::_f128_runtime
         right_out = right;
     }
 
-    // roots
-    BL_NO_INLINE f128_s cbrt(const f128_s& x)
-    {
-        return detail::_f128_impl::cbrt(x);
-    }
-
     // exponential and logarithmic
     BL_NO_INLINE f128_s exp(const f128_s& x)
     {

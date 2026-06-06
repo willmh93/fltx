@@ -62,7 +62,7 @@ namespace bl::detail::charconv
     }
 
     template<class Traits>
-    [[nodiscard]] BL_FORCE_INLINE constexpr std::to_chars_result emit_special(
+    [[nodiscard]] constexpr std::to_chars_result emit_special(
         char* first,
         char* last,
         const typename Traits::value_type& value) noexcept
@@ -83,7 +83,7 @@ namespace bl::detail::charconv
     }
 
     template<class Traits>
-    [[nodiscard]] BL_FORCE_INLINE constexpr std::to_chars_result to_chars_impl(
+    [[nodiscard]] constexpr std::to_chars_result to_chars_impl(
         char* first,
         char* last,
         const typename Traits::value_type& value,
@@ -110,7 +110,7 @@ namespace bl::detail::charconv
     }
 
     template<class Traits>
-    [[nodiscard]] BL_FORCE_INLINE std::from_chars_result from_chars_impl(
+    [[nodiscard]] std::from_chars_result from_chars_impl(
         const char* first,
         const char* last,
         typename Traits::value_type& value,
@@ -167,7 +167,7 @@ namespace bl::detail::charconv
 
 namespace bl
 {
-    [[nodiscard]] BL_FORCE_INLINE constexpr std::to_chars_result to_chars(
+    [[nodiscard]] constexpr std::to_chars_result to_chars(
         char* first,
         char* last,
         const f128_s& value) noexcept
@@ -180,7 +180,7 @@ namespace bl
             std::numeric_limits<f128_s>::max_digits10);
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr std::to_chars_result to_chars(
+    [[nodiscard]] constexpr std::to_chars_result to_chars(
         char* first,
         char* last,
         const f128_s& value,
@@ -197,7 +197,7 @@ namespace bl
             precision);
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr std::to_chars_result to_chars(
+    [[nodiscard]] constexpr std::to_chars_result to_chars(
         char* first,
         char* last,
         const f128_s& value,
@@ -212,7 +212,7 @@ namespace bl
             precision);
     }
 
-    [[nodiscard]] BL_FORCE_INLINE std::from_chars_result from_chars(
+    [[nodiscard]] std::from_chars_result from_chars(
         const char* first,
         const char* last,
         f128_s& value,
@@ -221,7 +221,7 @@ namespace bl
         return detail::charconv::from_chars_impl<detail::_f128::f128_io_traits>(first, last, value, fmt);
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr std::to_chars_result to_chars(
+    [[nodiscard]] constexpr std::to_chars_result to_chars(
         char* first,
         char* last,
         const f256_s& value) noexcept
@@ -234,7 +234,7 @@ namespace bl
             std::numeric_limits<f256_s>::max_digits10);
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr std::to_chars_result to_chars(
+    [[nodiscard]] constexpr std::to_chars_result to_chars(
         char* first,
         char* last,
         const f256_s& value,
@@ -251,7 +251,7 @@ namespace bl
             precision);
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr std::to_chars_result to_chars(
+    [[nodiscard]] constexpr std::to_chars_result to_chars(
         char* first,
         char* last,
         const f256_s& value,
@@ -266,7 +266,7 @@ namespace bl
             precision);
     }
 
-    [[nodiscard]] BL_FORCE_INLINE std::from_chars_result from_chars(
+    [[nodiscard]] std::from_chars_result from_chars(
         const char* first,
         const char* last,
         f256_s& value,

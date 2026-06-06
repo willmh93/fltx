@@ -78,6 +78,18 @@ namespace bl::test::metrics
             metrics_filter_has_tag("domain");
     }
 
+    [[nodiscard]] inline std::size_t metrics_filter_phase_count()
+    {
+        std::size_t count = 0;
+        if (metrics_filter_has_tag("precision") || metrics_filter_has_tag("accuracy"))
+            ++count;
+        if (metrics_filter_has_tag("bench"))
+            ++count;
+        if (metrics_filter_has_tag("domain"))
+            ++count;
+        return count;
+    }
+
     [[nodiscard]] inline std::vector<std::string> metrics_normalized_filter_clauses()
     {
         std::vector<std::string> clauses;
@@ -199,6 +211,32 @@ namespace bl::test::metrics
         return true;
     }
 
+    [[nodiscard]] inline bool metrics_filter_selects_phase(std::string_view phase)
+    {
+        if (phase == "precision")
+            return metrics_filter_has_tag("precision") || metrics_filter_has_tag("accuracy");
+        if (phase == "bench")
+            return metrics_filter_has_tag("bench");
+        if (phase == "domain")
+            return metrics_filter_has_tag("domain");
+        return false;
+    }
+
+    [[nodiscard]] inline metrics_console_column_visibility metrics_console_columns_for_current_filter()
+    {
+        if (!metrics_filter_has_explicit_phase() || metrics_filter_is_complete_report_filter())
+            return {};
+
+        const bool accuracy_selected = metrics_filter_selects_phase("precision");
+        const bool benchmark_selected = metrics_filter_selects_phase("bench");
+        return {
+            accuracy_selected,
+            metrics_filter_selects_phase("domain"),
+            benchmark_selected,
+            accuracy_selected
+        };
+    }
+
     [[nodiscard]] inline bool metrics_case_assertions_enabled()
     {
         return true;
@@ -206,11 +244,14 @@ namespace bl::test::metrics
 
     [[nodiscard]] inline bool metrics_should_generate_report_for(precision_type precision)
     {
-        if (metrics_filter_is_complete_report_filter_for())
+        const bool f128_selected = metrics_filter_has_tag("f128");
+        const bool f256_selected = metrics_filter_has_tag("f256");
+        if (!f128_selected && !f256_selected)
             return true;
+
         return precision == precision_type::f128
-            ? metrics_filter_is_complete_report_filter_for("f128")
-            : metrics_filter_is_complete_report_filter_for("f256");
+            ? f128_selected
+            : f256_selected;
     }
 
     struct metrics_case_report_entry
@@ -256,6 +297,8 @@ namespace bl::test::metrics
     struct metrics_complete_record_group
     {
         precision_type precision = precision_type::f128;
+        std::string domain;
+        domain_role role = domain_role::primary;
         std::string operation;
         const metrics_record* precision_record = nullptr;
         const metrics_record* benchmark_record = nullptr;
@@ -269,6 +312,8 @@ namespace bl::test::metrics
         for (metrics_complete_record_group& group : groups)
         {
             if (group.precision == record.suite.precision &&
+                group.domain == record.suite.domain.name &&
+                group.role == record.suite.domain.role &&
                 group.operation == record.suite.operation.name)
             {
                 return group;
@@ -277,6 +322,8 @@ namespace bl::test::metrics
 
         groups.push_back(metrics_complete_record_group{
             record.suite.precision,
+            std::string{ record.suite.domain.name },
+            record.suite.domain.role,
             std::string{ record.suite.operation.name }
         });
         return groups.back();
@@ -389,6 +436,99 @@ namespace bl::test::metrics
         return records;
     }
 
+    inline void add_missing_extra_competitors(
+        metrics_record& output,
+        const metrics_record& source)
+    {
+        for (const competitor_result& competitor : source.extra_competitors)
+        {
+            if (find_extra_competitor(output, competitor.name) == nullptr)
+                output.extra_competitors.push_back(competitor);
+        }
+    }
+
+    [[nodiscard]] inline std::vector<metrics_record> make_csv_report_records(
+        const std::vector<metrics_case_report_entry>& entries,
+        precision_type precision)
+    {
+        std::vector<metrics_complete_record_group> groups;
+        std::vector<metrics_record> records;
+        for (const metrics_case_report_entry& entry : entries)
+        {
+            if (entry.record.suite.precision != precision)
+                continue;
+
+            const std::string_view phase = metrics_case_phase(entry.title);
+            if (phase.empty())
+            {
+                records.push_back(entry.record);
+                continue;
+            }
+
+            metrics_complete_record_group& group =
+                find_or_add_complete_record_group(groups, entry.record);
+            if (phase == "precision")
+                group.precision_record = &entry.record;
+            else if (phase == "bench")
+                group.benchmark_record = &entry.record;
+            else if (phase == "domain")
+                group.domain_record = &entry.record;
+        }
+
+        records.reserve(records.size() + groups.size());
+        for (const metrics_complete_record_group& group : groups)
+        {
+            const metrics_record* base =
+                group.precision_record != nullptr ? group.precision_record :
+                group.domain_record != nullptr ? group.domain_record :
+                group.benchmark_record;
+            if (base == nullptr)
+                continue;
+
+            metrics_record record = *base;
+            if (group.precision_record != nullptr)
+                add_missing_extra_competitors(record, *group.precision_record);
+            if (group.domain_record != nullptr)
+                add_missing_extra_competitors(record, *group.domain_record);
+            if (group.benchmark_record != nullptr)
+                add_missing_extra_competitors(record, *group.benchmark_record);
+
+            if (group.domain_record != nullptr)
+            {
+                record.fltx_accuracy.domain_score =
+                    group.domain_record->fltx_accuracy.domain_score;
+                record.competitor_supported =
+                    record.competitor_supported &&
+                    group.domain_record->competitor_supported;
+                if (group.domain_record->competitor_supported)
+                {
+                    record.competitor_accuracy.domain_score =
+                        group.domain_record->competitor_accuracy.domain_score;
+                }
+                copy_extra_domain_scores(record, *group.domain_record);
+            }
+
+            if (group.benchmark_record != nullptr)
+            {
+                record.competitor_supported =
+                    record.competitor_supported &&
+                    group.benchmark_record->competitor_supported;
+                record.fltx_benchmark = group.benchmark_record->fltx_benchmark;
+                if (group.benchmark_record->competitor_supported)
+                    record.competitor_benchmark = group.benchmark_record->competitor_benchmark;
+                copy_extra_benchmarks(record, *group.benchmark_record);
+            }
+
+            records.push_back(std::move(record));
+        }
+
+        std::sort(
+            records.begin(),
+            records.end(),
+            metrics_csv_record_less);
+        return records;
+    }
+
     inline void write_automatic_metrics_report(
         std::ostream& out,
         const std::vector<metrics_case_report_entry>& entries,
@@ -397,7 +537,7 @@ namespace bl::test::metrics
         if (!metrics_should_generate_report_for(precision))
             return;
 
-        std::vector<metrics_record> records = make_complete_report_records(entries, precision);
+        std::vector<metrics_record> records = make_csv_report_records(entries, precision);
         if (records.empty())
             return;
 
@@ -446,15 +586,95 @@ namespace bl::test::metrics
         const std::vector<metrics_record>& f256_records)
     {
         if (!f128_records.empty())
-            write_console_report(out, "f128 primary metrics results", f128_records);
+            write_console_report(
+                out,
+                "f128 primary metrics results",
+                f128_records,
+                0.005,
+                0.01,
+                metrics_console_columns_for_current_filter());
         if (!f256_records.empty())
-            write_console_report(out, "f256 primary metrics results", f256_records);
+            write_console_report(
+                out,
+                "f256 primary metrics results",
+                f256_records,
+                0.005,
+                0.01,
+                metrics_console_columns_for_current_filter());
+    }
+
+    inline void write_metrics_case_report_group(
+        std::ostream& out,
+        std::string_view primary_title,
+        std::string_view stress_title,
+        const std::vector<metrics_record>& records)
+    {
+        std::vector<metrics_record> primary_records;
+        std::vector<metrics_record> stress_records;
+        primary_records.reserve(records.size());
+        stress_records.reserve(records.size());
+
+        for (const metrics_record& record : records)
+        {
+            if (record.suite.domain.role == domain_role::stress)
+                stress_records.push_back(record);
+            else
+                primary_records.push_back(record);
+        }
+
+        if (!primary_records.empty())
+            write_console_report(
+                out,
+                primary_title,
+                primary_records,
+                0.005,
+                0.01,
+                metrics_console_columns_for_current_filter());
+        if (!stress_records.empty())
+            write_console_report(
+                out,
+                stress_title,
+                stress_records,
+                0.005,
+                0.01,
+                metrics_console_columns_for_current_filter());
+    }
+
+    [[nodiscard]] inline std::string metrics_report_title_for(const metrics_record& record)
+    {
+        std::string title = std::string(to_string(record.suite.precision));
+        title += record.suite.domain.role == domain_role::stress
+            ? " mixed workload metrics results"
+            : " primary metrics results";
+        return title;
+    }
+
+    inline void write_partial_metrics_case_reports(
+        std::ostream& out,
+        const std::vector<metrics_case_report_entry>& entries)
+    {
+        if (metrics_should_generate_report_for(precision_type::f128))
+        {
+            write_metrics_case_report_group(
+                out,
+                "f128 primary metrics results",
+                "f128 mixed workload metrics results",
+                make_csv_report_records(entries, precision_type::f128));
+        }
+
+        if (metrics_should_generate_report_for(precision_type::f256))
+        {
+            write_metrics_case_report_group(
+                out,
+                "f256 primary metrics results",
+                "f256 mixed workload metrics results",
+                make_csv_report_records(entries, precision_type::f256));
+        }
     }
 
     [[nodiscard]] inline bool try_make_complete_report_record(
         const std::vector<metrics_case_report_entry>& entries,
-        precision_type precision,
-        std::string_view operation,
+        const metrics_record& source_record,
         metrics_record& output)
     {
         const metrics_record* precision_record = nullptr;
@@ -463,8 +683,10 @@ namespace bl::test::metrics
 
         for (const metrics_case_report_entry& entry : entries)
         {
-            if (entry.record.suite.precision != precision ||
-                entry.record.suite.operation.name != operation)
+            if (entry.record.suite.precision != source_record.suite.precision ||
+                entry.record.suite.domain.name != source_record.suite.domain.name ||
+                entry.record.suite.domain.role != source_record.suite.domain.role ||
+                entry.record.suite.operation.name != source_record.suite.operation.name)
             {
                 continue;
             }
@@ -506,13 +728,98 @@ namespace bl::test::metrics
         return true;
     }
 
-    [[nodiscard]] inline std::string metrics_realtime_complete_key(
-        precision_type precision,
-        std::string_view operation)
+    [[nodiscard]] inline bool try_make_selected_phase_report_record(
+        const std::vector<metrics_case_report_entry>& entries,
+        const metrics_record& source_record,
+        metrics_record& output)
     {
-        std::string key = std::string(to_string(precision));
+        const metrics_record* precision_record = nullptr;
+        const metrics_record* benchmark_record = nullptr;
+        const metrics_record* domain_record = nullptr;
+
+        for (const metrics_case_report_entry& entry : entries)
+        {
+            if (entry.record.suite.precision != source_record.suite.precision ||
+                entry.record.suite.domain.name != source_record.suite.domain.name ||
+                entry.record.suite.domain.role != source_record.suite.domain.role ||
+                entry.record.suite.operation.name != source_record.suite.operation.name)
+            {
+                continue;
+            }
+
+            const std::string_view phase = metrics_case_phase(entry.title);
+            if (phase == "precision")
+                precision_record = &entry.record;
+            else if (phase == "bench")
+                benchmark_record = &entry.record;
+            else if (phase == "domain")
+                domain_record = &entry.record;
+        }
+
+        const bool needs_precision = metrics_filter_selects_phase("precision");
+        const bool needs_benchmark = metrics_filter_selects_phase("bench");
+        const bool needs_domain = metrics_filter_selects_phase("domain");
+        if ((needs_precision && precision_record == nullptr) ||
+            (needs_benchmark && benchmark_record == nullptr) ||
+            (needs_domain && domain_record == nullptr))
+        {
+            return false;
+        }
+
+        const metrics_record* base =
+            precision_record != nullptr ? precision_record :
+            domain_record != nullptr ? domain_record :
+            benchmark_record;
+        if (base == nullptr)
+            return false;
+
+        output = *base;
+        if (precision_record != nullptr)
+            add_missing_extra_competitors(output, *precision_record);
+        if (domain_record != nullptr)
+            add_missing_extra_competitors(output, *domain_record);
+        if (benchmark_record != nullptr)
+            add_missing_extra_competitors(output, *benchmark_record);
+
+        if (domain_record != nullptr)
+        {
+            output.fltx_accuracy.domain_score =
+                domain_record->fltx_accuracy.domain_score;
+            output.competitor_supported =
+                output.competitor_supported &&
+                domain_record->competitor_supported;
+            if (domain_record->competitor_supported)
+            {
+                output.competitor_accuracy.domain_score =
+                    domain_record->competitor_accuracy.domain_score;
+            }
+            copy_extra_domain_scores(output, *domain_record);
+        }
+
+        if (benchmark_record != nullptr)
+        {
+            output.competitor_supported =
+                output.competitor_supported &&
+                benchmark_record->competitor_supported;
+            output.fltx_benchmark = benchmark_record->fltx_benchmark;
+            if (benchmark_record->competitor_supported)
+                output.competitor_benchmark = benchmark_record->competitor_benchmark;
+            copy_extra_benchmarks(output, *benchmark_record);
+        }
+
+        return true;
+    }
+
+    [[nodiscard]] inline std::string metrics_realtime_complete_key(
+        const metrics_record& record)
+    {
+        std::string key = std::string(to_string(record.suite.precision));
         key += "|";
-        key += operation;
+        key += record.suite.domain.name;
+        key += "|";
+        key += to_string(record.suite.domain.role);
+        key += "|";
+        key += record.suite.operation.name;
         return key;
     }
 
@@ -524,6 +831,7 @@ namespace bl::test::metrics
         std::vector<std::string> extra_competitors;
         std::string fltx_backend;
         int operation_column_width = 10;
+        metrics_console_column_visibility columns;
         std::unique_ptr<metrics_console_report_writer> writer;
     };
 
@@ -585,7 +893,11 @@ namespace bl::test::metrics
             table.primary_competitor,
             extra_views,
             table.fltx_backend,
-            table.operation_column_width);
+            table.operation_column_width,
+            0.005,
+            0.01,
+            metrics_console_report_summary{},
+            table.columns);
     }
 
     [[nodiscard]] inline metrics_realtime_table& find_or_add_realtime_metrics_table(
@@ -614,6 +926,7 @@ namespace bl::test::metrics
         table->operation_column_width = std::max(
             10,
             static_cast<int>(record.suite.operation.name.size()));
+        table->columns = metrics_console_columns_for_current_filter();
         table->extra_competitors.reserve(record.extra_competitors.size());
         for (const competitor_result& competitor : record.extra_competitors)
             table->extra_competitors.emplace_back(competitor.name);
@@ -640,20 +953,17 @@ namespace bl::test::metrics
     }
 
     [[nodiscard]] inline bool metrics_complete_record_already_printed(
-        precision_type precision,
-        std::string_view operation)
+        const metrics_record& record)
     {
-        const std::string key = metrics_realtime_complete_key(precision, operation);
+        const std::string key = metrics_realtime_complete_key(record);
         const auto& printed_keys = realtime_metrics_console().printed_complete_keys;
         return std::find(printed_keys.begin(), printed_keys.end(), key) != printed_keys.end();
     }
 
-    inline void mark_metrics_complete_record_printed(
-        precision_type precision,
-        std::string_view operation)
+    inline void mark_metrics_complete_record_printed(const metrics_record& record)
     {
         realtime_metrics_console().printed_complete_keys.push_back(
-            metrics_realtime_complete_key(precision, operation));
+            metrics_realtime_complete_key(record));
     }
 
     inline void write_realtime_metrics_case_report(
@@ -665,31 +975,46 @@ namespace bl::test::metrics
         if (!metrics_verbose_enabled())
             return;
 
-        if (metrics_filter_has_explicit_phase() &&
-            !metrics_filter_is_complete_report_filter())
-        {
-            write_realtime_metrics_record(out, "selected metrics results", record);
-            return;
-        }
-
-        if (metrics_case_phase(title).empty())
+        const std::string_view phase = metrics_case_phase(title);
+        if (phase.empty())
         {
             write_realtime_metrics_record(out, title, record);
             return;
         }
 
-        const precision_type precision = record.suite.precision;
-        const std::string_view operation = record.suite.operation.name;
-        if (metrics_complete_record_already_printed(precision, operation))
+        if (metrics_filter_has_explicit_phase() &&
+            !metrics_filter_is_complete_report_filter())
+        {
+            if (metrics_filter_phase_count() > 1)
+            {
+                if (metrics_complete_record_already_printed(record))
+                    return;
+
+                metrics_record selected_phase_record;
+                if (!try_make_selected_phase_report_record(entries, record, selected_phase_record))
+                    return;
+
+                write_realtime_metrics_record(
+                    out,
+                    metrics_report_title_for(selected_phase_record),
+                    selected_phase_record);
+                mark_metrics_complete_record_printed(record);
+                return;
+            }
+
+            write_realtime_metrics_record(out, "selected metrics results", record);
+            return;
+        }
+
+        if (metrics_complete_record_already_printed(record))
             return;
 
         metrics_record complete_record;
-        if (!try_make_complete_report_record(entries, precision, operation, complete_record))
+        if (!try_make_complete_report_record(entries, record, complete_record))
             return;
 
-        const std::string primary_title = std::string(to_string(precision)) + " primary metrics results";
-        write_realtime_metrics_record(out, primary_title, complete_record);
-        mark_metrics_complete_record_printed(precision, operation);
+        write_realtime_metrics_record(out, metrics_report_title_for(complete_record), complete_record);
+        mark_metrics_complete_record_printed(record);
     }
 
     inline void write_pending_metrics_case_reports(std::ostream& out)
@@ -749,28 +1074,23 @@ namespace bl::test::metrics
         }
         else if (metrics_verbose_enabled() && !realtime_metrics_console().printed_any)
         {
-            std::vector<std::string> operation_names;
-            operation_names.reserve(entries.size());
-
-            std::vector<metrics_record> records;
-            records.reserve(entries.size());
-            for (const metrics_case_report_entry& entry : entries)
+            if (mixed_phases)
+                write_partial_metrics_case_reports(out, entries);
+            else
             {
-                records.push_back(entry.record);
-                operation_names.emplace_back(records.back().suite.operation.name);
-                if (mixed_phases)
-                {
-                    const std::string_view phase = metrics_case_phase(entry.title);
-                    if (!phase.empty())
-                    {
-                        operation_names.back() += " ";
-                        operation_names.back() += phase;
-                    }
-                }
-                records.back().suite.operation.name = operation_names.back();
-            }
+                std::vector<metrics_record> records;
+                records.reserve(entries.size());
+                for (const metrics_case_report_entry& entry : entries)
+                    records.push_back(entry.record);
 
-            write_console_report(out, "selected metrics results", records);
+                write_console_report(
+                    out,
+                    "selected metrics results",
+                    records,
+                    0.005,
+                    0.01,
+                    metrics_console_columns_for_current_filter());
+            }
         }
 
         write_automatic_metrics_report(out, entries, precision_type::f128);
@@ -799,7 +1119,13 @@ namespace bl::test::metrics
         if (!metrics_verbose_enabled())
             return;
 
-        write_console_report(std::cout, title, records);
+        write_console_report(
+            std::cout,
+            title,
+            records,
+            0.005,
+            0.01,
+            metrics_console_columns_for_current_filter());
     }
 }
 

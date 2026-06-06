@@ -118,6 +118,12 @@ fltx_define_cache_bool(
 )
 
 fltx_define_cache_bool(
+    FLTX_MSVC_PARALLEL_COMPILE
+    "${FLTX_DEVELOPER_BUILD}"
+    "Enable MSVC /MP multi-processor compilation for eligible fltx targets."
+)
+
+fltx_define_cache_bool(
     FLTX_MSVC_DETAILED_TIMING_REPORTS
     OFF
     "Emit detailed MSVC frontend and codegen timing reports for fltx developer targets."
@@ -134,6 +140,7 @@ mark_as_advanced(
     FLTX_FMA_AVAILABLE
     FLTX_SIMD_FMA_TWO_PROD
     FLTX_MSVC_TIMING_REPORTS
+    FLTX_MSVC_PARALLEL_COMPILE
     FLTX_MSVC_DETAILED_TIMING_REPORTS
 )
 

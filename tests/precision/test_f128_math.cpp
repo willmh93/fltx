@@ -3335,6 +3335,33 @@ TEST_CASE("f128 decomposition and stepping functions behave correctly", "[fltx][
         REQUIRE(diff <= tolerance);
     }
     {
+        const std::array<std::pair<const char*, f128>, 6> cases = {{
+            { "positive just below one", f128{ f128_s{ 1.0, -0x1p-106 } } },
+            { "positive just above one", f128{ f128_s{ 1.0,  0x1p-106 } } },
+            { "negative just below one", f128{ f128_s{ -1.0,  0x1p-106 } } },
+            { "negative just above one", f128{ f128_s{ -1.0, -0x1p-106 } } },
+            { "large positive just below power of two", f128{ f128_s{ 0x1p500, -0x1p394 } } },
+            { "large positive just above power of two", f128{ f128_s{ 0x1p500,  0x1p394 } } }
+        }};
+
+        for (const auto& [label, input] : cases)
+        {
+            int exponent = 0;
+            const f128 mantissa = bl::frexp(input, &exponent);
+            const f128 rebuilt = bl::ldexp(mantissa, exponent);
+            const mpfr_ref diff = abs_ref(to_ref_exact(rebuilt) - to_ref_exact(input));
+            CAPTURE(label);
+            CAPTURE(exponent);
+            CAPTURE(to_text(input));
+            CAPTURE(to_text(mantissa));
+            CAPTURE(to_text(rebuilt));
+            REQUIRE(abs_ref(to_ref_exact(mantissa)) >= mpfr_ref{ 0.5 });
+            REQUIRE(abs_ref(to_ref_exact(mantissa)) < mpfr_ref{ 1.0 });
+            REQUIRE(diff == 0);
+            require_canonical_value("frexp.boundary", mantissa);
+        }
+    }
+    {
         const f128 input = to_f128("-123.456");
         f128 ip{};
         const f128 frac         = bl::modf(input, &ip);

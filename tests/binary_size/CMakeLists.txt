@@ -10,6 +10,9 @@ endif()
 if(NOT COMMAND fltx_apply_simd_options)
     include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/fltxSimd.cmake")
 endif()
+if(NOT COMMAND fltx_enable_msvc_parallel_compile)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/fltxMsvcParallel.cmake")
+endif()
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
 
@@ -49,6 +52,7 @@ function(fltx_binary_size_prepare_target _TARGET _FAMILY _GROUP _LABEL)
     fltx_apply_fast_math_options(${_TARGET})
     fltx_apply_simd_options(${_TARGET})
     fltx_binary_size_apply_size_link_options(${_TARGET})
+    fltx_enable_msvc_parallel_compile(${_TARGET})
 
     set_target_properties(${_TARGET} PROPERTIES FOLDER "fltx/binary-size/${_FAMILY}")
 

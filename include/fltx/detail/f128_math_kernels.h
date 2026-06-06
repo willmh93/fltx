@@ -498,6 +498,14 @@ namespace detail::_f128 // primitives and kernels
         return sum;
     }
 
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s fmod_from_expansion_direct(const double* terms, int count) noexcept
+    {
+        f128_s sum{};
+        for (int i = 0; i < count; ++i)
+            sum = fmod_add_scalar_precise(sum, terms[i]);
+        return sum;
+    }
+
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s fmod_sub_mul_scalar_compact(
         const f128_s& r,
         const f128_s& b,
@@ -548,6 +556,10 @@ namespace detail::_f128 // primitives and kernels
         count = fmod_append_expansion_term(terms, count, r.lo);
         count = fmod_append_expansion_term(terms, count, t);
         count = fmod_append_expansion_term(terms, count, s);
+
+        if (q < 0x1p47)
+            return fmod_from_expansion_direct(terms, count);
+
         return fmod_from_expansion_fast(terms, count);
     }
 
@@ -556,9 +568,18 @@ namespace detail::_f128 // primitives and kernels
         for (int i = 0; i < 4; ++i)
         {
             if (r < 0.0)
+            {
                 r = add_inline(r, modulus);
+                continue;
+            }
+
             if (r >= modulus)
+            {
                 r = sub_inline(r, modulus);
+                continue;
+            }
+
+            return true;
         }
 
         return r >= 0.0 && r < modulus;
@@ -577,12 +598,17 @@ namespace detail::_f128 // primitives and kernels
                 if (quotient == 0u)
                     return false;
                 --quotient;
+                continue;
             }
+
             if (r >= modulus)
             {
                 r = sub_inline(r, modulus);
                 ++quotient;
+                continue;
             }
+
+            return true;
         }
 
         return r >= 0.0 && r < modulus;
@@ -755,7 +781,7 @@ namespace detail::_f128 // primitives and kernels
         return out;
     }
 
-    BL_MSVC_NOINLINE constexpr f128_s fmod_reduced_or_exact(const f128_s& x, const f128_s& y)
+    BL_FORCE_INLINE constexpr f128_s fmod_reduced_or_exact(const f128_s& x, const f128_s& y)
     {
         const f128_s ay = mag(y);
         f128_s r = mag(x);
@@ -1058,12 +1084,14 @@ namespace detail::_f128 // primitives and kernels
 
     [[nodiscard]] BL_FORCE_INLINE constexpr double sqrt_tail_square(double c_lo, double correction) noexcept
     {
-        if (bl::use_constexpr_math())
+        #ifdef FMA_AVAILABLE
+        if (!bl::use_constexpr_math())
         {
-            return c_lo * c_lo + correction;
+            return std::fma(c_lo, c_lo, correction);
         }
+        #endif
 
-        return std::fma(c_lo, c_lo, correction);
+        return c_lo * c_lo + correction;
     }
 
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s sqrt_compensated(const f128_s& scaled_a, double c) noexcept

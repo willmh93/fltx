@@ -532,7 +532,7 @@ namespace detail::_f256 // primitives and kernels
             expansion[count++] = value;
     }
 
-    BL_MSVC_NOINLINE constexpr f256_s fmod_sub_mul_scalar_expansion(const f256_s& r, const f256_s& b, double q) noexcept
+    BL_FORCE_INLINE constexpr f256_s fmod_sub_mul_scalar_expansion(const f256_s& r, const f256_s& b, double q) noexcept
     {
         double r_exp[4]{};
         int r_count = 0;

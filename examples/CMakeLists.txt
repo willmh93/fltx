@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.21)
 project(fltx LANGUAGES CXX)
 
+if(NOT COMMAND fltx_enable_msvc_parallel_compile)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxMsvcParallel.cmake")
+endif()
+
 function(fltx_add_example example_name)
     add_executable(${example_name} ${ARGN})
     target_link_libraries(${example_name} PRIVATE fltx::fltx)
@@ -13,6 +17,7 @@ function(fltx_add_example example_name)
     )
 
     target_compile_features(${example_name} PRIVATE cxx_std_23)
+    fltx_enable_msvc_parallel_compile(${example_name})
     set_target_properties(${example_name} PROPERTIES FOLDER "fltx/examples")
 
     if(MSVC)

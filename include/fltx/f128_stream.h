@@ -15,17 +15,17 @@
 
 namespace bl
 {
-    BL_FORCE_INLINE std::ostream& operator<<(std::ostream& os, const f128_s& x)
+    inline std::ostream& operator<<(std::ostream& os, const f128_s& x)
     {
         return detail::write_to_stream<detail::_f128::f128_io_traits>(os, x);
     }
 
-    BL_FORCE_INLINE std::istream& operator>>(std::istream& is, f128_s& x)
+    inline std::istream& operator>>(std::istream& is, f128_s& x)
     {
         return detail::read_from_stream(is, x, parse_flt128);
     }
 
-    BL_FORCE_INLINE std::istream& operator>>(std::istream& is, f128& x)
+    inline std::istream& operator>>(std::istream& is, f128& x)
     {
         return detail::read_from_stream(is, static_cast<f128_s&>(x), parse_flt128);
     }

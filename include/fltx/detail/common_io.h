@@ -509,7 +509,7 @@ constexpr inline void format_to_string(String& out, const typename Traits::value
 }
 
 template<class Traits, typename String>
-BL_FORCE_INLINE constexpr void to_string_into(String& out, const typename Traits::value_type& x, int precision,
+constexpr void to_string_into(String& out, const typename Traits::value_type& x, int precision,
     bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     const format_kind kind = (fixed && !scientific) ? format_kind::fixed_frac : (scientific && !fixed) ? format_kind::scientific_frac : format_kind::general;
@@ -517,19 +517,19 @@ BL_FORCE_INLINE constexpr void to_string_into(String& out, const typename Traits
 }
 
 template<class Traits, typename String>
-BL_FORCE_INLINE constexpr void emit_scientific(String& out, const typename Traits::value_type& x, int prec, bool strip_trailing_zeros)
+constexpr void emit_scientific(String& out, const typename Traits::value_type& x, int prec, bool strip_trailing_zeros)
 {
     format_to_string<Traits>(out, x, prec, format_kind::scientific_frac, strip_trailing_zeros);
 }
 
 template<class Traits, typename String>
-BL_FORCE_INLINE constexpr void emit_fixed_dec(String& out, const typename Traits::value_type& x, int prec, bool strip_trailing_zeros)
+constexpr void emit_fixed_dec(String& out, const typename Traits::value_type& x, int prec, bool strip_trailing_zeros)
 {
     format_to_string<Traits>(out, x, prec, format_kind::fixed_frac, strip_trailing_zeros);
 }
 
 template<class Traits, typename String>
-BL_FORCE_INLINE constexpr void emit_scientific_sig(String& out, const typename Traits::value_type& x, int sig_digits, bool strip_trailing_zeros)
+constexpr void emit_scientific_sig(String& out, const typename Traits::value_type& x, int sig_digits, bool strip_trailing_zeros)
 {
     format_to_string<Traits>(out, x, sig_digits, format_kind::scientific_sig, strip_trailing_zeros);
 }
