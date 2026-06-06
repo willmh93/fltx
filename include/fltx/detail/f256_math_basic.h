@@ -724,7 +724,7 @@ namespace detail::_f256_impl
     }
     else
     {
-        fast = fmod_fast_small_quotient_abs_with_quotient(ax, ay, r_abs, quotient_abs);
+        fast = fmod_fast_medium_quotient_abs_with_quotient(ax, ay, r_abs, quotient_abs, false);
     }
 
     if (fast)
