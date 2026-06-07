@@ -144,6 +144,7 @@ namespace detail::_f128_impl
             #else
             double rounded = std::round(a.hi);
             #endif
+
             const double delta = rounded - a.hi;
 
             #if !BL_FLTX_HAS_SSE2 && !defined(__EMSCRIPTEN__)
@@ -169,7 +170,7 @@ namespace detail::_f128_impl
             return f128_s{ rounded, 0.0 };
         }
 
-        return detail::_f128::nearbyint_generic(a);
+        return detail::_f128_runtime::nearbyint_slow(a);
     }
 }
 

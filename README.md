@@ -17,20 +17,28 @@
 [![IO macOS](https://github.com/willmh93/fltx/actions/workflows/io-tests-mac.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests-mac.yml)
 [![IO wasm32](https://github.com/willmh93/fltx/actions/workflows/io-tests-wasm32.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests-wasm32.yml)
 
-`fltx` is for code that needs more precision than `double`, without giving up fixed-size scalar types, predictable performance, `constexpr` support, or familiar C++ ergonomics.
+`fltx` is for projects that needs more precision than `double`, without giving up fixed-size scalar types, predictable performance, `constexpr` support, or familiar C++ ergonomics.
 
 ## Highlights
 
+Features:
+
 - Fixed-size extended-precision scalar types: [`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h)
-- Portable `constexpr` arithmetic, comparisons, conversions, parsing, formatting, and [`<cmath>`](https://en.cppreference.com/w/cpp/header/cmath) style API
-- Accuracy and performance validated against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at equivalent precision
-- [`bl::f256`](include/fltx/f256.h) has an expression node system which recognises and fuses common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations. This reduces intermediate rounding and temporary value materialisation, allowing those shapes to run through specialised fused evaluation paths.
-- Selected [`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h) kernels use platform SIMD by default where supported: x86/x64 SSE2 with FMA when available, AArch64 NEON, and WebAssembly `wasm128` SIMD via Emscripten
-- Compatible with fast-math builds; compiled runtime sources default to fast-math for speed, while `FLTX_CONSTEXPR_PARITY` remains available when bitwise-identical runtime and `constexpr` results matter
+- Full `constexpr` support for arithmetic, comparisons, conversions, parsing, formatting, and all math functions
+- A familiar standard-library shaped API; in most cases simply replace `std::` with `bl::`
 - No required runtime dependencies
-- Standard-library integration for streams, `std::numeric_limits`, `std::numbers`, `std::hash`, optional `std::format`, and common stream manipulators
-- Standard-shaped random engines and distributions, including deterministic `constexpr` generation for supported paths
-- Runtime code favors native performance by default
+- Standard-library integration for IO streams / manipulators, `std::numeric_limits`, `std::numbers`, `std::hash`, `std::format`
+
+Accuracy:
+
+- Accuracy validated against [boost::multiprecision::mpfr_float_backend](https://www.boost.org/doc/libs/latest/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html)
+- Enable `FLTX_CONSTEXPR_PARITY` for bitwise-identical runtime and `constexpr` results (reduces performance)
+
+Performance:
+
+- Compatible with fast-math builds
+- [`bl::f256`](include/fltx/f256.h) has an expression node system which recognises and fuses common arithmetic shapes, reducing intermediate rounding and temporary value materialisation, allowing those shapes to run through specialised fused evaluation paths.
+- Hardware acceleration where supported, including x86/x64 SSE2 with FMA when available, AArch64 NEON, and WebAssembly `wasm128` SIMD via Emscripten
 - Suitable for lightweight native builds, WebAssembly / Emscripten
 - Optional runtime-to-compile-time dispatch helper for template-specialized kernels
 
@@ -50,23 +58,7 @@ sizeof(bl::f128) == 16
 sizeof(bl::f256) == 32
 ```
 
-[`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h) are not IEEE [binary128](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#IEEE_754_quadruple-precision_binary_floating-point_format:_binary128) / [binary256](https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format#IEEE_754_octuple-precision_binary_floating-point_format:_binary256) types, and they are not arbitrary-precision numbers. They provide more precision than native `double` while preserving a fixed-width, scalar-friendly floating-point model. Values are still approximate, so conditioning, cancellation, argument reduction, and algorithm design still matter.
-
-## f256 Expression Fusion
-
-[`bl::f256`](include/fltx/f256.h) has an expression node system which recognises common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations.
-
-For example:
-
-```cpp
-f256 r = a * b + c * d + e;
-```
-
-is kept as a small compile-time expression and lowered to the existing fused product-sum body. This avoids materialising and normalising each intermediate quad-double result before the final value is needed.
-
-The matcher also accepts selected equivalent spellings, such as reordered product/value terms and scaled linear forms. That gives common kernels like affine transforms, small matrix-vector operations, polynomial-style updates, and recurrence relations a faster path without requiring users to call specialised helpers or the implementation to maintain a full symbolic optimiser.
-
-The fused bodies remain explicit and bounded, which keeps compile-time and code-size costs under control.
+[`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h) are not IEEE [binary128](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#IEEE_754_quadruple-precision_binary_floating-point_format:_binary128) / [binary256](https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format#IEEE_754_octuple-precision_binary_floating-point_format:_binary256) types, and they are not arbitrary-precision numbers.
 
 ## Quick Start
 
@@ -90,7 +82,7 @@ int main()
         << "a = " << a << "\n"
         << "b = " << b << "\n"
         << "c = " << c << "\n"
-        << "d = " << d << "\n\n";
+        << "d = " << d << "\n";
 }
 ```
 
@@ -103,7 +95,7 @@ c = 1
 d = 0.84147098480789650665250232163029899962256306079837106567275171
 ```
 
-More examples are available in [examples/](examples/).
+More examples are available in [examples/](examples/)
 
 ## Use Cases
 
@@ -141,6 +133,22 @@ Individual headers are also available when you want a smaller include surface:
 | [`fltx/format.h`](include/fltx/format.h) | Optional `std::formatter` specializations when `<format>` is available |
 | [`fltx/template_dispatch.h`](include/fltx/template_dispatch.h) | Standalone runtime-to-compile-time dispatch-table utility |
 | [`fltx/dispatch.h`](include/fltx/dispatch.h) | Dispatch helpers for mapping `FloatType` values to `f32`, `f64`, `f128`, or `f256` |
+
+## f256 Expression Fusion
+
+[`bl::f256`](include/fltx/f256.h) has an expression node system which recognises common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations.
+
+For example:
+
+```cpp
+f256 r = a * b + c * d + e;
+```
+
+is kept as a small compile-time expression and lowered to the existing fused product-sum body. This avoids materialising and normalising each intermediate quad-double result before the final value is needed.
+
+The matcher also accepts selected equivalent spellings, such as reordered product/value terms and scaled linear forms. That gives common kernels like affine transforms, small matrix-vector operations, polynomial-style updates, and recurrence relations a faster path without requiring users to call specialised helpers or the implementation to maintain a full symbolic optimiser.
+
+The fused bodies remain explicit and bounded, which keeps compile-time and code-size costs under control.
 
 ## Numeric Types
 

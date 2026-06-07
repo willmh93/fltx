@@ -29,6 +29,7 @@ namespace detail::_f128_runtime
     BL_NO_INLINE f128_s trunc(const f128_s& a);
     BL_NO_INLINE f128_s round(const f128_s& a);
     BL_NO_INLINE f128_s round_to_decimals(f128_s v, int prec);
+    BL_NO_INLINE f128_s nearbyint_slow(const f128_s& a);
     BL_NO_INLINE f128_s nearbyint(const f128_s& a);
     BL_NO_INLINE f128_s rint(const f128_s& x);
     BL_NO_INLINE long lround(const f128_s& x);

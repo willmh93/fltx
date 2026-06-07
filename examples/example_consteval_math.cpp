@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 
 #include <fltx.h>
 
@@ -393,6 +394,8 @@ int main()
     constexpr f256 result_f256 = f256_test();
 
     std::cout
+        << std::fixed
+        << std::setprecision(std::numeric_limits<f256>::digits10)
         << result_f32 << "\n"
         << result_f64 << "\n"
         << result_f128 << "\n"

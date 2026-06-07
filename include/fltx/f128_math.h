@@ -77,12 +77,18 @@ namespace bl {
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 nearbyint(const f128_s& a)
 {
-    return detail::_f128_impl::nearbyint(a);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::nearbyint(a),
+        detail::_f128_impl::nearbyint_runtime(a)
+    );
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 rint(const f128_s& x)
 {
-    return detail::_f128_impl::rint(x);
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::rint(x),
+        detail::_f128_impl::nearbyint_runtime(x)
+    );
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr long lround(const f128_s& x)
