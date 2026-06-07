@@ -356,15 +356,16 @@ namespace detail::_f256_impl
 {
     using namespace detail::_f256;
 
-    if (a.x0 <= 0.0)
+    if (detail::fp::iszero_or_negative_or_inf_or_nan(a.x0)) [[unlikely]]
     {
         if (iszero(a))
             return a;
+
+        if (detail::fp::isposinf(a.x0))
+            return a;
+
         return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
     }
-
-    if (isinf(a))
-        return a;
 
     return sqrt_impl_fast(a);
 }
@@ -373,27 +374,28 @@ namespace detail::_f256_impl
 {
     using namespace detail::_f256;
 
-    if (a.x0 <= 0.0)
+    if (detail::fp::iszero_or_negative_or_inf_or_nan(a.x0)) [[unlikely]]
     {
         if (iszero(a))
             return a;
+
+        if (detail::fp::isposinf(a.x0))
+            return a;
+
         return f256_s{ std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0 };
     }
-
-    if (isinf(a))
-        return a;
 
     return sqrt_impl(a);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::hypot(const f256_s& x, const f256_s& y)
 {
-    if (isinf(x) || isinf(y))
-        return std::numeric_limits<f256_s>::infinity();
-    if (isnan(x))
-        return x;
-    if (isnan(y))
-        return y;
+    if (detail::fp::isinf_or_nan(x.x0, y.x0)) [[unlikely]]
+    {
+        if (detail::fp::isinf(x.x0, y.x0))
+            return std::numeric_limits<f256_s>::infinity();
+        return detail::fp::isnan(x.x0) ? x : y;
+    }
 
     f256_s ax = detail::_f256::mag(x);
     f256_s ay = detail::_f256::mag(y);
@@ -722,7 +724,7 @@ namespace detail::_f256_impl
     }
     else
     {
-        fast = fmod_fast_small_quotient_abs_with_quotient(ax, ay, r_abs, quotient_abs);
+        fast = fmod_fast_medium_quotient_abs_with_quotient(ax, ay, r_abs, quotient_abs, false);
     }
 
     if (fast)

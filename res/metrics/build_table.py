@@ -16,7 +16,7 @@ from typing import Iterable
 METRICS_FILE_RE = re.compile(r"(?P<compiler>.+)_(?P<type>f128|f256)\.csv$", re.IGNORECASE)
 
 TABLE_TITLE = "fltx metrics"
-TABLE_SUBTITLE = "Nanoseconds per iteration for bl::f128/bl::f256 metrics, colored by speed ratio vs the preferred available reference."
+TABLE_SUBTITLE = "Nanoseconds per iteration for bl::f128/bl::f256 metrics, colored by speed ratio vs the stronger available reference."
 
 FP_TYPE_ORDER = {"f128": 0, "f256": 1}
 FP_TYPE_LABELS = {"f128": "bl::f128", "f256": "bl::f256"}
@@ -74,17 +74,18 @@ FUNCTION_COLUMN_MAX_WIDTH = 720
 FUNCTION_COLUMN_CHAR_WIDTH = 8
 FUNCTION_COLUMN_PADDING = 34
 FUNCTION_COLUMN_WIDTH_SCALE = 0.75
-SLOW_RATIO_COLOR = "#FF0000"
-STRONG_ORANGE_RATIO_COLOR = "#F97316"
-LIGHT_ORANGE_RATIO_COLOR = "#FDBA74"
-EVEN_RATIO_COLOR = "#BFEF8A"
-FAST_RATIO_COLOR = "#00B050"
-VERY_FAST_RATIO_COLOR = "#009D4A"
-SLOW_RATIO_FLOOR = 0.25
-STRONG_ORANGE_RATIO = 0.75
-LIGHT_ORANGE_RATIO = 0.90
-FAST_RATIO = 10.0
-VERY_FAST_RATIO = 20.0
+RATIO_COLOR_STOPS: tuple[tuple[float, str], ...] = (
+    (0.10, "#FF0000"),
+    (0.45, "#FA5B11"),
+    (0.55, "#F19A51"),
+    (0.97, "#D7DA81"),
+    (1.01, "#90EA86"),
+    (2.00, "#74D673"),
+    (3.00, "#58CD6B"),
+    (4.00, "#40C564"),
+    (8.00, "#0DB454"),
+    (20.00, "#009D4A"),
+)
 NATIVE_ARITHMETIC_GROUP = "Arithmetic"
 NATIVE_ARITHMETIC_LABELS = {"add", "subtract", "multiply", "divide"}
 MIXED_WORKLOADS_GROUP = "Mixed Workloads"
@@ -106,6 +107,7 @@ class BenchmarkCell:
     ns_per_iter: float | None = None
     reference_ns_per_iter: float | None = None
     ratio: float | None = None
+    reference_name: str | None = None
 
 
 @dataclass
@@ -210,6 +212,15 @@ def parse_float(value: str | None) -> float | None:
         return None
 
 
+def parse_reference_name(value: str | None) -> str | None:
+    if value is None:
+        return None
+    text = value.strip()
+    if not text or text == "-":
+        return None
+    return text
+
+
 def read_csv(path: Path, fp_type: str) -> list[tuple[str, str, BenchmarkCell]]:
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
@@ -222,6 +233,7 @@ def read_csv(path: Path, fp_type: str) -> list[tuple[str, str, BenchmarkCell]]:
         operation_column = find_column(reader.fieldnames, "operation")
         candidate_column = find_column(reader.fieldnames, "fltx_ns_iter", f"{fp_type}_ns_iter")
         ratio_column = find_column(reader.fieldnames, "preferred_speed_ratio")
+        reference_column = find_column(reader.fieldnames, "preferred_reference")
 
         if operation_column is None or candidate_column is None:
             return []
@@ -241,12 +253,15 @@ def read_csv(path: Path, fp_type: str) -> list[tuple[str, str, BenchmarkCell]]:
             if not label:
                 continue
             candidate_ns = parse_float(row.get(candidate_column))
+            if candidate_ns is None:
+                continue
             ratio = parse_float(row.get(ratio_column)) if ratio_column else None
+            reference_name = parse_reference_name(row.get(reference_column)) if reference_column else None
             reference_ns = candidate_ns * ratio if candidate_ns is not None and ratio is not None else None
             out.append((
                 group,
                 label,
-                BenchmarkCell(candidate_ns, reference_ns, ratio),
+                BenchmarkCell(candidate_ns, reference_ns, ratio, reference_name),
             ))
         return out
 
@@ -287,7 +302,13 @@ def average_cells(cells: list[BenchmarkCell]) -> BenchmarkCell:
     ratio = average_or_none([cell.ratio for cell in cells if cell.ratio is not None])
     if ratio is None and ns_per_iter is not None and ns_per_iter > 0.0 and reference_ns_per_iter is not None:
         ratio = reference_ns_per_iter / ns_per_iter
-    return BenchmarkCell(ns_per_iter, reference_ns_per_iter, ratio)
+
+    reference_names = [cell.reference_name for cell in cells if cell.reference_name is not None]
+    reference_name = None
+    if reference_names:
+        reference_name = max(reference_names, key=reference_names.count)
+
+    return BenchmarkCell(ns_per_iter, reference_ns_per_iter, ratio, reference_name)
 
 
 def discover_table(metrics_root: Path) -> BenchmarkTable:
@@ -347,29 +368,40 @@ def mix_color(a: str, b: str, t: float) -> str:
     return f"#{mix_channel(ar, br, t):02X}{mix_channel(ag, bg, t):02X}{mix_channel(ab, bb, t):02X}"
 
 
+def smoothstep(t: float) -> float:
+    t = max(0.0, min(1.0, t))
+    return t * t * (3.0 - 2.0 * t)
+
+
+def ratio_curve_t(low_ratio: float, high_ratio: float, ratio: float) -> float:
+    if low_ratio > 0.0 and high_ratio > low_ratio:
+        t = (math.log(ratio) - math.log(low_ratio)) / (math.log(high_ratio) - math.log(low_ratio))
+    else:
+        t = (ratio - low_ratio) / (high_ratio - low_ratio)
+    return smoothstep(t)
+
+
 def ratio_color(ratio: float | None) -> str:
     if ratio is None:
         return WHITE
-    if ratio <= SLOW_RATIO_FLOOR:
-        return SLOW_RATIO_COLOR
+    if math.isnan(ratio):
+        return WHITE
+    if ratio <= RATIO_COLOR_STOPS[0][0]:
+        return RATIO_COLOR_STOPS[0][1]
+    if ratio >= RATIO_COLOR_STOPS[-1][0] or math.isinf(ratio):
+        return RATIO_COLOR_STOPS[-1][1]
 
-    if ratio < STRONG_ORANGE_RATIO:
-        t = (ratio - SLOW_RATIO_FLOOR) / (STRONG_ORANGE_RATIO - SLOW_RATIO_FLOOR)
-        return mix_color(SLOW_RATIO_COLOR, STRONG_ORANGE_RATIO_COLOR, t)
-    if ratio < LIGHT_ORANGE_RATIO:
-        t = (ratio - STRONG_ORANGE_RATIO) / (LIGHT_ORANGE_RATIO - STRONG_ORANGE_RATIO)
-        return mix_color(STRONG_ORANGE_RATIO_COLOR, LIGHT_ORANGE_RATIO_COLOR, t)
-    if ratio < 1.0:
-        t = (ratio - LIGHT_ORANGE_RATIO) / (1.0 - LIGHT_ORANGE_RATIO)
-        return mix_color(LIGHT_ORANGE_RATIO_COLOR, EVEN_RATIO_COLOR, t)
+    previous_ratio, previous_color = RATIO_COLOR_STOPS[0]
+    for next_ratio, next_color in RATIO_COLOR_STOPS[1:]:
+        if ratio <= next_ratio:
+            return mix_color(
+                previous_color,
+                next_color,
+                ratio_curve_t(previous_ratio, next_ratio, ratio),
+            )
+        previous_ratio, previous_color = next_ratio, next_color
 
-    if ratio < FAST_RATIO:
-        t = math.log(ratio) / math.log(FAST_RATIO)
-        return mix_color(EVEN_RATIO_COLOR, FAST_RATIO_COLOR, t)
-    if ratio < VERY_FAST_RATIO:
-        t = math.log(ratio / FAST_RATIO) / math.log(VERY_FAST_RATIO / FAST_RATIO)
-        return mix_color(FAST_RATIO_COLOR, VERY_FAST_RATIO_COLOR, t)
-    return VERY_FAST_RATIO_COLOR
+    return RATIO_COLOR_STOPS[-1][1]
 
 
 def text_color(background: str) -> str:
@@ -396,6 +428,83 @@ def format_ratio(value: float | None) -> str:
     if value is None:
         return ""
     return f"{value:.2f}x"
+
+
+def reference_nickname(reference_name: str | None) -> str:
+    if reference_name is None:
+        return ""
+
+    key = normalize_key(reference_name)
+    if "cppdoubledouble" in key:
+        return "cpp_dd"
+    if "mpfrfloatbackend" in key or "mpfr" in key:
+        return "mpfr"
+    if "ddreal" in key:
+        return "dd_real"
+    if "qdreal" in key:
+        return "qd_real"
+    return reference_name
+
+
+def reference_full_name(reference_name: str | None) -> str:
+    if reference_name is None:
+        return ""
+
+    key = normalize_key(reference_name)
+    if "cppdoubledouble" in key:
+        return "boost::multiprecision::cpp_double_double"
+    if "mpfrfloatbackend" in key or "mpfr" in key:
+        return "boost::multiprecision::mpfr_float_backend<64>"
+    if "ddreal" in key:
+        return "qdpp (dd_real)"
+    if "qdreal" in key:
+        return "qdpp (qd_real)"
+    return reference_name
+
+
+def reference_sort_rank(reference_name: str) -> int:
+    key = normalize_key(reference_name)
+    if "cppdoubledouble" in key or "mpfrfloatbackend" in key or "mpfr" in key:
+        return 0
+    if "qdpp" in key or "ddreal" in key or "qdreal" in key:
+        return 1
+    return 10
+
+
+def reference_legend_groups(table: BenchmarkTable) -> list[tuple[str, list[str]]]:
+    groups: list[tuple[str, list[str]]] = []
+    for start_index, _ in fp_type_spans(table.columns):
+        fp_type = table.columns[start_index].fp_type
+        references: list[str] = []
+        for column in [column for column in table.columns if column.fp_type == fp_type]:
+            for group in table.groups:
+                for label in table.rows_by_group.get(group, []):
+                    cell = table.cells.get((group, label, column))
+                    if cell is None or cell.ratio is None or cell.reference_name is None:
+                        continue
+                    if cell.reference_name not in references:
+                        references.append(cell.reference_name)
+
+        references.sort(key=lambda reference: (reference_sort_rank(reference), reference_nickname(reference)))
+        if references:
+            groups.append((fp_type, references))
+    return groups
+
+
+def reference_legend_lines(table: BenchmarkTable) -> list[str]:
+    lines: list[str] = []
+    for group_index, (_, references) in enumerate(reference_legend_groups(table)):
+        if group_index > 0 and lines:
+            lines.append("")
+        for reference in references:
+            lines.append(f"{reference_nickname(reference)} = {reference_full_name(reference)}")
+    return lines
+
+
+def format_ratio_with_reference(cell: BenchmarkCell) -> str:
+    ratio = format_ratio(cell.ratio)
+    nickname = reference_nickname(cell.reference_name)
+    return f"{nickname}: {ratio}" if nickname and ratio else ratio
 
 
 def e(value: str) -> str:
@@ -452,6 +561,29 @@ def render_compiler_header(columns: list[ColumnKey]) -> str:
     ) + "</tr>"
 
 
+def render_html_reference_legend(table: BenchmarkTable) -> str:
+    lines = reference_legend_lines(table)
+    if not lines:
+        return ""
+
+    parts = ['<div class="reference-legend" aria-label="Ratio reference legend">']
+    for line in lines:
+        if not line:
+            parts.append('<div class="legend-gap" aria-hidden="true"></div>')
+            continue
+
+        nickname, _, full_name = line.partition(" = ")
+        parts.append(
+            '<div class="legend-line">'
+            f'<span class="legend-nickname">{e(nickname)}</span>'
+            '<span class="legend-equals">=</span>'
+            f'<span>{e(full_name)}</span>'
+            '</div>'
+        )
+    parts.append('</div>')
+    return "".join(parts)
+
+
 def render_html_cell(cell: BenchmarkCell | None, boundary_class: str = "") -> str:
     if cell is None or cell.ns_per_iter is None:
         return f'<td class="missing{boundary_class}"></td>'
@@ -463,7 +595,7 @@ def render_html_cell(cell: BenchmarkCell | None, boundary_class: str = "") -> st
     return (
         f'<td class="result{boundary_class}" style="background:{background};color:{color}">'
         f'<div class="timer">{e(format_ns(cell.ns_per_iter))}</div>'
-        f'<div class="ratio">{e(format_ratio(cell.ratio))}</div>'
+        f'<div class="ratio">{e(format_ratio_with_reference(cell))}</div>'
         "</td>"
     )
 
@@ -498,7 +630,7 @@ def render_group_row(group: str, columns: list[ColumnKey]) -> str:
 
 def render_html_table(table: BenchmarkTable) -> str:
     if not table.columns:
-        return '<p class="empty">No metrics CSV files were found.</p>'
+        return '<p class="empty">No benchmark metrics were found for this table.</p>'
 
     parts = [
         '<table class="bench-table">',
@@ -556,7 +688,12 @@ h1 {{ margin: 0 0 8px; font-size: 28px; }}
 .bench-table th.function {{ width: {function_w}px; min-width: {function_w}px; max-width: {function_w}px; text-align: left; white-space: normal; overflow-wrap: anywhere; }}
 .bench-table tbody th.function {{ font-size: 14px; }}
 .group-row th {{ background: {GROUP_BG}; color: {TEXT}; text-align: left; font-size: 13px; letter-spacing: 0.02em; }}
-.result {{ min-width: 92px; font-weight: 700; }}
+.reference-legend {{ display: grid; gap: 3px; margin: -10px 0 18px; color: {MUTED}; font-size: 12px; line-height: 1.3; }}
+.legend-line {{ display: grid; grid-template-columns: max-content max-content 1fr; gap: 6px; align-items: baseline; }}
+.legend-gap {{ height: 6px; }}
+.legend-nickname {{ color: {TEXT}; font-weight: 750; font-family: Consolas, "Cascadia Mono", monospace; }}
+.legend-equals {{ color: {TEXT}; font-weight: 650; }}
+.result {{ min-width: 104px; font-weight: 700; }}
 .result.no-ratio, .missing {{ background: {WHITE}; color: #000000; }}
 .timer {{ line-height: 1.05; }}
 .ratio {{ margin-top: 2px; font-size: 11px; line-height: 1.05; opacity: 0.88; }}
@@ -566,6 +703,7 @@ h1 {{ margin: 0 0 8px; font-size: 28px; }}
 <body>
 <h1>{e(TABLE_TITLE)}</h1>
 <p class="note">{e(TABLE_SUBTITLE)}</p>
+{render_html_reference_legend(table)}
 <div class="table-wrap">
 {render_html_table(table)}
 </div>
@@ -596,12 +734,45 @@ def svg_vertical_borders(x: int, y: int, width: int, height: int, color: str) ->
     )
 
 
+def svg_reference_legend_height(table: BenchmarkTable) -> int:
+    lines = reference_legend_lines(table)
+    if not lines:
+        return 0
+
+    height = 8
+    for line in lines:
+        height += 8 if not line else 15
+    return height
+
+
+def render_svg_reference_legend(table: BenchmarkTable, x: int, baseline_y: int) -> list[str]:
+    lines = reference_legend_lines(table)
+    if not lines:
+        return []
+
+    parts: list[str] = []
+    y = baseline_y
+    for line in lines:
+        if not line:
+            y += 8
+            continue
+
+        nickname, _, full_name = line.partition(" = ")
+        nickname_w = math.ceil(len(nickname) * 7.0)
+        parts.append(svg_text(x, y, nickname, 11, TEXT, 700))
+        parts.append(svg_text(x + nickname_w + 8, y, "=", 11, TEXT, 650))
+        parts.append(svg_text(x + nickname_w + 22, y, full_name, 11, MUTED, 600))
+        y += 15
+    return parts
+
+
 def table_row_count(table: BenchmarkTable) -> int:
     return sum(1 + len(table.rows_by_group.get(group, [])) for group in table.groups)
 
 
 def render_svg_table(table: BenchmarkTable) -> str:
-    title_h = 62
+    legend_h = svg_reference_legend_height(table)
+    title_h = 62 + legend_h
     header_h = 34
     header_rows = 3
     group_h = 28
@@ -612,7 +783,8 @@ def render_svg_table(table: BenchmarkTable) -> str:
     column_w = 116
     boundaries = set(type_boundary_indices(table.columns))
     width = margin * 2 + function_w + column_w * max(1, len(table.columns)) + TYPE_GAP_WIDTH * len(boundaries)
-    width = max(width, margin * 2 + math.ceil(len(TABLE_SUBTITLE) * 7.2))
+    legend_width = max([0] + [math.ceil(len(line) * 6.4) for line in reference_legend_lines(table)])
+    width = max(width, margin * 2 + math.ceil(len(TABLE_SUBTITLE) * 7.2), margin * 2 + legend_width)
     height = margin * 2 + title_h + header_h * header_rows + group_h * len(table.groups) + row_h * sum(len(table.rows_by_group.get(group, [])) for group in table.groups)
 
     parts = [
@@ -623,9 +795,10 @@ def render_svg_table(table: BenchmarkTable) -> str:
         svg_text(margin, margin + 26, TABLE_TITLE, 24, TEXT, 700),
         svg_text(margin, margin + 50, TABLE_SUBTITLE, 13, MUTED),
     ]
+    parts.extend(render_svg_reference_legend(table, margin, margin + 76))
 
     if not table.columns:
-        parts.append(svg_text(margin, margin + title_h + 32, "No metrics CSV files were found for this table.", 14, MUTED))
+        parts.append(svg_text(margin, margin + title_h + 32, "No benchmark metrics were found for this table.", 14, MUTED))
         parts.append("</svg>")
         return "\n".join(parts)
 
@@ -713,7 +886,7 @@ def render_svg_table(table: BenchmarkTable) -> str:
                     color = text_color(background)
                     parts.append(svg_rect(x, y, column_w, row_h, background))
                     parts.append(svg_text(x + column_w // 2, y + 17, format_ns(cell.ns_per_iter), 13, color, 700, "middle"))
-                    parts.append(svg_text(x + column_w // 2, y + 33, format_ratio(cell.ratio), 11, color, 600, "middle"))
+                    parts.append(svg_text(x + column_w // 2, y + 33, format_ratio_with_reference(cell), 11, color, 600, "middle"))
                 x += column_w
             y += row_h
 

@@ -8,6 +8,7 @@ using namespace bl::test::metrics::f128_primary;
     TEST_CASE("f128 primary " FLTX_PRIMARY_CASE_ORDER(NAME) " " #NAME " benchmark", "[metrics][bench][fltx][f128][primary]" TAGS) \
     { \
         if (!bl::test::metrics::metrics_case_phase_enabled("bench")) { SUCCEED("metrics benchmark phase not selected"); return; } \
+        const scoped_benchmark_sample_count benchmark_samples{ #NAME }; \
         const auto samples = SAMPLES(); \
         const auto record = run_unary_case<FLTX_PRIMARY_CASE_QDPP_EXTRA_SUPPORTED(NAME)>( \
             #NAME, REQUIRED_BITS, samples, \
@@ -22,6 +23,7 @@ using namespace bl::test::metrics::f128_primary;
     TEST_CASE("f128 primary " FLTX_PRIMARY_CASE_ORDER(NAME) " " #NAME " benchmark", "[metrics][bench][fltx][f128][primary]" TAGS) \
     { \
         if (!bl::test::metrics::metrics_case_phase_enabled("bench")) { SUCCEED("metrics benchmark phase not selected"); return; } \
+        const scoped_benchmark_sample_count benchmark_samples{ #NAME }; \
         const auto samples = SAMPLES(); \
         const auto record = run_binary_case<FLTX_PRIMARY_CASE_QDPP_EXTRA_SUPPORTED(NAME)>( \
             #NAME, REQUIRED_BITS, samples, \
@@ -36,6 +38,7 @@ using namespace bl::test::metrics::f128_primary;
     TEST_CASE("f128 primary " FLTX_PRIMARY_CASE_ORDER(NAME) " " LABEL " benchmark", "[metrics][bench][fltx][f128][primary]" TAGS) \
     { \
         if (!bl::test::metrics::metrics_case_phase_enabled("bench")) { SUCCEED("metrics benchmark phase not selected"); return; } \
+        const scoped_benchmark_sample_count benchmark_samples{ LABEL }; \
         const auto samples = SAMPLES(); \
         const auto record = run_binary_bool_case<FLTX_PRIMARY_CASE_QDPP_EXTRA_SUPPORTED(NAME)>( \
             LABEL, REQUIRED_BITS, samples, \
@@ -50,6 +53,7 @@ using namespace bl::test::metrics::f128_primary;
     TEST_CASE("f128 primary " FLTX_PRIMARY_CASE_ORDER(NAME) " " #NAME " benchmark", "[metrics][bench][fltx][f128][primary]" TAGS) \
     { \
         if (!bl::test::metrics::metrics_case_phase_enabled("bench")) { SUCCEED("metrics benchmark phase not selected"); return; } \
+        const scoped_benchmark_sample_count benchmark_samples{ #NAME }; \
         const auto samples = SAMPLES(); \
         const auto record = run_ternary_case<FLTX_PRIMARY_CASE_QDPP_EXTRA_SUPPORTED(NAME)>( \
             #NAME, REQUIRED_BITS, samples, \
@@ -64,6 +68,7 @@ using namespace bl::test::metrics::f128_primary;
     TEST_CASE("f128 primary " FLTX_PRIMARY_CASE_ORDER(NAME) " " #NAME " benchmark", "[metrics][bench][fltx][f128][primary]" TAGS) \
     { \
         if (!bl::test::metrics::metrics_case_phase_enabled("bench")) { SUCCEED("metrics benchmark phase not selected"); return; } \
+        const scoped_benchmark_sample_count benchmark_samples{ #NAME }; \
         const auto samples = SAMPLES(); \
         const auto record = run_unary_int_case<FLTX_PRIMARY_CASE_QDPP_EXTRA_SUPPORTED(NAME)>( \
             #NAME, REQUIRED_BITS, samples, \
@@ -78,6 +83,7 @@ using namespace bl::test::metrics::f128_primary;
     TEST_CASE("f128 primary " FLTX_PRIMARY_CASE_ORDER(NAME) " " #NAME " benchmark", "[metrics][bench][fltx][f128][primary]" TAGS) \
     { \
         if (!bl::test::metrics::metrics_case_phase_enabled("bench")) { SUCCEED("metrics benchmark phase not selected"); return; } \
+        const scoped_benchmark_sample_count benchmark_samples{ #NAME }; \
         const auto samples = SAMPLES(); \
         const auto record = run_unary_integer_case<FLTX_PRIMARY_CASE_QDPP_EXTRA_SUPPORTED(NAME)>( \
             #NAME, REQUIRED_BITS, samples, \
@@ -92,6 +98,7 @@ using namespace bl::test::metrics::f128_primary;
     TEST_CASE("f128 primary " FLTX_PRIMARY_CASE_ORDER(NAME) " " #NAME " benchmark", "[metrics][bench][fltx][f128][primary]" TAGS) \
     { \
         if (!bl::test::metrics::metrics_case_phase_enabled("bench")) { SUCCEED("metrics benchmark phase not selected"); return; } \
+        const scoped_benchmark_sample_count benchmark_samples{ #NAME }; \
         const auto samples = SAMPLES(); \
         const auto record = run_frexp_case<FLTX_PRIMARY_CASE_QDPP_EXTRA_SUPPORTED(NAME)>( \
             #NAME, REQUIRED_BITS, samples, \

@@ -24,9 +24,9 @@ Example:
     bl_map_enum_to_type(WideFloatType::F128, bl::f128);
     bl_map_enum_to_type(WideFloatType::F256, bl::f256);
 
-    bl::table_invoke(
-        bl::dispatch_table(foo, runtime_arg0, runtime_arg1),
-        bl::enum_type(WideFloatType::F128)
+    bl_table_invoke(
+        bl_dispatch_table(foo, runtime_arg0, runtime_arg1),
+        bl_enum_type(WideFloatType::F128)
     );
 */
 
@@ -78,18 +78,18 @@ int main()
         bool test_bool       = (i % 2) == 0;
 
         // invokes print_math<T1, T2, Test_Bool>(name), selected from runtime dispatch values
-        bl::table_invoke(
-            bl::dispatch_table(print_math, name), // bind runtime args passed to print_math(...)
-            bl::enum_type(float_type),            // map runtime enum value to T1
-            bl::enum_type(FloatType::F32),        // map runtime enum value to T2
+        bl_table_invoke(
+            bl_dispatch_table(print_math, name),  // bind runtime args passed to print_math(...)
+            bl_enum_type(float_type),             // map runtime enum value to T1
+            bl_enum_type(FloatType::F32),         // map runtime enum value to T2
             test_bool                             // map runtime bool to Test_Bool
         );
     }
 
     // print dispatch table info by providing example args (4 * 4 * 2 = 32 variants)
     bl::dispatch_table_info::print_from_args("print_math",
-        bl::enum_type(FloatType::F64), // domain size = 4
-        bl::enum_type(FloatType::F32), // domain size = 4
+        bl_enum_type(FloatType::F64),  // domain size = 4
+        bl_enum_type(FloatType::F32),  // domain size = 4
         true                           // domain size = 2
     );
 }

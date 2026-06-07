@@ -40,7 +40,8 @@ namespace bl::test::metrics::f256_primary
     constexpr domain_id primary_domain{ "primary", domain_role::primary };
     constexpr double competitor_accuracy_slack_bits = 16.0;
 
-    constexpr std::size_t random_sample_count = config::f256_primary_random_sample_count;
+    constexpr std::size_t accuracy_random_sample_count = config::f256_primary_accuracy_random_sample_count;
+    constexpr std::size_t benchmark_random_sample_count = config::f256_primary_benchmark_random_sample_count;
     constexpr std::size_t benchmark_min_iterations = config::f256_primary_benchmark_min_iterations;
 
     constexpr double bits_90 = 190.0;
@@ -50,6 +51,79 @@ namespace bl::test::metrics::f256_primary
     constexpr double domain_ideal_bits = 212.0;
 
     constexpr std::size_t default_domain_random_sample_count = config::primary_domain_random_sample_count;
+
+    inline thread_local std::size_t active_random_sample_count = accuracy_random_sample_count;
+
+    [[nodiscard]] inline std::size_t random_sample_count() noexcept
+    {
+        return active_random_sample_count;
+    }
+
+    [[nodiscard]] inline double benchmark_local_sample_scale(std::string_view operation) noexcept
+    {
+        if (operation == "erf" || operation == "erfc" || operation == "lgamma" || operation == "tgamma")
+            return 0.25;
+
+        if (operation == "asin" || operation == "acos" || operation == "asinh" || operation == "acosh"
+            || operation == "atanh" || operation == "log" || operation == "log2" || operation == "log10"
+            || operation == "log1p" || operation == "pow")
+            return 0.25;
+
+        if (operation == "sin" || operation == "cos" || operation == "tan" || operation == "atan"
+            || operation == "atan2" || operation == "exp" || operation == "exp2" || operation == "expm1"
+            || operation == "sinh" || operation == "cosh" || operation == "tanh")
+            return 0.25;
+
+        if (operation == "fmod" || operation == "remainder" || operation == "remquo")
+            return 0.5;
+
+        return 1.0;
+    }
+
+    [[nodiscard]] inline bool is_short_rounding_benchmark(std::string_view operation) noexcept
+    {
+        return operation == "floor" || operation == "ceil" || operation == "trunc" ||
+               operation == "round" || operation == "nearbyint" || operation == "rint";
+    }
+
+    [[nodiscard]] inline bool is_integer_rounding_benchmark(std::string_view operation) noexcept
+    {
+        return operation == "lround" || operation == "llround" ||
+               operation == "lrint" || operation == "llrint";
+    }
+
+    [[nodiscard]] inline bool is_short_utility_benchmark(std::string_view operation) noexcept
+    {
+        return operation == "fabs" || operation == "fdim" || operation == "ldexp" ||
+               operation == "scalbn" || operation == "scalbln" || operation == "frexp" ||
+               operation == "nextafter" || operation == "nexttoward";
+    }
+
+    [[nodiscard]] inline std::size_t benchmark_sample_count(std::string_view operation) noexcept
+    {
+        return config::scale_count(benchmark_random_sample_count, benchmark_local_sample_scale(operation));
+    }
+
+    class scoped_benchmark_sample_count
+    {
+    public:
+        explicit scoped_benchmark_sample_count(std::string_view operation) noexcept
+            : previous_count(active_random_sample_count)
+        {
+            active_random_sample_count = benchmark_sample_count(operation);
+        }
+
+        scoped_benchmark_sample_count(const scoped_benchmark_sample_count&) = delete;
+        scoped_benchmark_sample_count& operator=(const scoped_benchmark_sample_count&) = delete;
+
+        ~scoped_benchmark_sample_count()
+        {
+            active_random_sample_count = previous_count;
+        }
+
+    private:
+        std::size_t previous_count;
+    };
 
     [[nodiscard]] inline std::size_t domain_random_sample_count() noexcept
     {
@@ -585,161 +659,161 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_add(const T& x, const T& y) { return x + y; }
+    [[nodiscard]] BL_FORCE_INLINE T call_add(const T& x, const T& y) { return x + y; }
 
     template<class T>
-    [[nodiscard]] T call_subtract(const T& x, const T& y) { return x - y; }
+    [[nodiscard]] BL_FORCE_INLINE T call_subtract(const T& x, const T& y) { return x - y; }
 
     template<class T>
-    [[nodiscard]] T call_multiply(const T& x, const T& y) { return x * y; }
+    [[nodiscard]] BL_FORCE_INLINE T call_multiply(const T& x, const T& y) { return x * y; }
 
     template<class T>
-    [[nodiscard]] T call_divide(const T& x, const T& y) { return x / y; }
+    [[nodiscard]] BL_FORCE_INLINE T call_divide(const T& x, const T& y) { return x / y; }
 
     template<class T>
-    [[nodiscard]] bool call_equal(const T& x, const T& y) { return x == y; }
+    [[nodiscard]] BL_FORCE_INLINE bool call_equal(const T& x, const T& y) { return x == y; }
 
     template<class T>
-    [[nodiscard]] bool call_not_equal(const T& x, const T& y) { return x != y; }
+    [[nodiscard]] BL_FORCE_INLINE bool call_not_equal(const T& x, const T& y) { return x != y; }
 
     template<class T>
-    [[nodiscard]] bool call_less(const T& x, const T& y) { return x < y; }
+    [[nodiscard]] BL_FORCE_INLINE bool call_less(const T& x, const T& y) { return x < y; }
 
     template<class T>
-    [[nodiscard]] bool call_greater(const T& x, const T& y) { return x > y; }
+    [[nodiscard]] BL_FORCE_INLINE bool call_greater(const T& x, const T& y) { return x > y; }
 
     template<class T>
-    [[nodiscard]] bool call_less_equal(const T& x, const T& y) { return x <= y; }
+    [[nodiscard]] BL_FORCE_INLINE bool call_less_equal(const T& x, const T& y) { return x <= y; }
 
     template<class T>
-    [[nodiscard]] bool call_greater_equal(const T& x, const T& y) { return x >= y; }
+    [[nodiscard]] BL_FORCE_INLINE bool call_greater_equal(const T& x, const T& y) { return x >= y; }
 
     template<class T>
-    [[nodiscard]] T call_sqrt(const T& x) { using std::sqrt; return sqrt(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_sqrt(const T& x) { using std::sqrt; return sqrt(x); }
 
-    [[nodiscard]] inline extra_competitor_ref call_cbrt(const extra_competitor_ref& x)
+    [[nodiscard]] BL_FORCE_INLINE extra_competitor_ref call_cbrt(const extra_competitor_ref& x)
     {
         return qdpp::cbrt(x);
     }
 
     template<class T>
-    [[nodiscard]] T call_cbrt(const T& x) { using std::cbrt; return cbrt(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_cbrt(const T& x) { using std::cbrt; return cbrt(x); }
 
     template<class T>
-    [[nodiscard]] T call_hypot(const T& x, const T& y) { using std::hypot; return hypot(x, y); }
+    [[nodiscard]] BL_FORCE_INLINE T call_hypot(const T& x, const T& y) { using std::hypot; return hypot(x, y); }
 
     template<class T>
-    [[nodiscard]] T call_sin(const T& x) { using std::sin; return sin(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_sin(const T& x) { using std::sin; return sin(x); }
 
     template<class T>
-    [[nodiscard]] T call_cos(const T& x) { using std::cos; return cos(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_cos(const T& x) { using std::cos; return cos(x); }
 
     template<class T>
-    [[nodiscard]] T call_tan(const T& x) { using std::tan; return tan(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_tan(const T& x) { using std::tan; return tan(x); }
 
     template<class T>
-    [[nodiscard]] T call_atan(const T& x) { using std::atan; return atan(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_atan(const T& x) { using std::atan; return atan(x); }
 
     template<class T>
-    [[nodiscard]] T call_atan2(const T& y, const T& x) { using std::atan2; return atan2(y, x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_atan2(const T& y, const T& x) { using std::atan2; return atan2(y, x); }
 
     template<class T>
-    [[nodiscard]] T call_asin(const T& x) { using std::asin; return asin(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_asin(const T& x) { using std::asin; return asin(x); }
 
     template<class T>
-    [[nodiscard]] T call_acos(const T& x) { using std::acos; return acos(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_acos(const T& x) { using std::acos; return acos(x); }
 
     template<class T>
-    [[nodiscard]] T call_exp(const T& x) { using std::exp; return exp(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_exp(const T& x) { using std::exp; return exp(x); }
 
     template<class T>
-    [[nodiscard]] T call_exp2(const T& x) { using std::exp2; return exp2(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_exp2(const T& x) { using std::exp2; return exp2(x); }
 
     template<class T>
-    [[nodiscard]] T call_expm1(const T& x) { using std::expm1; return expm1(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_expm1(const T& x) { using std::expm1; return expm1(x); }
 
     template<class T>
-    [[nodiscard]] T call_log(const T& x) { using std::log; return log(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_log(const T& x) { using std::log; return log(x); }
 
     template<class T>
-    [[nodiscard]] T call_log2(const T& x) { using std::log2; return log2(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_log2(const T& x) { using std::log2; return log2(x); }
 
     template<class T>
-    [[nodiscard]] T call_log10(const T& x) { using std::log10; return log10(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_log10(const T& x) { using std::log10; return log10(x); }
 
     template<class T>
-    [[nodiscard]] T call_log1p(const T& x) { using std::log1p; return log1p(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_log1p(const T& x) { using std::log1p; return log1p(x); }
 
     template<class T>
-    [[nodiscard]] T call_pow(const T& x, const T& y) { using std::pow; return pow(x, y); }
+    [[nodiscard]] BL_FORCE_INLINE T call_pow(const T& x, const T& y) { using std::pow; return pow(x, y); }
 
     template<class T>
-    [[nodiscard]] T call_sinh(const T& x) { using std::sinh; return sinh(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_sinh(const T& x) { using std::sinh; return sinh(x); }
 
     template<class T>
-    [[nodiscard]] T call_cosh(const T& x) { using std::cosh; return cosh(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_cosh(const T& x) { using std::cosh; return cosh(x); }
 
     template<class T>
-    [[nodiscard]] T call_tanh(const T& x) { using std::tanh; return tanh(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_tanh(const T& x) { using std::tanh; return tanh(x); }
 
     template<class T>
-    [[nodiscard]] T call_asinh(const T& x) { using std::asinh; return asinh(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_asinh(const T& x) { using std::asinh; return asinh(x); }
 
     template<class T>
-    [[nodiscard]] T call_acosh(const T& x) { using std::acosh; return acosh(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_acosh(const T& x) { using std::acosh; return acosh(x); }
 
     template<class T>
-    [[nodiscard]] T call_atanh(const T& x) { using std::atanh; return atanh(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_atanh(const T& x) { using std::atanh; return atanh(x); }
 
     template<class T>
-    [[nodiscard]] T call_fma(const T& x, const T& y, const T& z) { using std::fma; return fma(x, y, z); }
+    [[nodiscard]] BL_FORCE_INLINE T call_fma(const T& x, const T& y, const T& z) { using std::fma; return fma(x, y, z); }
 
     template<class T>
-    [[nodiscard]] T call_fma_reference(const T& x, const T& y, const T& z) { return x * y + z; }
+    [[nodiscard]] BL_FORCE_INLINE T call_fma_reference(const T& x, const T& y, const T& z) { return x * y + z; }
 
     template<class T>
-    [[nodiscard]] T call_fabs(const T& x) { using boost::multiprecision::fabs; using std::fabs; return fabs(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_fabs(const T& x) { using boost::multiprecision::fabs; using std::fabs; return fabs(x); }
 
     template<class T>
-    [[nodiscard]] T call_floor(const T& x) { using boost::multiprecision::floor; using std::floor; return floor(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_floor(const T& x) { using boost::multiprecision::floor; using std::floor; return floor(x); }
 
     template<class T>
-    [[nodiscard]] T call_ceil(const T& x) { using boost::multiprecision::ceil; using std::ceil; return ceil(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_ceil(const T& x) { using boost::multiprecision::ceil; using std::ceil; return ceil(x); }
 
-    [[nodiscard]] inline extra_competitor_ref call_trunc(const extra_competitor_ref& x)
+    [[nodiscard]] BL_FORCE_INLINE extra_competitor_ref call_trunc(const extra_competitor_ref& x)
     {
         return qdpp::trunc(x);
     }
 
     template<class T>
-    [[nodiscard]] T call_trunc(const T& x) { using boost::multiprecision::trunc; using std::trunc; return trunc(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_trunc(const T& x) { using boost::multiprecision::trunc; using std::trunc; return trunc(x); }
 
     template<class T>
-    [[nodiscard]] T call_round(const T& x) { using boost::multiprecision::round; using std::round; return round(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_round(const T& x) { using boost::multiprecision::round; using std::round; return round(x); }
 
-    [[nodiscard]] inline extra_competitor_ref call_nearbyint(const extra_competitor_ref& x)
+    [[nodiscard]] BL_FORCE_INLINE extra_competitor_ref call_nearbyint(const extra_competitor_ref& x)
     {
         return qdpp::nearbyint(x);
     }
 
     template<class T>
-    [[nodiscard]] T call_nearbyint(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE T call_nearbyint(const T& x)
     {
         using boost::multiprecision::nearbyint;
         using std::nearbyint;
         return nearbyint(x);
     }
 
-    [[nodiscard]] inline extra_competitor_ref call_rint(const extra_competitor_ref& x)
+    [[nodiscard]] BL_FORCE_INLINE extra_competitor_ref call_rint(const extra_competitor_ref& x)
     {
         return qdpp::rint(x);
     }
 
     template<class T>
-    [[nodiscard]] T call_rint(const T& x) { using boost::multiprecision::rint; using std::rint; return rint(x); }
+    [[nodiscard]] BL_FORCE_INLINE T call_rint(const T& x) { using boost::multiprecision::rint; using std::rint; return rint(x); }
 
     template<class T>
-    [[nodiscard]] long call_lround(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE long call_lround(const T& x)
     {
         using boost::multiprecision::lround;
         using std::lround;
@@ -747,7 +821,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] long long call_llround(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE long long call_llround(const T& x)
     {
         using boost::multiprecision::llround;
         using std::llround;
@@ -755,7 +829,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] long call_lrint(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE long call_lrint(const T& x)
     {
         using boost::multiprecision::lrint;
         using std::lrint;
@@ -763,7 +837,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] long long call_llrint(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE long long call_llrint(const T& x)
     {
         using boost::multiprecision::llrint;
         using std::llrint;
@@ -771,7 +845,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T round_nearest_even_integer_reference(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE T round_nearest_even_integer_reference(const T& x)
     {
         using boost::multiprecision::floor;
         using std::floor;
@@ -788,32 +862,32 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] long call_lrint_reference(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE long call_lrint_reference(const T& x)
     {
         return static_cast<long>(round_nearest_even_integer_reference(x));
     }
 
     template<class T>
-    [[nodiscard]] long long call_llrint_reference(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE long long call_llrint_reference(const T& x)
     {
         return static_cast<long long>(round_nearest_even_integer_reference(x));
     }
 
     template<class T>
-    [[nodiscard]] T call_fmod(const T& x, const T& y)
+    [[nodiscard]] BL_FORCE_INLINE T call_fmod(const T& x, const T& y)
     {
         using boost::multiprecision::fmod;
         using std::fmod;
         return fmod(x, y);
     }
 
-    [[nodiscard]] inline extra_competitor_ref call_remainder(const extra_competitor_ref& x, const extra_competitor_ref& y)
+    [[nodiscard]] BL_FORCE_INLINE extra_competitor_ref call_remainder(const extra_competitor_ref& x, const extra_competitor_ref& y)
     {
         return qdpp::remainder(x, y);
     }
 
     template<class T>
-    [[nodiscard]] T call_remainder(const T& x, const T& y)
+    [[nodiscard]] BL_FORCE_INLINE T call_remainder(const T& x, const T& y)
     {
         using boost::multiprecision::remainder;
         using std::remainder;
@@ -821,7 +895,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_remquo_value(const T& x, const T& y)
+    [[nodiscard]] BL_FORCE_INLINE T call_remquo_value(const T& x, const T& y)
     {
         int quotient = 0;
         using boost::multiprecision::remquo;
@@ -830,7 +904,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_fmin(const T& x, const T& y)
+    [[nodiscard]] BL_FORCE_INLINE T call_fmin(const T& x, const T& y)
     {
         using boost::multiprecision::fmin;
         using std::fmin;
@@ -838,7 +912,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_fmax(const T& x, const T& y)
+    [[nodiscard]] BL_FORCE_INLINE T call_fmax(const T& x, const T& y)
     {
         using boost::multiprecision::fmax;
         using std::fmax;
@@ -846,7 +920,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_fdim(const T& x, const T& y)
+    [[nodiscard]] BL_FORCE_INLINE T call_fdim(const T& x, const T& y)
     {
         using boost::multiprecision::fdim;
         using std::fdim;
@@ -854,7 +928,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_copysign(const T& x, const T& y)
+    [[nodiscard]] BL_FORCE_INLINE T call_copysign(const T& x, const T& y)
     {
         using boost::multiprecision::copysign;
         using std::copysign;
@@ -862,63 +936,63 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_ldexp(const T& x, int n)
+    [[nodiscard]] BL_FORCE_INLINE T call_ldexp(const T& x, int n)
     {
         using boost::multiprecision::ldexp;
         using std::ldexp;
         return ldexp(x, n);
     }
 
-    [[nodiscard]] inline extra_competitor_ref call_scalbn(const extra_competitor_ref& x, int n)
+    [[nodiscard]] BL_FORCE_INLINE extra_competitor_ref call_scalbn(const extra_competitor_ref& x, int n)
     {
         return qdpp::scalbn(x, n);
     }
 
     template<class T>
-    [[nodiscard]] T call_scalbn(const T& x, int n)
+    [[nodiscard]] BL_FORCE_INLINE T call_scalbn(const T& x, int n)
     {
         using boost::multiprecision::scalbn;
         using std::scalbn;
         return scalbn(x, n);
     }
 
-    [[nodiscard]] inline extra_competitor_ref call_scalbln(const extra_competitor_ref& x, int n)
+    [[nodiscard]] BL_FORCE_INLINE extra_competitor_ref call_scalbln(const extra_competitor_ref& x, int n)
     {
         return qdpp::scalbln(x, static_cast<long>(n));
     }
 
     template<class T>
-    [[nodiscard]] T call_scalbln(const T& x, int n)
+    [[nodiscard]] BL_FORCE_INLINE T call_scalbln(const T& x, int n)
     {
         using boost::multiprecision::scalbln;
         using std::scalbln;
         return scalbln(x, static_cast<long>(n));
     }
 
-    [[nodiscard]] inline fltx_type call_nextafter(const fltx_type& from, const fltx_type& to) noexcept
+    [[nodiscard]] BL_FORCE_INLINE fltx_type call_nextafter(const fltx_type& from, const fltx_type& to) noexcept
     {
         return bl::nextafter(from, to);
     }
 
     template<class T>
-    [[nodiscard]] T call_nextafter(const T& from, const T& to)
+    [[nodiscard]] BL_FORCE_INLINE T call_nextafter(const T& from, const T& to)
     {
         return boost::math::nextafter(from, to);
     }
 
-    [[nodiscard]] inline fltx_type call_nexttoward(const fltx_type& from, const fltx_type& to) noexcept
+    [[nodiscard]] BL_FORCE_INLINE fltx_type call_nexttoward(const fltx_type& from, const fltx_type& to) noexcept
     {
         return bl::nexttoward(from, to);
     }
 
     template<class T>
-    [[nodiscard]] T call_nexttoward(const T& from, const T& to)
+    [[nodiscard]] BL_FORCE_INLINE T call_nexttoward(const T& from, const T& to)
     {
         return call_nextafter(from, to);
     }
 
     template<class T>
-    [[nodiscard]] T call_logb(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE T call_logb(const T& x)
     {
         using boost::multiprecision::logb;
         using std::logb;
@@ -926,7 +1000,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] int call_ilogb(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE int call_ilogb(const T& x)
     {
         using boost::multiprecision::ilogb;
         using std::ilogb;
@@ -934,7 +1008,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] frexp_value<T> call_frexp(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE frexp_value<T> call_frexp(const T& x)
     {
         int exponent = 0;
         using boost::multiprecision::frexp;
@@ -943,7 +1017,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_modf_fraction(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE T call_modf_fraction(const T& x)
     {
         T integer_part{};
         using boost::multiprecision::modf;
@@ -952,7 +1026,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_erf(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE T call_erf(const T& x)
     {
         using boost::multiprecision::erf;
         using std::erf;
@@ -960,7 +1034,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_erfc(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE T call_erfc(const T& x)
     {
         using boost::multiprecision::erfc;
         using std::erfc;
@@ -968,7 +1042,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_lgamma(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE T call_lgamma(const T& x)
     {
         using boost::multiprecision::lgamma;
         using std::lgamma;
@@ -976,7 +1050,7 @@ namespace bl::test::metrics::f256_primary
     }
 
     template<class T>
-    [[nodiscard]] T call_tgamma(const T& x)
+    [[nodiscard]] BL_FORCE_INLINE T call_tgamma(const T& x)
     {
         using boost::multiprecision::tgamma;
         using std::tgamma;
@@ -994,7 +1068,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acc90517ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = positive_log_value(rng, -80, 80);
             samples.push_back({ "random", make_runtime_value("x", x, residual_for(x, rng)) });
@@ -1013,7 +1087,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acca217ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = signed_log_value(rng, -80, 80);
             const fltx_type x_value = x + residual_for(x, rng);
@@ -1057,7 +1131,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x256c0a9a11ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = signed_log_value(rng, -80, 80);
             fltx_type y{};
@@ -1103,7 +1177,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x256ad3a9e5ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type from = signed_log_value(rng, -80, 80);
             const fltx_type delta = positive_residual_for(from, rng);
@@ -1154,7 +1228,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acc51a5ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = signed_log_value(rng, -80, 80);
             samples.push_back({ "random", make_runtime_value("x", x, residual_for(x, rng)) });
@@ -1183,7 +1257,7 @@ namespace bl::test::metrics::f256_primary
         append_trig_landmark_samples(samples);
 
         sample_rng rng{ 0x128acc7e16ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = uniform_value(rng, -0x1p16, 0x1p16);
             samples.push_back({ "random", make_runtime_value("x", x, residual_for(x, rng)) });
@@ -1205,14 +1279,14 @@ namespace bl::test::metrics::f256_primary
         }
 
         sample_rng rng{ 0x128acc7e16ull };
-        for (std::size_t index = 0; index < random_sample_count / 2; ++index)
+        for (std::size_t index = 0; index < random_sample_count() / 2; ++index)
         {
             const fltx_type x = uniform_value(rng, -0x1p16, 0x1p16);
             const fltx_type value = x + residual_for(x, rng);
             samples.push_back({ "random", make_runtime_value("x", value) });
             samples.push_back({ "random phase shifted", make_runtime_value("x", value + half_pi) });
         }
-        if ((random_sample_count & 1u) != 0u)
+        if ((random_sample_count() & 1u) != 0u)
         {
             const fltx_type x = uniform_value(rng, -0x1p16, 0x1p16);
             samples.push_back({ "random", make_runtime_value("x", x, residual_for(x, rng)) });
@@ -1224,7 +1298,7 @@ namespace bl::test::metrics::f256_primary
     {
         std::vector<unary_sample> samples = make_unshifted_trig_samples();
         sample_rng rng{ 0x128acc7a9ull };
-        while (samples.size() < random_sample_count + 6)
+        while (samples.size() < random_sample_count() + 6)
         {
             const fltx_type x = uniform_value(rng, -0x1p16, 0x1p16);
             if (std::fabs(std::cos(static_cast<double>(x))) < 0x1p-20)
@@ -1245,7 +1319,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acce901ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = uniform_value(rng, -40.0, 40.0);
             samples.push_back({ "random", make_runtime_value("x", x, residual_for(x, rng)) });
@@ -1264,7 +1338,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acce2e2ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = uniform_value(rng, -128.0, 128.0);
             samples.push_back({ "random", make_runtime_value("x", x, residual_for(x, rng)) });
@@ -1283,7 +1357,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acce111ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = uniform_value(rng, -20.0, 20.0);
             samples.push_back({ "random", make_runtime_value("x", x, residual_for(x, rng)) });
@@ -1302,7 +1376,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acc1011ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = uniform_value(rng, -0.95, 20.0);
             samples.push_back({ "random", make_runtime_value("x", x, residual_for(x, rng)) });
@@ -1321,7 +1395,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acc90dull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             fltx_type x{};
             fltx_type y{};
@@ -1362,7 +1436,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128accf0a1ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = signed_log_value(rng, -24, 24);
             const fltx_type y = signed_log_value(rng, -24, 24);
@@ -1403,7 +1477,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acc1707ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = signed_log_value(rng, -60, 60);
             const fltx_type y = signed_log_value(rng, -60, 60);
@@ -1427,7 +1501,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acc1eafull };
-        while (samples.size() < random_sample_count + 5)
+        while (samples.size() < random_sample_count() + 5)
         {
             const fltx_type x = uniform_value(rng, -0.999999, 0.999999);
             const value_sample sample = make_runtime_value("x", x, residual_for(x, rng));
@@ -1452,7 +1526,7 @@ namespace bl::test::metrics::f256_primary
         append_hyperbolic_landmark_samples(samples);
 
         sample_rng rng{ 0x128accb1b0ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             fltx_type x{};
             switch (index % 4)
@@ -1480,7 +1554,7 @@ namespace bl::test::metrics::f256_primary
         std::vector<unary_sample> samples;
         append_hyperbolic_landmark_samples(samples);
         sample_rng rng{ 0x128acca511ull };
-        while (samples.size() < random_sample_count + 5)
+        while (samples.size() < random_sample_count() + 5)
         {
             const fltx_type x = (samples.size() & 1u) == 0u
                 ? uniform_value(rng, -32.0, 32.0)
@@ -1501,7 +1575,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acca051ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             fltx_type x{};
             switch (index % 4)
@@ -1535,7 +1609,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acca7a9ull };
-        while (samples.size() < random_sample_count + 5)
+        while (samples.size() < random_sample_count() + 5)
         {
             fltx_type x{};
             switch (samples.size() % 4)
@@ -1575,7 +1649,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acc9080ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             fltx_type x{};
             switch (index % 4)
@@ -1609,7 +1683,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128accf00dull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = signed_log_value(rng, -40, 40);
             fltx_type y{ 0.0 };
@@ -1639,7 +1713,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acc5ca1eull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = signed_log_value(rng, -60, 60);
             const int n = rng.integer(-512, 512);
@@ -1659,7 +1733,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128accecfull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             const fltx_type x = uniform_value(rng, -6.0, 6.0);
             samples.push_back({ "random", make_runtime_value("x", x, residual_for(x, rng)) });
@@ -1678,7 +1752,7 @@ namespace bl::test::metrics::f256_primary
         };
 
         sample_rng rng{ 0x128acc6a99ull };
-        for (std::size_t index = 0; index < random_sample_count; ++index)
+        for (std::size_t index = 0; index < random_sample_count(); ++index)
         {
             fltx_type x{};
             switch (index % 4)
@@ -2126,57 +2200,83 @@ namespace bl::test::metrics::f256_primary
 
     inline volatile double benchmark_sink = 0.0;
 
+    inline void consume_benchmark_limb(double value) noexcept
+    {
+        benchmark_sink = benchmark_sink + value;
+    }
+
     inline void consume_benchmark_value(const fltx_type& value) noexcept
     {
-        benchmark_sink = benchmark_sink + value.x0;
+        consume_benchmark_limb(value.x0);
+        consume_benchmark_limb(value.x1);
+        consume_benchmark_limb(value.x2);
+        consume_benchmark_limb(value.x3);
     }
 
     inline void consume_benchmark_value(const competitor_ref& value)
     {
-        benchmark_sink = benchmark_sink + static_cast<double>(value);
+        consume_benchmark_limb(static_cast<double>(value));
     }
 
     inline void consume_benchmark_value(const extra_competitor_ref& value)
     {
-        benchmark_sink = benchmark_sink + value[0];
+        consume_benchmark_limb(value[0]);
+        consume_benchmark_limb(value[1]);
+        consume_benchmark_limb(value[2]);
+        consume_benchmark_limb(value[3]);
     }
 
     inline void consume_benchmark_value(bool value) noexcept
     {
-        benchmark_sink = benchmark_sink + (value ? 1.0 : 0.0);
+        consume_benchmark_limb(value ? 1.0 : 0.0);
     }
 
     template<class Integer, std::enable_if_t<std::is_integral_v<Integer> && !std::is_same_v<Integer, bool>, int> = 0>
     inline void consume_benchmark_value(Integer value) noexcept
     {
-        benchmark_sink = benchmark_sink + static_cast<double>(value);
+        consume_benchmark_limb(static_cast<double>(value));
     }
 
     template<class T>
     inline void consume_benchmark_value(const frexp_value<T>& value)
     {
         consume_benchmark_value(value.fraction);
-        benchmark_sink = benchmark_sink + static_cast<double>(value.exponent);
+        consume_benchmark_limb(static_cast<double>(value.exponent));
     }
 
     [[nodiscard]] inline double benchmark_iteration_scale(std::string_view operation) noexcept
     {
+        if (is_short_rounding_benchmark(operation))
+            return 15.0;
+
+        if (is_integer_rounding_benchmark(operation))
+            return 6.0;
+
+        if (is_short_utility_benchmark(operation))
+            return 16.0;
+
         if (operation == "erf" || operation == "erfc" || operation == "lgamma" || operation == "tgamma")
-            return 0.05;
+            return 0.005;
 
         if (operation == "asin" || operation == "acos" || operation == "asinh" || operation == "acosh"
             || operation == "atanh" || operation == "log" || operation == "log2" || operation == "log10"
             || operation == "log1p" || operation == "pow")
-            return 0.15;
+            return 0.01;
 
-        if (operation == "sin" || operation == "cos" || operation == "tan" || operation == "atan"
-            || operation == "atan2" || operation == "exp" || operation == "exp2" || operation == "expm1"
+        if (operation == "divide" || operation == "sqrt")
+            return 0.5;
+
+        if (operation == "tan")
+            return 0.03;
+
+        if (operation == "sin" || operation == "cos" || operation == "atan" || operation == "atan2"
+            || operation == "exp" || operation == "exp2" || operation == "expm1"
             || operation == "sinh" || operation == "cosh" || operation == "tanh")
-            return 0.25;
+            return 0.03;
 
         if (operation == "cbrt" || operation == "hypot" || operation == "fmod"
             || operation == "remainder" || operation == "remquo")
-            return 0.5;
+            return 0.15;
 
         return 1.0;
     }
@@ -2429,7 +2529,7 @@ namespace bl::test::metrics::f256_primary
         auto& extra_competitor = record.extra_competitors.emplace_back();
         extra_competitor.name = references::extra_competitor_name;
         extra_competitor.supported = ExtraSupported;
-        const auto special_samples = make_special_unary_samples();
+        const auto special_samples = measure_accuracy ? make_special_unary_samples() : std::vector<unary_sample>{};
         const auto special_fltx_inputs = make_unary_inputs<decltype(special_samples), fltx_type>(special_samples, make_fltx);
         const auto special_competitor_inputs =
             make_unary_inputs<decltype(special_samples), competitor_ref>(special_samples, make_competitor);
@@ -2503,25 +2603,28 @@ namespace bl::test::metrics::f256_primary
         extra_competitor.name = references::extra_competitor_name;
         extra_competitor.supported = ExtraSupported;
 
-        const auto special_samples = make_special_unary_samples();
-        const auto special_fltx_inputs =
-            make_unary_inputs<decltype(special_samples), fltx_type>(special_samples, make_fltx);
-        const auto special_competitor_inputs =
-            make_unary_inputs<decltype(special_samples), competitor_ref>(special_samples, make_competitor);
-        record.fltx_special_values =
-            measure_unary_integer_special_values(operation, special_samples, special_fltx_inputs, eval, reference);
-        record.competitor_special_values =
-            measure_unary_integer_special_values(operation, special_samples, special_competitor_inputs, eval, reference);
-        if constexpr (ExtraSupported)
+        if (measure_accuracy && unary_integer_special_probe_is_meaningful(operation))
         {
-            const auto special_extra_competitor_inputs =
-                make_unary_inputs<decltype(special_samples), extra_competitor_ref>(special_samples, make_extra_competitor);
-            extra_competitor.special_values =
-                measure_unary_integer_special_values(operation, special_samples, special_extra_competitor_inputs, eval, reference);
-        }
-        else
-        {
-            extra_competitor.special_values = special_correctness::unavailable;
+            const auto special_samples = make_special_unary_samples();
+            const auto special_fltx_inputs =
+                make_unary_inputs<decltype(special_samples), fltx_type>(special_samples, make_fltx);
+            const auto special_competitor_inputs =
+                make_unary_inputs<decltype(special_samples), competitor_ref>(special_samples, make_competitor);
+            record.fltx_special_values =
+                measure_unary_integer_special_values(operation, special_samples, special_fltx_inputs, eval, reference);
+            record.competitor_special_values =
+                measure_unary_integer_special_values(operation, special_samples, special_competitor_inputs, eval, reference);
+            if constexpr (ExtraSupported)
+            {
+                const auto special_extra_competitor_inputs =
+                    make_unary_inputs<decltype(special_samples), extra_competitor_ref>(special_samples, make_extra_competitor);
+                extra_competitor.special_values =
+                    measure_unary_integer_special_values(operation, special_samples, special_extra_competitor_inputs, eval, reference);
+            }
+            else
+            {
+                extra_competitor.special_values = special_correctness::unavailable;
+            }
         }
 
         if (include_benchmarks)
@@ -2573,7 +2676,7 @@ namespace bl::test::metrics::f256_primary
         auto& extra_competitor = record.extra_competitors.emplace_back();
         extra_competitor.name = references::extra_competitor_name;
         extra_competitor.supported = ExtraSupported;
-        const auto special_samples = make_special_binary_samples();
+        const auto special_samples = measure_accuracy ? make_special_binary_samples() : std::vector<binary_sample>{};
         const auto special_fltx_inputs = make_binary_inputs<decltype(special_samples), fltx_type>(special_samples, make_fltx);
         const auto special_competitor_inputs =
             make_binary_inputs<decltype(special_samples), competitor_ref>(special_samples, make_competitor);
@@ -2644,7 +2747,7 @@ namespace bl::test::metrics::f256_primary
         auto& extra_competitor = record.extra_competitors.emplace_back();
         extra_competitor.name = references::extra_competitor_name;
         extra_competitor.supported = ExtraSupported;
-        const auto special_samples = make_special_binary_samples();
+        const auto special_samples = measure_accuracy ? make_special_binary_samples() : std::vector<binary_sample>{};
         const auto special_fltx_inputs =
             make_binary_inputs<decltype(special_samples), fltx_type>(special_samples, make_fltx);
         const auto special_competitor_inputs =
@@ -2715,7 +2818,7 @@ namespace bl::test::metrics::f256_primary
         auto& extra_competitor = record.extra_competitors.emplace_back();
         extra_competitor.name = references::extra_competitor_name;
         extra_competitor.supported = ExtraSupported;
-        const auto special_samples = make_special_ternary_samples();
+        const auto special_samples = measure_accuracy ? make_special_ternary_samples() : std::vector<ternary_sample>{};
         const auto special_fltx_inputs = make_ternary_inputs<decltype(special_samples), fltx_type>(special_samples, make_fltx);
         const auto special_competitor_inputs =
             make_ternary_inputs<decltype(special_samples), competitor_ref>(special_samples, make_competitor);
@@ -2786,7 +2889,7 @@ namespace bl::test::metrics::f256_primary
         auto& extra_competitor = record.extra_competitors.emplace_back();
         extra_competitor.name = references::extra_competitor_name;
         extra_competitor.supported = ExtraSupported;
-        const auto special_samples = make_special_unary_int_samples();
+        const auto special_samples = measure_accuracy ? make_special_unary_int_samples() : std::vector<unary_int_sample>{};
         const auto special_fltx_inputs =
             make_unary_int_inputs<decltype(special_samples), fltx_type>(special_samples, make_fltx);
         const auto special_competitor_inputs =
@@ -2857,7 +2960,7 @@ namespace bl::test::metrics::f256_primary
         auto& extra_competitor = record.extra_competitors.emplace_back();
         extra_competitor.name = references::extra_competitor_name;
         extra_competitor.supported = ExtraSupported;
-        const auto special_samples = make_special_unary_samples();
+        const auto special_samples = measure_accuracy ? make_special_unary_samples() : std::vector<unary_sample>{};
         const auto special_fltx_inputs = make_unary_inputs<decltype(special_samples), fltx_type>(special_samples, make_fltx);
         const auto special_competitor_inputs =
             make_unary_inputs<decltype(special_samples), competitor_ref>(special_samples, make_competitor);

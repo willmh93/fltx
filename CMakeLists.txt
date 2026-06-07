@@ -43,6 +43,7 @@ include(CMakePackageConfigHelpers)
 include(cmake/fltxOptions.cmake)
 include(cmake/fltxFastMath.cmake)
 include(cmake/fltxMsvcTiming.cmake)
+include(cmake/fltxMsvcParallel.cmake)
 include(cmake/fltxSimd.cmake)
 include(cmake/fltxSources.cmake)
 
@@ -89,6 +90,7 @@ endif()
 target_compile_features(fltx ${FLTX_PUBLIC_SCOPE} cxx_std_23)
 fltx_apply_simd_options(fltx ${FLTX_PUBLIC_SCOPE})
 fltx_apply_fast_math_options(fltx)
+fltx_enable_msvc_parallel_compile(fltx)
 fltx_apply_msvc_timing_reports(fltx)
 
 install(TARGETS fltx

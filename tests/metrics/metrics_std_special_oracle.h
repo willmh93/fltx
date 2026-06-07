@@ -177,6 +177,11 @@ namespace bl::test::metrics
         throw std::invalid_argument("unknown unary-integer std special oracle operation");
     }
 
+    [[nodiscard]] inline bool unary_integer_special_probe_is_meaningful(std::string_view operation) noexcept
+    {
+        return operation == "ilogb";
+    }
+
     template<class Samples, class Values, class EvalFn, class RefFn>
     [[nodiscard]] special_correctness measure_unary_integer_special_values(
         std::string_view operation,

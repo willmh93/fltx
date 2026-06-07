@@ -1027,13 +1027,28 @@ namespace detail::_f128
         );
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s cbrt_tail_step(const f128_s& ax, const f128_s& current) noexcept
+    BL_PUSH_PRECISE;
+    [[nodiscard]] BL_FORCE_INLINE constexpr f128_s cbrt_compensated(const f128_s& ax, double c) noexcept
     {
-        const double inv_derivative = 1.0 / (3.0 * current.hi * current.hi);
-        const f128_s current_squared = mul_inline(current, current);
-        const f128_s residual = sub_mul_inline(ax, current_squared, current);
-        return add_inline(current, mul_double_inline(residual, inv_derivative));
+        double c2_hi{}, c2_lo{};
+        two_prod_precise(c, c, c2_hi, c2_lo);
+
+        double c3_hi{}, c3_lo{};
+        two_prod_precise(c2_hi, c, c3_hi, c3_lo);
+        c3_lo += c2_lo * c;
+
+        double residual_hi{}, residual_lo{};
+        two_sum_precise(ax.hi, -c3_hi, residual_hi, residual_lo);
+        residual_lo += ax.lo - c3_lo;
+
+        const f128_s residual = renorm(residual_hi, residual_lo);
+        const double inv_derivative = 1.0 / (3.0 * c2_hi);
+        const double cc = residual.hi * inv_derivative + residual.lo * inv_derivative;
+
+        const double y_hi = c + cc;
+        return { y_hi, (c - y_hi) + cc };
     }
+    BL_POP_PRECISE;
 
 } // namespace detail::_f128
 
@@ -1167,10 +1182,7 @@ namespace detail::_f128
     const bool neg = signbit(x);
     const f128_s ax = neg ? -x : x;
 
-    f128_s y = cbrt_seed(ax);
-    y = cbrt_tail_step(ax, y);
-    y = cbrt_tail_step(ax, y);
-    y = cbrt_tail_step(ax, y);
+    f128_s y = cbrt_compensated(ax, cbrt_seed(ax).hi);
 
     if (neg)
         y = -y;

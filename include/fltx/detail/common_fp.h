@@ -80,6 +80,32 @@ BL_FORCE_INLINE constexpr bool isinf_or_nan(double value) noexcept
     return (bits & 0x7ff0000000000000ULL) == 0x7ff0000000000000ULL;
 }
 
+BL_FORCE_INLINE constexpr bool isinf_or_nan(double first, double second) noexcept
+{
+    static_assert(std::numeric_limits<double>::is_iec559,
+        "isinf_or_nan bit-pattern check requires IEEE 754 / IEC 559 double");
+
+    constexpr std::uint64_t sign_mask = 0x8000000000000000ull;
+    constexpr std::uint64_t inf_bits = 0x7ff0000000000000ull;
+    const std::uint64_t first_abs_bits = std::bit_cast<std::uint64_t>(first) & ~sign_mask;
+    const std::uint64_t second_abs_bits = std::bit_cast<std::uint64_t>(second) & ~sign_mask;
+
+    return first_abs_bits >= inf_bits || second_abs_bits >= inf_bits;
+}
+
+BL_FORCE_INLINE constexpr bool isinf(double first, double second) noexcept
+{
+    static_assert(std::numeric_limits<double>::is_iec559,
+        "isinf bit-pattern check requires IEEE 754 / IEC 559 double");
+
+    constexpr std::uint64_t sign_mask = 0x8000000000000000ull;
+    constexpr std::uint64_t inf_bits = 0x7ff0000000000000ull;
+    const std::uint64_t first_abs_bits = std::bit_cast<std::uint64_t>(first) & ~sign_mask;
+    const std::uint64_t second_abs_bits = std::bit_cast<std::uint64_t>(second) & ~sign_mask;
+
+    return first_abs_bits == inf_bits || second_abs_bits == inf_bits;
+}
+
 BL_FORCE_INLINE constexpr bool iszero_or_nan(double value) noexcept
 {
     static_assert(std::numeric_limits<double>::is_iec559,
@@ -98,24 +124,21 @@ BL_FORCE_INLINE constexpr bool iszero_or_inf_or_nan(double value) noexcept
     return (abs_bits - 1ULL) >= 0x7fefffffffffffffULL;
 }
 
-template<int bits_to_clear>
-BL_FORCE_INLINE constexpr double zero_low_fraction_bits_finite(double value) noexcept
+BL_FORCE_INLINE constexpr bool iszero_or_negative_or_inf_or_nan(double value) noexcept
 {
-    static_assert(bits_to_clear >= 0 && bits_to_clear <= 52);
-
-    if constexpr (bits_to_clear == 0)
-        return value;
-
-    if (iszero_or_inf_or_nan(value))
-        return value;
-
-    constexpr std::uint64_t fraction_mask = (std::uint64_t{ 1 } << 52) - 1ULL;
-    constexpr std::uint64_t clear_mask    = ~((std::uint64_t{ 1 } << bits_to_clear) - 1ULL);
+    static_assert(std::numeric_limits<double>::is_iec559,
+        "iszero_or_negative_or_inf_or_nan bit-pattern check requires IEEE 754 / IEC 559 double");
 
     const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
-    const std::uint64_t sign_and_exponent = bits & ~fraction_mask;
-    const std::uint64_t fraction = bits & fraction_mask;
-    return std::bit_cast<double>(sign_and_exponent | (fraction & clear_mask));
+    return (bits - 1ULL) >= 0x7fefffffffffffffULL;
+}
+
+BL_FORCE_INLINE constexpr bool isposinf(double value) noexcept
+{
+    static_assert(std::numeric_limits<double>::is_iec559,
+        "isposinf bit-pattern check requires IEEE 754 / IEC 559 double");
+
+    return std::bit_cast<std::uint64_t>(value) == 0x7ff0000000000000ULL;
 }
 
 BL_FORCE_INLINE constexpr bool isnan(double value) noexcept
@@ -137,7 +160,31 @@ BL_FORCE_INLINE constexpr bool isnan(float value) noexcept
     return (bits & 0x7fffffffu) > 0x7f800000u;
 }
 
-BL_FORCE_INLINE constexpr double absd(double x) noexcept { return (x < 0.0) ? -x : x; }
+template<int bits_to_clear>
+BL_FORCE_INLINE constexpr double zero_low_fraction_bits_finite(double value) noexcept
+{
+    static_assert(bits_to_clear >= 0 && bits_to_clear <= 52);
+
+    if constexpr (bits_to_clear == 0)
+        return value;
+
+    if (iszero_or_inf_or_nan(value))
+        return value;
+
+    constexpr std::uint64_t fraction_mask = (std::uint64_t{ 1 } << 52) - 1ULL;
+    constexpr std::uint64_t clear_mask = ~((std::uint64_t{ 1 } << bits_to_clear) - 1ULL);
+
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
+    const std::uint64_t sign_and_exponent = bits & ~fraction_mask;
+    const std::uint64_t fraction = bits & fraction_mask;
+    return std::bit_cast<double>(sign_and_exponent | (fraction & clear_mask));
+}
+
+
+BL_FORCE_INLINE constexpr double absd(double x) noexcept
+{
+    return (x < 0.0) ? -x : x;
+}
 
 BL_FORCE_INLINE constexpr int frexp_exponent(double x) noexcept
 {

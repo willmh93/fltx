@@ -21,12 +21,12 @@ namespace bl {
 namespace detail::_f256 // primitives and kernels
 {
     BL_PUSH_PRECISE;
-    BL_PRINT_NOINLINE BL_FORCE_INLINE f256_s mul_by_double_print(f256_s a, double b) noexcept
+    BL_PRINT_NOINLINE inline f256_s mul_by_double_print(f256_s a, double b) noexcept
     {
         return a * b;
     }
 
-    BL_PRINT_NOINLINE BL_FORCE_INLINE f256_s sub_by_double_print(f256_s a, double b) noexcept
+    BL_PRINT_NOINLINE inline f256_s sub_by_double_print(f256_s a, double b) noexcept
     {
         return a - b;
     }

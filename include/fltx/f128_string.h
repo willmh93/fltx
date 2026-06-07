@@ -146,7 +146,7 @@ namespace detail::_f128 // primitives and kernels
         return detail::exact_decimal::exact_scientific_digits<exact_traits>(x, sig, digits, exp10);
     }
 
-    BL_FORCE_INLINE constexpr detail::fltx_char_result emit_fixed_dec_to_chars(char* first, char* last, f128_s x, int prec, bool strip_trailing_zeros) noexcept
+    constexpr detail::fltx_char_result emit_fixed_dec_to_chars(char* first, char* last, f128_s x, int prec, bool strip_trailing_zeros) noexcept
     {
         if (prec < 0) prec = 0;
 
@@ -495,19 +495,19 @@ BL_MSVC_NOINLINE constexpr bool parse_flt128(const char* s, f128_s& out, const c
 }
 
 template<std::size_t capacity = bl::default_io_string::static_capacity>
-[[nodiscard]] BL_MSVC_NOINLINE constexpr bl::static_string<capacity> to_static_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] constexpr bl::static_string<capacity> to_static_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     bl::static_string<capacity> out;
     detail::_f128::to_string_into(out, x, precision, fixed, scientific, strip_trailing_zeros);
     return out;
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bl::default_io_string to_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] constexpr bl::default_io_string to_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     return to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
 }
 
-[[nodiscard]] BL_FORCE_INLINE std::string to_std_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] inline std::string to_std_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
     const auto text = to_string(x, precision, fixed, scientific, strip_trailing_zeros);
     return std::string(text.data(), text.size());

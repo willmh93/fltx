@@ -144,9 +144,9 @@
     BINARY(subtract, "[arithmetic][subtract]", bits_90, make_arithmetic_samples, call_subtract, call_subtract) \
     BINARY(multiply, "[arithmetic][multiply]", bits_90, make_arithmetic_samples, call_multiply, call_multiply) \
     BINARY(divide, "[arithmetic][divide]", bits_90, make_arithmetic_samples, call_divide, call_divide) \
-    UNARY(sqrt, "[sqrt]", bits_90, make_positive_samples, call_sqrt) \
-    UNARY(cbrt, "[cbrt]", bits_90, make_signed_samples, call_cbrt) \
-    BINARY(hypot, "[hypot]", bits_90, make_hypot_samples, call_hypot, call_hypot) \
+    UNARY(sqrt, "[roots][sqrt]", bits_90, make_positive_samples, call_sqrt) \
+    UNARY(cbrt, "[roots][cbrt]", bits_90, make_signed_samples, call_cbrt) \
+    BINARY(hypot, "[roots][hypot]", bits_90, make_hypot_samples, call_hypot, call_hypot) \
     UNARY(sin, "[transcendental][trig][sin]", bits_80, make_trig_samples, call_sin) \
     UNARY(cos, "[transcendental][trig][cos]", bits_80, make_trig_samples, call_cos) \
     UNARY(tan, "[transcendental][trig][tan]", bits_75, make_tan_samples, call_tan) \

@@ -114,7 +114,7 @@ BL_NO_INLINE std::ostream& write_to_stream(std::ostream& os, const typename Trai
 }
 
 template<class Value, class ParseFn>
-BL_FORCE_INLINE std::istream& read_from_stream(std::istream& is, Value& x, ParseFn parse)
+std::istream& read_from_stream(std::istream& is, Value& x, ParseFn parse)
 {
     std::string token;
     if (!(is >> token))

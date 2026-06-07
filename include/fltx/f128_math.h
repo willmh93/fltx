@@ -26,12 +26,9 @@ namespace bl {
     return detail::_f128_impl::sqrt(a);
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 cbrt(const f128_s& x)
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 cbrt(const f128_s& a)
 {
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::cbrt(x),
-        detail::_f128_runtime::cbrt(x)
-    );
+    return detail::_f128_impl::cbrt(a);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 hypot(const f128_s& x, const f128_s& y)
@@ -55,18 +52,19 @@ namespace bl {
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 trunc(const f128_s& a)
 {
-    BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::trunc(a),
-        detail::_f128_runtime::trunc(a)
-    );
+    return detail::_f128_impl::trunc(a);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 round(const f128_s& a)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+    return detail::_f128_impl::round(a);
+#else
     BL_CONSTEXPR_RUNTIME_DISPATCH(
         detail::_f128_impl::round(a),
         detail::_f128_runtime::round(a)
     );
+#endif
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 round_to_decimals(f128_s v, int prec)
@@ -81,7 +79,7 @@ namespace bl {
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
         detail::_f128_impl::nearbyint(a),
-        detail::_f128_runtime::nearbyint(a)
+        detail::_f128_impl::nearbyint_runtime(a)
     );
 }
 
@@ -89,7 +87,7 @@ namespace bl {
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
         detail::_f128_impl::rint(x),
-        detail::_f128_runtime::rint(x)
+        detail::_f128_impl::nearbyint_runtime(x)
     );
 }
 
@@ -154,10 +152,14 @@ namespace bl {
 // remainders
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 fmod(const f128_s& x, const f128_s& y)
 {
+    #if defined(__GNUC__) && !defined(__clang__)
+    return detail::_f128_impl::fmod(x, y);
+    #else
     BL_CONSTEXPR_RUNTIME_DISPATCH(
         detail::_f128_impl::fmod(x, y),
         detail::_f128_runtime::fmod(x, y)
     );
+    #endif
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 remainder(const f128_s& x, const f128_s& y)

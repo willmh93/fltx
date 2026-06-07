@@ -28,6 +28,11 @@ namespace bl::detail::_f128_runtime
         return detail::_f128_impl::round_to_decimals(v, prec);
     }
 
+    BL_NO_INLINE f128_s nearbyint_slow(const f128_s& a)
+    {
+        return detail::_f128::nearbyint_generic(a);
+    }
+
     BL_NO_INLINE f128_s nearbyint(const f128_s& a)
     {
         return detail::_f128_impl::nearbyint_runtime(a);

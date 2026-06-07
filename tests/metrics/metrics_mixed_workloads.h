@@ -21,6 +21,7 @@
 
 #include "metrics_f128_primary.h"
 #include "metrics_f256_primary.h"
+#include "metrics_config.h"
 
 namespace bl::test::metrics::mixed_workloads
 {
@@ -499,12 +500,13 @@ namespace bl::test::metrics::mixed_workloads
         }};
 
         std::vector<recurrence_sample> samples;
-        samples.reserve(source.size() + 48);
+        constexpr std::size_t generated_count = config::scale_mixed_sample_count(48);
+        samples.reserve(source.size() + generated_count);
         for (std::size_t index = 0; index < source.size(); ++index)
             samples.push_back(make_recurrence_sample<Profile>("mixed", source[index]));
 
         mixed_rng rng{ 0x6d697865645f6175ull };
-        for (std::size_t index = 0; index < 48; ++index)
+        for (std::size_t index = 0; index < generated_count; ++index)
         {
             const auto signed_value = [&]() {
                 if ((rng.next() & 3ull) == 0ull)
@@ -550,13 +552,14 @@ namespace bl::test::metrics::mixed_workloads
         }};
 
         std::vector<affine_sample> samples;
-        samples.reserve(source.size() + 48);
+        constexpr std::size_t generated_count = config::scale_mixed_sample_count(48);
+        samples.reserve(source.size() + generated_count);
         for (std::size_t index = 0; index < source.size(); ++index)
             samples.push_back(make_affine_sample<Profile>("affine", source[index]));
 
         constexpr double pi = 3.14159265358979323846264338327950288;
         mixed_rng rng{ 0x616666696e655f6dull };
-        for (std::size_t index = 0; index < 48; ++index)
+        for (std::size_t index = 0; index < generated_count; ++index)
         {
             const double coordinate_scale = (index % 4) == 0 ? 16.0 : 4.0;
             samples.push_back({
@@ -768,7 +771,7 @@ namespace bl::test::metrics::mixed_workloads
         const std::vector<T>& values,
         WorkloadFn workload)
     {
-        const std::size_t repetitions = Profile::benchmark_repetitions(values.size());
+        const std::size_t repetitions = config::scale_mixed_iterations(Profile::benchmark_repetitions(values.size()));
         const auto start = std::chrono::steady_clock::now();
         const auto result = workload(values, repetitions);
         const auto elapsed = std::chrono::steady_clock::now() - start;

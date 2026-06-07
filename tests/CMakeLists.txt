@@ -10,6 +10,9 @@ endif()
 if (NOT COMMAND fltx_apply_msvc_timing_reports)
     include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxMsvcTiming.cmake")
 endif()
+if (NOT COMMAND fltx_enable_msvc_parallel_compile)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxMsvcParallel.cmake")
+endif()
 if (NOT COMMAND fltx_apply_simd_options)
     include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/fltxSimd.cmake")
 endif()
@@ -86,6 +89,7 @@ function (addFltxTestLibrary _TARGET)
     endif()
 
     fltx_apply_msvc_timing_reports(${_TARGET})
+    fltx_enable_msvc_parallel_compile(${_TARGET})
 endfunction()
 
 function (addFltxTestMacroStatus _TARGET)
@@ -109,6 +113,7 @@ function (addFltxTestMacroStatus _TARGET)
     endif()
 
     fltx_apply_msvc_timing_reports(${_STATUS_TARGET})
+    fltx_enable_msvc_parallel_compile(${_STATUS_TARGET})
     target_sources(${_TARGET} PRIVATE $<TARGET_OBJECTS:${_STATUS_TARGET}>)
 endfunction()
 
@@ -240,6 +245,7 @@ function (prepareTarget _TARGET _FLTX_LIBRARY)
     endif()
 
     fltx_apply_msvc_timing_reports(${_TARGET})
+    fltx_enable_msvc_parallel_compile(${_TARGET})
 endfunction()
 
 set(FLTX_PRECISION_TEST_LIBRARY fltx::fltx)
@@ -265,6 +271,14 @@ endif()
 target_include_directories(metrics_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/extern/qdpp/include"
 )
+
+if(EMSCRIPTEN)
+    target_link_options(metrics_tests PRIVATE
+        -sALLOW_MEMORY_GROWTH=1
+        -sINITIAL_MEMORY=268435456
+        -sMAXIMUM_MEMORY=1073741824
+    )
+endif()
 
 if (FLTX_PRECISION_TESTS_CONSTEXPR_PARITY)
     addFltxTestMacroStatus(precision_tests DEFINITIONS FLTX_CONSTEXPR_PARITY)
