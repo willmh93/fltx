@@ -7,12 +7,15 @@
 [![Precision Linux](https://github.com/willmh93/fltx/actions/workflows/precision-tests-linux.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-linux.yml)
 [![Precision Windows](https://github.com/willmh93/fltx/actions/workflows/precision-tests-windows.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-windows.yml)
 [![Precision macOS](https://github.com/willmh93/fltx/actions/workflows/precision-tests-mac.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-mac.yml)
+[![Precision wasm32](https://github.com/willmh93/fltx/actions/workflows/precision-tests-wasm32.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/precision-tests-wasm32.yml)
 [![Parity Linux](https://github.com/willmh93/fltx/actions/workflows/parity-tests-linux.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests-linux.yml)
 [![Parity Windows](https://github.com/willmh93/fltx/actions/workflows/parity-tests-windows.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests-windows.yml)
 [![Parity macOS](https://github.com/willmh93/fltx/actions/workflows/parity-tests-mac.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests-mac.yml)
+[![Parity wasm32](https://github.com/willmh93/fltx/actions/workflows/parity-tests-wasm32.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/parity-tests-wasm32.yml)
 [![IO Linux](https://github.com/willmh93/fltx/actions/workflows/io-tests-linux.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests-linux.yml)
 [![IO Windows](https://github.com/willmh93/fltx/actions/workflows/io-tests-windows.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests-windows.yml)
 [![IO macOS](https://github.com/willmh93/fltx/actions/workflows/io-tests-mac.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests-mac.yml)
+[![IO wasm32](https://github.com/willmh93/fltx/actions/workflows/io-tests-wasm32.yml/badge.svg)](https://github.com/willmh93/fltx/actions/workflows/io-tests-wasm32.yml)
 
 `fltx` is for code that needs more precision than `double`, without giving up fixed-size scalar types, predictable performance, `constexpr` support, or familiar C++ ergonomics.
 
@@ -25,7 +28,8 @@
 - Selected [`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h) kernels use platform SIMD by default where supported: x86/x64 SSE2 with FMA when available, AArch64 NEON, and WebAssembly `wasm128` SIMD via Emscripten
 - Compatible with fast-math builds; compiled runtime sources default to fast-math for speed, while `FLTX_CONSTEXPR_PARITY` remains available when bitwise-identical runtime and `constexpr` results matter
 - No required runtime dependencies
-- Standard-library integration for streams, `std::numeric_limits`, `std::numbers`, and common stream manipulators
+- Standard-library integration for streams, `std::numeric_limits`, `std::numbers`, `std::hash`, optional `std::format`, and common stream manipulators
+- Standard-shaped random engines and distributions, including deterministic `constexpr` generation for supported paths
 - Runtime code favors native performance by default
 - Suitable for lightweight native builds, WebAssembly / Emscripten
 - Optional runtime-to-compile-time dispatch helper for template-specialized kernels
@@ -34,8 +38,8 @@
 
 | Type | Representation | Accuracy |
 |---|---|---|
-| [`bl::f32`](include/fltx/types.h) | Alias for native [`float`](https://en.cppreference.com/w/cpp/language/types) | Native [`float`](https://en.cppreference.com/w/cpp/language/types) precision |
-| [`bl::f64`](include/fltx/types.h) | Alias for native [`double`](https://en.cppreference.com/w/cpp/language/types) | Native [`double`](https://en.cppreference.com/w/cpp/language/types) precision |
+| [`bl::f32`](include/fltx/aliases.h) | Alias for native [`float`](https://en.cppreference.com/w/cpp/language/types) | Native [`float`](https://en.cppreference.com/w/cpp/language/types) precision |
+| [`bl::f64`](include/fltx/aliases.h) | Alias for native [`double`](https://en.cppreference.com/w/cpp/language/types) | Native [`double`](https://en.cppreference.com/w/cpp/language/types) precision |
 | [`bl::f128`](include/fltx/f128.h) | Double-double, stored as two [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | Minimum 29 decimal digits across arithmetic and math functions |
 | [`bl::f256`](include/fltx/f256.h) | Quad-double, stored as four [`double`](https://en.cppreference.com/w/cpp/language/types) limbs | Minimum 59 decimal digits across arithmetic and math functions |
 
@@ -117,19 +121,24 @@ It is a good fit when you want an extended-precision type that can still be pass
 
 | Header | Provides |
 |---|---|
-| [`fltx.h`](include/fltx.h) | Full library interface |
-| [`fltx/core.h`](include/fltx/core.h) | Core numeric types, storage types, arithmetic, conversions, and standard numeric integration |
+| [`fltx.h`](include/fltx.h) | Default full interface: core types, IO, math, dispatch, random, and hashing |
+| [`fltx/core.h`](include/fltx/core.h) | Core numeric types, storage types, arithmetic, conversions, and numeric integration |
 | [`fltx/math.h`](include/fltx/math.h) | Core types plus the `constexpr` `<cmath>`-style API |
-| [`fltx/io.h`](include/fltx/io.h) | Core types plus parsing, formatting, string conversion, stream output, and literals |
+| [`fltx/io.h`](include/fltx/io.h) | Limits, numbers, `charconv`-shaped helpers, string conversion, stream output, and literals |
+| [`fltx/random.h`](include/fltx/random.h) | Standard-shaped random engines and distributions |
+| [`fltx/hash.h`](include/fltx/hash.h) | `std::hash` specializations for the extended types |
 
 Individual headers are also available when you want a smaller include surface:
 
 | Header | Provides |
 |---|---|
 | [`fltx/f128.h`](include/fltx/f128.h), [`fltx/f256.h`](include/fltx/f256.h) | Individual extended-precision types, storage types, and core operations |
-| [`fltx/f32/math.h`](include/fltx/f32/math.h), [`fltx/f64/math.h`](include/fltx/f64/math.h), [`fltx/f128/math.h`](include/fltx/f128/math.h), [`fltx/f256/math.h`](include/fltx/f256/math.h) | Math APIs for individual floating-point types |
-| [`fltx/f128/io.h`](include/fltx/f128/io.h), [`fltx/f256/io.h`](include/fltx/f256/io.h) | IO and literals for individual extended-precision types |
-| [`fltx/types.h`](include/fltx/types.h) | Type aliases, concepts, `FloatType`, and enum helpers |
+| [`fltx/f32_math.h`](include/fltx/f32_math.h), [`fltx/f64_math.h`](include/fltx/f64_math.h), [`fltx/f128_math.h`](include/fltx/f128_math.h), [`fltx/f256_math.h`](include/fltx/f256_math.h) | Math APIs for individual floating-point types |
+| [`fltx/f128_io.h`](include/fltx/f128_io.h), [`fltx/f256_io.h`](include/fltx/f256_io.h) | IO and literals for individual extended-precision types |
+| [`fltx/aliases.h`](include/fltx/aliases.h) | Fundamental aliases such as `f32`, `f64`, `f128`, and `f256` |
+| [`fltx/traits.h`](include/fltx/traits.h) | Concepts, type traits, `FloatType`, and enum names |
+| [`fltx/charconv.h`](include/fltx/charconv.h) | `bl::to_chars` and `bl::from_chars` for extended types |
+| [`fltx/format.h`](include/fltx/format.h) | Optional `std::formatter` specializations when `<format>` is available |
 | [`fltx/template_dispatch.h`](include/fltx/template_dispatch.h) | Standalone runtime-to-compile-time dispatch-table utility |
 | [`fltx/dispatch.h`](include/fltx/dispatch.h) | Dispatch helpers for mapping `FloatType` values to `f32`, `f64`, `f128`, or `f256` |
 
@@ -184,7 +193,7 @@ bl::is_integral_v<T>
 
 ## Math API
 
-[`fltx/math.h`](include/fltx/math.h) provides a `constexpr` math interface modeled after C++ <cmath> API across [`bl::f32`](include/fltx/types.h), [`bl::f64`](include/fltx/types.h), [`bl::f128`](include/fltx/f128.h), and [`bl::f256`](include/fltx/f256.h).
+[`fltx/math.h`](include/fltx/math.h) provides a `constexpr` math interface modeled after C++ <cmath> API across [`bl::f32`](include/fltx/aliases.h), [`bl::f64`](include/fltx/aliases.h), [`bl::f128`](include/fltx/f128.h), and [`bl::f256`](include/fltx/f256.h).
 
 This lets generic numeric code switch precision without changing its math calls:
 
@@ -207,16 +216,17 @@ Supported function groups:
 
 | constexpr | Category | Functions |
 |---|---|---|
-| ✅ | Arithmetic | `abs`, `fma` |
-| ✅ | Rounding | `floor`, `ceil`, `trunc`, `round`, `lround`, `llround`, `nearbyint`, `rint`, `lrint`, `llrint` |
-| ✅ | Remainders | `fmod`, `remainder`, `remquo` |
-| ✅ | Min / max / sign | `fmin`, `fmax`, `fdim`, `copysign` |
-| ✅ | Roots / powers | `sqrt`, `cbrt`, `hypot`, `pow` |
-| ✅ | Exp / log | `exp`, `exp2`, `expm1`, `log`, `log2`, `log10`, `log1p`, `logb`, `ilogb` |
-| ✅ | Trigonometry | `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2` |
-| ✅ | Hyperbolic | `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` |
-| ✅ | Special functions | `erf`, `erfc`, `lgamma`, `tgamma` |
-| ✅ | Scaling / layout | `ldexp`, `scalbn`, `scalbln`, `frexp`, `modf`, `nextafter`, `nexttoward` |
+| yes | Arithmetic | `abs`, `fabs`, `fma` |
+| yes | Rounding | `floor`, `ceil`, `trunc`, `round`, `lround`, `llround`, `nearbyint`, `rint`, `lrint`, `llrint` |
+| yes | Remainders | `fmod`, `remainder`, `remquo` |
+| yes | Min / max / sign | `fmin`, `fmax`, `fdim`, `copysign`, `signbit` |
+| yes | Roots / powers | `sqrt`, `cbrt`, `hypot`, `pow` |
+| yes | Exp / log | `exp`, `exp2`, `expm1`, `log`, `log2`, `log10`, `log1p`, `logb`, `ilogb` |
+| yes | Trigonometry | `sin`, `cos`, `tan`, `sincos`, `asin`, `acos`, `atan`, `atan2` |
+| yes | Hyperbolic | `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` |
+| yes | Special functions | `erf`, `erfc`, `lgamma`, `tgamma` |
+| yes | Classification / comparison | `fpclassify`, `isfinite`, `isinf`, `isnan`, `isnormal`, `isunordered`, `isgreater`, `isgreaterequal`, `isless`, `islessequal`, `islessgreater`, `iszero` |
+| yes | Scaling / layout | `ldexp`, `scalbn`, `scalbln`, `frexp`, `modf`, `nextafter`, `nexttoward` |
 
 
 ## IO and Literals
@@ -236,11 +246,13 @@ std::string s2    = bl::to_std_string(b);
 
 Stream output supports `std::setprecision`, `std::fixed`, `std::scientific`, `std::showpoint`, `std::showpos`, and `std::uppercase`.
 
+For buffer-oriented code, [`fltx/charconv.h`](include/fltx/charconv.h) provides `bl::to_chars` and `bl::from_chars` overloads for extended types. Include [`fltx/format.h`](include/fltx/format.h) when you want `std::format` support on standard libraries that provide `<format>`.
+
 ## Template Dispatch
 
 [`fltx/dispatch.h`](include/fltx/dispatch.h) includes a small runtime-to-template dispatch layer.
 
-This lets runtime values such as [`FloatType::F128`](include/fltx/types.h) or [`FloatType::F256`](include/fltx/types.h) select a compile-time type, so the called function still compiles as a normal template specialization.
+This lets runtime values such as [`FloatType::F128`](include/fltx/traits.h) or [`FloatType::F256`](include/fltx/traits.h) select a compile-time type, so the called function still compiles as a normal template specialization.
 
 ```cpp
 #include <iostream>
@@ -313,15 +325,14 @@ int main()
 
 ### vcpkg
 
-Add the bitloop registry to `vcpkg-configuration.json`:
+Add the bitloop registry to `vcpkg-configuration.json`, pinning the registry commit you want to consume:
 
 ```json
 {
-  "default-registry": { ... },
   "registries": [
     {
       "kind": "git",
-      "baseline": "45fca757b3ddbcbe804ea7d84b3699a469fda448",
+      "baseline": "5504123246482f0bbb58fd53783ae1b1e3fa88f9",
       "repository": "https://github.com/willmh93/bitloop-registry.git",
       "packages": ["fltx"]
     }
@@ -355,13 +366,6 @@ Or include it directly:
 ```cmake
 add_subdirectory(/path/to/fltx fltx-build)
 target_link_libraries(main PRIVATE fltx::fltx)
-```
-
-If you need the old include-only style, define `FLTX_HEADER_ONLY` before including the headers. That keeps constexpr and runtime calls in headers, but gives up the precompiled runtime helpers:
-
-```cmake
-target_compile_definitions(main PRIVATE FLTX_HEADER_ONLY)
-target_include_directories(main PRIVATE /path/to/fltx/include)
 ```
 
 ## Building fltx
@@ -417,7 +421,7 @@ cd fltx
 cmake --preset macos-release
 
 # 7. Build
-cmake --build --preset macos-release --config Release
+cmake --build build/macos-release --parallel
 ```
 
 For an already-cloned repo:
@@ -428,7 +432,7 @@ git pull
 git submodule update --init --recursive
 ./vcpkg/bootstrap-vcpkg.sh
 cmake --preset macos-release
-cmake --build --preset macos-release --config Release
+cmake --build build/macos-release --parallel
 ```
 
 </details>
@@ -436,7 +440,7 @@ cmake --build --preset macos-release --config Release
 <details>
 <summary>Linux</summary>
 
-Linux setup has not been manually validated yet. The expected Ubuntu/Debian flow is:
+The Ubuntu/Debian flow is:
 
 ```bash
 sudo apt update
@@ -447,8 +451,8 @@ cd fltx
 
 ./vcpkg/bootstrap-vcpkg.sh
 
-cmake --preset ninja-release
-cmake --build --preset ninja-release
+cmake --preset native-release
+cmake --build build/native-release --parallel
 ```
 
 Other distributions should use equivalent packages for a C++23 compiler, CMake, Ninja, pkg-config, and the autotools used by the GMP/MPFR vcpkg ports.
@@ -462,6 +466,8 @@ Test executables are registered with CTest. After building, you can run the regi
 ```bash
 ctest --preset native-release
 ```
+
+Use the matching preset for other configured build trees, such as `macos-release`, `mingw-release`, or `wasm32-release`.
 
 For a multi-config Visual Studio build, include the configuration:
 
@@ -479,46 +485,11 @@ Non-benchmark metrics cases are registered and discovered by default. Metrics be
 
 ## Benchmarks
 
-<img src="res/bench/benchmark_table.svg" alt="fltx benchmark table" width="100%">
+<img src="res/metrics/metrics_table.svg" alt="fltx metrics table" width="100%">
 
 `fltx` is tested and benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision levels.
 
-<details>
-<summary>Windows benchmark charts</summary>
-
-<img src="res/bench/windows/MSVC_f128_typical_ratios.svg" alt="Windows MSVC f128 benchmark ratios" width="100%">
-
-<img src="res/bench/windows/MSVC_f256_typical_ratios.svg" alt="Windows MSVC f256 benchmark ratios" width="100%">
-
-<img src="res/bench/windows/MinGW_f128_typical_ratios.svg" alt="Windows MinGW f128 benchmark ratios" width="100%">
-
-<img src="res/bench/windows/MinGW_f256_typical_ratios.svg" alt="Windows MinGW f256 benchmark ratios" width="100%">
-
-</details>
-
-<details>
-<summary>Linux benchmark charts</summary>
-
-<img src="res/bench/linux/GCC_f128_typical_ratios.svg" alt="Linux GCC f128 benchmark ratios" width="100%">
-
-<img src="res/bench/linux/GCC_f256_typical_ratios.svg" alt="Linux GCC f256 benchmark ratios" width="100%">
-
-<img src="res/bench/linux/Clang_f128_typical_ratios.svg" alt="Linux Clang f128 benchmark ratios" width="100%">
-
-<img src="res/bench/linux/Clang_f256_typical_ratios.svg" alt="Linux Clang f256 benchmark ratios" width="100%">
-
-</details>
-
-<details>
-<summary>WebAssembly benchmark charts</summary>
-
-<img src="res/bench/wasm32/Nodejs_f128_typical_ratios.svg" alt="WebAssembly Node.js f128 benchmark ratios" width="100%">
-
-<img src="res/bench/wasm32/Chrome_f128_typical_ratios.svg" alt="WebAssembly Chrome f128 benchmark ratios" width="100%">
-
-<img src="res/bench/wasm32/Chrome_f256_typical_ratios.svg" alt="WebAssembly Chrome f256 benchmark ratios" width="100%">
-
-</details>
+Checked-in metrics CSVs currently live under [res/metrics/](res/metrics/) for the platform/compiler combinations that have generated reports.
 
 ## License
 

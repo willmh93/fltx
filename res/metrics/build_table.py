@@ -76,9 +76,10 @@ FUNCTION_COLUMN_PADDING = 34
 FUNCTION_COLUMN_WIDTH_SCALE = 0.75
 RATIO_COLOR_STOPS: tuple[tuple[float, str], ...] = (
     (0.10, "#FF0000"),
-    (0.50, "#FA5B11"),
-    (0.95, "#D7DA81"),
-    (1.00, "#B0EA86"),
+    (0.45, "#FA5B11"),
+    (0.55, "#F19A51"),
+    (0.97, "#D7DA81"),
+    (1.01, "#90EA86"),
     (2.00, "#74D673"),
     (3.00, "#58CD6B"),
     (4.00, "#40C564"),
