@@ -14,7 +14,7 @@ int main()
 
     // generate static_string<512> at compile-time
     // = "1.57079632679489661923132169163975144209858469968755291048747230"
-    constexpr auto str_f256 = bl::to_string(pio2_f256);
+    constexpr auto str_f256 = bl::to_static_string(pio2_f256);
     std::cout << "str_f256:    " << str_f256 << "\n";
 
     // parse back to f128 value

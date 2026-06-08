@@ -19,13 +19,22 @@
 
 `fltx` is for projects that needs more precision than `double`, without giving up fixed-size scalar types, predictable performance, `constexpr` support, or familiar C++ ergonomics.
 
+## Menu
+
+- [Overview](https://github.com/willmh93/fltx#highlights): highlights and core types
+- [Get Started](https://github.com/willmh93/fltx#quick-start): quick start and installation
+- [Library Guide](https://github.com/willmh93/fltx#use-cases): use cases, headers, numeric types, math, and IO
+- [Advanced Features](https://github.com/willmh93/fltx#f256-expression-fusion): f256 expression fusion and template dispatch
+- [Developer](https://github.com/willmh93/fltx#building-fltx): building fltx and running tests
+- [Project Details](https://github.com/willmh93/fltx#benchmarks): benchmarks and license
+
 ## Highlights
 
 Features:
 
 - Fixed-size extended-precision scalar types: [`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h)
 - Full `constexpr` support for arithmetic, comparisons, conversions, parsing, formatting, and all math functions
-- A familiar standard-library shaped API; in most cases simply replace `std::` with `bl::`
+- A familiar standard-library shaped API; in most cases you can simply replace `std::` with `bl::`
 - No required runtime dependencies
 - Standard-library integration for IO streams / manipulators, `std::numeric_limits`, `std::numbers`, `std::hash`, `std::format`
 
@@ -37,7 +46,7 @@ Accuracy:
 Performance:
 
 - Compatible with fast-math builds
-- [`bl::f256`](include/fltx/f256.h) has an expression node system which recognises and fuses common arithmetic shapes, reducing intermediate rounding and temporary value materialisation, allowing those shapes to run through specialised fused evaluation paths.
+- [`bl::f256`](include/fltx/f256.h) has an expression node system which recognises and fuses common arithmetic shapes, reducing intermediate rounding and temporary value materialisation, allowing those shapes to run specialised fused kernels.
 - Hardware acceleration where supported, including x86/x64 SSE2 with FMA when available, AArch64 NEON, and WebAssembly `wasm128` SIMD via Emscripten
 - Suitable for lightweight native builds, WebAssembly / Emscripten
 - Optional runtime-to-compile-time dispatch helper for template-specialized kernels
@@ -97,6 +106,53 @@ d = 0.84147098480789650665250232163029899962256306079837106567275171
 
 More examples are available in [examples/](examples/)
 
+## Installation
+
+### vcpkg
+
+Add the bitloop registry to `vcpkg-configuration.json`, pinning the registry commit you want to consume:
+
+```json
+{
+  "registries": [
+    {
+      "kind": "git",
+      "baseline": "5504123246482f0bbb58fd53783ae1b1e3fa88f9",
+      "repository": "https://github.com/willmh93/bitloop-registry.git",
+      "packages": ["fltx"]
+    }
+  ]
+}
+```
+
+Then add `fltx` to `vcpkg.json`:
+
+```json
+{
+  "name": "myapp",
+  "version": "1.0.0",
+  "dependencies": [
+    "fltx"
+  ]
+}
+```
+
+### CMake
+
+With vcpkg:
+
+```cmake
+find_package(fltx CONFIG REQUIRED)
+target_link_libraries(main PRIVATE fltx::fltx)
+```
+
+Or include it directly:
+
+```cmake
+add_subdirectory(/path/to/fltx fltx-build)
+target_link_libraries(main PRIVATE fltx::fltx)
+```
+
 ## Use Cases
 
 `fltx` is aimed at workloads where both precision and speed matter:
@@ -113,9 +169,9 @@ It is a good fit when you want an extended-precision type that can still be pass
 
 | Header | Provides |
 |---|---|
-| [`fltx.h`](include/fltx.h) | Default full interface: core types, IO, math, dispatch, random, and hashing |
+| [`fltx.h`](include/fltx.h) | Umbrella header: Core types, IO, math, random, hashing and template dispatch helper |
 | [`fltx/core.h`](include/fltx/core.h) | Core numeric types, storage types, arithmetic, conversions, and numeric integration |
-| [`fltx/math.h`](include/fltx/math.h) | Core types plus the `constexpr` `<cmath>`-style API |
+| [`fltx/math.h`](include/fltx/math.h) | Core types plus the `constexpr` Math API |
 | [`fltx/io.h`](include/fltx/io.h) | Limits, numbers, `charconv`-shaped helpers, string conversion, stream output, and literals |
 | [`fltx/random.h`](include/fltx/random.h) | Standard-shaped random engines and distributions |
 | [`fltx/hash.h`](include/fltx/hash.h) | `std::hash` specializations for the extended types |
@@ -124,84 +180,65 @@ Individual headers are also available when you want a smaller include surface:
 
 | Header | Provides |
 |---|---|
-| [`fltx/f128.h`](include/fltx/f128.h), [`fltx/f256.h`](include/fltx/f256.h) | Individual extended-precision types, storage types, and core operations |
-| [`fltx/f32_math.h`](include/fltx/f32_math.h), [`fltx/f64_math.h`](include/fltx/f64_math.h), [`fltx/f128_math.h`](include/fltx/f128_math.h), [`fltx/f256_math.h`](include/fltx/f256_math.h) | Math APIs for individual floating-point types |
-| [`fltx/f128_io.h`](include/fltx/f128_io.h), [`fltx/f256_io.h`](include/fltx/f256_io.h) | IO and literals for individual extended-precision types |
-| [`fltx/aliases.h`](include/fltx/aliases.h) | Fundamental aliases such as `f32`, `f64`, `f128`, and `f256` |
-| [`fltx/traits.h`](include/fltx/traits.h) | Concepts, type traits, `FloatType`, and enum names |
+| [`fltx/f128.h`](include/fltx/f128.h)<br>[`fltx/f256.h`](include/fltx/f256.h) | Individual extended-precision types, storage types, and core operations |
+| [`fltx/f32_math.h`](include/fltx/f32_math.h)<br>[`fltx/f64_math.h`](include/fltx/f64_math.h)<br>[`fltx/f128_math.h`](include/fltx/f128_math.h)<br>[`fltx/f256_math.h`](include/fltx/f256_math.h) | Math APIs for individual floating-point types |
+| [`fltx/f128_io.h`](include/fltx/f128_io.h)<br>[`fltx/f256_io.h`](include/fltx/f256_io.h) | `bl::to_f128`, `bl::to_f256`<br>`bl::to_string`, `bl::to_static_string`, `bl::to_string_collapsed`<br>`_dd` / `_qd` literals |
 | [`fltx/charconv.h`](include/fltx/charconv.h) | `bl::to_chars` and `bl::from_chars` for extended types |
+| [`fltx/aliases.h`](include/fltx/aliases.h) | Fundamental aliases such as `f32`, `f64`, `f128`, and `f256` |
+| [`fltx/traits.h`](include/fltx/traits.h) | Concepts, type traits, `FloatType` enum, and `FloatTypeNames` |
 | [`fltx/format.h`](include/fltx/format.h) | Optional `std::formatter` specializations when `<format>` is available |
-| [`fltx/template_dispatch.h`](include/fltx/template_dispatch.h) | Standalone runtime-to-compile-time dispatch-table utility |
-| [`fltx/dispatch.h`](include/fltx/dispatch.h) | Dispatch helpers for mapping `FloatType` values to `f32`, `f64`, `f128`, or `f256` |
-
-## f256 Expression Fusion
-
-[`bl::f256`](include/fltx/f256.h) has an expression node system which recognises common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations.
-
-For example:
-
-```cpp
-f256 r = a * b + c * d + e;
-```
-
-is kept as a small compile-time expression and lowered to the existing fused product-sum body. This avoids materialising and normalising each intermediate quad-double result before the final value is needed.
-
-The matcher also accepts selected equivalent spellings, such as reordered product/value terms and scaled linear forms. That gives common kernels like affine transforms, small matrix-vector operations, polynomial-style updates, and recurrence relations a faster path without requiring users to call specialised helpers or the implementation to maintain a full symbolic optimiser.
-
-The fused bodies remain explicit and bounded, which keeps compile-time and code-size costs under control.
+| [`fltx/dispatch.h`](include/fltx/dispatch.h) | Includes standalone [`fltx/template_dispatch.h`](include/fltx/template_dispatch.h) runtime-to-compile-time dispatch-table helper,<br>plus mappings for `FloatType` values to `f32`, `f64`, `f128`, or `f256` |
 
 ## Numeric Types
 
 The main user-facing types are:
 
-```text
+```cpp
 bl::f32     // float alias
 bl::f64     // double alias
 bl::f128    // double-double scalar type
 bl::f256    // quad-double scalar type
 
 bl::f128_s  // trivial storage form
-bl::f256_s  // trivial storage form
+bl::f256_s  // trivial storage form (no fused-expression support)
 ```
 
-The trivial storage forms are useful when standard-layout storage matters, such as packed structures, unions, binary buffers, or interop boundaries. They convert cleanly to and from the full scalar types:
+The trivial storage forms are useful when standard-layout storage matters, such as packed structures, unions, binary buffers, or interop boundaries. They convert cleanly to and from the full scalar types.
 
 ```cpp
-bl::f128_s a { 5.0 };
-bl::f128   b = 5.0f;
+bl::f128_s a { 5.0 }; // storage forms are trivially constructible
+bl::f128   b = 5.0f;  // full scalar type
 
-bl::f128   c = a + b;
-bl::f128_s d = c;
+bl::f128_s c = a + b;
+bl::f128   d = c;
 ```
 
 Common type concepts and traits are available from [`fltx/traits.h`](include/fltx/traits.h):
 
 ```cpp
-bl::fltx_f32<T>
-bl::fltx_f64<T>
-bl::fltx_f128<T>
-bl::fltx_f256<T>
+bl::fltx_f32<T>                  // true for bl::f32
+bl::fltx_f64<T>                  // true for bl::f64
+bl::fltx_f128<T>                 // true for bl::f128 or bl::f128_s
+bl::fltx_f256<T>                 // true for bl::f256 or bl::f256_s
 
-bl::fltx_extended_float<T>
-bl::fltx_float<T>
-bl::fltx_floating_point<T>
-bl::fltx_arithmetic<T>
+bl::fltx_extended_float<T>       // true for fltx f128/f256 scalar or storage types
+bl::fltx_float<T>                // true for the fltx float family: f32, f64, f128, or f256
+bl::fltx_arithmetic<T>           // true for native arithmetic or fltx extended floats
 
-bl::is_f32_v<T>
-bl::is_f64_v<T>
-bl::is_f128_v<T>
-bl::is_f256_v<T>
+bl::is_f32_v<T>                  // bool-value form of bl::fltx_f32<T>
+bl::is_f64_v<T>                  // bool-value form of bl::fltx_f64<T>
+bl::is_f128_v<T>                 // bool-value form of bl::fltx_f128<T>
+bl::is_f256_v<T>                 // bool-value form of bl::fltx_f256<T>
 
-bl::is_fltx_extended_float_v<T>
-bl::is_fltx_float_v<T>
-bl::is_floating_point_v<T>
-bl::is_arithmetic_v<T>
-bl::is_integral_v<T>
+bl::is_fltx_extended_float_v<T>  // bool-value form of bl::fltx_extended_float<T>
+bl::is_fltx_float_v<T>           // bool-value form of bl::fltx_float<T>
+bl::is_arithmetic_v<T>           // bool-value form of bl::fltx_arithmetic<T>
+bl::is_integral_v<T>             // true for native integral types (for consistency)
 ```
 
 ## Math API
 
-[`fltx/math.h`](include/fltx/math.h) provides a `constexpr` math interface modeled after C++ <cmath> API across [`bl::f32`](include/fltx/aliases.h), [`bl::f64`](include/fltx/aliases.h), [`bl::f128`](include/fltx/f128.h), and [`bl::f256`](include/fltx/f256.h).
+[`fltx/math.h`](include/fltx/math.h) provides a `constexpr` interface modeled after the `<cmath>` API across [`bl::f32`](include/fltx/aliases.h), [`bl::f64`](include/fltx/aliases.h), [`bl::f128`](include/fltx/f128.h), and [`bl::f256`](include/fltx/f256.h).
 
 This lets generic numeric code switch precision without changing its math calls:
 
@@ -224,17 +261,17 @@ Supported function groups:
 
 | constexpr | Category | Functions |
 |---|---|---|
-| yes | Arithmetic | `abs`, `fabs`, `fma` |
-| yes | Rounding | `floor`, `ceil`, `trunc`, `round`, `lround`, `llround`, `nearbyint`, `rint`, `lrint`, `llrint` |
-| yes | Remainders | `fmod`, `remainder`, `remquo` |
-| yes | Min / max / sign | `fmin`, `fmax`, `fdim`, `copysign`, `signbit` |
-| yes | Roots / powers | `sqrt`, `cbrt`, `hypot`, `pow` |
-| yes | Exp / log | `exp`, `exp2`, `expm1`, `log`, `log2`, `log10`, `log1p`, `logb`, `ilogb` |
-| yes | Trigonometry | `sin`, `cos`, `tan`, `sincos`, `asin`, `acos`, `atan`, `atan2` |
-| yes | Hyperbolic | `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` |
-| yes | Special functions | `erf`, `erfc`, `lgamma`, `tgamma` |
-| yes | Classification / comparison | `fpclassify`, `isfinite`, `isinf`, `isnan`, `isnormal`, `isunordered`, `isgreater`, `isgreaterequal`, `isless`, `islessequal`, `islessgreater`, `iszero` |
-| yes | Scaling / layout | `ldexp`, `scalbn`, `scalbln`, `frexp`, `modf`, `nextafter`, `nexttoward` |
+| ✅ | Arithmetic | `abs`, `fabs`, `fma` |
+| ✅ | Rounding | `floor`, `ceil`, `trunc`, `round`, `lround`, `llround`, `nearbyint`, `rint`, `lrint`, `llrint` |
+| ✅ | Remainders | `fmod`, `remainder`, `remquo` |
+| ✅ | Min / max / sign | `fmin`, `fmax`, `fdim`, `copysign`, `signbit` |
+| ✅ | Roots / powers | `sqrt`, `cbrt`, `hypot`, `pow` |
+| ✅ | Exp / log | `exp`, `exp2`, `expm1`, `log`, `log2`, `log10`, `log1p`, `logb`, `ilogb` |
+| ✅ | Trigonometry | `sin`, `cos`, `tan`, `sincos`, `asin`, `acos`, `atan`, `atan2` |
+| ✅ | Hyperbolic | `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` |
+| ✅ | Special functions | `erf`, `erfc`, `lgamma`, `tgamma` |
+| ✅ | Classification / comparison | `fpclassify`, `isfinite`, `isinf`, `isnan`, `isnormal`, `isunordered`, `isgreater`, `isgreaterequal`, `isless`, `islessequal`, `islessgreater`, `iszero` |
+| ✅ | Scaling / layout | `ldexp`, `scalbn`, `scalbln`, `frexp`, `modf`, `nextafter`, `nexttoward` |
 
 
 ## IO and Literals
@@ -242,19 +279,34 @@ Supported function groups:
 [`fltx/io.h`](include/fltx/io.h) adds `constexpr`-capable parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
 
 ```cpp
-using namespace bl;
 using namespace bl::literals;
 
 constexpr f128 a = 1.25_dd;
-constexpr f256 b = "3.1415926535897932384626433832795028841971"_qd;
+constexpr f256 b = 3.1415926535897932384626433832795028841971_qd;
 
-constexpr auto s1 = bl::to_string(b);      // static_string<512>
-std::string s2    = bl::to_std_string(b);
+constexpr auto s1 = bl::to_static_string(b);  // static_string<512>
+std::string s2    = bl::to_string(b);
 ```
 
 Stream output supports `std::setprecision`, `std::fixed`, `std::scientific`, `std::showpoint`, `std::showpos`, and `std::uppercase`.
 
 For buffer-oriented code, [`fltx/charconv.h`](include/fltx/charconv.h) provides `bl::to_chars` and `bl::from_chars` overloads for extended types. Include [`fltx/format.h`](include/fltx/format.h) when you want `std::format` support on standard libraries that provide `<format>`.
+
+## f256 Expression Fusion
+
+[`bl::f256`](include/fltx/f256.h) has an expression node system which recognises common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations.
+
+For example:
+
+```cpp
+f256 r = a * b + c * d + e;
+```
+
+is kept as a small compile-time expression and lowered to the existing fused product-sum body. This avoids materialising and normalising each intermediate quad-double result before the final value is needed.
+
+The matcher also accepts selected equivalent spellings, such as reordered product/value terms and scaled linear forms. That gives common kernels like affine transforms, small matrix-vector operations, polynomial-style updates, and recurrence relations a faster path without requiring users to call specialised helpers or the implementation to maintain a full symbolic optimiser.
+
+The fused bodies remain explicit and bounded, which keeps compile-time and code-size costs under control.
 
 ## Template Dispatch
 
@@ -264,7 +316,6 @@ This lets runtime values such as [`FloatType::F128`](include/fltx/traits.h) or [
 
 ```cpp
 #include <iostream>
-
 #include <fltx.h>
 
 using namespace bl;
@@ -328,53 +379,6 @@ int main()
 ```
 
 </details>
-
-## Installation
-
-### vcpkg
-
-Add the bitloop registry to `vcpkg-configuration.json`, pinning the registry commit you want to consume:
-
-```json
-{
-  "registries": [
-    {
-      "kind": "git",
-      "baseline": "5504123246482f0bbb58fd53783ae1b1e3fa88f9",
-      "repository": "https://github.com/willmh93/bitloop-registry.git",
-      "packages": ["fltx"]
-    }
-  ]
-}
-```
-
-Then add `fltx` to `vcpkg.json`:
-
-```json
-{
-  "name": "myapp",
-  "version": "1.0.0",
-  "dependencies": [
-    "fltx"
-  ]
-}
-```
-
-### CMake
-
-With vcpkg:
-
-```cmake
-find_package(fltx CONFIG REQUIRED)
-target_link_libraries(main PRIVATE fltx::fltx)
-```
-
-Or include it directly:
-
-```cmake
-add_subdirectory(/path/to/fltx fltx-build)
-target_link_libraries(main PRIVATE fltx::fltx)
-```
 
 ## Building fltx
 
@@ -483,9 +487,6 @@ For a multi-config Visual Studio build, include the configuration:
 ctest --preset vs2026-release
 ```
 
-Visual Studio's Test Explorer can discover the same CTest tests when the repository is opened as a CMake project, for example with **File > Open > Folder**. Opening the generated `build\vs2026\fltx.slnx` uses Visual Studio's project-system test adapters instead of the CMake/CTest integration path. For that generated solution route, the Visual Studio generator writes `build\vs2026\.runsettings` for the Test Adapter for Catch2; install that adapter and make sure the solution runsettings file is selected if Test Explorer does not pick it up automatically.
-
-Non-benchmark metrics cases are registered and discovered by default. Metrics benchmark cases are excluded from default discovery; run `metrics_tests [bench]` explicitly when you only want timing benchmark cases. To run the full combined metrics suite and write the CSV reports, run the metrics executable directly with all three primary phases selected:
 
 ```powershell
 .\build\vs2026\tests\Release\metrics_tests.exe "[precision],[domain],[bench]"
@@ -493,9 +494,20 @@ Non-benchmark metrics cases are registered and discovered by default. Metrics be
 
 ## Benchmarks
 
+Tested on:
+- **Windows:** AMD Ryzen 9 5950X, Memory 32 GB LPDDR5
+- **Linux:** AMD Ryzen 9 5950X, Memory 32 GB LPDDR5
+- **MacOS:** Apple M2 Pro, Memory 16 GB LPDDR5
+
+`ns/iter` for `bl::f128` / `bl::f256` metrics, colored by speed ratio vs the stronger available reference.
+
+- cpp_dd (boost::multiprecision::cpp_double_double)
+- mpfr (boost::multiprecision::mpfr_float_backend<64>)
+- dd_real (qdpp)
+- qd_real (qdpp)
+
 <img src="res/metrics/metrics_table.svg" alt="fltx metrics table" width="100%">
 
-`fltx` is tested and benchmarked against [`boost::multiprecision::mpfr_float_backend<>`](https://www.boost.org/doc/libs/release/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html) at comparable precision levels.
 
 Checked-in metrics CSVs currently live under [res/metrics/](res/metrics/) for the platform/compiler combinations that have generated reports.
 

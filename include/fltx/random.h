@@ -1384,6 +1384,29 @@ namespace detail::random
         normal_distribution<result_type> normal;
     };
 
+    template<class Distribution, class Engine>
+    concept random_distribution_for =
+        requires(Distribution& distribution, Engine& engine)
+        {
+            typename std::remove_cvref_t<Distribution>::result_type;
+            {
+                distribution(engine)
+            } -> std::same_as<typename std::remove_cvref_t<Distribution>::result_type>;
+        };
+
+    template<std::size_t Count, uniform_random_bit_generator Engine, class Distribution>
+        requires random_distribution_for<Distribution, Engine>
+    [[nodiscard]] BL_FORCE_INLINE constexpr auto random_array(Engine engine, Distribution distribution)
+    {
+        using result_type = typename std::remove_cvref_t<Distribution>::result_type;
+
+        std::array<result_type, Count> values{};
+        for (auto& value : values)
+            value = distribution(engine);
+
+        return values;
+    }
+
     class random_device
     {
     public:
@@ -1411,6 +1434,7 @@ namespace detail::random
     private:
         std::random_device device;
     };
+
 }
 
 #endif

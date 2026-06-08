@@ -539,15 +539,20 @@ template<std::size_t capacity = bl::default_io_string::static_capacity>
     return out;
 }
 
-[[nodiscard]] BL_FORCE_INLINE constexpr bl::default_io_string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE constexpr bl::default_io_string to_static_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
-    return to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
+    return to_static_string<bl::default_io_string::static_capacity>(x, precision, fixed, scientific, strip_trailing_zeros);
+}
+
+[[nodiscard]] BL_FORCE_INLINE std::string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+{
+    const auto text = to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
+    return std::string(text.data(), text.size());
 }
 
 [[nodiscard]] BL_FORCE_INLINE std::string to_std_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
-    const auto text = to_string(x, precision, fixed, scientific, strip_trailing_zeros);
-    return std::string(text.data(), text.size());
+    return to_string(x, precision, fixed, scientific, strip_trailing_zeros);
 }
 
 namespace detail::_f256 // primitives and kernels
