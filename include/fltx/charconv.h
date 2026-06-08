@@ -243,6 +243,7 @@ namespace bl
         const int precision = fmt == std::chars_format::general
             ? std::numeric_limits<f256_s>::max_digits10
             : 6;
+
         return detail::charconv::to_chars_impl<detail::_f256::f256_io_traits>(
             first,
             last,
