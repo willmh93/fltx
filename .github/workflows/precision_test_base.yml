@@ -103,7 +103,7 @@ jobs:
         run: .\vcpkg\bootstrap-vcpkg.bat
 
       - name: Configure
-        run: cmake --preset native-release -DFLTX_EXAMPLE_VIEWER=OFF -DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON
+        run: cmake --preset native-release -DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON
 
       - name: Save vcpkg binary cache
         if: steps.vcpkg-cache.outputs.cache-hit != 'true'

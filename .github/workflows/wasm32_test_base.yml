@@ -85,7 +85,6 @@ jobs:
         shell: bash
         run: |
           cmake --preset wasm32-release \
-            -DFLTX_EXAMPLE_VIEWER=OFF \
             -DFLTX_BUILD_MPFR_TESTS=ON \
             -DVCPKG_OVERLAY_PORTS="${GITHUB_WORKSPACE}/cmake/vcpkg-ports" \
             -DVCPKG_OVERLAY_TRIPLETS="${GITHUB_WORKSPACE}/cmake/vcpkg-triplets" \
