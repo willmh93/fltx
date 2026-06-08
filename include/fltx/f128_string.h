@@ -509,6 +509,12 @@ template<std::size_t capacity = bl::default_io_string::static_capacity>
 
 [[nodiscard]] inline std::string to_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
+    const auto text = to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
+    return std::string(text.data(), text.size());
+}
+
+[[nodiscard]] inline std::string to_std_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+{
     return to_string(x, precision, fixed, scientific, strip_trailing_zeros);
 }
 

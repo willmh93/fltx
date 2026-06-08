@@ -32,6 +32,13 @@ namespace
         return dist(rng);
     }
 
+    [[nodiscard]] constexpr auto constexpr_random_array_sample()
+    {
+        return bl::random_array<4>(
+            bl::mt19937_64{ 0x1020304050607080ull },
+            bl::uniform_real_distribution<bl::f128>{ bl::f128{ -2.0 }, bl::f128{ 3.0 } });
+    }
+
     [[nodiscard]] constexpr bl::f128 constexpr_canonical_sample()
     {
         bl::mt19937 rng{ 1234u };
@@ -134,6 +141,7 @@ namespace
     static_assert(bl::uniform_random_bit_generator<bl::mt19937>);
     static_assert(bl::uniform_random_bit_generator<bl::mt19937_64>);
     static_assert(bl::uniform_random_bit_generator<modulo_six_urbg>);
+    static_assert(bl::random_distribution_for<bl::uniform_real_distribution<bl::f128>, bl::mt19937_64>);
     static_assert(std::is_same_v<bl::default_random_engine, bl::mt19937>);
     static_assert(std::is_same_v<bl::uniform_real_distribution<bl::f128>::result_type, bl::f128>);
     static_assert(std::is_same_v<bl::uniform_int_distribution<int>::result_type, int>);
@@ -144,6 +152,11 @@ namespace
     static_assert(constexpr_unit_sample() < bl::f128{ 1.0 });
     static_assert(constexpr_interval_sample() >= bl::f128{ -2.0 });
     static_assert(constexpr_interval_sample() < bl::f128{ 3.0 });
+    static_assert(std::tuple_size_v<std::remove_cvref_t<decltype(constexpr_random_array_sample())>> == 4);
+    static_assert(constexpr_random_array_sample()[0] >= bl::f128{ -2.0 });
+    static_assert(constexpr_random_array_sample()[0] < bl::f128{ 3.0 });
+    static_assert(constexpr_random_array_sample()[3] >= bl::f128{ -2.0 });
+    static_assert(constexpr_random_array_sample()[3] < bl::f128{ 3.0 });
     static_assert(constexpr_canonical_sample() >= bl::f128{ 0.0 });
     static_assert(constexpr_canonical_sample() < bl::f128{ 1.0 });
     static_assert(constexpr_float_sample() >= -0.5f);
@@ -185,6 +198,22 @@ TEST_CASE("bl random_device exposes the runtime-only standard-shaped API", "[flt
     REQUIRE(sample >= bl::random_device::min());
     REQUIRE(sample <= bl::random_device::max());
     REQUIRE(device.entropy() >= 0.0);
+}
+
+TEST_CASE("bl random_array generates deterministic distribution samples", "[fltx][random][f128][constexpr]")
+{
+    bl::mt19937_64 rng{ 0x1020304050607080ull };
+    bl::uniform_real_distribution<bl::f128> dist{ bl::f128{ -2.0 }, bl::f128{ 3.0 } };
+
+    const auto values = bl::random_array<4>(rng, dist);
+    for (const bl::f128& value : values)
+    {
+        REQUIRE(value >= bl::f128{ -2.0 });
+        REQUIRE(value < bl::f128{ 3.0 });
+    }
+
+    for (const bl::f128& value : values)
+        REQUIRE(value == dist(rng));
 }
 
 TEST_CASE("bl seed_seq and mersenne twister seed sequence match std output", "[fltx][random][f128][constexpr]")
