@@ -14,6 +14,7 @@
 
 #include "fltx/detail/f32_math_basic.h"
 #include "fltx/detail/f64_math_transcendental.h"
+#include "fltx/traits.h"
 
 
 namespace bl {
@@ -83,6 +84,18 @@ namespace detail::_f32_runtime
 
 [[nodiscard]] BL_FORCE_INLINE constexpr float log10(float x) noexcept
 {
+    if (detail::fp::isfinite(x) && x > 0.0f)
+    {
+        const int exp2 = detail::fp::frexp_exponent(static_cast<double>(x));
+        const int k0 = static_cast<int>(detail::fp::floor((exp2 - 1) * 0.30102999566398114));
+
+        for (int k = k0 - 2; k <= k0 + 2; ++k)
+        {
+            if (0 <= k && k <= 10 && x == detail::_f32_impl::pow10(k))
+                return static_cast<float>(k);
+        }
+    }
+
     BL_CONSTEXPR_RUNTIME_DISPATCH(
         static_cast<float>(bl::log10(static_cast<double>(x))),
         std::log10(x)
@@ -132,6 +145,10 @@ namespace detail::_f32_runtime
         std::pow(x, y)
     );
 }
+
+template<class Exp>
+requires fltx_pow_wider_floating_exponent<float, Exp>
+[[nodiscard]] BL_FORCE_INLINE constexpr float pow(float, const Exp&) noexcept = delete;
 
 
 // trig

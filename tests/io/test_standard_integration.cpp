@@ -2,8 +2,10 @@
 
 #include <charconv>
 #include <compare>
+#include <iomanip>
 #include <limits>
 #include <numbers>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -48,6 +50,30 @@ namespace
     static_assert(bl::is_integral_v<int>);
     static_assert(!bl::is_integral_v<bl::f128>);
 
+    constexpr bl::f32 constexpr_f32_parse = bl::parse<bl::f32>("1.5");
+    static_assert(constexpr_f32_parse == bl::f32{ 1.5f });
+
+    constexpr bl::f64 constexpr_f64_parse = bl::parse<bl::f64>("-2.25");
+    static_assert(constexpr_f64_parse == bl::f64{ -2.25 });
+
+    constexpr bl::f128 constexpr_f128_parse = bl::parse<bl::f128>("3.5");
+    static_assert(constexpr_f128_parse == bl::f128{ 3.5 });
+
+    constexpr bl::f256 constexpr_f256_parse = bl::parse<bl::f256>("4.75");
+    static_assert(constexpr_f256_parse == bl::f256{ 4.75 });
+
+    static_assert(bl::parse<bl::f64>("oops", 9.0) == 9.0);
+
+    template<class T>
+    [[nodiscard]] bool close_to_decimal_power(T actual, T expected)
+    {
+        const T diff = bl::abs(actual - expected);
+        T scale = bl::abs(expected);
+        if (scale < T{ 1.0 })
+            scale = T{ 1.0 };
+        return diff <= scale * std::numeric_limits<T>::epsilon() * T{ 16.0 };
+    }
+
 } // namespace
 
 TEST_CASE("fltx charconv-shaped helpers format and parse", "[fltx][io][charconv]")
@@ -86,6 +112,83 @@ TEST_CASE("fltx charconv-shaped helpers format and parse", "[fltx][io][charconv]
     REQUIRE(f256_in.ec == std::errc{});
     REQUIRE(f256_in.ptr == text.data() + 3);
     REQUIRE(f256_parsed == bl::f256{ 3.5 });
+
+    constexpr std::string_view f32_text = "1.5tail";
+    bl::f32 f32_parsed{};
+    const auto f32_in = bl::from_chars(f32_text.data(), f32_text.data() + f32_text.size(), f32_parsed);
+    REQUIRE(f32_in.ec == std::errc{});
+    REQUIRE(f32_in.ptr == f32_text.data() + 3);
+    REQUIRE(f32_parsed == bl::f32{ 1.5f });
+
+    const auto f32_out = bl::to_chars(
+        buffer,
+        buffer + sizeof(buffer),
+        bl::f32{ 1.5f },
+        std::chars_format::fixed,
+        2);
+    REQUIRE(f32_out.ec == std::errc{});
+    REQUIRE(std::string_view(buffer, static_cast<std::size_t>(f32_out.ptr - buffer)) == "1.50");
+
+    constexpr std::string_view f64_hex_text = "1.8p+1tail";
+    bl::f64 f64_hex_parsed{};
+    const auto f64_hex_in = bl::from_chars(
+        f64_hex_text.data(),
+        f64_hex_text.data() + f64_hex_text.size(),
+        f64_hex_parsed,
+        std::chars_format::hex);
+    REQUIRE(f64_hex_in.ec == std::errc{});
+    REQUIRE(f64_hex_in.ptr == f64_hex_text.data() + 6);
+    REQUIRE(f64_hex_parsed == 3.0);
+
+    char std_buffer[128]{};
+    const auto f64_hex_out = bl::to_chars(
+        buffer,
+        buffer + sizeof(buffer),
+        bl::f64{ 3.0 },
+        std::chars_format::hex);
+    const auto std_f64_hex_out = std::to_chars(
+        std_buffer,
+        std_buffer + sizeof(std_buffer),
+        bl::f64{ 3.0 },
+        std::chars_format::hex);
+    REQUIRE(f64_hex_out.ec == std::errc{});
+    REQUIRE(std_f64_hex_out.ec == std::errc{});
+    REQUIRE(std::string_view(buffer, static_cast<std::size_t>(f64_hex_out.ptr - buffer)) ==
+            std::string_view(std_buffer, static_cast<std::size_t>(std_f64_hex_out.ptr - std_buffer)));
+
+    constexpr std::string_view f128_hex_text = "1.00000000000001p+0tail";
+    bl::f128 f128_hex_parsed{};
+    const auto f128_hex_in = bl::from_chars(
+        f128_hex_text.data(),
+        f128_hex_text.data() + f128_hex_text.size(),
+        f128_hex_parsed,
+        std::chars_format::hex);
+    REQUIRE(f128_hex_in.ec == std::errc{});
+    REQUIRE(f128_hex_in.ptr == f128_hex_text.data() + 19);
+    REQUIRE(f128_hex_parsed == bl::f128{ 1.0 } + bl::ldexp(bl::f128{ 1.0 }, -56));
+
+    constexpr std::string_view f256_hex_text = "1.0000000000000000000000000001p+0tail";
+    bl::f256 f256_hex_parsed{};
+    const auto f256_hex_in = bl::from_chars(
+        f256_hex_text.data(),
+        f256_hex_text.data() + f256_hex_text.size(),
+        f256_hex_parsed,
+        std::chars_format::hex);
+    REQUIRE(f256_hex_in.ec == std::errc{});
+    REQUIRE(f256_hex_in.ptr == f256_hex_text.data() + 33);
+    const bl::f256 f256_hex_expected = bl::f256{ 1.0 } + bl::ldexp(bl::f256{ 1.0 }, -112);
+    REQUIRE(f256_hex_parsed == f256_hex_expected);
+
+    constexpr std::string_view prefixed_hex_text = "0x1p+0";
+    bl::f128 prefixed_hex_parsed{ 42.0 };
+    const auto prefixed_hex_in = bl::from_chars(
+        prefixed_hex_text.data(),
+        prefixed_hex_text.data() + prefixed_hex_text.size(),
+        prefixed_hex_parsed,
+        std::chars_format::hex);
+    REQUIRE(prefixed_hex_in.ec == std::errc{});
+    REQUIRE(prefixed_hex_in.ptr == prefixed_hex_text.data() + 1);
+    REQUIRE(prefixed_hex_parsed == bl::f128{ 0.0 });
 
     const auto hex_out = bl::to_chars(
         buffer,
@@ -160,6 +263,66 @@ TEST_CASE("fltx charconv-shaped helpers format and parse", "[fltx][io][charconv]
     REQUIRE(bl::isnan(parsed_nan));
 }
 
+TEST_CASE("fltx parse helpers require complete input", "[fltx][io][parse]")
+{
+    constexpr std::string_view f128_text = "1.25";
+    const bl::f128 f128_value = bl::parse<bl::f128>(f128_text);
+    REQUIRE(f128_value == bl::f128{ 1.25 });
+
+    bl::f128 f128_out{};
+    REQUIRE(bl::try_parse(f128_text, f128_out));
+    REQUIRE(f128_out == bl::f128{ 1.25 });
+
+    constexpr std::string_view partial_text = "1.25tail";
+    const auto partial_result = bl::try_parse<bl::f128>(partial_text);
+    REQUIRE(!partial_result);
+    REQUIRE(partial_result.ec == std::errc::invalid_argument);
+    REQUIRE(partial_result.consumed == 4u);
+
+    constexpr std::string_view f256_hex_text = "1.0000000000000000000000000001p+0";
+    const auto f256_hex_result = bl::try_parse<bl::f256>(f256_hex_text, std::chars_format::hex);
+    REQUIRE(f256_hex_result);
+    REQUIRE(f256_hex_result.consumed == f256_hex_text.size());
+    const bl::f256 f256_hex_expected = bl::f256{ 1.0 } + bl::ldexp(bl::f256{ 1.0 }, -112);
+    REQUIRE(f256_hex_result.value == f256_hex_expected);
+
+    constexpr std::string_view f64_hex_text = "1.8p+1";
+    REQUIRE(bl::parse<bl::f64>(f64_hex_text, std::chars_format::hex) == 3.0);
+
+    constexpr std::string_view fixed_text = "1e2";
+    const auto fixed_result = bl::try_parse<bl::f128>(fixed_text, std::chars_format::fixed);
+    REQUIRE(!fixed_result);
+    REQUIRE(fixed_result.consumed == 1u);
+
+    const bl::f32 fallback = bl::parse<bl::f32>("not a number", bl::f32{ 7.0f });
+    REQUIRE(fallback == bl::f32{ 7.0f });
+}
+
+TEST_CASE("fltx precision_info can collapse fixed fractional digits", "[fltx][io][string]")
+{
+    const bl::precision_info collapsed{ 15, 3, 4 };
+
+    REQUIRE(bl::to_string(bl::to_f128("123.123456789012345"), collapsed, true) == "123.123...2345");
+    REQUIRE(bl::to_string(bl::to_f256("123.123456789012345"), collapsed, true) == "123.123...2345");
+
+    REQUIRE(bl::to_string(bl::f32{ 1.1234567f }, bl::precision_info{ 7, 1, 1 }, true) == "1.1...7");
+    REQUIRE(bl::to_string(bl::f64{ 1.123456789 }, bl::precision_info{ 9, 2, 3 }, true) == "1.12...789");
+
+    const bl::f128 value = bl::to_f128("123.123456789012345");
+    REQUIRE(bl::to_string(value, collapsed, false, false) == bl::to_string(value, collapsed.digits, false, false));
+    REQUIRE(bl::to_string(value, collapsed, false, true) == bl::to_string(value, collapsed.digits, false, true));
+}
+
+TEST_CASE("fltx streams f256 extremes without normalization stalls", "[fltx][io][stream]")
+{
+    std::ostringstream out;
+    out << std::setprecision(std::numeric_limits<bl::f256>::digits10)
+        << std::numeric_limits<bl::f256>::min();
+
+    REQUIRE(out.str().starts_with("2.225073858507201383090232717332"));
+    REQUIRE(out.str().ends_with("e-308"));
+}
+
 TEST_CASE("fltx partial ordering reports NaNs as unordered", "[fltx][compare]")
 {
     const bl::f128 f128_nan = std::numeric_limits<bl::f128>::quiet_NaN();
@@ -189,6 +352,52 @@ TEST_CASE("fltx hash specializations support unordered containers", "[fltx][hash
     const auto found = values.find(bl::f128{ 1.5 });
     REQUIRE(found != values.end());
     REQUIRE(found->second == 42);
+}
+
+TEST_CASE("fltx generic pow10 covers the float family", "[fltx][math][pow10]")
+{
+    REQUIRE(bl::pow10<bl::f32>(3) == 1000.0f);
+    REQUIRE(bl::pow10<bl::f64>(3) == 1000.0);
+    REQUIRE(bl::pow10<bl::f128>(3) == bl::f128{ 1000.0 });
+    REQUIRE(bl::pow10<bl::f256>(3) == bl::f256{ 1000.0 });
+
+    for (int exponent = -45; exponent <= 38; ++exponent)
+    {
+        CAPTURE(exponent);
+        const std::string token = "1e" + std::to_string(exponent);
+
+        bl::f32 expected{};
+        const auto [ptr, ec] = std::from_chars(token.data(), token.data() + token.size(), expected);
+
+        REQUIRE(ec == std::errc{});
+        REQUIRE(ptr == token.data() + token.size());
+        REQUIRE(bl::pow10<bl::f32>(exponent) == expected);
+    }
+
+    for (int exponent = -323; exponent <= 308; ++exponent)
+    {
+        CAPTURE(exponent);
+        const std::string token = "1e" + std::to_string(exponent);
+
+        bl::f64 expected{};
+        const auto [ptr, ec] = std::from_chars(token.data(), token.data() + token.size(), expected);
+
+        REQUIRE(ec == std::errc{});
+        REQUIRE(ptr == token.data() + token.size());
+        REQUIRE(bl::pow10<bl::f64>(exponent) == expected);
+    }
+
+    const int extended_exponents[] = { -32, -8, -3, -1, 0, 1, 3, 8, 32 };
+    for (int exponent : extended_exponents)
+    {
+        CAPTURE(exponent);
+        const std::string token = "1e" + std::to_string(exponent);
+
+        const bl::f128 expected_f128 = bl::to_f128(token);
+        const bl::f256 expected_f256 = bl::to_f256(token);
+        REQUIRE(close_to_decimal_power(bl::pow10<bl::f128>(exponent), expected_f128));
+        REQUIRE(close_to_decimal_power(bl::pow10<bl::f256>(exponent), expected_f256));
+    }
 }
 
 #if FLTX_HAS_STD_FORMAT

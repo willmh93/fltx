@@ -1881,7 +1881,7 @@ namespace detail::_f256 // primitives and kernels
             return ldexp_terms(a, e);
 
         double s;
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             s = bl::detail::fp::ldexp(1.0, e);
         }
@@ -1890,7 +1890,7 @@ namespace detail::_f256 // primitives and kernels
             s = std::ldexp(1.0, e);
         }
 
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return renorm(a.x0 * s, a.x1 * s, a.x2 * s, a.x3 * s);
         }

@@ -27,7 +27,7 @@ namespace detail::_f256 // primitives and kernels
 
     BL_FORCE_INLINE constexpr f256_s mul_add_horner_step(const f256_s& a, const f256_s& b, const f256_s& c) noexcept
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return mul_add_horner_step_inline(a, b, c);
         }
@@ -48,7 +48,7 @@ namespace detail::_f256 // primitives and kernels
 
     BL_FORCE_INLINE constexpr f256_s horner_forward(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return horner_forward_inline(coeffs, count, x);
         }
@@ -69,7 +69,7 @@ namespace detail::_f256 // primitives and kernels
 
     BL_FORCE_INLINE constexpr f256_s horner_reverse(const f256_s* coeffs, std::size_t count, const f256_s& x) noexcept
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return horner_reverse_inline(coeffs, count, x);
         }
@@ -112,7 +112,7 @@ namespace detail::_f256 // primitives and kernels
         f256_s& left_out,
         f256_s& right_out) noexcept
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             horner_pair_forward_inline(left_coeffs, right_coeffs, count, x, left_out, right_out);
             return;
@@ -132,7 +132,7 @@ namespace detail::_f256 // primitives and kernels
 
     BL_MSVC_NOINLINE constexpr f256_s log1p_series_reduced(const f256_s& x)
     {
-        if (!bl::use_constexpr_math())
+        if (!bl::detail::use_constexpr_math())
         {
             return detail::_f256_runtime::log1p_series_reduced(x);
         }
@@ -215,7 +215,7 @@ namespace detail::_f256 // primitives and kernels
 
     BL_MSVC_NOINLINE constexpr f256_s log1p_newton_small(const f256_s& frac) noexcept
     {
-        f256_s x = bl::use_constexpr_math()
+        f256_s x = bl::detail::use_constexpr_math()
             ? f256_s{ detail::fp::log1p(frac.x0) }
             : f256_s{ std::log1p(frac.x0) };
 
@@ -292,7 +292,7 @@ namespace detail::_f256 // primitives and kernels
         }
 
         double log2_m{};
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             log2_m = detail::fp::log(m.x0) * 1.4426950408889634074;
         }
@@ -883,7 +883,7 @@ namespace detail::_f256 // primitives and kernels
 
     BL_MSVC_NOINLINE constexpr f256_s sin_kernel_pi4(const f256_s& r)
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return sin_kernel_pi4_inline(r);
         }
@@ -897,7 +897,7 @@ namespace detail::_f256 // primitives and kernels
 
     BL_MSVC_NOINLINE constexpr f256_s cos_kernel_pi4(const f256_s& r)
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return cos_kernel_pi4_inline(r);
         }
@@ -1041,7 +1041,7 @@ namespace detail::_f256 // primitives and kernels
     // erf/erfc functions
     [[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s erf_cheb_eval(const f256_s& x, const f256_s* coeffs, double shift)
     {
-        if (!bl::use_constexpr_math())
+        if (!bl::detail::use_constexpr_math())
         {
             return detail::_f256_runtime::cheb_eval(x, coeffs, f256_erf_cheb_coeff_count, shift);
         }
@@ -1341,7 +1341,7 @@ namespace detail::_f256
         return detail::fp::log(static_cast<double>(a));
 
     const double lo = (a.x1 + a.x2) + a.x3;
-    if (!bl::use_constexpr_math())
+    if (!bl::detail::use_constexpr_math())
     {
         return std::log(hi) + std::log1p(lo / hi);
     }
@@ -1561,7 +1561,7 @@ namespace detail::_f256
     if (y == 0.5) return F256_CANONICALIZE_MATH_RESULT(detail::_f256_impl::sqrt(x));
 
     double yi{};
-    if (bl::use_constexpr_math())
+    if (bl::detail::use_constexpr_math())
     {
         yi = (y < 0.0)
             ? detail::fp::ceil(y)

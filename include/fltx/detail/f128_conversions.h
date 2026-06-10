@@ -24,7 +24,7 @@ namespace detail::_f128 // primitives and kernels
 
     BL_FORCE_INLINE constexpr f128_s canonicalize_math_result(f128_s value) noexcept
     {
-        value.lo = detail::fp::zero_low_fraction_bits_finite<8>(value.lo);
+        value.lo = detail::fp::zero_low_fraction_bits_finite<0>(value.lo);
         return value;
     }
 

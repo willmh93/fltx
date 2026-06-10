@@ -6,8 +6,10 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 
+#include <fltx/charconv.h>
 #include <fltx/f256_io.h>
 #include <fltx/random.h>
 
@@ -94,13 +96,12 @@ namespace
     void check_parse_case(const char* text)
     {
         f256 parsed{};
-        const char* end = nullptr;
-        const bool ok   = parse_flt256(text, parsed, &end);
+        const std::string_view input{ text };
+        const auto result = bl::from_chars(input.data(), input.data() + input.size(), parsed);
 
         CAPTURE(text);
-        REQUIRE(ok);
-        REQUIRE(end != nullptr);
-        REQUIRE(*end == '\0');
+        REQUIRE(result.ec == std::errc{});
+        REQUIRE(result.ptr == input.data() + input.size());
 
         require_close(parsed, to_ref(text));
     }
@@ -203,69 +204,74 @@ TEST_CASE("f256 literals parse numeric and string source text", "[fltx][f256][io
 TEST_CASE("f256 parser handles special values, partial tokens, and invalid inputs", "[fltx][f256][io][parse][edge]")
 {
     {
-        const char* text = " \t+infinity;";
-        const char* end  = nullptr;
+        const char* text = "infinity;";
+        const std::string_view input{ text };
         f256 parsed{};
-        REQUIRE(parse_flt256(text, parsed, &end));
-        REQUIRE(end != nullptr);
-        REQUIRE(*end == ';');
+        const auto result = bl::from_chars(input.data(), input.data() + input.size(), parsed);
+        REQUIRE(result.ec == std::errc{});
+        REQUIRE(result.ptr != nullptr);
+        REQUIRE(*result.ptr == ';');
         REQUIRE(bl::isinf(parsed));
         REQUIRE(!std::signbit(parsed.x0));
     }
     {
         const char* text = "-inf tail";
-        const char* end  = nullptr;
+        const std::string_view input{ text };
         f256 parsed{};
-        REQUIRE(parse_flt256(text, parsed, &end));
-        REQUIRE(end != nullptr);
-        REQUIRE(*end == ' ');
+        const auto result = bl::from_chars(input.data(), input.data() + input.size(), parsed);
+        REQUIRE(result.ec == std::errc{});
+        REQUIRE(result.ptr != nullptr);
+        REQUIRE(*result.ptr == ' ');
         REQUIRE(bl::isinf(parsed));
         REQUIRE(std::signbit(parsed.x0));
     }
     {
         const char* text = "NaN(payload)";
-        const char* end  = nullptr;
+        const std::string_view input{ text };
         f256 parsed{};
-        REQUIRE(parse_flt256(text, parsed, &end));
-        REQUIRE(end != nullptr);
-        REQUIRE(*end == '(');
+        const auto result = bl::from_chars(input.data(), input.data() + input.size(), parsed);
+        REQUIRE(result.ec == std::errc{});
+        REQUIRE(result.ptr != nullptr);
+        REQUIRE(*result.ptr == '(');
         REQUIRE(bl::isnan(parsed));
     }
     {
         const char* text = "1.25tail";
-        const char* end  = nullptr;
+        const std::string_view input{ text };
         f256 parsed{};
-        REQUIRE(parse_flt256(text, parsed, &end));
-        REQUIRE(end != nullptr);
-        REQUIRE(*end == 't');
+        const auto result = bl::from_chars(input.data(), input.data() + input.size(), parsed);
+        REQUIRE(result.ec == std::errc{});
+        REQUIRE(result.ptr != nullptr);
+        REQUIRE(*result.ptr == 't');
         require_close(parsed, to_ref("1.25"));
     }
     {
         const char* text = "1e+oops";
-        const char* end  = nullptr;
+        const std::string_view input{ text };
         f256 parsed{};
-        REQUIRE(parse_flt256(text, parsed, &end));
-        REQUIRE(end != nullptr);
-        REQUIRE(*end == 'e');
+        const auto result = bl::from_chars(input.data(), input.data() + input.size(), parsed);
+        REQUIRE(result.ec == std::errc{});
+        REQUIRE(result.ptr != nullptr);
+        REQUIRE(*result.ptr == 'e');
         require_close(parsed, to_ref("1"));
     }
     {
         const char* text = "1e100000000";
-        const char* end  = nullptr;
+        const std::string_view input{ text };
         f256 parsed{};
-        REQUIRE(parse_flt256(text, parsed, &end));
-        REQUIRE(end != nullptr);
-        REQUIRE(*end == '\0');
+        const auto result = bl::from_chars(input.data(), input.data() + input.size(), parsed);
+        REQUIRE(result.ec == std::errc{});
+        REQUIRE(result.ptr == input.data() + input.size());
         REQUIRE(bl::isinf(parsed));
         REQUIRE(!std::signbit(parsed.x0));
     }
     {
         const char* text = "-1e-100000000";
-        const char* end  = nullptr;
+        const std::string_view input{ text };
         f256 parsed{ 1.0, 0.0, 0.0, 0.0 };
-        REQUIRE(parse_flt256(text, parsed, &end));
-        REQUIRE(end != nullptr);
-        REQUIRE(*end == '\0');
+        const auto result = bl::from_chars(input.data(), input.data() + input.size(), parsed);
+        REQUIRE(result.ec == std::errc{});
+        REQUIRE(result.ptr == input.data() + input.size());
         REQUIRE(bl::iszero(parsed));
         REQUIRE(std::signbit(parsed.x0));
     }
@@ -281,11 +287,12 @@ TEST_CASE("f256 parser handles special values, partial tokens, and invalid input
 
     for (const char* text : invalid_cases)
     {
-        const char* end = nullptr;
+        const std::string_view input{ text };
         f256 parsed{ 42.0, 0.0, 0.0, 0.0 };
         CAPTURE(text);
-        REQUIRE_FALSE(parse_flt256(text, parsed, &end));
-        REQUIRE(end == text);
+        const auto result = bl::from_chars(input.data(), input.data() + input.size(), parsed);
+        REQUIRE(result.ec == std::errc::invalid_argument);
+        REQUIRE(result.ptr == input.data());
         REQUIRE(parsed.x0 == 42.0);
         REQUIRE(parsed.x1 == 0.0);
         REQUIRE(parsed.x2 == 0.0);
@@ -303,8 +310,8 @@ TEST_CASE("f256 fixed zero formatting respects precision", "[fltx][f256][io][for
     std::string expected = "0.";
     expected.append(static_cast<std::size_t>(std::numeric_limits<f256>::digits10), '0');
     REQUIRE(out.str() == expected);
-    REQUIRE(bl::to_std_string(f256{ 0.0, 0.0, 0.0, 0.0 }, 5, true, false, false) == "0.00000");
-    REQUIRE(bl::to_std_string(f256{ 0.0, 0.0, 0.0, 0.0 }, 5, true, false, true) == "0");
+    REQUIRE(bl::to_string(f256{ 0.0, 0.0, 0.0, 0.0 }, 5, true, false, false) == "0.00000");
+    REQUIRE(bl::to_string(f256{ 0.0, 0.0, 0.0, 0.0 }, 5, true, false, true) == "0");
 
     std::ostringstream neg_out;
     neg_out << std::fixed << std::setprecision(3) << f256{ -0.0, 0.0, 0.0, 0.0 };
@@ -317,9 +324,9 @@ TEST_CASE("f256 formats special values and stream flags consistently", "[fltx][f
     const f256 neg_inf = -inf;
     const f256 nan     = std::numeric_limits<f256>::quiet_NaN();
 
-    REQUIRE(bl::to_std_string(inf) == "inf");
-    REQUIRE(bl::to_std_string(neg_inf) == "-inf");
-    REQUIRE(bl::to_std_string(nan) == "nan");
+    REQUIRE(bl::to_string(inf) == "inf");
+    REQUIRE(bl::to_string(neg_inf) == "-inf");
+    REQUIRE(bl::to_string(nan) == "nan");
     REQUIRE(std::string(bl::to_static_string(to_f256("1.2500"), 4, true, false, true)) == "1.25");
 
     std::ostringstream pos_upper;

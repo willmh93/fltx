@@ -12,6 +12,7 @@
 
 #include "fltx/detail/f128_math_basic.h"
 #include "fltx/detail/f128_math_transcendental.h"
+#include "fltx/traits.h"
 
 namespace bl {
 
@@ -302,12 +303,12 @@ namespace bl {
     );
 }
 
-// pow
-[[nodiscard]] BL_FORCE_INLINE constexpr f128 pow10_128(int k)
+template<fltx_f128 T>
+[[nodiscard]] BL_FORCE_INLINE constexpr std::remove_cv_t<T> pow10(int k)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f128_impl::pow10_128(k),
-        detail::_f128_runtime::pow10_128(k)
+        static_cast<std::remove_cv_t<T>>(detail::_f128_impl::pow10_128(k)),
+        static_cast<std::remove_cv_t<T>>(detail::_f128_runtime::pow10_128(k))
     );
 }
 
@@ -319,6 +320,31 @@ namespace bl {
     );
 }
 
+template<detail::fp::non_bool_integral Exp>
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 pow(const f128_s& x, Exp y)
+{
+    using U = std::make_unsigned_t<std::remove_cvref_t<Exp>>;
+
+    const U magnitude = detail::fp::unsigned_abs(y);
+    const f128_s powered = detail::fp::ipow_nonneg<f128_s, U>(x, magnitude);
+
+    if constexpr (std::signed_integral<std::remove_cvref_t<Exp>>)
+    {
+        if (y < 0)
+            return f128{ f128_s{ 1.0 } / powered };
+    }
+
+    return f128{ powered };
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 pow(const f128_s& x, float y)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::pow(x, static_cast<double>(y)),
+        detail::_f128_runtime::pow(x, static_cast<double>(y))
+    );
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 pow(const f128_s& x, double y)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -326,6 +352,12 @@ namespace bl {
         detail::_f128_runtime::pow(x, y)
     );
 }
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 pow(const f128_s&, long double) = delete;
+
+template<class Exp>
+requires fltx_pow_wider_floating_exponent<f128_s, Exp>
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 pow(const f128_s&, const Exp&) = delete;
 
 // trig
 [[nodiscard]] BL_FORCE_INLINE constexpr bool sincos(const f128_s& x, f128_s& s_out, f128_s& c_out)

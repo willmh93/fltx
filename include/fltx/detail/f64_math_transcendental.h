@@ -13,6 +13,7 @@
 #define F64_MATH_TRANSCENDENTAL_INCLUDED
 
 #include "fltx/detail/f64_math_basic.h"
+#include "fltx/traits.h"
 
 
 namespace bl {
@@ -137,6 +138,18 @@ namespace detail::_f64_impl
 
     BL_FORCE_INLINE constexpr double log10(double x) noexcept
     {
+        if (isfinite(x) && x > 0.0)
+        {
+            const int exp2 = detail::fp::frexp_exponent(x);
+            const int k0 = static_cast<int>(floor((exp2 - 1) * 0.30102999566398114));
+
+            for (int k = k0 - 2; k <= k0 + 2; ++k)
+            {
+                if (0 <= k && k <= 22 && x == pow10(k))
+                    return static_cast<double>(k);
+            }
+        }
+
         return log(x) * inv_ln10;
     }
 
@@ -723,6 +736,14 @@ namespace detail::_f64_impl
 
 
 // pow
+[[nodiscard]] BL_FORCE_INLINE constexpr double pow(double x, float y) noexcept
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f64_impl::pow(x, static_cast<double>(y)),
+        std::pow(x, static_cast<double>(y))
+    );
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr double pow(double x, double y) noexcept
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -730,6 +751,10 @@ namespace detail::_f64_impl
         std::pow(x, y)
     );
 }
+
+template<class Exp>
+requires fltx_pow_wider_floating_exponent<double, Exp>
+[[nodiscard]] BL_FORCE_INLINE constexpr double pow(double, const Exp&) noexcept = delete;
 
 
 // trig

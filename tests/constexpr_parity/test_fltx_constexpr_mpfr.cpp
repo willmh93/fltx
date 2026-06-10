@@ -81,7 +81,7 @@ namespace
 
     [[nodiscard]] constexpr bool real_constexpr_canary()
     {
-        return bl::is_constant_evaluated();
+        return bl::detail::is_constant_evaluated();
     }
 
     static_assert(real_constexpr_canary());

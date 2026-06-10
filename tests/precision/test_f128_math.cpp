@@ -90,7 +90,7 @@ namespace
             { "log2", "4e-30" },
             { "multiply", "5e-32" },
             { "pow", "4e-30" },
-            { "pow10_128", "4e-34" },
+            { "pow10", "4e-34" },
             { "recip", "2e-33" },
             { "remainder", "3e-30" },
             { "sin", "2e-30" },
@@ -2383,18 +2383,18 @@ TEST_CASE("f128 utility math helpers behave correctly for fixed values", "[fltx]
         const std::array<int, 9> exponents = {{ -8, -3, -1, 0, 1, 3, 8, 16, 32 }};
         for (int exponent : exponents)
         {
-            const f128 got          = bl::pow10_128(exponent);
+            const f128 got          = bl::pow10<bl::f128>(exponent);
             const mpfr_ref expected = ref_pow10(exponent);
             const mpfr_ref got_ref  = to_ref_exact(got);
             mpfr_ref scale = abs_ref(expected);
             if (scale < 1)
                 scale = 1;
-            const mpfr_ref tolerance = function_tolerance("pow10_128", scale);
+            const mpfr_ref tolerance = function_tolerance("pow10", scale);
             const mpfr_ref diff      = abs_ref(got_ref - expected);
             CAPTURE(exponent);
             CAPTURE(to_text(got));
             CAPTURE(to_text(expected));
-            record_accuracy_sample("pow10_128", got, expected, diff, scale, diff <= tolerance);
+            record_accuracy_sample("pow10", got, expected, diff, scale, diff <= tolerance);
             REQUIRE(diff <= tolerance);
         }
     }
@@ -2420,7 +2420,7 @@ TEST_CASE("f128 utility math helpers behave correctly for fixed values", "[fltx]
 
 TEST_CASE("f128 public math results remain canonical on edge-shaped inputs", "[fltx][f128][math][canonical]")
 {
-    if (bl::is_constant_evaluated() && !bl::use_constexpr_parity())
+    if (bl::detail::is_constant_evaluated() && !bl::detail::use_constexpr_parity())
         SKIP("canonicalization is not required when simulating consteval mode without FLTX_CONSTEXPR_PARITY");
 
     accuracy_report_scope report_scope{ "f128 public math results remain canonical on edge-shaped inputs" };
@@ -2463,7 +2463,7 @@ TEST_CASE("f128 public math results remain canonical on edge-shaped inputs", "[f
     require_canonical_value("cbrt", bl::cbrt(b));
     require_canonical_value("hypot", bl::hypot(a, b));
     require_canonical_value("pow", bl::pow(positive, domain));
-    require_canonical_value("pow10_128", bl::pow10_128(-3));
+    require_canonical_value("pow10", bl::pow10<bl::f128>(-3));
 
     require_canonical_value("exp", bl::exp(domain));
     require_canonical_value("exp2", bl::exp2(domain));

@@ -171,7 +171,7 @@ namespace detail::_f256 // primitives and kernels
 
     BL_FORCE_INLINE constexpr f256_s canonicalize_math_result(f256_s value) noexcept
     {
-        value.x3 = detail::fp::zero_low_fraction_bits_finite<8>(value.x3);
+        value.x3 = detail::fp::zero_low_fraction_bits_finite<6>(value.x3);
         return value;
     }
 

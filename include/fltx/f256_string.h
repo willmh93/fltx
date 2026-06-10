@@ -99,7 +99,7 @@ namespace detail::_f256 // primitives and kernels
         (void)std::frexp(ax.x0, &e2);
         int e10 = (int)detail::fp::floor((e2 - 1) * 0.30102999566398114);
 
-        m = ax * pow10_256(-e10);
+        m = ax * bl::detail::_f256_impl::pow10_256(-e10);
         while (m >= f256_s{ 10.0, 0.0, 0.0, 0.0 }) { m = m / f256_s{ 10.0, 0.0, 0.0, 0.0 }; ++e10; }
         while (m < f256_s{ 1.0 }) { m = m * f256_s{ 10.0, 0.0, 0.0, 0.0 }; --e10; }
         exp10 = e10;
@@ -155,6 +155,8 @@ namespace detail::_f256 // primitives and kernels
         using value_type = f256_s;
         static constexpr int limb_count       = 4;
         static constexpr int significand_bits = 212;
+        static constexpr int max_binary_exponent = 1023;
+        static constexpr int min_binary_exponent = -1074;
 
         static constexpr double limb(const value_type& x, int index) noexcept
         {
@@ -452,6 +454,9 @@ namespace detail::_f256 // primitives and kernels
 
         static constexpr int max_parse_order = detail::fltx_max_parse_order;
         static constexpr int min_parse_order = detail::fltx_min_parse_order;
+        static constexpr int significand_bits = detail::_f256::exact_traits::significand_bits;
+        static constexpr int max_binary_exponent = 1023;
+        static constexpr int min_binary_exponent = -1074;
 
         static constexpr bool isnan(const value_type& x)       noexcept { return bl::isnan(x); }
         static constexpr bool isinf(const value_type& x)       noexcept { return bl::isinf(x); }
@@ -502,6 +507,11 @@ namespace detail::_f256 // primitives and kernels
         {
             return detail::exact_decimal::exact_decimal_to_value<detail::_f256::exact_traits>(coeff, dec_exp, neg);
         }
+
+        static constexpr value_type pack_from_significand(const detail::exact_decimal::biguint& q, int e2, bool neg) noexcept
+        {
+            return detail::_f256::exact_traits::pack_from_significand(q, e2, neg);
+        }
     };
 
     template<typename String>
@@ -510,18 +520,17 @@ namespace detail::_f256 // primitives and kernels
         detail::to_string_into<f256_io_traits>(out, x, precision, fixed, scientific, strip_trailing_zeros);
     }
 
+    [[nodiscard]] BL_MSVC_NOINLINE constexpr bool parse(const char* s, f256_s& out, const char** endptr = nullptr) noexcept
+    {
+        return detail::parse_flt<f256_io_traits>(s, out, endptr);
+    }
+
 } // namespace detail::_f256
-
-
-[[nodiscard]] BL_MSVC_NOINLINE constexpr bool parse_flt256(const char* s, f256_s& out, const char** endptr = nullptr) noexcept
-{
-    return detail::parse_flt<detail::_f256::f256_io_traits>(s, out, endptr);
-}
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s to_f256(const char* s) noexcept
 {
     f256_s ret;
-    if (parse_flt256(s, ret))
+    if (detail::_f256::parse(s, ret))
         return ret;
     return f256_s{ 0.0 };
 }
@@ -544,15 +553,19 @@ template<std::size_t capacity = bl::default_io_string::static_capacity>
     return to_static_string<bl::default_io_string::static_capacity>(x, precision, fixed, scientific, strip_trailing_zeros);
 }
 
-[[nodiscard]] BL_FORCE_INLINE std::string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE std::string to_string(const f256_s& x, precision_info precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
-    const auto text = to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
-    return std::string(text.data(), text.size());
+    const int digits = precision.digits >= 0 ? precision.digits : std::numeric_limits<f256_s>::digits10;
+    const auto text = to_static_string(x, digits, fixed, scientific, strip_trailing_zeros);
+    std::string out(text.data(), text.size());
+    if (detail::should_collapse_fixed_string(precision, fixed, scientific))
+        detail::collapse_fixed_string(out, precision);
+    return out;
 }
 
-[[nodiscard]] BL_FORCE_INLINE std::string to_std_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] BL_FORCE_INLINE std::string to_string(const f256_s& x, int precision = std::numeric_limits<f256_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
-    return to_string(x, precision, fixed, scientific, strip_trailing_zeros);
+    return to_string(x, precision_info{ precision }, fixed, scientific, strip_trailing_zeros);
 }
 
 namespace detail::_f256 // primitives and kernels
@@ -562,7 +575,7 @@ namespace detail::_f256 // primitives and kernels
         f256_s out{};
         const char* end = text;
 
-        if (!(parse_flt256(text, out, &end) && end == expected_end))
+        if (!(parse(text, out, &end) && end == expected_end))
             throw "invalid _qd literal";
 
         return out;
@@ -589,7 +602,7 @@ namespace literals
 constexpr f256::f256(const char* text)
 {
     const char* end = text;
-    if (!parse_flt256(text, *this, &end))
+    if (!detail::_f256::parse(text, *this, &end))
         throw "invalid f256";
 }
 

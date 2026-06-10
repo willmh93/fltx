@@ -41,6 +41,7 @@ Features:
 Accuracy:
 
 - Accuracy validated against [boost::multiprecision::mpfr_float_backend](https://www.boost.org/doc/libs/latest/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html)
+- Infinity / NaN correctness
 - Enable `FLTX_CONSTEXPR_PARITY` for bitwise-identical runtime and `constexpr` results (reduces performance)
 
 Performance:
@@ -87,6 +88,7 @@ int main()
     constexpr f256 d = bl::sin(a + b);
 
     std::cout
+        << std::fixed
         << std::setprecision(std::numeric_limits<f256>::digits10)
         << "a = " << a << "\n"
         << "b = " << b << "\n"
@@ -100,8 +102,8 @@ Output:
 ```text
 a = 0.333333333333333333333333333333333333333333333333333333333333333
 b = 0.666666666666666666666666666666666666666666666666666666666666667
-c = 1
-d = 0.84147098480789650665250232163029899962256306079837106567275171
+c = 1.000000000000000000000000000000000000000000000000000000000000000
+d = 0.841470984807896506652502321630298999622563060798371065672751710
 ```
 
 More examples are available in [examples/](examples/)
@@ -182,10 +184,10 @@ Individual headers are also available when you want a smaller include surface:
 |---|---|
 | [`fltx/f128.h`](include/fltx/f128.h)<br>[`fltx/f256.h`](include/fltx/f256.h) | Individual extended-precision types, storage types, and core operations |
 | [`fltx/f32_math.h`](include/fltx/f32_math.h)<br>[`fltx/f64_math.h`](include/fltx/f64_math.h)<br>[`fltx/f128_math.h`](include/fltx/f128_math.h)<br>[`fltx/f256_math.h`](include/fltx/f256_math.h) | Math APIs for individual floating-point types |
-| [`fltx/f128_io.h`](include/fltx/f128_io.h)<br>[`fltx/f256_io.h`](include/fltx/f256_io.h) | `bl::to_f128`, `bl::to_f256`<br>`bl::to_string`, `bl::to_static_string`, `bl::to_string_collapsed`<br>`_dd` / `_qd` literals |
-| [`fltx/charconv.h`](include/fltx/charconv.h) | `bl::to_chars` and `bl::from_chars` for extended types |
+| [`fltx/f128_io.h`](include/fltx/f128_io.h)<br>[`fltx/f256_io.h`](include/fltx/f256_io.h) | Extended-type string conversion, stream output, and `_dd` / `_qd` literals |
+| [`fltx/charconv.h`](include/fltx/charconv.h) | `bl::to_chars`, `bl::from_chars`, `bl::parse<T>`, `bl::parse<T>(text, fallback)`, and `bl::try_parse<T>` for `f32`, `f64`, `f128`, and `f256` |
 | [`fltx/aliases.h`](include/fltx/aliases.h) | Fundamental aliases such as `f32`, `f64`, `f128`, and `f256` |
-| [`fltx/traits.h`](include/fltx/traits.h) | Concepts, type traits, `FloatType` enum, and `FloatTypeNames` |
+| [`fltx/traits.h`](include/fltx/traits.h) | Concepts, type traits, `FloatType` enum, and `bl::to_string(FloatType)` |
 | [`fltx/format.h`](include/fltx/format.h) | Optional `std::formatter` specializations when `<format>` is available |
 | [`fltx/dispatch.h`](include/fltx/dispatch.h) | Includes standalone [`fltx/template_dispatch.h`](include/fltx/template_dispatch.h) runtime-to-compile-time dispatch-table helper,<br>plus mappings for `FloatType` values to `f32`, `f64`, `f128`, or `f256` |
 
@@ -249,8 +251,6 @@ constexpr T radius(T x, T y)
     return bl::sqrt(x * x + y * y);
 }
 
-using namespace bl::literals;
-
 constexpr bl::f32   a = radius(1.0f, 2.0f);
 constexpr bl::f64   b = radius(1.0,  2.0);
 constexpr bl::f128  c = radius(1.0_dd, 2.0_dd);
@@ -278,19 +278,72 @@ Supported function groups:
 
 [`fltx/io.h`](include/fltx/io.h) adds `constexpr`-capable parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
 
+### Literals example:
+
 ```cpp
+#include <fltx/core.h>
 using namespace bl::literals;
 
-constexpr f128 a = 1.25_dd;
-constexpr f256 b = 3.1415926535897932384626433832795028841971_qd;
-
-constexpr auto s1 = bl::to_static_string(b);  // static_string<512>
-std::string s2    = bl::to_string(b);
+constexpr f128 pi_128 = 3.14159265358979323846264338327950288_dd;
+constexpr f256 pi_256 = 3.1415926535897932384626433832795028841971693993751058209749445923078164_qd;
 ```
+
+### String serialize/deserialize example:
+
+```cpp
+#include <fltx/io.h>
+
+// serializing
+constexpr auto s1 = bl::to_static_string(pi);    // generate static_string<512>
+std::string    s2 = bl::to_string(pi);           // generate string using default precision
+std::string    s3 = bl::to_string(pi, 16, true); // generate string using fixed precision
+
+// deserializing
+constexpr f256 value1 = bl::parse<f256>("3.1415_err");     // invalid input, throws exception
+constexpr f256 value2 = bl::parse<f256>("3.1415_err", pi); // invalid input, use fallback value
+constexpr auto result = bl::try_parse<f256>("3.1415_err"); // invalid input, error in result.ec
+if (result)
+    std::cout << "success: " << result.value;
+else
+    std::cout << "invalid input: ";
+```
+
+Use `bl::to_static_string` for compile-time fixed-capacity string output, or `bl::to_string` when you want a `std::string`. Use `bl::parse<T>` for strict whole-string parsing that returns the parsed value, `bl::parse<T>(text, fallback)` when a fallback value is enough, or `bl::try_parse<T>` when you need error and consumed-character details.
 
 Stream output supports `std::setprecision`, `std::fixed`, `std::scientific`, `std::showpoint`, `std::showpos`, and `std::uppercase`.
 
-For buffer-oriented code, [`fltx/charconv.h`](include/fltx/charconv.h) provides `bl::to_chars` and `bl::from_chars` overloads for extended types. Include [`fltx/format.h`](include/fltx/format.h) when you want `std::format` support on standard libraries that provide `<format>`.
+### Buffer-oriented serializing/deserializing:
+
+```cpp
+#include <fltx/io.h>
+
+// buffer-oriented serializing
+char buffer[128]{};
+auto written = bl::to_chars(buffer, buffer + sizeof(buffer), pi, std::chars_format::fixed, 32);
+if (written.ec == std::errc{})
+    std::cout << std::string_view{ buffer, static_cast<std::size_t>(written.ptr - buffer) };
+
+// buffer-oriented deserializing
+std::string_view text = "3.1415";
+f256 parsed{};
+auto read = bl::from_chars(text.data(), text.data() + text.size(), parsed);
+if (read.ec == std::errc{} && read.ptr == text.data() + text.size())
+    std::cout << "success: " << parsed;
+```
+
+For buffer-oriented code, [`fltx/charconv.h`](include/fltx/charconv.h) provides `bl::to_chars` and `bl::from_chars` overloads for `f32`, `f64`, `f128`, and `f256`. `bl::to_chars` writes into caller-owned storage and reports the end pointer plus `std::errc`; `bl::from_chars` parses the leading numeric token and reports where parsing stopped, so check `ptr == end` when the whole input must be consumed.
+
+### std::format example:
+
+```cpp
+#include <fltx/format.h>
+
+std::string fixed      = std::format("{:.32f}", pi);
+std::string scientific = std::format("{:+.16e}", pi);
+std::string padded     = std::format("{:>40.20g}", pi);
+```
+
+Include [`fltx/format.h`](include/fltx/format.h) when you want `std::format` support for `f128`, `f128_s`, `f256`, and `f256_s` on standard libraries that provide `<format>`. The formatter supports common numeric presentation options such as precision, fixed/scientific/general notation, sign, width, alignment, fill, alternate form, and uppercase output.
 
 ## f256 Expression Fusion
 
@@ -507,7 +560,6 @@ Tested on:
 - qd_real (qdpp)
 
 <img src="res/metrics/metrics_table.svg" alt="fltx metrics table" width="100%">
-
 
 Checked-in metrics CSVs currently live under [res/metrics/](res/metrics/) for the platform/compiler combinations that have generated reports.
 

@@ -22,12 +22,12 @@ namespace bl
 
     inline std::istream& operator>>(std::istream& is, f256_s& x)
     {
-        return detail::read_from_stream(is, x, parse_flt256);
+        return detail::read_from_stream(is, x, detail::_f256::parse);
     }
 
     inline std::istream& operator>>(std::istream& is, f256& x)
     {
-        return detail::read_from_stream(is, static_cast<f256_s&>(x), parse_flt256);
+        return detail::read_from_stream(is, static_cast<f256_s&>(x), detail::_f256::parse);
     }
 
 } // namespace bl

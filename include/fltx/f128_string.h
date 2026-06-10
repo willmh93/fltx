@@ -29,7 +29,7 @@ namespace detail::_f128 // primitives and kernels
         int e2 = detail::fp::frexp_exponent(ax.hi); // ax.hi = f * 2^(e2-1)
         int e10 = (int)detail::fp::floor((e2 - 1) * 0.30102999566398114); // ≈ log10(2)
 
-        m = ax * pow10_128(-e10);
+        m = ax * bl::detail::_f128_impl::pow10_128(-e10);
         while (m >= f128_s{ 10.0 }) { m = m / f128_s{ 10.0 }; ++e10; }
         while (m < f128_s{ 1.0 }) { m = m * f128_s{ 10.0 }; --e10; }
         exp10 = e10;
@@ -110,6 +110,8 @@ namespace detail::_f128 // primitives and kernels
         using value_type = f128_s;
         static constexpr int limb_count       = 2;
         static constexpr int significand_bits = 106;
+        static constexpr int max_binary_exponent = 1023;
+        static constexpr int min_binary_exponent = -1074;
 
         static constexpr double limb(const value_type& x, int index) noexcept
         {
@@ -416,6 +418,9 @@ namespace detail::_f128 // primitives and kernels
 
         static constexpr int max_parse_order = detail::fltx_max_parse_order;
         static constexpr int min_parse_order = detail::fltx_min_parse_order;
+        static constexpr int significand_bits = detail::_f128::exact_traits::significand_bits;
+        static constexpr int max_binary_exponent = 1023;
+        static constexpr int min_binary_exponent = -1074;
 
         static constexpr bool isnan(const value_type& x)       noexcept { return bl::isnan(x); }
         static constexpr bool isinf(const value_type& x)       noexcept { return bl::isinf(x); }
@@ -466,6 +471,11 @@ namespace detail::_f128 // primitives and kernels
         {
             return detail::exact_decimal::exact_decimal_to_value<detail::_f128::exact_traits>(coeff, dec_exp, neg);
         }
+
+        static constexpr value_type pack_from_significand(const detail::exact_decimal::biguint& q, int e2, bool neg) noexcept
+        {
+            return detail::_f128::exact_traits::pack_from_significand(q, e2, neg);
+        }
     };
 
     template<typename String>
@@ -474,17 +484,17 @@ namespace detail::_f128 // primitives and kernels
         detail::to_string_into<f128_io_traits>(out, x, precision, fixed, scientific, strip_trailing_zeros);
     }
 
-} // namespace detail::_f128
+    [[nodiscard]] BL_MSVC_NOINLINE constexpr bool parse(const char* s, f128_s& out, const char** endptr = nullptr) noexcept
+    {
+        return detail::parse_flt<f128_io_traits>(s, out, endptr);
+    }
 
-BL_MSVC_NOINLINE constexpr bool parse_flt128(const char* s, f128_s& out, const char** endptr = nullptr) noexcept
-{
-    return detail::parse_flt<detail::_f128::f128_io_traits>(s, out, endptr);
-}
+} // namespace detail::_f128
 
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s to_f128(const char* s) noexcept
 {
     f128_s ret;
-    if (parse_flt128(s, ret))
+    if (detail::_f128::parse(s, ret))
         return ret;
     return f128_s{ 0 };
 }
@@ -507,15 +517,19 @@ template<std::size_t capacity = bl::default_io_string::static_capacity>
     return to_static_string<bl::default_io_string::static_capacity>(x, precision, fixed, scientific, strip_trailing_zeros);
 }
 
-[[nodiscard]] inline std::string to_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] inline std::string to_string(const f128_s& x, precision_info precision, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
-    const auto text = to_static_string(x, precision, fixed, scientific, strip_trailing_zeros);
-    return std::string(text.data(), text.size());
+    const int digits = precision.digits >= 0 ? precision.digits : std::numeric_limits<f128_s>::digits10;
+    const auto text = to_static_string(x, digits, fixed, scientific, strip_trailing_zeros);
+    std::string out(text.data(), text.size());
+    if (detail::should_collapse_fixed_string(precision, fixed, scientific))
+        detail::collapse_fixed_string(out, precision);
+    return out;
 }
 
-[[nodiscard]] inline std::string to_std_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
+[[nodiscard]] inline std::string to_string(const f128_s& x, int precision = std::numeric_limits<f128_s>::digits10, bool fixed = false, bool scientific = false, bool strip_trailing_zeros = false)
 {
-    return to_string(x, precision, fixed, scientific, strip_trailing_zeros);
+    return to_string(x, precision_info{ precision }, fixed, scientific, strip_trailing_zeros);
 }
 
 namespace detail::_f128 // primitives and kernels
@@ -525,7 +539,7 @@ namespace detail::_f128 // primitives and kernels
         f128_s out{};
         const char* end = text;
 
-        if (!(parse_flt128(text, out, &end) && end == expected_end))
+        if (!(parse(text, out, &end) && end == expected_end))
             throw "invalid _dd literal";
 
         return out;
@@ -552,7 +566,7 @@ namespace literals
 constexpr f128::f128(const char* text)
 {
     const char* end = text;
-    if (!parse_flt128(text, *this, &end))
+    if (!detail::_f128::parse(text, *this, &end))
         throw "invalid f128";
 }
 

@@ -10,11 +10,11 @@
 #ifndef FLTX_TEMPLATE_DISPATCH_INCLUDED
 #define FLTX_TEMPLATE_DISPATCH_INCLUDED
 #include <array>
+#include <string>
 #include <type_traits>
 #include <tuple>
 #include <utility>
 #include <functional>
-#include <cstdio>
 
 #ifndef BL_FORCE_INLINE
 #if defined(_MSC_VER)
@@ -26,71 +26,60 @@
 #endif
 #endif
 
-/// ────────── usage: free function / local method ──────────
+/// Usage: free function / local method
 ///
-///  format:
-///
-///    bl_table_invoke<bool, float>(                              // real template types first
-///        bl_dispatch_table(func, runtime_arg1, runtime_arg2),   // arg-1: dispatch table
-///        FloatType::F32, MyEnum::FOO, (MyEnum)m_bar             // arg-N: mapped types (e.g. FloatType) THEN template non-types
+///    bl_table_invoke(
+///        bl_dispatch_table(testFunc, runtime_arg),
+///        bl_enum_type(FloatType::F32),  // maps the enum value to a template type
+///        true                           // maps the bool to a template non-type
 ///    );
 ///
-///    template<typename T1, typename T2>
-///    void testFunc(bool B)
-///    {
-///        T1 x = 5;
-///        T2 y = 5;
-///    }
+///    bl_table_invoke<f32>(
+///        bl_dispatch_table(testFunc, runtime_arg),
+///        bl_enum_type(FloatType::F128)
+///    );
 ///
-///    template<typename T1, typename T2>
-///    void MyClass::testMethod(bool B)
-///    {
-///        T1 x = 5;
-///        T2 y = 5;
-///    }
+/// Raw bool/enums dispatch as template non-type constants.
+/// Use bl_enum_type(value) when an enum value maps to a type via bl_enum_type_map.
+/// Use bl_type<T> when a template type is already known at compile time.
 ///
-///    void MyClass::foo()
-///    {
-///        bl_table_invoke<f32,f128>( bl_dispatch_table(testFunc, true) );
-///        bl_table_invoke(           bl_dispatch_table(testFunc, true), FloatType::F32, FloatType::F128 );
-///        bl_table_invoke<f32>(      bl_dispatch_table(testFunc, true), FloatType::F128);
+/// Usage: targeted method
 ///
-///        // local method
-///        bl_table_invoke<f32,f128>( bl_dispatch_table(testMethod, true) );
-///        bl_table_invoke(           bl_dispatch_table(testMethod, true), FloatType::F32, FloatType::F128 );
-///        bl_table_invoke<f32>(      bl_dispatch_table(testMethod, true), FloatType::F128 );
-///    }
-///
-///
-/// ────────── usage: targetted method ──────────
-///
-///    bl_table_invoke( bl_dispatch_table_memfn(obj, MyClass::testMethod, arg1, arg2), template_arg1, template_arg2 );
-///
+///    bl_table_invoke(
+///        bl_dispatch_table_memfn(obj, MyClass::testMethod, arg1, arg2),
+///        bl_enum_type(template_arg1),
+///        template_arg2
+///    );
+
 ///
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // dispatch domain traits
 //
 // by default, enums are treated as a dense domain [0, E::COUNT]
-// you may specialize enum_domain_traits<E> to
+// you may specialize bl_enum_domain_traits<E> to
 //   - shrink the domain (e.g. a subset)
 //   - remap arbitrary enum values to a dense index
 //
 // this keeps "COUNT bigger than last declared enumerator" tricks working
 // (e.g. bitmask enums), while allowing explicit shrinking elsewhere
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-template<class T>
-struct is_dispatch_arg : std::bool_constant<std::is_enum_v<T> ||
-                                            std::is_same_v<std::remove_cv_t<T>, bool>> {};
+namespace bl::detail
+{
+    template<class T>
+    struct is_dispatch_arg : std::bool_constant<std::is_enum_v<T> ||
+                                                std::is_same_v<std::remove_cv_t<T>, bool>> {};
 
-template<class T>
-inline constexpr bool is_dispatch_arg_v = is_dispatch_arg<T>::value;
+    template<class T>
+    inline constexpr bool is_dispatch_arg_v = is_dispatch_arg<T>::value;
+
+} // namespace bl::detail
 
 template<class E>
-struct enum_domain_traits
+struct bl_enum_domain_traits
 {
-    static_assert(std::is_enum_v<E>, "enum_domain_traits<E> requires enum E");
+    static_assert(std::is_enum_v<E>, "bl_enum_domain_traits<E> requires enum E");
 
     static constexpr std::size_t size = static_cast<std::size_t>(E::COUNT);
 
@@ -127,7 +116,7 @@ struct enum_domain_traits
 };
 
 template<>
-struct enum_domain_traits<bool>
+struct bl_enum_domain_traits<bool>
 {
     static constexpr std::size_t size = 2;
 
@@ -144,9 +133,9 @@ struct enum_domain_traits<bool>
 
 // helper for sparse/subset domains
 template<class E, E... Vs>
-struct enum_domain_values
+struct bl_enum_domain_values
 {
-    static_assert(std::is_enum_v<E>, "enum_domain_values requires enum E");
+    static_assert(std::is_enum_v<E>, "bl_enum_domain_values requires enum E");
     static constexpr std::size_t size = sizeof...(Vs);
     static constexpr std::array<E, size> values = { Vs... };
 
@@ -183,11 +172,11 @@ struct enum_domain_values
     }
 };
 
-template<class T>
-inline constexpr std::size_t domain_size_v = enum_domain_traits<std::remove_cv_t<T>>::size;
-
-namespace template_dispatch_detail
+namespace bl::detail
 {
+    template<class T>
+    inline constexpr std::size_t dispatch_domain_size_v = bl_enum_domain_traits<std::remove_cv_t<T>>::size;
+
     template<class... Ts>
     struct type_list {};
 
@@ -205,29 +194,29 @@ namespace template_dispatch_detail
     using default_constant_t = std::conditional_t<
         std::is_same_v<std::remove_cv_t<E>, bool>,
         std::integral_constant<bool, false>,
-        std::integral_constant<std::remove_cv_t<E>, enum_domain_traits<std::remove_cv_t<E>>::value(0)>
+        std::integral_constant<std::remove_cv_t<E>, bl_enum_domain_traits<std::remove_cv_t<E>>::value(0)>
     >;
 
-} // namespace template_dispatch_detail
+} // namespace bl::detail
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // enum => type mapping
 //
-// specialize enum_type_map<E, V> to map a specific enum value V to a type
-// used by enum_type(...)
-// ─────────────────────────────────────────────────────────────────────────────
+// specialize bl_enum_type_map<E, V> to map a specific enum value V to a type
+// used by bl_enum_type(...)
+// -----------------------------------------------------------------------------
 
 template<class E, E V>
-struct enum_type_map;
+struct bl_enum_type_map;
 
 template<class E, E V>
-using enum_type_map_t = typename enum_type_map<E, V>::type;
+using bl_enum_type_map_t = typename bl_enum_type_map<E, V>::type;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // type selector tags
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-namespace bl
+namespace bl::detail
 {
     template<class T>
     struct type_tag { using type = T; };
@@ -248,31 +237,31 @@ namespace bl
         return mapped_enum<E>{ v };
     }
 
-} // namespace bl
+    template<class T>
+    struct is_type_tag : std::false_type {};
 
-template<class T>
-struct is_type_tag : std::false_type {};
+    template<class T>
+    struct is_type_tag<type_tag<T>> : std::true_type {};
 
-template<class T>
-struct is_type_tag<bl::type_tag<T>> : std::true_type {};
+    template<class T>
+    inline constexpr bool is_type_tag_v = is_type_tag<std::remove_cv_t<T>>::value;
 
-template<class T>
-inline constexpr bool is_type_tag_v = is_type_tag<std::remove_cv_t<T>>::value;
+    template<class T>
+    struct is_mapped_enum : std::false_type {};
 
-template<class T>
-struct is_mapped_enum : std::false_type {};
+    template<class E>
+    struct is_mapped_enum<mapped_enum<E>> : std::true_type {};
 
-template<class E>
-struct is_mapped_enum<bl::mapped_enum<E>> : std::true_type {};
+    template<class T>
+    inline constexpr bool is_mapped_enum_v = is_mapped_enum<std::remove_cv_t<T>>::value;
 
-template<class T>
-inline constexpr bool is_mapped_enum_v = is_mapped_enum<std::remove_cv_t<T>>::value;
+} // namespace bl::detail
 
-// ─────────────────────────────────────────────────────────────────────────────
-// enum_expandN maps runtime enum values to types using enum_type_map + enum_domain_traits
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// enum_expandN maps runtime enum values to types using bl_enum_type_map + bl_enum_domain_traits
+// -----------------------------------------------------------------------------
 
-namespace template_dispatch_detail
+namespace bl::detail
 {
     template<class E, class Cont, class TsList, class... More>
     struct enum_expand_step;
@@ -289,27 +278,27 @@ namespace template_dispatch_detail
     template<class E, class Cont, class... Ts, class... More>
     struct enum_expand_step<E, Cont, type_list<Ts...>, E, More...>
     {
-        using Ret = decltype(std::declval<Cont&>().template operator()<Ts..., enum_type_map_t<E, enum_domain_traits<E>::value(0)>>());
+        using Ret = decltype(std::declval<Cont&>().template operator()<Ts..., bl_enum_type_map_t<E, bl_enum_domain_traits<E>::value(0)>>());
         using Fn = Ret(*)(Cont&, More...);
 
         template<std::size_t I>
         static BL_FORCE_INLINE Ret entry(Cont& cont, More... rest)
         {
-            using Mapped = enum_type_map_t<E, enum_domain_traits<E>::value(I)>;
+            using Mapped = bl_enum_type_map_t<E, bl_enum_domain_traits<E>::value(I)>;
             return enum_expand_step<E, Cont, type_list<Ts..., Mapped>, More...>::invoke(cont, rest...);
         }
 
         template<std::size_t... Is>
         static consteval auto build(std::index_sequence<Is...>)
         {
-            return std::array<Fn, enum_domain_traits<E>::size>{ &entry<Is>... };
+            return std::array<Fn, bl_enum_domain_traits<E>::size>{ &entry<Is>... };
         }
 
-        static constexpr auto table = build(std::make_index_sequence<enum_domain_traits<E>::size>{});
+        static constexpr auto table = build(std::make_index_sequence<bl_enum_domain_traits<E>::size>{});
 
         static BL_FORCE_INLINE decltype(auto) invoke(Cont& cont, E v0, More... rest)
         {
-            return table[enum_domain_traits<E>::index(v0)](cont, rest...);
+            return table[bl_enum_domain_traits<E>::index(v0)](cont, rest...);
         }
     };
 
@@ -319,26 +308,26 @@ namespace template_dispatch_detail
         return enum_expand_step<E, Cont, TsList, More...>::invoke(cont, xs...);
     }
 
-} // namespace template_dispatch_detail
+    template<class E, class Cont, class... Ts, class... More>
+    BL_FORCE_INLINE decltype(auto) enum_expandN(Cont& cont, More... xs)
+    {
+        static_assert(std::is_enum_v<E>, "E must be an enum");
+        return enum_expandN_impl<E, Cont, type_list<Ts...>>(cont, xs...);
+    }
 
-template<class E, class Cont, class... Ts, class... More>
-BL_FORCE_INLINE decltype(auto) enum_expandN(Cont& cont, More... xs)
-{
-    static_assert(std::is_enum_v<E>, "E must be an enum");
-    return template_dispatch_detail::enum_expandN_impl<E, Cont, template_dispatch_detail::type_list<Ts...>>(cont, xs...);
-}
+} // namespace bl::detail
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // stepwise 1-D dispatch for value domains (bool + enums)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-namespace template_dispatch_detail
+namespace bl::detail
 {
     template<class E, std::size_t I>
     using domain_constant_t = std::conditional_t<
         std::is_same_v<std::remove_cv_t<E>, bool>,
         std::integral_constant<bool, (I != 0)>,
-        std::integral_constant<std::remove_cv_t<E>, enum_domain_traits<std::remove_cv_t<E>>::value(I)>
+        std::integral_constant<std::remove_cv_t<E>, bl_enum_domain_traits<std::remove_cv_t<E>>::value(I)>
     >;
 
     template<class Ret, class Fun, class TsList, class CsList, class... Es>
@@ -378,41 +367,41 @@ namespace template_dispatch_detail
         template<std::size_t... Is>
         static consteval auto build(std::index_sequence<Is...>)
         {
-            return std::array<Fn, enum_domain_traits<FirstT>::size>{ &entry<Is>... };
+            return std::array<Fn, bl_enum_domain_traits<FirstT>::size>{ &entry<Is>... };
         }
 
-        static constexpr auto table = build(std::make_index_sequence<enum_domain_traits<FirstT>::size>{});
+        static constexpr auto table = build(std::make_index_sequence<bl_enum_domain_traits<FirstT>::size>{});
 
         static BL_FORCE_INLINE Ret invoke(Fun& func, First v0, Rest... rest)
         {
-            return table[enum_domain_traits<FirstT>::index(v0)](func, rest...);
+            return table[bl_enum_domain_traits<FirstT>::index(v0)](func, rest...);
         }
     };
 
-} // namespace template_dispatch_detail
+    template<typename... Ts, typename F, typename... Es>
+        requires ((is_dispatch_arg_v<std::remove_cvref_t<Es>> && ...))
+    decltype(auto) table_invoke_values(F& func, Es... vs)
+    {
+        using Fun = std::decay_t<F>;
+        using RetProbe = decltype(func.template operator()<Ts...>(default_constant_t<std::remove_cvref_t<Es>>{}...));
+        return step_dispatch<RetProbe, Fun, type_list<Ts...>, type_list<>, std::remove_cvref_t<Es>...>::invoke(
+            func,
+            static_cast<std::remove_cvref_t<Es>>(vs)...);
+    }
 
-template<typename... Ts, typename F, typename... Es>
-    requires ((is_dispatch_arg_v<std::remove_cvref_t<Es>> && ...))
-decltype(auto) _table_invoke(F& func, Es... vs)
-{
-    using Fun = std::decay_t<F>;
-    using RetProbe = decltype(func.template operator()<Ts...>(template_dispatch_detail::default_constant_t<std::remove_cvref_t<Es>>{}...));
-    return template_dispatch_detail::step_dispatch<RetProbe, Fun, template_dispatch_detail::type_list<Ts...>, template_dispatch_detail::type_list<>, std::remove_cvref_t<Es>...>::invoke(
-        func,
-        static_cast<std::remove_cvref_t<Es>>(vs)...);
-}
+} // namespace bl::detail
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // public table_invoke parses leading type selectors, then dispatch domains
 //
 // supported leading type selectors
-//   - bl::type_tag<T> (bl::type<T>)
-//   - bl::mapped_enum<E> (bl::enum_type(v))
+//   - bl_type<T>
+//   - bl_enum_type(v)
 //
 // after the first non-type-selector, all remaining args must be dispatch args
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-namespace template_dispatch_detail
+namespace bl::detail
 {
     template<class Fun, class TsList, class... Args>
     struct table_invoke_parse;
@@ -422,23 +411,23 @@ namespace template_dispatch_detail
     {
         static BL_FORCE_INLINE decltype(auto) invoke(Fun& func)
         {
-            return _table_invoke<Ts...>(func);
+            return table_invoke_values<Ts...>(func);
         }
     };
 
     template<class Fun, class... Ts, class T, class... Rest>
-    struct table_invoke_parse<Fun, type_list<Ts...>, bl::type_tag<T>, Rest...>
+    struct table_invoke_parse<Fun, type_list<Ts...>, bl::detail::type_tag<T>, Rest...>
     {
-        static BL_FORCE_INLINE decltype(auto) invoke(Fun& func, bl::type_tag<T>, Rest... rest)
+        static BL_FORCE_INLINE decltype(auto) invoke(Fun& func, bl::detail::type_tag<T>, Rest... rest)
         {
             return table_invoke_parse<Fun, type_list<Ts..., T>, Rest...>::invoke(func, rest...);
         }
     };
 
     template<class Fun, class... Ts, class E, class... Rest>
-    struct table_invoke_parse<Fun, type_list<Ts...>, bl::mapped_enum<E>, Rest...>
+    struct table_invoke_parse<Fun, type_list<Ts...>, bl::detail::mapped_enum<E>, Rest...>
     {
-        static BL_FORCE_INLINE decltype(auto) invoke(Fun& func, bl::mapped_enum<E> me, Rest... rest)
+        static BL_FORCE_INLINE decltype(auto) invoke(Fun& func, bl::detail::mapped_enum<E> me, Rest... rest)
         {
             auto cont = [&]<class... AllTypes>() -> decltype(auto) {
                 return table_invoke_parse<Fun, type_list<AllTypes...>, Rest...>::invoke(func, rest...);
@@ -454,46 +443,36 @@ namespace template_dispatch_detail
         {
             static_assert(is_dispatch_arg_v<std::remove_cvref_t<First>>, "type selectors must come before dispatch args");
             static_assert(((is_dispatch_arg_v<std::remove_cvref_t<Rest>> && ...)), "all trailing args must be dispatch args");
-            return _table_invoke<Ts...>(
+            return table_invoke_values<Ts...>(
                 func,
                 static_cast<std::remove_cvref_t<First>>(first),
                 static_cast<std::remove_cvref_t<Rest>>(rest)...);
         }
     };
 
-} // namespace template_dispatch_detail
-
-namespace bl
-{
-    template<typename... Ts, typename F, typename... Args>
-    decltype(auto) table_invoke(F&& f, Args... args)
-    {
-        using Fun = std::decay_t<F>;
-        Fun& func = const_cast<Fun&>(static_cast<const Fun&>(f));
-        return template_dispatch_detail::table_invoke_parse<Fun, template_dispatch_detail::type_list<Ts...>, Args...>::invoke(func, args...);
-    }
-
-} // namespace bl
+} // namespace bl::detail
 
 template<typename... Ts, typename F, typename... Args>
 BL_FORCE_INLINE decltype(auto) bl_table_invoke(F&& f, Args... args)
 {
-    return bl::table_invoke<Ts...>(std::forward<F>(f), args...);
+    using Fun = std::decay_t<F>;
+    Fun& func = const_cast<Fun&>(static_cast<const Fun&>(f));
+    return bl::detail::table_invoke_parse<Fun, bl::detail::type_list<Ts...>, Args...>::invoke(func, args...);
 }
 
 template<class T>
-inline constexpr bl::type_tag<T> bl_type{};
+inline constexpr bl::detail::type_tag<T> bl_type{};
 
 template<class E>
-BL_FORCE_INLINE constexpr bl::mapped_enum<E> bl_enum_type(E v)
+BL_FORCE_INLINE constexpr bl::detail::mapped_enum<E> bl_enum_type(E v)
 {
-    return bl::enum_type(v);
+    return bl::detail::enum_type(v);
 }
 
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // macro helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 #define bl_dispatch_table(func, ...)                                                  \
     ([&] <typename... Ts>(auto... Cs) -> decltype(auto) {                             \
@@ -528,23 +507,23 @@ BL_FORCE_INLINE constexpr bl::mapped_enum<E> bl_enum_type(E v)
     })
 
 #define bl_map_enum_to_type(EnumValue, T) \
-    template<> struct enum_type_map<decltype(EnumValue), EnumValue> { using type = T; }
+    template<> struct bl_enum_type_map<decltype(EnumValue), EnumValue> { using type = T; }
 
 
-//  Debug helpers for dispatch domain sizes
-namespace bl::dispatch_table_info
+// dispatch table size helpers
+namespace bl::detail
 {
     template<class T>
     struct mapped_underlying;
 
     template<class E>
-    struct mapped_underlying<bl::mapped_enum<E>> { using type = E; };
+    struct mapped_underlying<bl::detail::mapped_enum<E>> { using type = E; };
 
     template<class T>
     using mapped_underlying_t = typename mapped_underlying<std::remove_cv_t<T>>::type;
 
     template<class Arg>
-    consteval std::size_t arg_domain_size()
+    consteval std::size_t dispatch_arg_domain_size_type()
     {
         using A = std::remove_cvref_t<Arg>;
 
@@ -555,11 +534,11 @@ namespace bl::dispatch_table_info
         else if constexpr (is_mapped_enum_v<A>)
         {
             using E = mapped_underlying_t<A>;
-            return domain_size_v<E>;
+            return dispatch_domain_size_v<E>;
         }
         else if constexpr (is_dispatch_arg_v<A>)
         {
-            return domain_size_v<A>;
+            return dispatch_domain_size_v<A>;
         }
         else
         {
@@ -568,22 +547,72 @@ namespace bl::dispatch_table_info
     }
 
     template<class... Args>
-    consteval std::size_t variant_count_types()
+    consteval std::size_t dispatch_table_variant_count_types()
     {
-        return (std::size_t{ 1 } * ... * arg_domain_size<Args>());
+        return (std::size_t{ 1 } * ... * dispatch_arg_domain_size_type<Args>());
     }
 
     template<class... Args>
-    void print_from_args(const char* label, Args&&...)
+    consteval std::array<std::size_t, sizeof...(Args)> dispatch_table_domain_sizes_types()
     {
-        constexpr std::size_t sizes[] = { arg_domain_size<std::remove_cvref_t<Args>>()... };
-        constexpr std::size_t total = variant_count_types<std::remove_cvref_t<Args>...>();
-
-        std::printf("%s: %zu variants\n", label ? label : "dispatch", total);
-        for (std::size_t i = 0; i < sizeof...(Args); ++i)
-            std::printf(" arg[%zu] domain = %zu\n", i, sizes[i]);
+        return { dispatch_arg_domain_size_type<Args>()... };
     }
 
-} // namespace bl::dispatch_table_info
+} // namespace bl::detail
+
+template<class Arg>
+[[nodiscard]] constexpr std::size_t bl_dispatch_arg_domain_size(const Arg&) noexcept
+{
+    return bl::detail::dispatch_arg_domain_size_type<Arg>();
+}
+
+template<class Arg>
+[[nodiscard]] constexpr std::size_t bl_enum_type_domain_size(const Arg& arg) noexcept
+{
+    return bl_dispatch_arg_domain_size(arg);
+}
+
+template<class... Args>
+[[nodiscard]] constexpr std::size_t bl_dispatch_table_variant_count(const Args&...) noexcept
+{
+    return bl::detail::dispatch_table_variant_count_types<Args...>();
+}
+
+template<class... Args>
+[[nodiscard]] constexpr std::size_t bl_table_variants_count(const Args&... args) noexcept
+{
+    return bl_dispatch_table_variant_count(args...);
+}
+
+template<class... Args>
+[[nodiscard]] constexpr std::array<std::size_t, sizeof...(Args)> bl_dispatch_table_domain_sizes(const Args&...) noexcept
+{
+    return bl::detail::dispatch_table_domain_sizes_types<Args...>();
+}
+
+template<class... Args>
+[[nodiscard]] std::string bl_dispatch_table_report(const char* label, const Args&... args)
+{
+    const auto sizes = bl_dispatch_table_domain_sizes(args...);
+    const auto total = bl_dispatch_table_variant_count(args...);
+
+    std::string report;
+    report.reserve(48 + sizes.size() * 24);
+    report += label ? label : "dispatch";
+    report += ": ";
+    report += std::to_string(total);
+    report += " variants\n";
+
+    for (std::size_t i = 0; i < sizes.size(); ++i)
+    {
+        report += "  arg[";
+        report += std::to_string(i);
+        report += "] domain = ";
+        report += std::to_string(sizes[i]);
+        report += "\n";
+    }
+
+    return report;
+}
 
 #endif

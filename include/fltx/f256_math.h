@@ -10,8 +10,11 @@
 #ifndef F256_MATH_INCLUDED
 #define F256_MATH_INCLUDED
 
+#include "fltx/f128.h"
+#include "fltx/f256.h"
 #include "fltx/detail/f256_math_basic.h"
 #include "fltx/detail/f256_math_transcendental.h"
+#include "fltx/traits.h"
 
 namespace bl {
 
@@ -300,12 +303,12 @@ namespace bl {
     );
 }
 
-// pow
-[[nodiscard]] BL_FORCE_INLINE constexpr f256 pow10_256(int k)
+template<fltx_f256 T>
+[[nodiscard]] BL_FORCE_INLINE constexpr std::remove_cv_t<T> pow10(int k)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
-        detail::_f256_impl::pow10_256(k),
-        detail::_f256_runtime::pow10_256(k)
+        static_cast<std::remove_cv_t<T>>(detail::_f256_impl::pow10_256(k)),
+        static_cast<std::remove_cv_t<T>>(detail::_f256_runtime::pow10_256(k))
     );
 }
 
@@ -317,6 +320,31 @@ namespace bl {
     );
 }
 
+template<detail::fp::non_bool_integral Exp>
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 pow(const f256_s& x, Exp y)
+{
+    using U = std::make_unsigned_t<std::remove_cvref_t<Exp>>;
+
+    const U magnitude = detail::fp::unsigned_abs(y);
+    const f256_s powered = detail::fp::ipow_nonneg<f256_s, U>(x, magnitude);
+
+    if constexpr (std::signed_integral<std::remove_cvref_t<Exp>>)
+    {
+        if (y < 0)
+            return f256{ f256_s{ 1.0 } / powered };
+    }
+
+    return f256{ powered };
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 pow(const f256_s& x, float y)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::pow(x, static_cast<double>(y)),
+        detail::_f256_runtime::pow(x, static_cast<double>(y))
+    );
+}
+
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 pow(const f256_s& x, double y)
 {
     BL_CONSTEXPR_RUNTIME_DISPATCH(
@@ -324,6 +352,19 @@ namespace bl {
         detail::_f256_runtime::pow(x, y)
     );
 }
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 pow(const f256_s& x, const f128_s& y)
+{
+    f256_s promoted{};
+    promoted = y;
+    return bl::pow(x, promoted);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 pow(const f256_s&, long double) = delete;
+
+template<class Exp>
+requires fltx_pow_wider_floating_exponent<f256_s, Exp>
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 pow(const f256_s&, const Exp&) = delete;
 
 // trig
 [[nodiscard]] BL_FORCE_INLINE constexpr bool sincos(const f256_s& x, f256_s& s_out, f256_s& c_out)

@@ -61,7 +61,7 @@ namespace detail::_f256 // primitives and kernels
     BL_FORCE_INLINE constexpr bool f256_runtime_simd_enabled() noexcept
     {
         #if BL_F256_ENABLE_SIMD && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
-        return !bl::use_constexpr_math();
+        return !bl::detail::use_constexpr_math();
         #else
         return false;
         #endif
@@ -70,7 +70,7 @@ namespace detail::_f256 // primitives and kernels
     BL_FORCE_INLINE constexpr bool f256_runtime_addsub_simd_enabled() noexcept
     {
         #if BL_F256_ENABLE_SIMD && BL_FLTX_HAS_NEON
-        return !bl::use_constexpr_math();
+        return !bl::detail::use_constexpr_math();
         #else
         return false;
         #endif
@@ -79,7 +79,7 @@ namespace detail::_f256 // primitives and kernels
     BL_FORCE_INLINE constexpr bool f256_runtime_trig_simd_enabled() noexcept
     {
         #if BL_F256_ENABLE_TRIG_SIMD
-        return !bl::use_constexpr_math();
+        return !bl::detail::use_constexpr_math();
         #else
         return false;
         #endif
@@ -88,11 +88,11 @@ namespace detail::_f256 // primitives and kernels
     BL_FORCE_INLINE constexpr bool f256_runtime_product_simd_enabled() noexcept
     {
         #if BL_F256_ENABLE_SIMD && BL_FLTX_HAS_NEON
-        return !bl::use_constexpr_math();
+        return !bl::detail::use_constexpr_math();
         #elif BL_F256_ENABLE_SIMD && BL_FLTX_HAS_WASM_SIMD
-        return !bl::use_constexpr_math();
+        return !bl::detail::use_constexpr_math();
         #elif BL_F256_ENABLE_SIMD && BL_FLTX_HAS_SSE2 && (!BL_FLTX_SIMD_USE_FMA_TWO_PROD || BL_FLTX_HAS_X86_FMA)
-        return !bl::use_constexpr_math();
+        return !bl::detail::use_constexpr_math();
         #else
         return false;
         #endif

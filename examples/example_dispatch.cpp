@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <string_view>
 
 #include <fltx/core.h>
 #include <fltx/dispatch.h>
@@ -7,7 +8,6 @@
 #include <fltx/io.h>
 
 using namespace bl;
-//using namespace bl::literals;
 
 /* Notes:
 
@@ -31,36 +31,36 @@ Example:
 */
 
 template<typename T1, typename T2, bool Test_Bool>
-void print_math(const char* name)
+void print_math(std::string_view name)
 {
-    // T1 = f32/f64/f128/f256
+    // T1 can be: f32 / f64 / f128 / f256
     constexpr T1 pi_v  = std::numbers::pi_v<T1>;
     constexpr T1 min_v = std::numeric_limits<T1>::min();
     constexpr T1 max_v = std::numeric_limits<T1>::max();
 
-    constexpr T1 sin_pi_6 = bl::sin(pi_v / T1{ 6.0 });
-    constexpr T1 sin_pi_5 = bl::sin(pi_v / T1{ 5.0 });
+    constexpr T1 sin_pi_6 = bl::sin(pi_v / 6);
+    constexpr T1 sin_pi_5 = bl::sin(pi_v / 5);
 
     std::cout << "print_math<" << name << ">():\n";
 
     std::cout << std::setprecision(std::numeric_limits<T1>::digits10);
-    std::cout << " " << name << " min        = " << min_v << "\n";
-    std::cout << " " << name << " max        = " << max_v << "\n";
-    std::cout << " " << name << " PI         = " << pi_v << "\n";
-    std::cout << " " << "bl::sin(pi_v / 6.0) = " << sin_pi_6 << "\n";
-    std::cout << " " << "bl::sin(pi_v / 5.0) = " << sin_pi_5 << "\n";
+    std::cout << "  " << name << " min\t\t= "  << min_v << "\n";
+    std::cout << "  " << name << " max\t\t= "  << max_v << "\n";
+    std::cout << "  " << name << " pi\t\t= "   << pi_v << "\n";
+    std::cout << "  " << "bl::sin(pi / 6)\t= " << sin_pi_6 << "\n";
+    std::cout << "  " << "bl::sin(pi / 5)\t= " << sin_pi_5 << "\n";
 
     // T2 is fixed to f32 by the dispatch argument below in this example
     T2 c = static_cast<T2>(sin_pi_5);
 
     std::cout << std::setprecision(std::numeric_limits<T2>::digits10);
-    std::cout << "   c: " << c << "\n";
+    std::cout << "  c\t\t\t= " << c << "\n";
 
     // test_bool is a runtime value at the call site, but dispatch selects a specialization
     // where Test_Bool is a compile-time bool
     if constexpr (Test_Bool)
     {
-        std::cout << "   Test_Bool is TRUE\n";
+        std::cout << "  Test_Bool\t\t= TRUE\n";
     }
 
     std::cout << "\n";
@@ -68,72 +68,102 @@ void print_math(const char* name)
 
 int main()
 {
-    // print_math<f32, f32, true>("F32");
-
-
+    // loop over each FloatType value
     for (int i = 0; i < (int)FloatType::COUNT; i++)
     {
-        const char* name     = FloatTypeNames[i];
+        // set runtime args
         FloatType float_type = (FloatType)i;
-        bool test_bool       = (i % 2) == 0;
+        auto name       = bl::to_string(float_type);
+        bool test_bool  = (i % 2) == 0;
 
-        // invokes print_math<T1, T2, Test_Bool>(name), selected from runtime dispatch values
+        // invokes matching print_math<T1, T2, Test_Bool>(name) selected from runtime values
         bl_table_invoke(
-            bl_dispatch_table(print_math, name),  // bind runtime args passed to print_math(...)
+            bl_dispatch_table(print_math, name),  // bind runtime args to print_math(...)
             bl_enum_type(float_type),             // map runtime enum value to T1
             bl_enum_type(FloatType::F32),         // map runtime enum value to T2
             test_bool                             // map runtime bool to Test_Bool
         );
     }
 
-    // print dispatch table info by providing example args (4 * 4 * 2 = 32 variants)
-    bl::dispatch_table_info::print_from_args("print_math",
-        bl_enum_type(FloatType::F64),  // domain size = 4
-        bl_enum_type(FloatType::F32),  // domain size = 4
-        true                           // domain size = 2
-    );
+    // generate an automatic dispatch table report:
+    {
+        std::cout << bl_dispatch_table_report("print_math", // print_math: 32 variants
+            bl_enum_type(FloatType::F64),                   //   arg[0] domain = 4
+            bl_enum_type(FloatType::F32),                   //   arg[1] domain = 4
+            true                                            //   arg[2] domain = 2
+        );
+    }
+
+    /*
+    // manually calculate domain size of a single mapped type
+    {
+        constexpr std::size_t template_arg_domain_size = bl_enum_type_domain_size(FloatType::F64);
+        std::cout << "FloatType template arg domain: " << template_arg_domain_size << "\n\n";
+    }
+
+
+    // manually calculate and print dispatch table domain info
+    {
+        constexpr std::size_t table_variant_count = bl_table_variants_count(
+            bl_enum_type(FloatType::F64),
+            bl_enum_type(FloatType::F32),
+            true
+        );
+        constexpr auto table_domain_sizes = bl_dispatch_table_domain_sizes(
+            bl_enum_type(FloatType::F64),
+            bl_enum_type(FloatType::F32),
+            true
+        );
+
+        std::cout << "print_math: " << table_variant_count << " variants\n";
+        for (std::size_t i = 0; i < table_domain_sizes.size(); i++)
+            std::cout << "  arg[" << i << "] domain = " << table_domain_sizes[i] << "\n";
+
+        std::cout << "\n";
+    }
+    */
 }
 
 /* Output:
 
 
-print_math<F32>():
-   F32 min = 1.17549e-38
-   F32 max = 3.40282e+38
-   F32 PI = 3.14159
+print_math<f32>():
+ f32 min        = 1.17549e-38
+ f32 max        = 3.40282e+38
+ f32 PI         = 3.14159
    bl::sin(pi_v / 6.0) = 0.5
    bl::sin(pi_v / 5.0) = 0.587785
    c: 0.587785
    Test_Bool is TRUE
 
-print_math<F64>():
-   F64 min = 2.2250738585072e-308
-   F64 max = 1.79769313486232e+308
-   F64 PI = 3.14159265358979
+print_math<f64>():
+ f64 min        = 2.2250738585072e-308
+ f64 max        = 1.79769313486232e+308
+ f64 PI         = 3.14159265358979
    bl::sin(pi_v / 6.0) = 0.5
    bl::sin(pi_v / 5.0) = 0.587785252292473
    c: 0.587785
 
-print_math<F128>():
-   F128 min = 2.225073858507201383090232717332e-308
-   F128 max = 1.797693134862315708145274237317e+308
-   F128 PI = 3.14159265358979323846264338328
+print_math<f128>():
+ f128 min        = 2.225073858507201383090232717332e-308
+ f128 max        = 1.797693134862315708145274237317e+308
+ f128 PI         = 3.14159265358979323846264338328
    bl::sin(pi_v / 6.0) = 0.5
    bl::sin(pi_v / 5.0) = 0.5877852522924731291687059546391
    c: 0.587785
    Test_Bool is TRUE
 
-print_math<F256>():
-   F256 min = 2.22507385850720138309023271733240406421921598046233183055332742e-308
-   F256 max = 1.79769313486231570814527423731704356798070567525844996598917477e+308
-   F256 PI = 3.14159265358979323846264338327950288419716939937510582097494459
+print_math<f256>():
+ f256 min        = 2.22507385850720138309023271733240406421921598046233183055332742e-308
+ f256 max        = 1.79769313486231570814527423731704356798070567525844996598917477e+308
+ f256 PI         = 3.14159265358979323846264338327950288419716939937510582097494459
    bl::sin(pi_v / 6.0) = 0.5
    bl::sin(pi_v / 5.0) = 0.587785252292473129168705954639072768597652437643145991072272481
    c: 0.587785
 
 print_math: 32 variants
-  arg[0] domain=4
-  arg[1] domain=4
-  arg[2] domain=2
+  arg[0] domain = 4
+  arg[1] domain = 4
+  arg[2] domain = 2
 
 */

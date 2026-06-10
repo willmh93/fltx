@@ -818,7 +818,7 @@ namespace detail::_f256_impl
 
     int e = 0;
 
-    if (bl::use_constexpr_math())
+    if (bl::detail::use_constexpr_math())
     {
         e = detail::fp::frexp_exponent(x.x0);
     }

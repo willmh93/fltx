@@ -191,7 +191,7 @@ namespace detail::_f128_impl
     constexpr double fast_min = 0x1p-900;
     constexpr double fast_max = 0x1p900;
 
-    if (bl::use_constexpr_math() || a.hi < fast_min || a.hi > fast_max)
+    if (bl::detail::use_constexpr_math() || a.hi < fast_min || a.hi > fast_max)
     {
         const int exp2 = detail::fp::frexp_exponent_limb(a.hi);
         const int result_scale = exp2 / 2;
@@ -199,7 +199,7 @@ namespace detail::_f128_impl
         const f128_s scaled_a = input_scale == 0 ? a : ldexp_terms(a, input_scale);
 
         double seed{};
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
             seed = detail::_f128::sqrt_constexpr_head(scaled_a.hi);
         else
             seed = std::sqrt(scaled_a.hi);

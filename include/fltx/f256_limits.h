@@ -60,12 +60,4 @@ struct std::numeric_limits<bl::f256_s>
 
 BL_DEFINE_FLOAT_WRAPPER_NUMERIC_LIMITS(bl::f256, bl::f256_s)
 
-#ifndef FLTX_LIMITS_ALIAS_DEFINED
-#define FLTX_LIMITS_ALIAS_DEFINED
-namespace bl
-{
-    using std::numeric_limits;
-}
-#endif
-
 #endif

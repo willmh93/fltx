@@ -1398,6 +1398,27 @@ TEST_CASE("f64 rounding matches MPFR references", "[fltx][f64][precision][math][
         check_exact_integer_result("llrint", bl::llrint(input), std::llrint(input), input);
     }
 
+    REQUIRE(bl::round_to_decimals(1.2345, 2) == 1.23);
+    REQUIRE(bl::round_to_decimals(1.2345, 3) == 1.234);
+    REQUIRE(bl::round_to_decimals(1.125, 2) == 1.12);
+    REQUIRE(bl::round_to_decimals(1.375, 2) == 1.38);
+    REQUIRE(bl::round_to_decimals(-1.375, 2) == -1.38);
+    REQUIRE(bl::round_to_decimals(1.25, 0) == 1.25);
+
+    constexpr double constexpr_rounded = bl::round_to_decimals(1.375, 2);
+    static_assert(constexpr_rounded == 1.38);
+
+    static_assert(bl::pow10<bl::f64>(0) == 1.0);
+    static_assert(bl::pow10<bl::f64>(3) == 1000.0);
+    static_assert(bl::pow10<bl::f64>(-3) == 1e-3);
+
+    REQUIRE(bl::pow10<bl::f64>(308) == 1e308);
+    REQUIRE(bl::isinf(bl::pow10<bl::f64>(309)));
+    REQUIRE(bl::pow10<bl::f64>(-323) == 1e-323);
+    REQUIRE(bl::pow10<bl::f64>(-324) == 0.0);
+
+    REQUIRE(bl::log10(bl::pow10<bl::f64>(20)) == 20.0);
+
     std::mt19937_64 rng(random_seed);
     print_random_run("random rounding inputs", random_sample_count);
 

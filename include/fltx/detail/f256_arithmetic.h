@@ -563,7 +563,7 @@ return renorm5(p0, p1, s0, t0, t1);
     {
         using namespace detail::_f256;
 
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             if (detail::fp::isnan(a.x0) || detail::fp::isnan(b))
                 return std::numeric_limits<f256_s>::quiet_NaN();
@@ -618,7 +618,7 @@ return renorm5(p0, p1, s0, t0, t1);
     {
         using namespace detail::_f256;
 
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             if (detail::fp::isnan(a) || detail::fp::isnan(b.x0))
                 return std::numeric_limits<f256_s>::quiet_NaN();

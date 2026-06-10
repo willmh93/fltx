@@ -125,7 +125,7 @@ namespace detail::_f128 // primitives and kernels
 
     BL_FORCE_INLINE constexpr double exp_nearest_integer(double x) noexcept
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
             return nearbyint_ties_even(x);
 
         return static_cast<double>(
@@ -210,7 +210,7 @@ namespace detail::_f128 // primitives and kernels
             return a;
 
         int exp2 = 0;
-        if (bl::use_constexpr_math()) {
+        if (bl::detail::use_constexpr_math()) {
             exp2 = detail::fp::frexp_exponent(a.hi);
         }
         else {
@@ -470,7 +470,7 @@ namespace detail::_f128 // primitives and kernels
 
     BL_FORCE_INLINE constexpr f128_s horner_forward(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return horner_forward_inline(coeffs, count, x);
         }
@@ -480,7 +480,7 @@ namespace detail::_f128 // primitives and kernels
 
     BL_FORCE_INLINE constexpr f128_s horner_reverse(const f128_s* coeffs, std::size_t count, const f128_s& x) noexcept
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return horner_reverse_inline(coeffs, count, x);
         }
@@ -490,7 +490,7 @@ namespace detail::_f128 // primitives and kernels
 
     BL_FORCE_INLINE constexpr void horner_pair_forward(const f128_s* left_coeffs, const f128_s* right_coeffs, std::size_t count, const f128_s& x, f128_s& left_out, f128_s& right_out) noexcept
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             horner_pair_forward_inline(left_coeffs, right_coeffs, count, x, left_out, right_out);
             return;
@@ -1289,7 +1289,7 @@ namespace detail::_f128
     if (y == 0.5)  return F128_CANONICALIZE_MATH_RESULT(detail::_f128_impl::sqrt(x));
 
     double yi{};
-    if (bl::use_constexpr_math())
+    if (bl::detail::use_constexpr_math())
     {
         yi = (y < 0.0)
             ? detail::fp::ceil(y)
@@ -1404,7 +1404,7 @@ namespace detail::_f128
     f128_s r{};
     if (!remainder_pio2(x, n, r))
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return F128_CANONICALIZE_MATH_RESULT(f128_s{ detail::fp::sin(static_cast<double>(x)) });
         }
@@ -1436,7 +1436,7 @@ namespace detail::_f128
     f128_s r{};
     if (!remainder_pio2(x, n, r))
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return F128_CANONICALIZE_MATH_RESULT(f128_s{ detail::fp::cos(static_cast<double>(x)) });
         }
@@ -1465,7 +1465,7 @@ namespace detail::_f128
     if (detail::_f128_impl::sincos(x, s, c))
         return div_inline(s, c);
     const double xd = (double)x;
-    if (bl::use_constexpr_math()) {
+    if (bl::detail::use_constexpr_math()) {
         return f128_s{ detail::fp::tan(xd) };
     } else {
         return f128_s{ std::tan(xd) };

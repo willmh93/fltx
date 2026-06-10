@@ -12,6 +12,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <fltx/f128_math.h>
 #include <fltx/f256_math.h>
 #include <fltx/f256_io.h>
 #include <fltx/random.h>
@@ -36,6 +37,19 @@ constexpr std::array<const char*, kBucketCount> kBucketNames =
     "two_tails",
     "three_tails"
 };
+
+template<class Base, class Exp>
+concept can_call_pow = requires(Base base, Exp exp)
+{
+    bl::pow(base, exp);
+};
+
+static_assert(std::is_same_v<decltype(bl::pow(bl::f256{ 2.0 }, 5)), bl::f256>);
+static_assert(std::is_same_v<decltype(bl::pow(bl::f256{ 2.0 }, 5.0f)), bl::f256>);
+static_assert(std::is_same_v<decltype(bl::pow(bl::f256{ 2.0 }, 5.0)), bl::f256>);
+static_assert(std::is_same_v<decltype(bl::pow(bl::f256{ 2.0 }, bl::f128{ 5.0 })), bl::f256>);
+static_assert(!can_call_pow<bl::f128, bl::f256>);
+static_assert(!can_call_pow<bl::f256, long double>);
 
 struct forced_path_scope
 {
@@ -175,7 +189,7 @@ auto eval_runtime_path(Function&& function)
         0x1.23456789abcdfp-180
     };
 
-    if (!bl::is_constant_evaluated())
+    if (!bl::detail::is_constant_evaluated())
     {
         const std::uint64_t bits = std::bit_cast<std::uint64_t>(value.x3);
         value.x3 = std::bit_cast<double>(bits ^ 0x3full);
@@ -341,6 +355,15 @@ auto eval_runtime_path(Function&& function)
            << ", x1=" << describe_bits(value.x1)
            << ", x2=" << describe_bits(value.x2)
            << ", x3=" << describe_bits(value.x3) << "]";
+    return stream.str();
+}
+
+[[nodiscard]] std::string describe(const bl::f128_s& value)
+{
+    std::ostringstream stream;
+    stream << static_cast<double>(value)
+           << " [hi=" << describe_bits(value.hi)
+           << ", lo=" << describe_bits(value.lo) << "]";
     return stream.str();
 }
 
@@ -819,6 +842,21 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
     return std::tuple{ gen_positive_nonzero_value(rng, bucket), static_cast<double>(scaled_double(rng, -20, 20)) };
 }
 
+[[nodiscard]] auto gen_pow_float_args(bl::mt19937_64& rng, int bucket)
+{
+    return std::tuple{ gen_positive_nonzero_value(rng, bucket), static_cast<float>(scaled_double(rng, -20, 20)) };
+}
+
+[[nodiscard]] auto gen_pow_f128_args(bl::mt19937_64& rng, int bucket)
+{
+    return std::tuple{ gen_positive_nonzero_value(rng, bucket), bl::f128{ static_cast<double>(scaled_double(rng, -20, 20)) } };
+}
+
+[[nodiscard]] auto gen_pow_int_args(bl::mt19937_64& rng, int bucket)
+{
+    return std::tuple{ gen_nonzero_value(rng, bucket), random_int(rng, -12, 12) };
+}
+
 #define FLTX_TEST_UNARY(NAME, GENERATOR) \
 TEST_CASE("f256 constexpr parity: " #NAME, "[fltx][constexpr][parity][f256][" #NAME "]") \
 { \
@@ -914,9 +952,24 @@ TEST_CASE("f256 constexpr parity: pow(double)", "[fltx][constexpr][parity][f256]
     run_tuple_test("pow_double", gen_pow_double_args, [](const value_type& x, double y) { return bl::pow(x, y); });
 }
 
-TEST_CASE("f256 constexpr parity: pow10_256", "[fltx][constexpr][parity][f256][pow10_256]")
+TEST_CASE("f256 constexpr parity: pow(float)", "[fltx][constexpr][parity][f256][pow_float]")
 {
-    run_tuple_test("pow10_256", gen_pow10_args, [](int exponent) { return bl::pow10_256(exponent); });
+    run_tuple_test("pow_float", gen_pow_float_args, [](const value_type& x, float y) { return bl::pow(x, y); });
+}
+
+TEST_CASE("f256 constexpr parity: pow(f128)", "[fltx][constexpr][parity][f256][pow_f128]")
+{
+    run_tuple_test("pow_f128", gen_pow_f128_args, [](const value_type& x, const bl::f128_s& y) { return bl::pow(x, y); });
+}
+
+TEST_CASE("f256 constexpr parity: pow(int)", "[fltx][constexpr][parity][f256][pow_int]")
+{
+    run_tuple_test("pow_int", gen_pow_int_args, [](const value_type& x, int y) { return bl::pow(x, y); });
+}
+
+TEST_CASE("f256 constexpr parity: pow10", "[fltx][constexpr][parity][f256][pow10]")
+{
+    run_tuple_test("pow10", gen_pow10_args, [](int exponent) { return bl::pow10<value_type>(exponent); });
 }
 
 TEST_CASE("f256 constexpr parity: sincos", "[fltx][constexpr][parity][f256][sincos]")
@@ -1022,12 +1075,12 @@ TEST_CASE("f256 constexpr parity harness switches forced path", "[fltx][constexp
 {
     const bool forced_constexpr = eval_constexpr_path([]()
     {
-        return bl::is_constant_evaluated();
+        return bl::detail::is_constant_evaluated();
     });
 
     const bool forced_runtime = eval_runtime_path([]()
     {
-        return bl::is_constant_evaluated();
+        return bl::detail::is_constant_evaluated();
     });
 
     REQUIRE(forced_constexpr);

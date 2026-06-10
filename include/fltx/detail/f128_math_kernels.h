@@ -107,7 +107,7 @@ namespace detail::_f128 // primitives and kernels
         if (ldexp_fast_normal(x, e, fast))
             return fast;
 
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             return renorm(
                 detail::fp::ldexp(x.hi, e),
@@ -1085,7 +1085,7 @@ namespace detail::_f128 // primitives and kernels
     [[nodiscard]] BL_FORCE_INLINE constexpr double sqrt_tail_square(double c_lo, double correction) noexcept
     {
         #ifdef FMA_AVAILABLE
-        if (!bl::use_constexpr_math())
+        if (!bl::detail::use_constexpr_math())
         {
             return std::fma(c_lo, c_lo, correction);
         }

@@ -14,6 +14,7 @@
 #include <string>
 
 #include "fltx/aliases.h"
+#include "fltx/detail/native_float_io.h"
 #include "fltx/f128_string.h"
 #include "fltx/f256_string.h"
 
@@ -25,7 +26,16 @@ namespace bl
         bool scientific = false,
         bool strip_trailing_zeros = false)
     {
-        return to_static_string((f128)value, precision, fixed, scientific, strip_trailing_zeros);
+        bl::default_io_string out;
+        detail::to_string_into<detail::_native_float_io::f32_io_traits>(
+            out,
+            value,
+            precision,
+            fixed,
+            scientific,
+            strip_trailing_zeros
+        );
+        return out;
     }
 
     BL_FORCE_INLINE constexpr bl::default_io_string to_static_string(f64 value,
@@ -34,7 +44,37 @@ namespace bl
         bool scientific = false,
         bool strip_trailing_zeros = false)
     {
-        return to_static_string((f128)value, precision, fixed, scientific, strip_trailing_zeros);
+        bl::default_io_string out;
+        detail::to_string_into<detail::_native_float_io::f64_io_traits>(
+            out,
+            value,
+            precision,
+            fixed,
+            scientific,
+            strip_trailing_zeros
+        );
+        return out;
+    }
+
+    BL_FORCE_INLINE std::string to_string(f32 a,
+        precision_info precision,
+        bool fixed = false,
+        bool scientific = false,
+        bool strip_trailing_zeros = false)
+    {
+        const int digits = precision.digits >= 0 ? precision.digits : std::numeric_limits<f32>::digits10;
+        std::string out;
+        detail::to_string_into<detail::_native_float_io::f32_io_traits>(
+            out,
+            a,
+            digits,
+            fixed,
+            scientific,
+            strip_trailing_zeros
+        );
+        if (detail::should_collapse_fixed_string(precision, fixed, scientific))
+            detail::collapse_fixed_string(out, precision);
+        return out;
     }
 
     BL_FORCE_INLINE std::string to_string(f32 a,
@@ -43,15 +83,27 @@ namespace bl
         bool scientific = false,
         bool strip_trailing_zeros = false)
     {
+        return to_string(a, precision_info{ precision }, fixed, scientific, strip_trailing_zeros);
+    }
+
+    BL_FORCE_INLINE std::string to_string(f64 a,
+        precision_info precision,
+        bool fixed = false,
+        bool scientific = false,
+        bool strip_trailing_zeros = false)
+    {
         std::string out;
-        detail::_f128::to_string_into(
+        const int digits = precision.digits >= 0 ? precision.digits : std::numeric_limits<f64>::digits10;
+        detail::to_string_into<detail::_native_float_io::f64_io_traits>(
             out,
-            f128_s{ static_cast<f64>(a), 0.0 },
-            precision,
+            a,
+            digits,
             fixed,
             scientific,
             strip_trailing_zeros
         );
+        if (detail::should_collapse_fixed_string(precision, fixed, scientific))
+            detail::collapse_fixed_string(out, precision);
         return out;
     }
 
@@ -61,47 +113,7 @@ namespace bl
         bool scientific = false,
         bool strip_trailing_zeros = false)
     {
-        std::string out;
-        detail::_f128::to_string_into(
-            out,
-            f128_s{ a, 0.0 },
-            precision,
-            fixed,
-            scientific,
-            strip_trailing_zeros
-        );
-        return out;
-    }
-
-    template<typename T>
-    std::string to_string_collapsed(T value, int max_precision, int peek_front = 4, int peek_back = 10)
-    {
-        if (max_precision < 0) max_precision = 0;
-        if (peek_front < 0) peek_front = 0;
-        if (peek_back < 0) peek_back = 0;
-
-        peek_front = (peek_front < max_precision) ? peek_front : max_precision;
-        peek_back = (peek_back < max_precision) ? peek_back : max_precision;
-
-        std::string s = bl::to_string(value, max_precision, true, false);
-        size_t period_i = s.find('.');
-
-        if (period_i == std::string::npos)
-            return s;
-
-        int front_end  = (int)period_i + 1 + peek_front;
-        int back_start = (int)period_i + 1 + (max_precision - peek_back);
-
-        // ensure we're collapsing more than 3 characters, otherwise there's little point
-        if (back_start <= front_end + 3)
-            return s;
-
-        std::string ret;
-        ret += s.substr(0, front_end);
-        ret += "...";
-        ret += s.substr(back_start, peek_back);
-
-        return ret;
+        return to_string(a, precision_info{ precision }, fixed, scientific, strip_trailing_zeros);
     }
 
 } // namespace bl

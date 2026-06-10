@@ -253,7 +253,7 @@ namespace detail::_f128 // primitives and kernels
 
     [[nodiscard]] BL_FORCE_INLINE constexpr f128_s div_double_inline(const f128_s& a, double b) noexcept
     {
-        if (bl::use_constexpr_math())
+        if (bl::detail::use_constexpr_math())
         {
             if (detail::fp::isnan(a.hi) || detail::fp::isnan(b)) [[unlikely]]
                 return std::numeric_limits<f128_s>::quiet_NaN();

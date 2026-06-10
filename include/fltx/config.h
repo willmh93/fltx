@@ -145,48 +145,53 @@ namespace bl
 
     #endif
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool is_constant_evaluated() noexcept
+    namespace detail
     {
-        // In simulated-consteval mode, tests can run ordinary runtime calls
-        // through the branches that would be selected during constant
-        // evaluation. FLTX_CONSTEXPR_PARITY itself is intentionally not part of
-        // this decision; it requests bitwise-compatible results, not forced
-        // constexpr-path execution.
-        if consteval
+        [[nodiscard]] BL_FORCE_INLINE constexpr bool is_constant_evaluated() noexcept
         {
-            return true;
+            // In simulated-consteval mode, tests can run ordinary runtime calls
+            // through the branches that would be selected during constant
+            // evaluation. FLTX_CONSTEXPR_PARITY itself is intentionally not part of
+            // this decision; it requests bitwise-compatible results, not forced
+            // constexpr-path execution.
+            if consteval
+            {
+                return true;
+            }
+
+            #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
+            return bl::_fltx_debug::simulate_consteval_path;
+            #else
+            return false;
+            #endif
         }
 
-        #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
-        return _fltx_debug::simulate_consteval_path;
-        #else
-        return false;
-        #endif
-    }
+        [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_parity() noexcept
+        {
+            // Result-parity policy only. Callers may use this to decide whether to
+            // canonicalize a math result.
+            #if defined(FLTX_CONSTEXPR_PARITY)
+            return true;
+            #else
+            return false;
+            #endif
+        }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_parity() noexcept
-    {
-        // Result-parity policy only. Callers may use this to decide whether to
-        // canonicalization a math result.
-        #if defined(FLTX_CONSTEXPR_PARITY)
-        return true;
-        #else
-        return false;
-        #endif
-    }
+        [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_math() noexcept
+        {
+            // Select constexpr-safe math algorithms. In normal builds this tracks
+            // actual constant evaluation. In FLTX_SIMULATE_CONSTEVAL_MODE, tests can
+            // force this at runtime to compare predicted consteval results with runtime
+            // results. FLTX_CONSTEXPR_PARITY also takes this path so runtime and
+            // constant-evaluated results are bitwise comparable.
+            #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
+            return is_constant_evaluated() || bl::_fltx_debug::simulate_consteval_path || use_constexpr_parity();
+            #else
+            return is_constant_evaluated() || use_constexpr_parity();
+            #endif
+        }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool use_constexpr_math() noexcept
-    {
-        // Select constexpr-safe math algorithms. In normal builds this tracks
-        // actual constant evaluation. In FLTX_SIMULATE_CONSTEVAL_MODE, tests can
-        // force this at runtime to compare predicted consteval results with runtime
-        // results.
-        #if defined(FLTX_SIMULATE_CONSTEVAL_MODE)
-        return is_constant_evaluated() || _fltx_debug::simulate_consteval_path || use_constexpr_parity();
-        #else
-        return is_constant_evaluated() || use_constexpr_parity();
-        #endif
-    }
+    } // namespace detail
 
 } // namespace bl
 
@@ -277,7 +282,7 @@ struct std::numeric_limits<wrapper_type>                                        
             }                                                           \
             else                                                        \
             {                                                           \
-                if (bl::use_constexpr_math())                           \
+                if (bl::detail::use_constexpr_math())                   \
                     return (CONSTEVAL_EXPR);                            \
                 return (RUNTIME_EXPR);                                  \
             }                                                           \

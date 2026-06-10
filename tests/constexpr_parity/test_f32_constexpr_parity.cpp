@@ -33,6 +33,19 @@ constexpr std::array<const char*, kBucketCount> kBucketNames =
     "edge_range"
 };
 
+template<class Base, class Exp>
+concept can_call_pow = requires(Base base, Exp exp)
+{
+    bl::pow(base, exp);
+};
+
+static_assert(std::is_same_v<decltype(bl::pow(2.0f, 5)), bl::f32>);
+static_assert(std::is_same_v<decltype(bl::pow(2, 5)), int>);
+static_assert(bl::pow(2.0f, 5) == 32.0f);
+static_assert(bl::pow(2, 5) == 32);
+static_assert(!can_call_pow<bl::f32, bl::f64>);
+static_assert(!can_call_pow<bl::f32, long double>);
+
 struct forced_path_scope
 {
     explicit forced_path_scope(bool force_constexpr) noexcept
@@ -554,6 +567,11 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
     return std::tuple{ gen_positive_nonzero_value(rng, bucket), gen_any_value(rng, bucket) };
 }
 
+[[nodiscard]] auto gen_pow_int_args(std::mt19937_64& rng, int bucket)
+{
+    return std::tuple{ gen_nonzero_value(rng, bucket), random_int(rng, -12, 12) };
+}
+
 [[nodiscard]] auto gen_remquo_args(std::mt19937_64& rng, int bucket)
 {
     return std::tuple{ gen_any_value(rng, bucket), gen_nonzero_value(rng, bucket) };
@@ -682,6 +700,11 @@ FLTX_TEST_UNARY(atanh, gen_unary_unit)
 TEST_CASE("f32 constexpr parity: pow", "[fltx][constexpr][parity][f32][pow]")
 {
     run_tuple_test("pow", gen_pow_args, [](float x, float y) { return bl::pow(x, y); });
+}
+
+TEST_CASE("f32 constexpr parity: pow(int)", "[fltx][constexpr][parity][f32][pow_int]")
+{
+    run_tuple_test("pow_int", gen_pow_int_args, [](float x, int y) { return bl::pow(x, y); });
 }
 
 FLTX_TEST_UNARY(erf, gen_unary_any)

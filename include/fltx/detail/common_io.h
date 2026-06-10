@@ -19,6 +19,27 @@
 
 namespace bl
 {
+    struct precision_info
+    {
+        int digits = -1;
+        int leading_digits = 0;
+        int trailing_digits = 0;
+
+        constexpr precision_info() noexcept = default;
+
+        constexpr precision_info(int precision_digits) noexcept :
+            digits(precision_digits)
+        {
+        }
+
+        constexpr precision_info(int precision_digits, int leading, int trailing) noexcept :
+            digits(precision_digits),
+            leading_digits(leading),
+            trailing_digits(trailing)
+        {
+        }
+    };
+
     template<std::size_t capacity>
     struct static_string
     {
@@ -1072,9 +1093,9 @@ constexpr inline bool compact_decimal_to_value(std::uint64_t coeff, int dec_exp,
     }
 
     const int e2 = bin_exp + adjusted_ratio_exp;
-    if (e2 > 1023)
+    if (e2 > Traits::max_binary_exponent)
         out = Traits::infinity(neg);
-    else if (e2 < -1074)
+    else if (e2 < Traits::min_binary_exponent)
         out = Traits::zero(neg);
     else
         out = Traits::pack_from_significand(q, e2, neg);
@@ -1113,14 +1134,54 @@ constexpr inline typename Traits::value_type exact_decimal_to_value(const biguin
     }
 
     const int e2 = bin_exp + ratio_exp;
-    if (e2 > 1023)
+    if (e2 > Traits::max_binary_exponent)
         return Traits::infinity(neg);
-    if (e2 < -1074)
+    if (e2 < Traits::min_binary_exponent)
         return Traits::zero(neg);
 
     return Traits::pack_from_significand(q, e2, neg);
 }
 
 } // namespace bl::detail::exact_decimal
+
+namespace bl::detail
+{
+    [[nodiscard]] BL_FORCE_INLINE constexpr bool should_collapse_fixed_string(precision_info precision, bool fixed, bool scientific) noexcept
+    {
+        return fixed && !scientific && precision.leading_digits > 0 && precision.trailing_digits > 0;
+    }
+
+    BL_FORCE_INLINE void collapse_fixed_string(std::string& text, precision_info precision)
+    {
+        if (precision.leading_digits < 0)
+            precision.leading_digits = 0;
+        if (precision.trailing_digits < 0)
+            precision.trailing_digits = 0;
+
+        const std::size_t period = text.find('.');
+        if (period == std::string::npos)
+            return;
+
+        const std::size_t fractional_begin = period + 1;
+        if (fractional_begin >= text.size())
+            return;
+
+        const std::size_t fractional_digits = text.size() - fractional_begin;
+        const std::size_t leading = static_cast<std::size_t>(precision.leading_digits);
+        const std::size_t trailing = static_cast<std::size_t>(precision.trailing_digits);
+
+        if (leading >= fractional_digits || trailing >= fractional_digits || leading + trailing >= fractional_digits)
+            return;
+
+        const std::size_t collapse_begin = fractional_begin + leading;
+        const std::size_t collapse_end = text.size() - trailing;
+
+        if (collapse_end <= collapse_begin + 3)
+            return;
+
+        text.replace(collapse_begin, collapse_end - collapse_begin, "...");
+    }
+
+} // namespace bl::detail
 
 #endif

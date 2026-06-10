@@ -665,8 +665,16 @@ def function_column_width(table: BenchmarkTable) -> int:
     return round(natural_width * FUNCTION_COLUMN_WIDTH_SCALE)
 
 
-def render_html_document(table: BenchmarkTable) -> str:
+def render_html_document(table: BenchmarkTable, show_title_legend: bool = True) -> str:
     function_w = function_column_width(table)
+    title_legend_html = ""
+    if show_title_legend:
+        title_legend_html = (
+            f"<h1>{e(TABLE_TITLE)}</h1>\n"
+            f'<p class="note">{e(TABLE_SUBTITLE)}</p>\n'
+            f"{render_html_reference_legend(table)}"
+        )
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -701,9 +709,7 @@ h1 {{ margin: 0 0 8px; font-size: 28px; }}
 </style>
 </head>
 <body>
-<h1>{e(TABLE_TITLE)}</h1>
-<p class="note">{e(TABLE_SUBTITLE)}</p>
-{render_html_reference_legend(table)}
+{title_legend_html}
 <div class="table-wrap">
 {render_html_table(table)}
 </div>
@@ -770,9 +776,9 @@ def table_row_count(table: BenchmarkTable) -> int:
     return sum(1 + len(table.rows_by_group.get(group, [])) for group in table.groups)
 
 
-def render_svg_table(table: BenchmarkTable) -> str:
-    legend_h = svg_reference_legend_height(table)
-    title_h = 62 + legend_h
+def render_svg_table(table: BenchmarkTable, show_title_legend: bool = True) -> str:
+    legend_h = svg_reference_legend_height(table) if show_title_legend else 0
+    title_h = (62 + legend_h) if show_title_legend else 0
     header_h = 34
     header_rows = 3
     group_h = 28
@@ -783,19 +789,27 @@ def render_svg_table(table: BenchmarkTable) -> str:
     column_w = 116
     boundaries = set(type_boundary_indices(table.columns))
     width = margin * 2 + function_w + column_w * max(1, len(table.columns)) + TYPE_GAP_WIDTH * len(boundaries)
-    legend_width = max([0] + [math.ceil(len(line) * 6.4) for line in reference_legend_lines(table)])
-    width = max(width, margin * 2 + math.ceil(len(TABLE_SUBTITLE) * 7.2), margin * 2 + legend_width)
+    if show_title_legend:
+        legend_width = max([0] + [math.ceil(len(line) * 6.4) for line in reference_legend_lines(table)])
+        width = max(width, margin * 2 + math.ceil(len(TABLE_SUBTITLE) * 7.2), margin * 2 + legend_width)
     height = margin * 2 + title_h + header_h * header_rows + group_h * len(table.groups) + row_h * sum(len(table.rows_by_group.get(group, [])) for group in table.groups)
 
+    svg_role = 'role="img" aria-labelledby="title desc"' if show_title_legend else 'role="img"'
     parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
-        f'<title id="title">{e(TABLE_TITLE)}</title>',
-        f'<desc id="desc">{e(TABLE_SUBTITLE)}</desc>',
-        f'<rect width="{width}" height="{height}" fill="{PAGE_BG}"/>',
-        svg_text(margin, margin + 26, TABLE_TITLE, 24, TEXT, 700),
-        svg_text(margin, margin + 50, TABLE_SUBTITLE, 13, MUTED),
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" {svg_role}>',
     ]
-    parts.extend(render_svg_reference_legend(table, margin, margin + 76))
+    if show_title_legend:
+        parts.extend([
+            f'<title id="title">{e(TABLE_TITLE)}</title>',
+            f'<desc id="desc">{e(TABLE_SUBTITLE)}</desc>',
+        ])
+    parts.append(f'<rect width="{width}" height="{height}" fill="{PAGE_BG}"/>')
+    if show_title_legend:
+        parts.extend([
+            svg_text(margin, margin + 26, TABLE_TITLE, 24, TEXT, 700),
+            svg_text(margin, margin + 50, TABLE_SUBTITLE, 13, MUTED),
+        ])
+        parts.extend(render_svg_reference_legend(table, margin, margin + 76))
 
     if not table.columns:
         parts.append(svg_text(margin, margin + title_h + 32, "No benchmark metrics were found for this table.", 14, MUTED))
@@ -910,19 +924,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--root", type=Path, default=None, help="Deprecated alias for --res-root.")
     parser.add_argument("--output-dir", type=Path, default=None, help="Output directory. Defaults to <res-root>/metrics.")
     parser.add_argument("--format", choices=("html", "svg", "both"), default="svg", help="Output format.")
+    parser.add_argument(
+        "--no-title-legend",
+        "--no-caption",
+        action="store_false",
+        dest="show_title_legend",
+        help="Do not render the visible title, subtitle, or reference legend.",
+    )
+    parser.set_defaults(show_title_legend=True)
     return parser.parse_args()
 
 
-def write_outputs(table: BenchmarkTable, output_dir: Path, output_format: str) -> list[Path]:
+def write_outputs(table: BenchmarkTable, output_dir: Path, output_format: str, show_title_legend: bool) -> list[Path]:
     written: list[Path] = []
     output_dir.mkdir(parents=True, exist_ok=True)
     if output_format in {"html", "both"}:
         path = output_dir / "metrics_table.html"
-        path.write_text(render_html_document(table), encoding="utf-8")
+        path.write_text(render_html_document(table, show_title_legend), encoding="utf-8")
         written.append(path)
     if output_format in {"svg", "both"}:
         path = output_dir / "metrics_table.svg"
-        path.write_text(render_svg_table(table), encoding="utf-8")
+        path.write_text(render_svg_table(table, show_title_legend), encoding="utf-8")
         written.append(path)
     return written
 
@@ -934,7 +956,7 @@ def main() -> None:
     output_dir = args.output_dir.resolve() if args.output_dir else metrics_root
 
     table = discover_table(metrics_root)
-    for path in write_outputs(table, output_dir, args.format):
+    for path in write_outputs(table, output_dir, args.format, args.show_title_legend):
         print(f"wrote {path}")
 
 

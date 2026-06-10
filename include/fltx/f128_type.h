@@ -50,7 +50,7 @@ namespace detail::_f128 // primitives and kernels
     BL_FORCE_INLINE constexpr bool f128_runtime_product_pair_simd_enabled() noexcept
     {
         #if BL_F128_ENABLE_SIMD && !defined(FMA_AVAILABLE) && (BL_FLTX_HAS_NEON || BL_FLTX_HAS_WASM_SIMD)
-        return !bl::use_constexpr_math();
+        return !bl::detail::use_constexpr_math();
         #else
         return false;
         #endif

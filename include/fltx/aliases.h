@@ -31,9 +31,6 @@ namespace bl
     using f32 = float;
     using f64 = double;
 
-    using ddreal = f128;
-    using qdreal = f256;
-
 } // namespace bl
 
 #endif

@@ -45,12 +45,4 @@ namespace std::numbers
 
 } // namespace std::numbers
 
-#ifndef FLTX_NUMBERS_ALIAS_DEFINED
-#define FLTX_NUMBERS_ALIAS_DEFINED
-namespace bl
-{
-    namespace numbers = std::numbers;
-} // namespace bl
-#endif
-
 #endif

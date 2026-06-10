@@ -22,12 +22,12 @@ namespace bl
 
     inline std::istream& operator>>(std::istream& is, f128_s& x)
     {
-        return detail::read_from_stream(is, x, parse_flt128);
+        return detail::read_from_stream(is, x, detail::_f128::parse);
     }
 
     inline std::istream& operator>>(std::istream& is, f128& x)
     {
-        return detail::read_from_stream(is, static_cast<f128_s&>(x), parse_flt128);
+        return detail::read_from_stream(is, static_cast<f128_s&>(x), detail::_f128::parse);
     }
 
 } // namespace bl

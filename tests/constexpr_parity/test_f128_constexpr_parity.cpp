@@ -37,6 +37,17 @@ constexpr std::array<const char*, kBucketCount> kBucketNames =
     "edge_tail"
 };
 
+template<class Base, class Exp>
+concept can_call_pow = requires(Base base, Exp exp)
+{
+    bl::pow(base, exp);
+};
+
+static_assert(std::is_same_v<decltype(bl::pow(bl::f128{ 2.0 }, 5)), bl::f128>);
+static_assert(std::is_same_v<decltype(bl::pow(bl::f128{ 2.0 }, 5.0f)), bl::f128>);
+static_assert(std::is_same_v<decltype(bl::pow(bl::f128{ 2.0 }, 5.0)), bl::f128>);
+static_assert(!can_call_pow<bl::f128, long double>);
+
 struct forced_path_scope
 {
     explicit forced_path_scope(bool force_constexpr) noexcept
@@ -781,6 +792,31 @@ void run_tuple_test(const char* test_name, Generator&& generator, Function&& fun
     return std::tuple{ gen_positive_nonzero_value(rng, bucket), gen_any_value(rng, bucket) };
 }
 
+[[nodiscard]] auto gen_pow_double_args(bl::mt19937_64& rng, int bucket)
+{
+    if ((rng() & 3ull) == 0)
+    {
+        sample_type base{ static_cast<double>(random_int(rng, -16, 16)) };
+        if (bl::iszero(base))
+            base = sample_type{ -2.0 };
+        if (base > sample_type{ 0.0 })
+            base = -base;
+        return std::tuple{ base, static_cast<double>(random_int(rng, -12, 12)) };
+    }
+
+    return std::tuple{ gen_positive_nonzero_value(rng, bucket), static_cast<double>(scaled_double(rng, -20, 20)) };
+}
+
+[[nodiscard]] auto gen_pow_float_args(bl::mt19937_64& rng, int bucket)
+{
+    return std::tuple{ gen_positive_nonzero_value(rng, bucket), static_cast<float>(scaled_double(rng, -20, 20)) };
+}
+
+[[nodiscard]] auto gen_pow_int_args(bl::mt19937_64& rng, int bucket)
+{
+    return std::tuple{ gen_nonzero_value(rng, bucket), random_int(rng, -12, 12) };
+}
+
 #define FLTX_TEST_UNARY(NAME, GENERATOR) \
 TEST_CASE("f128 constexpr parity: " #NAME, "[fltx][constexpr][parity][f128][" #NAME "]") \
 { \
@@ -871,9 +907,24 @@ TEST_CASE("f128 constexpr parity: pow", "[fltx][constexpr][parity][f128][pow]")
     run_tuple_test("pow", gen_pow_args, [](const value_type& x, const value_type& y) { return bl::pow(x, y); });
 }
 
-TEST_CASE("f128 constexpr parity: pow10_128", "[fltx][constexpr][parity][f128][pow10_128]")
+TEST_CASE("f128 constexpr parity: pow(double)", "[fltx][constexpr][parity][f128][pow_double]")
 {
-    run_tuple_test("pow10_128", gen_pow10_args, [](int exponent) { return bl::pow10_128(exponent); });
+    run_tuple_test("pow_double", gen_pow_double_args, [](const value_type& x, double y) { return bl::pow(x, y); });
+}
+
+TEST_CASE("f128 constexpr parity: pow(float)", "[fltx][constexpr][parity][f128][pow_float]")
+{
+    run_tuple_test("pow_float", gen_pow_float_args, [](const value_type& x, float y) { return bl::pow(x, y); });
+}
+
+TEST_CASE("f128 constexpr parity: pow(int)", "[fltx][constexpr][parity][f128][pow_int]")
+{
+    run_tuple_test("pow_int", gen_pow_int_args, [](const value_type& x, int y) { return bl::pow(x, y); });
+}
+
+TEST_CASE("f128 constexpr parity: pow10", "[fltx][constexpr][parity][f128][pow10]")
+{
+    run_tuple_test("pow10", gen_pow10_args, [](int exponent) { return bl::pow10<value_type>(exponent); });
 }
 
 TEST_CASE("f128 constexpr parity: sincos", "[fltx][constexpr][parity][f128][sincos]")
@@ -958,12 +1009,12 @@ TEST_CASE("f128 constexpr parity harness switches forced path", "[fltx][constexp
 {
     const bool forced_constexpr = eval_constexpr_path([]()
     {
-        return bl::is_constant_evaluated();
+        return bl::detail::is_constant_evaluated();
     });
 
     const bool forced_runtime = eval_runtime_path([]()
     {
-        return bl::is_constant_evaluated();
+        return bl::detail::is_constant_evaluated();
     });
 
     REQUIRE(forced_constexpr);

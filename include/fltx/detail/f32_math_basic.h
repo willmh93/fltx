@@ -34,6 +34,114 @@ namespace detail::_f32_impl
     using detail::fp::signbit;
     using detail::fp::to_signed_integer_or_zero;
 
+    [[nodiscard]] BL_FORCE_INLINE constexpr float exact_dyadic_to_float(std::uint64_t coeff, int exp2, bool neg) noexcept
+    {
+        const std::uint32_t sign = neg ? (std::uint32_t{ 1 } << 31) : 0;
+        if (coeff == 0)
+            return std::bit_cast<float>(sign);
+
+        const int top_bit = detail::fp::bit_length_u64(coeff) - 1;
+        int unbiased_exp = exp2 + top_bit;
+        if (unbiased_exp > 127)
+            return neg ? -std::numeric_limits<float>::infinity() : std::numeric_limits<float>::infinity();
+
+        if (unbiased_exp < -126)
+        {
+            const int scale = exp2 + 149;
+            const std::uint64_t subnormal = scale >= 0
+                ? (scale >= 64 ? 0 : (coeff << scale))
+                : detail::_f64_impl::rounded_shr_u64(coeff, -scale);
+
+            if (subnormal == 0)
+                return std::bit_cast<float>(sign);
+            if (subnormal >= (std::uint64_t{ 1 } << 23))
+                return std::bit_cast<float>(sign | (std::uint32_t{ 1 } << 23));
+            return std::bit_cast<float>(sign | static_cast<std::uint32_t>(subnormal));
+        }
+
+        const int shift = top_bit - 23;
+        std::uint64_t significand = shift > 0
+            ? detail::_f64_impl::rounded_shr_u64(coeff, shift)
+            : (coeff << -shift);
+
+        if (detail::fp::bit_length_u64(significand) > 24)
+        {
+            significand >>= 1;
+            ++unbiased_exp;
+            if (unbiased_exp > 127)
+                return neg ? -std::numeric_limits<float>::infinity() : std::numeric_limits<float>::infinity();
+        }
+
+        const std::uint32_t exp_bits  = static_cast<std::uint32_t>(unbiased_exp + 127);
+        const std::uint32_t frac_bits = static_cast<std::uint32_t>(significand) & ((std::uint32_t{ 1 } << 23) - 1u);
+        return std::bit_cast<float>(sign | (exp_bits << 23) | frac_bits);
+    }
+
+    struct f32_decimal_round_traits
+    {
+        using value_type = float;
+
+        static constexpr int significand_bits = 24;
+        static constexpr int max_binary_exponent = 127;
+        static constexpr int min_binary_exponent = -149;
+
+        static constexpr bool isfinite(value_type x) noexcept { return detail::fp::isfinite(x); }
+        static constexpr bool signbit(value_type x) noexcept { return detail::fp::signbit(x); }
+        static constexpr value_type abs(value_type x) noexcept { return detail::fp::fabs(x); }
+        static constexpr value_type zero(bool neg) noexcept { return neg ? -0.0f : 0.0f; }
+        static constexpr value_type infinity(bool neg) noexcept
+        {
+            return neg ? -std::numeric_limits<value_type>::infinity() : std::numeric_limits<value_type>::infinity();
+        }
+
+        static constexpr value_type pack_from_significand(const detail::exact_decimal::biguint& q, int e2, bool neg) noexcept
+        {
+            return exact_dyadic_to_float(q.get_bits(0, significand_bits), e2 - (significand_bits - 1), neg);
+        }
+    };
+
+    inline constexpr int pow10_f32_min_exponent = -45;
+    inline constexpr int pow10_f32_max_exponent = 38;
+    inline constexpr std::uint32_t pow10_f32_bits[] =
+    {
+        0x00000001u, 0x00000007u, 0x00000047u, 0x000002cau,
+        0x00001be0u, 0x000116c2u, 0x000ae398u, 0x006ce3eeu,
+        0x02081ceau, 0x03aa2425u, 0x0554ad2eu, 0x0704ec3du,
+        0x08a6274cu, 0x0a4fb11fu, 0x0c01ceb3u, 0x0da24260u,
+        0x0f4ad2f8u, 0x10fd87b6u, 0x129e74d2u, 0x14461206u,
+        0x15f79688u, 0x179abe15u, 0x19416d9au, 0x1af1c901u,
+        0x1c971da0u, 0x1e3ce508u, 0x1fec1e4au, 0x219392efu,
+        0x233877aau, 0x24e69595u, 0x26901d7du, 0x283424dcu,
+        0x29e12e13u, 0x2b8cbcccu, 0x2d2febffu, 0x2edbe6ffu,
+        0x3089705fu, 0x322bcc77u, 0x33d6bf95u, 0x358637bdu,
+        0x3727c5acu, 0x38d1b717u, 0x3a83126fu, 0x3c23d70au,
+        0x3dcccccdu, 0x3f800000u, 0x41200000u, 0x42c80000u,
+        0x447a0000u, 0x461c4000u, 0x47c35000u, 0x49742400u,
+        0x4b189680u, 0x4cbebc20u, 0x4e6e6b28u, 0x501502f9u,
+        0x51ba43b7u, 0x5368d4a5u, 0x551184e7u, 0x56b5e621u,
+        0x58635fa9u, 0x5a0e1bcau, 0x5bb1a2bcu, 0x5d5e0b6bu,
+        0x5f0ac723u, 0x60ad78ecu, 0x6258d727u, 0x64078678u,
+        0x65a96816u, 0x6753c21cu, 0x69045951u, 0x6aa56fa6u,
+        0x6c4ecb8fu, 0x6e013f39u, 0x6fa18f08u, 0x7149f2cau,
+        0x72fc6f7cu, 0x749dc5aeu, 0x76453719u, 0x77f684dfu,
+        0x799a130cu, 0x7b4097ceu, 0x7cf0bdc2u, 0x7e967699u
+    };
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr float pow10(int exponent) noexcept
+    {
+        if (exponent > pow10_f32_max_exponent)
+            return std::numeric_limits<float>::infinity();
+        if (exponent < pow10_f32_min_exponent)
+            return 0.0f;
+
+        return std::bit_cast<float>(pow10_f32_bits[exponent - pow10_f32_min_exponent]);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr float round_to_decimals(float v, int prec) noexcept
+    {
+        return detail::_f64_impl::round_to_decimals_native<f32_decimal_round_traits>(v, prec);
+    }
+
     BL_FORCE_INLINE constexpr int normalize_remquo_bits(int q) noexcept
     {
         const int magnitude = q < 0 ? -q : q;
@@ -127,6 +235,11 @@ namespace detail::_f32_impl
         detail::_f32_impl::round_half_away_zero(x),
         std::round(x)
     );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr float round_to_decimals(float x, int prec) noexcept
+{
+    return detail::_f32_impl::round_to_decimals(x, prec);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr float nearbyint(float x) noexcept

@@ -12,5 +12,16 @@
 
 #include "fltx/detail/f64_math_basic.h"
 #include "fltx/detail/f64_math_transcendental.h"
+#include "fltx/traits.h"
+
+namespace bl
+{
+    template<fltx_f64 T>
+    [[nodiscard]] BL_FORCE_INLINE constexpr std::remove_cv_t<T> pow10(int exponent) noexcept
+    {
+        return static_cast<std::remove_cv_t<T>>(detail::_f64_impl::pow10(exponent));
+    }
+
+} // namespace bl
 
 #endif

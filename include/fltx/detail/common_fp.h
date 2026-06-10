@@ -208,7 +208,7 @@ BL_FORCE_INLINE constexpr int frexp_exponent(double x) noexcept
 
 BL_FORCE_INLINE constexpr int frexp_exponent_limb(double value) noexcept
 {
-    if (bl::use_constexpr_math())
+    if (bl::detail::use_constexpr_math())
     {
         return frexp_exponent(value);
     }
@@ -360,7 +360,7 @@ BL_FORCE_INLINE constexpr double ldexp(double value, int exp) noexcept
 
 BL_FORCE_INLINE constexpr double ldexp_limb(double value, int exponent) noexcept
 {
-    if (bl::use_constexpr_math())
+    if (bl::detail::use_constexpr_math())
     {
         return ldexp(value, exponent);
     }
@@ -492,7 +492,7 @@ BL_POP_PRECISE
 BL_FORCE_INLINE constexpr void two_prod_precise(double a, double b, double& p, double& err) noexcept
 {
     #ifdef FMA_AVAILABLE
-    if (bl::is_constant_evaluated() || bl::use_constexpr_parity())
+    if (bl::detail::is_constant_evaluated() || bl::detail::use_constexpr_parity())
     {
         two_prod_precise_dekker(a, b, p, err);
     }

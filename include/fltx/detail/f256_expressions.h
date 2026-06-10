@@ -211,7 +211,7 @@ namespace detail::_f256 // primitives and kernels
     BL_FORCE_INLINE constexpr f256_s scale_pow2_inline(const f256_s& a, int exponent, bool negative) noexcept
     {
         #if defined(BL_FAST_MATH)
-        if (!bl::use_constexpr_math())
+        if (!bl::detail::use_constexpr_math())
         {
             const double scale = bl::detail::fp::scalbn(negative ? -1.0 : 1.0, exponent);
             return scale_unchecked_inline(a, scale);
@@ -243,7 +243,7 @@ namespace detail::_f256 // primitives and kernels
     BL_FORCE_INLINE constexpr f256_s scale_pow2_or_checked_inline(const f256_s& a,double scalar,pow2_scale_info scale) noexcept
     {
         #if defined(BL_FAST_MATH)
-        if (!bl::use_constexpr_math())
+        if (!bl::detail::use_constexpr_math())
             return scale_unchecked_inline(a, scalar);
         #endif
 

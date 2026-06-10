@@ -183,7 +183,7 @@ namespace bl::detail::format
             : (explicit_general || fixed || scientific ? 6 : std::numeric_limits<Value>::max_digits10);
         const bool strip_trailing_zeros = !spec.alternate && !fixed && !scientific;
 
-        std::string text = bl::to_std_string(value, precision, fixed, scientific, strip_trailing_zeros);
+        std::string text = bl::to_string(value, precision, fixed, scientific, strip_trailing_zeros);
 
         if (spec.alternate && !bl::isnan(value) && !bl::isinf(value))
             detail::ensure_decimal_point(text);
