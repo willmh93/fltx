@@ -457,87 +457,70 @@ namespace detail::_f256_impl
 
     if (prec <= 0) return v;
     if (prec > local_capacity) prec = local_capacity;
+    if (detail::fp::iszero_or_inf_or_nan(v.x0)) return v;
 
-    constexpr f256_s inv10_qd{
-         0x1.999999999999ap-4,
-        -0x1.999999999999ap-58,
-         0x1.999999999999ap-112,
-        -0x1.999999999999ap-166
-    };
-
-    char digits[local_capacity];
-
-    const bool neg = v < 0.0;
-    if (neg) v = -v;
-
-    f256_s ip   = detail::_f256_impl::floor(v);
-    f256_s frac = sub_inline(v, ip);
-
-    f256_s w = frac;
-    for (int i = 0; i < prec; ++i)
+    detail::exact_decimal::biguint coefficient;
+    bool neg = false;
+    if (!detail::exact_decimal::exact_decimal_places_integer<detail::_f256::f256_significant_decimal_traits>(
+            v,
+            prec,
+            coefficient,
+            neg))
     {
-        w = mul_double_inline(w, 10.0);
-
-        int di = static_cast<int>(detail::_f256_impl::floor(w).x0);
-        if (di < 0) di = 0;
-        else if (di > 9) di = 9;
-
-        digits[i] = static_cast<char>('0' + di);
-        w = sub_double_inline(w, static_cast<double>(di));
+        return v;
     }
 
-    f256_s la = mul_double_inline(w, 10.0);
+    return detail::_f256::round_decimal_exact_to_f256(coefficient, -prec, neg);
+}
 
-    const f256_s tie_slop = mul_double_inline(f256_s::eps(), 65536.0);
-    int next = static_cast<int>(detail::_f256_impl::floor(la).x0);
-    if (next < 0) next = 0;
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::round_to_significant_figures(f256_s v, int figures)
+{
+    if (figures <= 0 || detail::fp::iszero_or_inf_or_nan(v.x0))
+        return v;
+    if (figures > std::numeric_limits<f256_s>::max_digits10)
+        figures = std::numeric_limits<f256_s>::max_digits10;
 
-    f256_s rem = sub_double_inline(la, static_cast<double>(next));
-    if (next < 10 && rem >= sub_inline(f256_s{ 1.0 }, tie_slop))
+    const bool neg = v.x0 < 0.0;
+    const f256_s ax = neg ? -v : v;
+
+    detail::exact_decimal::biguint coefficient;
+    int exp10 = 0;
+    if (!detail::exact_decimal::exact_significant_decimal<detail::_f256::f256_significant_decimal_traits>(
+            ax,
+            figures,
+            coefficient,
+            exp10))
     {
-        ++next;
-        rem = sub_double_inline(rem, 1.0);
+        return v;
     }
 
-    const int last = digits[prec - 1] - '0';
-    const bool beyond_half = rem > tie_slop;
-    const bool round_up    =
-        (next > 5) ||
-        (next == 5 && (beyond_half || (last & 1)));
+    return detail::_f256::round_decimal_exact_to_f256(coefficient, exp10 - (figures - 1), neg);
+}
 
-    if (round_up)
-    {
-        int i = prec - 1;
-        for (; i >= 0; --i)
-        {
-            if (digits[i] == '9')
-            {
-                digits[i] = '0';
-            }
-            else
-            {
-                ++digits[i];
-                break;
-            }
-        }
+[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::pow10_256(int k)
+{
+    if (k == 0) [[unlikely]]
+        return f256_s{ 1.0 };
 
-        if (i < 0)
-            ip = add_double_inline(ip, 1.0);
+    int n = (k >= 0) ? k : -k;
+
+    if (n <= 16) {
+        f256_s r = f256_s{ 1.0 };
+        const f256_s ten = f256_s{ 10.0, 0.0, 0.0, 0.0 };
+        for (int i = 0; i < n; ++i) r = r * ten;
+        return (k >= 0) ? r : (f256_s{ 1.0 } / r);
     }
 
-    f256_s exact_out{};
-    if (try_rounded_decimal_to_f256(ip, digits, prec, neg, exact_out))
-        return exact_out;
+    f256_s r = f256_s{ 1.0 };
+    f256_s base = f256_s{ 10.0, 0.0, 0.0, 0.0 };
 
-    f256_s frac_val{ 0.0 };
-    for (int i = prec - 1; i >= 0; --i)
-    {
-        frac_val = add_double_inline(frac_val, static_cast<double>(digits[i] - '0'));
-        frac_val = mul_inline(frac_val, inv10_qd);
+    while (n) {
+        if (n & 1) r = r * base;
+        n >>= 1;
+        if (n) base = base * base;
     }
 
-    f256_s out = add_inline(ip, frac_val);
-    return neg ? -out : out;
+    return (k >= 0) ? r : (f256_s{ 1.0 } / r);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::nearbyint(const f256_s& a)

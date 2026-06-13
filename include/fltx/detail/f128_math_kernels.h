@@ -11,6 +11,7 @@
 
 #ifndef F128_DETAIL_MATH_KERNELS_INCLUDED
 #define F128_DETAIL_MATH_KERNELS_INCLUDED
+#include "fltx/detail/common_decimal.h"
 #include "fltx/detail/f128_declarations.h"
 
 namespace bl {
@@ -910,6 +911,17 @@ namespace detail::_f128 // primitives and kernels
         return double_integer_is_odd(x.hi);
     }
 
+    struct f128_significant_decimal_traits
+    {
+        using value_type = f128_s;
+        static constexpr int limb_count = 2;
+
+        static constexpr double limb(const value_type& x, int index) noexcept
+        {
+            return index == 0 ? x.hi : x.lo;
+        }
+    };
+
     BL_FORCE_INLINE constexpr f128_s pack_decimal_significand(const detail::exact_decimal::biguint& q, int e2, bool neg) noexcept
     {
         const std::uint64_t c1 = q.get_bits(0, 53);
@@ -956,21 +968,6 @@ namespace detail::_f128 // primitives and kernels
             return neg ? f128_s{ -0.0, 0.0 } : f128_s{ 0.0, 0.0 };
 
         return pack_decimal_significand(q, e2, neg);
-    }
-
-    BL_FORCE_INLINE constexpr bool try_rounded_decimal_to_f128(const f128_s& integer_part, const char* digits, int digit_count, bool neg, f128_s& out) noexcept
-    {
-        int64_t integer_value = 0;
-        if (!try_get_int64(integer_part, integer_value) || integer_value < 0)
-            return false;
-
-        const detail::exact_decimal::biguint coeff = detail::fp::append_decimal_digits(
-            detail::exact_decimal::biguint{ static_cast<std::uint64_t>(integer_value) },
-            digits,
-            digit_count);
-
-        out = round_decimal_exact_to_f128(coeff, -digit_count, neg);
-        return true;
     }
 
     // rounding helpers

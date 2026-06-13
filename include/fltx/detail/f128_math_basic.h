@@ -344,89 +344,63 @@ namespace detail::_f128_impl
 
     if (prec <= 0) return v;
     if (prec > local_capacity) prec = local_capacity;
+    if (detail::fp::iszero_or_inf_or_nan(v.hi)) return v;
 
-    constexpr f128_s INV10_DD
+    detail::exact_decimal::biguint coefficient;
+    bool neg = false;
+    if (!detail::exact_decimal::exact_decimal_places_integer<detail::_f128::f128_significant_decimal_traits>(
+            v,
+            prec,
+            coefficient,
+            neg))
     {
-        0.1000000000000000055511151231257827021181583404541015625,
-       -0.0000000000000000055511151231257827021181583404541015625
-    };
-
-    char digits[local_capacity];
-
-    const bool neg = v < 0.0;
-    if (neg) v = -v;
-
-    f128_s ip   = detail::_f128_impl::floor(v);
-    f128_s frac = sub_inline(v, ip);
-
-    f128_s w = frac;
-    for (int i = 0; i < prec; ++i)
-    {
-        w = mul_inline(w, f128_s{ 10.0 });
-
-        int di = static_cast<int>(detail::_f128_impl::floor(w).hi);
-        if (di < 0) di = 0;
-        else if (di > 9) di = 9;
-
-        digits[i] = static_cast<char>('0' + di);
-        w = sub_inline(w, f128_s{ static_cast<double>(di) });
+        return v;
     }
 
-    f128_s la = mul_inline(w, f128_s{ 10.0 });
+    return detail::_f128::round_decimal_exact_to_f128(coefficient, -prec, neg);
+}
 
-    const f128_s tie_slop = mul_inline(f128_s::eps(), f128_s{ 65536.0 });
-    int next = static_cast<int>(detail::_f128_impl::floor(la).hi);
-    if (next < 0) next = 0;
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::round_to_significant_figures(f128_s v, int figures)
+{
+    if (figures <= 0 || detail::fp::iszero_or_inf_or_nan(v.hi))
+        return v;
+    if (figures > std::numeric_limits<f128_s>::max_digits10)
+        figures = std::numeric_limits<f128_s>::max_digits10;
 
-    f128_s rem = sub_inline(la, f128_s{ static_cast<double>(next) });
-    if (next < 10 && rem >= sub_inline(f128_s{ 1.0 }, tie_slop))
+    const bool neg = v.hi < 0.0;
+    const f128_s ax = neg ? -v : v;
+
+    detail::exact_decimal::biguint coefficient;
+    int exp10 = 0;
+    if (!detail::exact_decimal::exact_significant_decimal<detail::_f128::f128_significant_decimal_traits>(
+            ax,
+            figures,
+            coefficient,
+            exp10))
     {
-        ++next;
-        rem = sub_inline(rem, f128_s{ 1.0 });
+        return v;
     }
 
-    const int last = digits[prec - 1] - '0';
-    const bool beyond_half = rem > tie_slop;
-    const bool round_up    =
-        (next > 5) ||
-        (next == 5 && (beyond_half || (last & 1)));
+    return detail::_f128::round_decimal_exact_to_f128(coefficient, exp10 - (figures - 1), neg);
+}
 
-    if (round_up)
-    {
-        int i = prec - 1;
-        for (; i >= 0; --i)
-        {
-            if (digits[i] == '9')
-            {
-                digits[i] = '0';
-            }
-            else
-            {
-                ++digits[i];
-                break;
-            }
-        }
+[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::pow10_128(int k)
+{
+    if (k == 0) [[unlikely]]
+        return f128_s{ 1.0 };
 
-        if (i < 0)
-            ip = add_inline(ip, f128_s{ 1.0 });
+    int n = (k >= 0) ? k : -k;
+
+    f128_s r = f128_s{ 1.0 };
+    f128_s base = f128_s{ 10.0 };
+
+    while (n) {
+        if (n & 1) r = r * base;
+        n >>= 1;
+        if (n) base = base * base;
     }
 
-    f128_s exact_out{};
-    if (try_rounded_decimal_to_f128(ip, digits, prec, neg, exact_out))
-        return exact_out;
-
-    f128_s frac_val{ 0.0, 0.0 };
-    for (int i = prec - 1; i >= 0; --i)
-    {
-        frac_val = add_inline(
-            frac_val,
-            f128_s{ static_cast<double>(digits[i] - '0') });
-
-        frac_val = mul_inline(frac_val, INV10_DD);
-    }
-
-    f128_s out = add_inline(ip, frac_val);
-    return neg ? -out : out;
+    return (k >= 0) ? r : (f128_s{ 1.0 } / r);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::nearbyint(const f128_s& a)

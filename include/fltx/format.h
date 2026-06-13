@@ -11,6 +11,7 @@
 #define FLTX_FORMAT_INCLUDED
 
 #include <cstddef>
+#include <ios>
 #include <iterator>
 #include <limits>
 #include <string>
@@ -126,11 +127,28 @@ namespace bl::detail::format
             case 'F':
             case 'g':
             case 'G':
+            case 'a':
+            case 'A':
                 return it;
             default:
                 throw std::format_error("unsupported fltx format type");
             }
         }
+    };
+
+    template<class Value>
+    struct io_traits_for;
+
+    template<>
+    struct io_traits_for<bl::f128_s>
+    {
+        using type = bl::detail::_f128::f128_io_traits;
+    };
+
+    template<>
+    struct io_traits_for<bl::f256_s>
+    {
+        using type = bl::detail::_f256::f256_io_traits;
     };
 
     [[nodiscard]] inline bool has_sign_prefix(const std::string& text) noexcept
@@ -168,27 +186,88 @@ namespace bl::detail::format
         text.insert(0, pad, spec.fill);
     }
 
+    [[nodiscard]] inline bool is_uppercase_type(char type) noexcept
+    {
+        return type >= 'A' && type <= 'Z';
+    }
+
+    template<class Value>
+    [[nodiscard]] inline std::string format_hex_value_to_string(const Value& value, const standard_format_spec& spec)
+    {
+        using Traits = typename io_traits_for<Value>::type;
+
+        std::string text;
+        const bool uppercase = is_uppercase_type(spec.type);
+        if (const char* special = special_text<Traits>(value, uppercase)) [[unlikely]]
+        {
+            text = special;
+        }
+        else
+        {
+            const int precision = spec.precision >= 0 ? spec.precision : -1;
+            const bool precision_specified = spec.precision >= 0;
+            text.resize(bl::detail::format_capacity<Traits>(
+                precision,
+                bl::detail::format_kind::hex_float));
+
+            const auto result = bl::detail::emit_hex_float_to_chars<Traits>(
+                text.data(),
+                text.data() + text.size(),
+                value,
+                true,
+                precision,
+                precision_specified,
+                !precision_specified);
+
+            if (!result.ok)
+                throw std::format_error("unable to format fltx hexfloat value");
+
+            text.resize(static_cast<std::size_t>(result.ptr - text.data()));
+            if (spec.alternate)
+                bl::detail::ensure_decimal_point(text);
+        }
+
+        bl::detail::apply_stream_decorations(text, spec.sign == '+', uppercase);
+        if (spec.sign == ' ' && !has_sign_prefix(text))
+            text.insert(0, 1, ' ');
+        return text;
+    }
+
     template<class Value>
     [[nodiscard]] inline std::string format_value_to_string(const Value& value, const standard_format_spec& spec)
     {
-        const char lower_type = (spec.type >= 'A' && spec.type <= 'Z')
+        const char lower_type = is_uppercase_type(spec.type)
             ? static_cast<char>(spec.type + ('a' - 'A'))
             : spec.type;
 
-        const bool fixed = lower_type == 'f';
-        const bool scientific = lower_type == 'e';
+        if (lower_type == 'a')
+        {
+            std::string text = format_hex_value_to_string(value, spec);
+            apply_padding(text, spec);
+            return text;
+        }
+
+        std::ios_base::fmtflags flags{};
+        if (lower_type == 'f')
+            flags |= std::ios_base::fixed;
+        else if (lower_type == 'e')
+            flags |= std::ios_base::scientific;
+
+        if (spec.alternate)
+            flags |= std::ios_base::showpoint;
+        if (spec.sign == '+')
+            flags |= std::ios_base::showpos;
+        if (is_uppercase_type(spec.type))
+            flags |= std::ios_base::uppercase;
+
         const bool explicit_general = lower_type == 'g';
+        const bool explicit_float_format = lower_type == 'f' || lower_type == 'e';
+        const bool precision_defaults_to_six = explicit_general || explicit_float_format;
         const int precision = spec.precision >= 0
             ? spec.precision
-            : (explicit_general || fixed || scientific ? 6 : std::numeric_limits<Value>::max_digits10);
-        const bool strip_trailing_zeros = !spec.alternate && !fixed && !scientific;
+            : (precision_defaults_to_six ? 6 : std::numeric_limits<Value>::max_digits10);
 
-        std::string text = bl::to_string(value, precision, fixed, scientific, strip_trailing_zeros);
-
-        if (spec.alternate && !bl::isnan(value) && !bl::isinf(value))
-            detail::ensure_decimal_point(text);
-
-        detail::apply_stream_decorations(text, spec.sign == '+', spec.type >= 'A' && spec.type <= 'Z');
+        std::string text = bl::to_string(value, precision, flags);
         if (spec.sign == ' ' && (text.empty() || text[0] != '-'))
             text.insert(0, 1, ' ');
 

@@ -83,7 +83,7 @@ namespace
 
     [[nodiscard]] std::string to_text(const f256_s& value)
     {
-        return bl::to_string(value, std::numeric_limits<f256>::max_digits10, false, true, false);
+        return bl::to_string(value, std::numeric_limits<f256>::max_digits10, std::ios_base::scientific);
     }
 
     [[nodiscard]] std::string to_text(const mpfr_ref& value)

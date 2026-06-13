@@ -1405,9 +1405,19 @@ TEST_CASE("f32 rounding matches MPFR references", "[fltx][f32][precision][math][
     REQUIRE(bl::round_to_decimals(1.375f, 2) == 1.38f);
     REQUIRE(bl::round_to_decimals(-1.375f, 2) == -1.38f);
     REQUIRE(bl::round_to_decimals(1.25f, 0) == 1.25f);
+    REQUIRE(bl::round_to_precision(12345.0f, 3) == 12300.0f);
+    REQUIRE(bl::round_to_precision(0.012345f, 3) == 0.0123f);
+    REQUIRE(bl::round_to_precision(12500.0f, 2) == 12000.0f);
+    REQUIRE(bl::round_to_precision(13500.0f, 2) == 14000.0f);
+    REQUIRE(bl::round_to(1.2345f, 2, bl::decimals) == bl::round_to_decimals(1.2345f, 2));
+    REQUIRE(bl::round_to(12345.0f, 3, bl::significant_figures) == bl::round_to_precision(12345.0f, 3));
 
     constexpr float constexpr_rounded = bl::round_to_decimals(1.375f, 2);
     static_assert(constexpr_rounded == 1.38f);
+    constexpr float constexpr_precision_rounded = bl::round_to_precision(12345.0f, 3);
+    static_assert(constexpr_precision_rounded == 12300.0f);
+    constexpr float constexpr_round_to = bl::round_to(12345.0f, 3, bl::significant_figures);
+    static_assert(constexpr_round_to == 12300.0f);
 
     static_assert(bl::pow10<bl::f32>(0) == 1.0f);
     static_assert(bl::pow10<bl::f32>(3) == 1000.0f);

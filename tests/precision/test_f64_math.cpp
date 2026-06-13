@@ -1404,9 +1404,19 @@ TEST_CASE("f64 rounding matches MPFR references", "[fltx][f64][precision][math][
     REQUIRE(bl::round_to_decimals(1.375, 2) == 1.38);
     REQUIRE(bl::round_to_decimals(-1.375, 2) == -1.38);
     REQUIRE(bl::round_to_decimals(1.25, 0) == 1.25);
+    REQUIRE(bl::round_to_precision(12345.0, 3) == 12300.0);
+    REQUIRE(bl::round_to_precision(0.012345, 3) == 0.0123);
+    REQUIRE(bl::round_to_precision(12500.0, 2) == 12000.0);
+    REQUIRE(bl::round_to_precision(13500.0, 2) == 14000.0);
+    REQUIRE(bl::round_to(1.2345, 2, bl::decimals) == bl::round_to_decimals(1.2345, 2));
+    REQUIRE(bl::round_to(12345.0, 3, bl::significant_figures) == bl::round_to_precision(12345.0, 3));
 
     constexpr double constexpr_rounded = bl::round_to_decimals(1.375, 2);
     static_assert(constexpr_rounded == 1.38);
+    constexpr double constexpr_precision_rounded = bl::round_to_precision(12345.0, 3);
+    static_assert(constexpr_precision_rounded == 12300.0);
+    constexpr double constexpr_round_to = bl::round_to(12345.0, 3, bl::significant_figures);
+    static_assert(constexpr_round_to == 12300.0);
 
     static_assert(bl::pow10<bl::f64>(0) == 1.0);
     static_assert(bl::pow10<bl::f64>(3) == 1000.0);

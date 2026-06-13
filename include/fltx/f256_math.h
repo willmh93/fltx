@@ -14,6 +14,7 @@
 #include "fltx/f256.h"
 #include "fltx/detail/f256_math_basic.h"
 #include "fltx/detail/f256_math_transcendental.h"
+#include "fltx/round_options.h"
 #include "fltx/traits.h"
 
 namespace bl {
@@ -78,6 +79,21 @@ namespace bl {
         detail::_f256_impl::round_to_decimals(v, prec),
         detail::_f256_runtime::round_to_decimals(v, prec)
     );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 round_to_precision(f256_s v, int figures)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f256_impl::round_to_significant_figures(v, figures),
+        detail::_f256_runtime::round_to_significant_figures(v, figures)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f256 round_to(f256_s v, int precision, round_format format)
+{
+    return format == round_format::decimals
+        ? round_to_decimals(v, precision)
+        : round_to_precision(v, precision);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f256 nearbyint(const f256_s& a)

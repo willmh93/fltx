@@ -14,6 +14,8 @@
 
 #include "fltx/f64_classification.h"
 #include "fltx/detail/common_decimal.h"
+#include "fltx/detail/native_float_decimal.h"
+#include "fltx/round_options.h"
 
 
 namespace bl {
@@ -146,132 +148,10 @@ namespace detail::_f64_impl
         return 0;
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr std::uint64_t rounded_shr_u64(std::uint64_t value, int bits) noexcept
-    {
-        if (bits <= 0)
-            return value;
-
-        const bool round_bit = bits <= 64 && ((value >> (bits - 1)) & 1u) != 0;
-        const bool sticky = bits > 1
-            ? (bits < 64 ? (value & ((std::uint64_t{ 1 } << (bits - 1)) - 1u)) != 0 : (value << 1) != 0)
-            : false;
-        const std::uint64_t shifted = bits >= 64 ? 0 : (value >> bits);
-        return shifted + (round_bit && (sticky || (shifted & 1u) != 0) ? 1u : 0u);
-    }
-
-    [[nodiscard]] BL_FORCE_INLINE constexpr double exact_dyadic_to_double(std::uint64_t coeff, int exp2, bool neg) noexcept
-    {
-        const std::uint64_t sign = neg ? (std::uint64_t{ 1 } << 63) : 0;
-        if (coeff == 0)
-            return std::bit_cast<double>(sign);
-
-        const int top_bit = bit_length_u64(coeff) - 1;
-        int unbiased_exp = exp2 + top_bit;
-        if (unbiased_exp > 1023)
-            return neg ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
-
-        if (unbiased_exp < -1022)
-        {
-            const int scale = exp2 + 1074;
-            const std::uint64_t subnormal = scale >= 0
-                ? (scale >= 64 ? 0 : (coeff << scale))
-                : rounded_shr_u64(coeff, -scale);
-
-            if (subnormal == 0)
-                return std::bit_cast<double>(sign);
-            if (subnormal >= (std::uint64_t{ 1 } << 52))
-                return std::bit_cast<double>(sign | (std::uint64_t{ 1 } << 52));
-            return std::bit_cast<double>(sign | subnormal);
-        }
-
-        const int shift = top_bit - 52;
-        std::uint64_t significand = shift > 0
-            ? rounded_shr_u64(coeff, shift)
-            : (coeff << -shift);
-
-        if (bit_length_u64(significand) > 53)
-        {
-            significand >>= 1;
-            ++unbiased_exp;
-            if (unbiased_exp > 1023)
-                return neg ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
-        }
-
-        const std::uint64_t exp_bits  = static_cast<std::uint64_t>(unbiased_exp + 1023);
-        const std::uint64_t frac_bits = significand & ((std::uint64_t{ 1 } << 52) - 1u);
-        return std::bit_cast<double>(sign | (exp_bits << 52) | frac_bits);
-    }
-
-    struct f64_decimal_round_traits
-    {
-        using value_type = double;
-
-        static constexpr int significand_bits = 53;
-        static constexpr int max_binary_exponent = 1023;
-        static constexpr int min_binary_exponent = -1074;
-
-        static constexpr bool isfinite(value_type x) noexcept { return detail::fp::isfinite(x); }
-        static constexpr bool signbit(value_type x) noexcept { return detail::fp::signbit(x); }
-        static constexpr value_type abs(value_type x) noexcept { return detail::fp::fabs(x); }
-        static constexpr value_type zero(bool neg) noexcept { return neg ? -0.0 : 0.0; }
-        static constexpr value_type infinity(bool neg) noexcept
-        {
-            return neg ? -std::numeric_limits<value_type>::infinity() : std::numeric_limits<value_type>::infinity();
-        }
-
-        static constexpr value_type pack_from_significand(const detail::exact_decimal::biguint& q, int e2, bool neg) noexcept
-        {
-            return exact_dyadic_to_double(q.get_bits(0, significand_bits), e2 - (significand_bits - 1), neg);
-        }
-    };
-
-    template<class Traits>
-    [[nodiscard]] BL_FORCE_INLINE constexpr typename Traits::value_type exact_decimal_to_native_value(
-        const detail::exact_decimal::biguint& coeff,
-        int dec_exp,
-        bool neg) noexcept
-    {
-        using detail::exact_decimal::biguint;
-
-        if (coeff.is_zero())
-            return Traits::zero(neg);
-
-        biguint numerator = coeff;
-        biguint denominator{ 1 };
-        int bin_exp = 0;
-
-        if (dec_exp >= 0)
-        {
-            numerator = detail::exact_decimal::mul_big(coeff, detail::exact_decimal::pow5_big(dec_exp));
-            bin_exp = dec_exp;
-        }
-        else
-        {
-            denominator = detail::exact_decimal::pow5_big(-dec_exp);
-            bin_exp = dec_exp;
-        }
-
-        int ratio_exp = detail::exact_decimal::floor_log2_ratio(numerator, denominator);
-        biguint q = detail::exact_decimal::extract_rounded_significand_chunks(
-            numerator,
-            denominator,
-            ratio_exp,
-            Traits::significand_bits);
-
-        if (q.bit_length() > Traits::significand_bits)
-        {
-            q.shr1();
-            ++ratio_exp;
-        }
-
-        const int e2 = bin_exp + ratio_exp;
-        if (e2 > Traits::max_binary_exponent)
-            return Traits::infinity(neg);
-        if (e2 < Traits::min_binary_exponent)
-            return Traits::zero(neg);
-
-        return Traits::pack_from_significand(q, e2, neg);
-    }
+    using detail::_native_float_decimal::rounded_shr_u64;
+    using detail::_native_float_decimal::exact_dyadic_to_double;
+    using detail::_native_float_decimal::f64_decimal_round_traits;
+    using detail::_native_float_decimal::exact_decimal_to_native_value;
 
     inline constexpr int pow10_f64_min_exponent = -323;
     inline constexpr int pow10_f64_max_exponent = 308;
@@ -502,6 +382,30 @@ namespace detail::_f64_impl
         return round_to_decimals_native<f64_decimal_round_traits>(v, prec);
     }
 
+    template<class Traits>
+    [[nodiscard]] BL_FORCE_INLINE constexpr typename Traits::value_type round_to_significant_figures_native(
+        typename Traits::value_type v,
+        int figures) noexcept
+    {
+        if (figures <= 0 || !Traits::isfinite(v) || v == Traits::zero(false))
+            return v;
+        if (figures > std::numeric_limits<typename Traits::value_type>::max_digits10)
+            figures = std::numeric_limits<typename Traits::value_type>::max_digits10;
+
+        detail::exact_decimal::biguint coefficient;
+        int exp10 = 0;
+        const bool neg = Traits::signbit(v);
+        if (!detail::exact_decimal::exact_significant_decimal<Traits>(Traits::abs(v), figures, coefficient, exp10))
+            return v;
+
+        return exact_decimal_to_native_value<Traits>(coefficient, exp10 - (figures - 1), neg);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr double round_to_significant_figures(double v, int figures) noexcept
+    {
+        return round_to_significant_figures_native<f64_decimal_round_traits>(v, figures);
+    }
+
     [[nodiscard]] BL_FORCE_INLINE constexpr dyadic_u64 subtract_scaled_u64(std::uint64_t a, int a_exp2, std::uint64_t b, int b_exp2) noexcept
     {
         const int common_exp2 = a_exp2 < b_exp2 ? a_exp2 : b_exp2;
@@ -716,6 +620,18 @@ namespace detail::_f64_impl
 [[nodiscard]] BL_FORCE_INLINE constexpr double round_to_decimals(double x, int prec) noexcept
 {
     return detail::_f64_impl::round_to_decimals(x, prec);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr double round_to_precision(double x, int figures) noexcept
+{
+    return detail::_f64_impl::round_to_significant_figures(x, figures);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr double round_to(double x, int precision, round_format format) noexcept
+{
+    return format == round_format::decimals
+        ? round_to_decimals(x, precision)
+        : round_to_precision(x, precision);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr double nearbyint(double x) noexcept

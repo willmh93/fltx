@@ -285,17 +285,6 @@ template<class Value> BL_FORCE_INLINE constexpr Value powi_by_squaring(Value bas
     return invert ? (Value{ 1.0 } / result) : result;
 }
 
-template<class BigUInt> BL_FORCE_INLINE constexpr BigUInt append_decimal_digits(BigUInt coeff, const char* digits, int digit_count) noexcept
-{
-    for (int i = 0; i < digit_count; ++i)
-    {
-        coeff.mul_small(10);
-        coeff.add_small(static_cast<std::uint32_t>(digits[i] - '0'));
-    }
-
-    return coeff;
-}
-
 BL_FORCE_INLINE constexpr double atan_series(double x) noexcept
 {
     const double x2 = x * x;

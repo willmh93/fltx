@@ -33,6 +33,11 @@ namespace bl::detail::_f256_runtime
         return detail::_f256_impl::round_to_decimals(v, prec);
     }
 
+    BL_NO_INLINE f256_s round_to_significant_figures(f256_s v, int figures)
+    {
+        return detail::_f256_impl::round_to_significant_figures(v, figures);
+    }
+
     BL_NO_INLINE f256_s nearbyint(const f256_s& a)
     {
         return detail::_f256_impl::nearbyint_runtime(a);

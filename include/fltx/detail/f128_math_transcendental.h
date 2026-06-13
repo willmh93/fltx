@@ -1191,33 +1191,6 @@ namespace detail::_f128
 }
 
 // power functions
-[[nodiscard]] BL_FORCE_INLINE constexpr f128_s detail::_f128_impl::pow10_128(int k)
-{
-    if (k == 0) [[unlikely]]
-        return f128_s{ 1.0 };
-
-    int n = (k >= 0) ? k : -k;
-
-    // fast small-exponent path
-    if (n <= 16) {
-        f128_s r = f128_s{ 1.0 };
-        const f128_s ten = f128_s{ 10.0 };
-        for (int i = 0; i < n; ++i) r = r * ten;
-        return (k >= 0) ? r : (f128_s{ 1.0 } / r);
-    }
-
-    f128_s r = f128_s{ 1.0 };
-    f128_s base = f128_s{ 10.0 };
-
-    while (n) {
-        if (n & 1) r = r * base;
-        n >>= 1;
-        if (n) base = base * base;
-    }
-
-    return (k >= 0) ? r : (f128_s{ 1.0 } / r);
-}
-
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f128_s detail::_f128_impl::pow(const f128_s& x, const f128_s& y)
 {
     if (iszero(y))

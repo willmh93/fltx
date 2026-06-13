@@ -14,6 +14,7 @@
 
 #include "fltx/f32_classification.h"
 #include "fltx/detail/f64_math_basic.h"
+#include "fltx/round_options.h"
 
 
 namespace bl {
@@ -34,71 +35,8 @@ namespace detail::_f32_impl
     using detail::fp::signbit;
     using detail::fp::to_signed_integer_or_zero;
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr float exact_dyadic_to_float(std::uint64_t coeff, int exp2, bool neg) noexcept
-    {
-        const std::uint32_t sign = neg ? (std::uint32_t{ 1 } << 31) : 0;
-        if (coeff == 0)
-            return std::bit_cast<float>(sign);
-
-        const int top_bit = detail::fp::bit_length_u64(coeff) - 1;
-        int unbiased_exp = exp2 + top_bit;
-        if (unbiased_exp > 127)
-            return neg ? -std::numeric_limits<float>::infinity() : std::numeric_limits<float>::infinity();
-
-        if (unbiased_exp < -126)
-        {
-            const int scale = exp2 + 149;
-            const std::uint64_t subnormal = scale >= 0
-                ? (scale >= 64 ? 0 : (coeff << scale))
-                : detail::_f64_impl::rounded_shr_u64(coeff, -scale);
-
-            if (subnormal == 0)
-                return std::bit_cast<float>(sign);
-            if (subnormal >= (std::uint64_t{ 1 } << 23))
-                return std::bit_cast<float>(sign | (std::uint32_t{ 1 } << 23));
-            return std::bit_cast<float>(sign | static_cast<std::uint32_t>(subnormal));
-        }
-
-        const int shift = top_bit - 23;
-        std::uint64_t significand = shift > 0
-            ? detail::_f64_impl::rounded_shr_u64(coeff, shift)
-            : (coeff << -shift);
-
-        if (detail::fp::bit_length_u64(significand) > 24)
-        {
-            significand >>= 1;
-            ++unbiased_exp;
-            if (unbiased_exp > 127)
-                return neg ? -std::numeric_limits<float>::infinity() : std::numeric_limits<float>::infinity();
-        }
-
-        const std::uint32_t exp_bits  = static_cast<std::uint32_t>(unbiased_exp + 127);
-        const std::uint32_t frac_bits = static_cast<std::uint32_t>(significand) & ((std::uint32_t{ 1 } << 23) - 1u);
-        return std::bit_cast<float>(sign | (exp_bits << 23) | frac_bits);
-    }
-
-    struct f32_decimal_round_traits
-    {
-        using value_type = float;
-
-        static constexpr int significand_bits = 24;
-        static constexpr int max_binary_exponent = 127;
-        static constexpr int min_binary_exponent = -149;
-
-        static constexpr bool isfinite(value_type x) noexcept { return detail::fp::isfinite(x); }
-        static constexpr bool signbit(value_type x) noexcept { return detail::fp::signbit(x); }
-        static constexpr value_type abs(value_type x) noexcept { return detail::fp::fabs(x); }
-        static constexpr value_type zero(bool neg) noexcept { return neg ? -0.0f : 0.0f; }
-        static constexpr value_type infinity(bool neg) noexcept
-        {
-            return neg ? -std::numeric_limits<value_type>::infinity() : std::numeric_limits<value_type>::infinity();
-        }
-
-        static constexpr value_type pack_from_significand(const detail::exact_decimal::biguint& q, int e2, bool neg) noexcept
-        {
-            return exact_dyadic_to_float(q.get_bits(0, significand_bits), e2 - (significand_bits - 1), neg);
-        }
-    };
+    using detail::_native_float_decimal::exact_dyadic_to_float;
+    using detail::_native_float_decimal::f32_decimal_round_traits;
 
     inline constexpr int pow10_f32_min_exponent = -45;
     inline constexpr int pow10_f32_max_exponent = 38;
@@ -140,6 +78,11 @@ namespace detail::_f32_impl
     [[nodiscard]] BL_FORCE_INLINE constexpr float round_to_decimals(float v, int prec) noexcept
     {
         return detail::_f64_impl::round_to_decimals_native<f32_decimal_round_traits>(v, prec);
+    }
+
+    [[nodiscard]] BL_FORCE_INLINE constexpr float round_to_significant_figures(float v, int figures) noexcept
+    {
+        return detail::_f64_impl::round_to_significant_figures_native<f32_decimal_round_traits>(v, figures);
     }
 
     BL_FORCE_INLINE constexpr int normalize_remquo_bits(int q) noexcept
@@ -240,6 +183,18 @@ namespace detail::_f32_impl
 [[nodiscard]] BL_FORCE_INLINE constexpr float round_to_decimals(float x, int prec) noexcept
 {
     return detail::_f32_impl::round_to_decimals(x, prec);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr float round_to_precision(float x, int figures) noexcept
+{
+    return detail::_f32_impl::round_to_significant_figures(x, figures);
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr float round_to(float x, int precision, round_format format) noexcept
+{
+    return format == round_format::decimals
+        ? round_to_decimals(x, precision)
+        : round_to_precision(x, precision);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr float nearbyint(float x) noexcept

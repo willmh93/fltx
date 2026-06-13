@@ -142,7 +142,7 @@ namespace
 
     [[nodiscard]] std::string to_text(const f256& value)
     {
-        return bl::to_string(value, printed_digits, false, true, false);
+        return bl::to_string(value, printed_digits, std::ios_base::scientific);
     }
 
     [[nodiscard]] std::string to_text(const mpfr_ref& value)
@@ -3327,6 +3327,14 @@ TEST_CASE("f256 utility math helpers behave correctly for fixed values", "[fltx]
         require_exact_value("round_to_decimals.2", bl::round_to_decimals(to_f256("1.2345"), 2), to_f256("1.23"));
         require_exact_value("round_to_decimals.3", bl::round_to_decimals(to_f256("1.2345"), 3), to_f256("1.234"));
         require_exact_value("round_to_decimals.tie_even", bl::round_to_decimals(to_f256("1.2355"), 3), to_f256("1.236"));
+        require_exact_value("round_to_precision.large", bl::round_to_precision(to_f256("12345"), 3), to_f256("12300"));
+        require_exact_value("round_to_precision.small", bl::round_to_precision(to_f256("0.012345"), 3), to_f256("0.0123"));
+        require_exact_value("round_to_precision.tie_even_down", bl::round_to_precision(to_f256("12500"), 2), to_f256("12000"));
+        require_exact_value("round_to_precision.tie_even_up", bl::round_to_precision(to_f256("13500"), 2), to_f256("14000"));
+        require_exact_value("round_to.decimals", bl::round_to(to_f256("1.2345"), 2, bl::decimals), to_f256("1.23"));
+        require_exact_value("round_to.significant_figures", bl::round_to(to_f256("12345"), 3, bl::significant_figures), to_f256("12300"));
+        static_assert(bl::round_to_precision(to_f256("12345"), 3) == to_f256("12300"));
+        static_assert(bl::round_to(to_f256("12345"), 3, bl::significant_figures) == to_f256("12300"));
     
         REQUIRE(bl::lround(to_f256("2.5")) == 3L);    
         REQUIRE(bl::lround(to_f256("-2.5")) == -3L);  

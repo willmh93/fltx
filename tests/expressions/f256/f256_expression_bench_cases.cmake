@@ -1,0 +1,56 @@
+set(FLTX_F256_EXPR_KERNEL_IDS
+    pass
+    add
+    sub
+    mul
+    div
+    mul_add
+    mul_sub
+    value_sub_mul
+    mul_add_mul
+    mul_sub_mul
+    mul_add_mul_add
+    mul_add_mul_sub
+    mul_sub_mul_add
+    mul_sub_mul_sub
+    mul_add_add
+    mul_add_sub
+    mul_sub_add
+    mul_sub_sub
+    three_products
+    four_products
+    add_mul_double
+    sub_mul_double
+    mul_double_sub
+    mul_double_add_mul_double
+    mul_double_add_mul_double_add
+    mul_add_div
+    mul_sub_div
+    value_sub_mul_div
+    mul_add_mul_div
+    mul_sub_mul_div
+    add_add_sub_div
+    add_sub_sub_div
+    add_mul_double_div
+    sub_mul_double_div
+    mul_double_sub_div
+    div_add_double
+    div_double_sub
+    mul_add_div_add_double
+    mul_sub_div_add_double
+    value_sub_mul_div_add_double
+    mul_add_mul_div_add_double
+    mul_sub_mul_div_add_double
+    add_add_add_div_add_double
+    add_sub_add_div_add_double
+    add_add_sub_div_add_double
+    add_sub_sub_div_add_double
+    add_mul_double_div_add_double
+    sub_mul_double_div_add_double
+    mul_double_sub_div_add_double
+)
+
+set(FLTX_F256_EXPR_BENCH_STRESS_CASES
+    ${FLTX_F256_EXPR_KERNEL_IDS}
+    all_supported_fused_kernels
+)

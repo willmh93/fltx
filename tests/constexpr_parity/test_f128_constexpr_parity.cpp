@@ -340,7 +340,7 @@ auto eval_runtime_path(Function&& function)
 {
     std::ostringstream stream;
     stream << value
-           << " [decimal=" << bl::to_string(value, std::numeric_limits<value_type>::max_digits10, false, true)
+           << " [decimal=" << bl::to_string(value, std::numeric_limits<value_type>::max_digits10, std::ios_base::scientific)
            << ", hi=" << describe_bits(value.hi)
            << ", lo=" << describe_bits(value.lo) << "]";
     return stream.str();

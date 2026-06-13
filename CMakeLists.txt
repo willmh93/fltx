@@ -134,7 +134,7 @@ if(FLTX_DEVELOPER_BUILD)
 
     add_subdirectory(examples)
     add_subdirectory(tests)
-    add_subdirectory(tests/unit_compile_tests)
+    add_subdirectory(tests/unit_build_tests)
 
     if(NOT TARGET f256_expression_compile_bench)
         add_subdirectory(tests/expressions/f256)

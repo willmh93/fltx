@@ -12,6 +12,7 @@
 
 #include "fltx/detail/f128_math_basic.h"
 #include "fltx/detail/f128_math_transcendental.h"
+#include "fltx/round_options.h"
 #include "fltx/traits.h"
 
 namespace bl {
@@ -74,6 +75,21 @@ namespace bl {
         detail::_f128_impl::round_to_decimals(v, prec),
         detail::_f128_runtime::round_to_decimals(v, prec)
     );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 round_to_precision(f128_s v, int figures)
+{
+    BL_CONSTEXPR_RUNTIME_DISPATCH(
+        detail::_f128_impl::round_to_significant_figures(v, figures),
+        detail::_f128_runtime::round_to_significant_figures(v, figures)
+    );
+}
+
+[[nodiscard]] BL_FORCE_INLINE constexpr f128 round_to(f128_s v, int precision, round_format format)
+{
+    return format == round_format::decimals
+        ? round_to_decimals(v, precision)
+        : round_to_precision(v, precision);
 }
 
 [[nodiscard]] BL_FORCE_INLINE constexpr f128 nearbyint(const f128_s& a)

@@ -5,13 +5,13 @@
 
 namespace bl::test::metrics::config
 {
-    constexpr double accuracy_sample_count_scale  = 2.0;    // precision sample scale     (fixed, no function-local scaling)
-    constexpr double domain_sample_count_scale    = 2.0;    // domain sample scale        (fixed, no function-local scaling)
+    constexpr double accuracy_sample_count_scale  = 0.1;    // precision sample scale (default 0.1, fixed, no function-local scaling)
+    constexpr double domain_sample_count_scale    = 1.0;    // domain sample scale    (default 2.0, fixed, no function-local scaling)
 
-    constexpr double benchmark_sample_count_scale = 20.0;   // global benchmark sample scale
-    constexpr double bench_iters_scale            = 20.0;   // global benchmark iteration scale
-    constexpr double mixed_sample_count_scale     = 0.25;   // mixed workload generated sample scale
-    constexpr double mixed_iters_scale            = 0.15;   // mixed workload benchmark iteration scale
+    constexpr double benchmark_sample_count_scale = 2.0;   // global benchmark sample scale (default 20)
+    constexpr double bench_iters_scale            = 2.0;   // global benchmark iteration scale (default 20)
+    constexpr double mixed_sample_count_scale     = 0.25;   // mixed workload generated sample scale (default 0.25)
+    constexpr double mixed_iters_scale            = 0.02;   // mixed workload benchmark iteration scale (default 0.02)
 
     [[nodiscard]] constexpr std::size_t scale_count(std::size_t count, double scale) noexcept
     {

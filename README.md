@@ -24,30 +24,31 @@
 - [Overview](https://github.com/willmh93/fltx#highlights): highlights and core types
 - [Get Started](https://github.com/willmh93/fltx#quick-start): quick start and installation
 - [Library Guide](https://github.com/willmh93/fltx#use-cases): use cases, headers, numeric types, math, and IO
-- [Advanced Features](https://github.com/willmh93/fltx#f256-expression-fusion): f256 expression fusion and template dispatch
+- [Advanced Features](https://github.com/willmh93/fltx#template-dispatch): template dispatch
 - [Developer](https://github.com/willmh93/fltx#building-fltx): building fltx and running tests
-- [Project Details](https://github.com/willmh93/fltx#benchmarks): benchmarks and license
+- [Project Details](https://github.com/willmh93/fltx#benchmarks): benchmarks, implementation notes, and license
 
 ## Highlights
 
 Features:
 
 - Fixed-size extended-precision scalar types: [`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h)
-- Full `constexpr` support for arithmetic, comparisons, conversions, parsing, formatting, and all math functions
-- A familiar standard-library shaped API; in most cases you can simply replace `std::` with `bl::`
+- Library-wide **constexpr** support for math, parsing, static formatting, and conversions
+- Familiar `std::` style APIs; many calls work by swapping `std::` for `bl::`
 - No required runtime dependencies
-- Standard-library integration for IO streams / manipulators, `std::numeric_limits`, `std::numbers`, `std::hash`, `std::format`
+- Standard-library integration for streams, manipulators, `std::numeric_limits`, `std::numbers`, `std::hash`, and `std::format`
 
 Accuracy:
 
 - Accuracy validated against [boost::multiprecision::mpfr_float_backend](https://www.boost.org/doc/libs/latest/libs/multiprecision/doc/html/boost_multiprecision/tut/floats/mpfr_float.html)
-- Infinity / NaN correctness
+- **Infinity** / **NaN** correctness
 - Enable `FLTX_CONSTEXPR_PARITY` for bitwise-identical runtime and `constexpr` results (reduces performance)
 
 Performance:
 
+- Benchmarked against comparable libraries, demonstrating overall superior performance
 - Compatible with fast-math builds
-- [`bl::f256`](include/fltx/f256.h) has an expression node system which recognises and fuses common arithmetic shapes, reducing intermediate rounding and temporary value materialisation, allowing those shapes to run specialised fused kernels.
+- Internal [`bl::f256`](include/fltx/f256.h) expression fusion reduces intermediate rounding and temporary value materialisation for common arithmetic shapes.
 - Hardware acceleration where supported, including x86/x64 SSE2 with FMA when available, AArch64 NEON, and WebAssembly `wasm128` SIMD via Emscripten
 - Suitable for lightweight native builds, WebAssembly / Emscripten
 - Optional runtime-to-compile-time dispatch helper for template-specialized kernels
@@ -68,7 +69,9 @@ sizeof(bl::f128) == 16
 sizeof(bl::f256) == 32
 ```
 
-[`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h) are not IEEE [binary128](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#IEEE_754_quadruple-precision_binary_floating-point_format:_binary128) / [binary256](https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format#IEEE_754_octuple-precision_binary_floating-point_format:_binary256) types, and they are not arbitrary-precision numbers.
+[`bl::f128`](include/fltx/f128.h) and [`bl::f256`](include/fltx/f256.h) are *not* IEEE [binary128](https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#IEEE_754_quadruple-precision_binary_floating-point_format:_binary128) / [binary256](https://en.wikipedia.org/wiki/Octuple-precision_floating-point_format#IEEE_754_octuple-precision_binary_floating-point_format:_binary256) types.
+
+They are fixed-size expansion types: `f128` is double-double, and `f256` is quad-double. The names are intentionally short and uniform with `f32`/`f64`; they describe the precision tier, not the underlying representation.
 
 ## Quick Start
 
@@ -253,8 +256,8 @@ constexpr T radius(T x, T y)
 
 constexpr bl::f32   a = radius(1.0f, 2.0f);
 constexpr bl::f64   b = radius(1.0,  2.0);
-constexpr bl::f128  c = radius(1.0_dd, 2.0_dd);
-constexpr bl::f256  d = radius(1.0_qd, 2.0_qd);
+constexpr bl::f128  c = radius(1_dd, 2_dd);
+constexpr bl::f256  d = radius(1_qd, 2_qd);
 ```
 
 Supported function groups:
@@ -276,54 +279,74 @@ Supported function groups:
 
 ## IO and Literals
 
-[`fltx/io.h`](include/fltx/io.h) adds `constexpr`-capable parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
+[`fltx/io.h`](include/fltx/io.h) provides constexpr-capable parsing, formatting, stream output, string conversion, and the `_dd` / `_qd` literals:
 
 ### Literals example:
 
 ```cpp
-#include <fltx/core.h>
+#include <fltx/io.h>
+using namespace bl;
 using namespace bl::literals;
 
 constexpr f128 pi_128 = 3.14159265358979323846264338327950288_dd;
 constexpr f256 pi_256 = 3.1415926535897932384626433832795028841971693993751058209749445923078164_qd;
 ```
 
-### String serialize/deserialize example:
+### Serialize example:
 
 ```cpp
-#include <fltx/io.h>
+// serialize
+std::string    s1 = bl::to_string(pi_256);            // string with default precision
+std::string    s2 = bl::to_string(pi_256, 16, true);  // string with fixed precision
+constexpr auto s3 = bl::to_static_string(pi_256, 10); // static_string with fixed precision
+```
 
-// serializing
-constexpr auto s1 = bl::to_static_string(pi);    // generate static_string<512>
-std::string    s2 = bl::to_string(pi);           // generate string using default precision
-std::string    s3 = bl::to_string(pi, 16, true); // generate string using fixed precision
+### Deserialize example:
 
-// deserializing
-constexpr f256 value1 = bl::parse<f256>("3.1415_err");     // invalid input, throws exception
-constexpr f256 value2 = bl::parse<f256>("3.1415_err", pi); // invalid input, use fallback value
-constexpr auto result = bl::try_parse<f256>("3.1415_err"); // invalid input, error in result.ec
+```cpp
+// deserialize (fallback)
+constexpr f256 value1 = bl::parse<f256>("__3.1415", 0_qd); // invalid input, use fallback value: 0.0
+
+// deserialize (try/catch)
+f256 value2;
+try
+{
+    value2 = bl::parse<f256>("__3.1415");
+}
+catch (const std::exception& e)
+{
+    std::cout << e.what() << "\n"; // exception: "bl::parse invalid input"
+}
+
+// deserialize (error in result.ec)
+constexpr auto result = bl::try_parse<f256>("__3.1415");
 if (result)
     std::cout << "success: " << result.value;
 else
-    std::cout << "invalid input: ";
+    std::cout << "invalid input";
 ```
 
-Use `bl::to_static_string` for compile-time fixed-capacity string output, or `bl::to_string` when you want a `std::string`. Use `bl::parse<T>` for strict whole-string parsing that returns the parsed value, `bl::parse<T>(text, fallback)` when a fallback value is enough, or `bl::try_parse<T>` when you need error and consumed-character details.
+Use:
+- `bl::to_static_string` for compile-time fixed-capacity string output.
+- `bl::to_string` when you want a `std::string`.
+- `bl::parse<T>` for strict whole-string parsing that returns the parsed value.
+- `bl::parse<T>(text, fallback)` when a fallback value is enough.
+- `bl::try_parse<T>` when you need error and consumed-character details.
 
 Stream output supports `std::setprecision`, `std::fixed`, `std::scientific`, `std::showpoint`, `std::showpos`, and `std::uppercase`.
 
-### Buffer-oriented serializing/deserializing:
+### Buffer-oriented serializing/deserializing example:
 
 ```cpp
 #include <fltx/io.h>
 
-// buffer-oriented serializing
+// serialize
 char buffer[128]{};
-auto written = bl::to_chars(buffer, buffer + sizeof(buffer), pi, std::chars_format::fixed, 32);
+auto written = bl::to_chars(buffer, buffer + sizeof(buffer), pi_256, std::chars_format::fixed, 32);
 if (written.ec == std::errc{})
     std::cout << std::string_view{ buffer, static_cast<std::size_t>(written.ptr - buffer) };
 
-// buffer-oriented deserializing
+// deserialize
 std::string_view text = "3.1415";
 f256 parsed{};
 auto read = bl::from_chars(text.data(), text.data() + text.size(), parsed);
@@ -331,35 +354,26 @@ if (read.ec == std::errc{} && read.ptr == text.data() + text.size())
     std::cout << "success: " << parsed;
 ```
 
-For buffer-oriented code, [`fltx/charconv.h`](include/fltx/charconv.h) provides `bl::to_chars` and `bl::from_chars` overloads for `f32`, `f64`, `f128`, and `f256`. `bl::to_chars` writes into caller-owned storage and reports the end pointer plus `std::errc`; `bl::from_chars` parses the leading numeric token and reports where parsing stopped, so check `ptr == end` when the whole input must be consumed.
+For buffer-oriented code, [`fltx/charconv.h`](include/fltx/charconv.h) provides:
+
+- `bl::to_chars` writes into buffer and reports the end pointer plus `std::errc`.
+- `bl::from_chars` parses the leading numeric token and reports where parsing stopped.
 
 ### std::format example:
+
+Include [`fltx/format.h`](include/fltx/format.h) when you want `std::format` support for `f128`/`f256`.
+
+The formatter supports common numeric presentation options such as precision, fixed/scientific/general notation, sign, width, alignment, fill, alternate form, and uppercase output.
 
 ```cpp
 #include <fltx/format.h>
 
-std::string fixed      = std::format("{:.32f}", pi);
-std::string scientific = std::format("{:+.16e}", pi);
-std::string padded     = std::format("{:>40.20g}", pi);
+std::string fixed      = std::format("{:.32f}", pi_256);     // "3.14159265358979323846264338327950"
+std::string scientific = std::format("{:+.16e}", pi_256);    // "+3.1415926535897932e+00"
+std::string padded     = std::format("{:>25.20g}", pi_256);  // "    3.1415926535897932385"
+std::string hex        = std::format("{:.8a}", pi_256);      // "0x1.921fb544p+1"
+std::string hex_alt    = std::format("{:+#.12A}", pi_256);   // "+0X1.921FB54442D2P+1"
 ```
-
-Include [`fltx/format.h`](include/fltx/format.h) when you want `std::format` support for `f128`, `f128_s`, `f256`, and `f256_s` on standard libraries that provide `<format>`. The formatter supports common numeric presentation options such as precision, fixed/scientific/general notation, sign, width, alignment, fill, alternate form, and uppercase output.
-
-## f256 Expression Fusion
-
-[`bl::f256`](include/fltx/f256.h) has an expression node system which recognises common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations.
-
-For example:
-
-```cpp
-f256 r = a * b + c * d + e;
-```
-
-is kept as a small compile-time expression and lowered to the existing fused product-sum body. This avoids materialising and normalising each intermediate quad-double result before the final value is needed.
-
-The matcher also accepts selected equivalent spellings, such as reordered product/value terms and scaled linear forms. That gives common kernels like affine transforms, small matrix-vector operations, polynomial-style updates, and recurrence relations a faster path without requiring users to call specialised helpers or the implementation to maintain a full symbolic optimiser.
-
-The fused bodies remain explicit and bounded, which keeps compile-time and code-size costs under control.
 
 ## Template Dispatch
 
@@ -388,7 +402,7 @@ int main()
 
     bl_table_invoke(
         bl_dispatch_table(run_kernel, 1920, 1080),
-        bl_enum_type(precision)
+        bl_enum_type(precision) // selects compile-time type f256 from runtime FloatType::F256 value
     );
 }
 ```
@@ -545,14 +559,14 @@ ctest --preset vs2026-release
 .\build\vs2026\tests\Release\metrics_tests.exe "[precision],[domain],[bench]"
 ```
 
-## Benchmarks
+## Benchmarks / Metrics
 
 Tested on:
 - **Windows:** AMD Ryzen 9 5950X, Memory 32 GB LPDDR5
 - **Linux:** AMD Ryzen 9 5950X, Memory 32 GB LPDDR5
 - **MacOS:** Apple M2 Pro, Memory 16 GB LPDDR5
 
-`ns/iter` for `bl::f128` / `bl::f256` metrics, colored by speed ratio vs the stronger available reference.
+**Nanoseconds / iteration** for `bl::f128` / `bl::f256` metrics, colored by speed ratio vs the stronger available reference.
 
 - cpp_dd (boost::multiprecision::cpp_double_double)
 - mpfr (boost::multiprecision::mpfr_float_backend<64>)
@@ -562,6 +576,22 @@ Tested on:
 <img src="res/metrics/metrics_table.svg" alt="fltx metrics table" width="100%">
 
 Checked-in metrics CSVs currently live under [res/metrics/](res/metrics/) for the platform/compiler combinations that have generated reports.
+
+## f256 Expression Fusion
+
+[`bl::f256`](include/fltx/f256.h) uses an internal expression node system which recognises common arithmetic shapes, including product sums, dot-product-plus-bias expressions, and scaled linear combinations.
+
+For example:
+
+```cpp
+f256 r = a * b + c * d + e;
+```
+
+is kept as a small compile-time expression and lowered to the existing fused product-sum body. This avoids materialising and normalising each intermediate quad-double result before the final value is needed.
+
+The matcher also accepts selected equivalent spellings, such as reordered product/value terms and scaled linear forms. That gives common kernels like affine transforms, small matrix-vector operations, polynomial-style updates, and recurrence relations a faster path without requiring users to call specialised helpers or the implementation to maintain a full symbolic optimiser.
+
+The fused bodies remain explicit and bounded, which keeps compile-time and code-size costs under control.
 
 ## License
 

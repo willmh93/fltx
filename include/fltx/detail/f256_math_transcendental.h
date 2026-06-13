@@ -534,69 +534,45 @@ namespace detail::_f256 // primitives and kernels
         return result;
     }
 
-    BL_FORCE_INLINE constexpr biguint biguint_from_words(const std::uint32_t* words, int count)
+    BL_FORCE_INLINE constexpr biguint biguint_from_fmod_u320(const fmod_u320& value)
     {
         biguint out{};
-        const int copy_count = count < biguint::max_words ? count : biguint::max_words;
-        for (int i = 0; i < copy_count; ++i)
-            out.words[i] = words[i];
-        out.size = copy_count;
-        out.trim();
-        return out;
-    }
+        static_assert(biguint::max_words >= 10);
 
-    BL_FORCE_INLINE constexpr biguint biguint_low_bits(const biguint& value, int bits)
-    {
-        biguint out{};
-        if (bits <= 0 || value.is_zero())
-            return out;
-
-        const int full_words = bits >> 5;
-        const int rem_bits   = bits & 31;
-        const int copy_words = full_words < value.size ? full_words : value.size;
-
-        for (int i = 0; i < copy_words; ++i)
-            out.words[i] = value.words[i];
-
-        out.size = copy_words;
-        if (rem_bits != 0 && full_words < value.size && out.size < biguint::max_words)
+        for (int i = 0; i < 5; ++i)
         {
-            out.words[out.size++] = value.words[full_words] & ((std::uint32_t{ 1 } << rem_bits) - 1u);
+            out.words[2 * i] = static_cast<std::uint32_t>(value.word[i]);
+            out.words[2 * i + 1] = static_cast<std::uint32_t>(value.word[i] >> 32);
         }
-
+        out.size = 10;
         out.trim();
-        return out;
-    }
-
-    BL_FORCE_INLINE constexpr biguint biguint_pow2(int bit)
-    {
-        biguint out{};
-        out.set_bit(bit);
         return out;
     }
 
     BL_FORCE_INLINE constexpr bool remainder_pi2_payne_hanek(const f256_s& x, long long& n_out, f256_s& r_out)
     {
         const bool neg = signbit(x.x0);
-        const exact_dyadic_fmod dx = exact_from_f256_fmod(mag(x));
-        if (dx.mant.is_zero())
+        const exact_dyadic_fmod_fixed dx = exact_from_f256_fmod_fixed(mag(x));
+        if (fmod_u320_is_zero(dx.mant))
         {
             n_out = 0;
             r_out = neg ? f256_s{ -0.0, 0.0, 0.0, 0.0 } : f256_s{ 0.0, 0.0, 0.0, 0.0 };
             return true;
         }
 
-        const biguint two_over_pi = biguint_from_words(
+        const biguint two_over_pi = from_words(
             two_over_pi_fixed_words,
             static_cast<int>(sizeof(two_over_pi_fixed_words) / sizeof(two_over_pi_fixed_words[0])));
-        const biguint product = mul_big(dx.mant, two_over_pi);
+        static_assert(sizeof(two_over_pi_fixed_words) / sizeof(two_over_pi_fixed_words[0]) <= biguint::max_words);
+        static_assert(biguint::max_words * 32 >= two_over_pi_fixed_bits + 159);
+        const biguint product = mul_big(biguint_from_fmod_u320(dx.mant), two_over_pi);
         const int scale_bits = two_over_pi_fixed_bits - dx.exp2;
         if (scale_bits <= 0)
             return false;
 
-        const biguint rem = biguint_low_bits(product, scale_bits);
+        const biguint rem = low_bits_copy(product, scale_bits);
         const bool half_bit = rem.get_bit(scale_bits - 1);
-        const bool sticky = biguint_any_low_bits_set(rem, scale_bits - 1);
+        const bool sticky = any_low_bits_set(rem, scale_bits - 1);
         const bool integer_odd = product.get_bit(scale_bits);
         const bool round_up = half_bit && (sticky || integer_odd);
 
@@ -610,7 +586,8 @@ namespace detail::_f256 // primitives and kernels
         bool y_neg = false;
         if (round_up)
         {
-            y_coeff = biguint_pow2(scale_bits);
+            y_coeff.clear();
+            y_coeff.set_bit(scale_bits);
             y_coeff.sub_inplace(rem);
             y_neg = !y_coeff.is_zero();
         }
@@ -1464,32 +1441,6 @@ namespace detail::_f256
 }
 
 // power functions
-[[nodiscard]] BL_FORCE_INLINE constexpr f256_s detail::_f256_impl::pow10_256(int k)
-{
-    if (k == 0) [[unlikely]]
-        return f256_s{ 1.0 };
-
-    int n = (k >= 0) ? k : -k;
-
-    if (n <= 16) {
-        f256_s r = f256_s{ 1.0 };
-        const f256_s ten = f256_s{ 10.0, 0.0, 0.0, 0.0 };
-        for (int i = 0; i < n; ++i) r = r * ten;
-        return (k >= 0) ? r : (f256_s{ 1.0 } / r);
-    }
-
-    f256_s r = f256_s{ 1.0 };
-    f256_s base = f256_s{ 10.0, 0.0, 0.0, 0.0 };
-
-    while (n) {
-        if (n & 1) r = r * base;
-        n >>= 1;
-        if (n) base = base * base;
-    }
-
-    return (k >= 0) ? r : (f256_s{ 1.0 } / r);
-}
-
 [[nodiscard]] BL_MSVC_NOINLINE constexpr f256_s detail::_f256_impl::pow(const f256_s& x, const f256_s& y)
 {
     if (iszero(y))

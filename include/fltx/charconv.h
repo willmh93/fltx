@@ -12,11 +12,13 @@
 
 #include <charconv>
 #include <cstddef>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <type_traits>
 
+#include "fltx/detail/ascii.h"
 #include "fltx/detail/native_float_io.h"
 #include "fltx/f128_string.h"
 #include "fltx/f256_string.h"
@@ -27,37 +29,51 @@ namespace bl::detail::charconv
     {
         return fmt == std::chars_format::general ||
                fmt == std::chars_format::fixed ||
-               fmt == std::chars_format::scientific;
+               fmt == std::chars_format::scientific ||
+               fmt == std::chars_format::hex;
     }
 
     [[nodiscard]] BL_FORCE_INLINE constexpr bool supported_input_format(std::chars_format fmt) noexcept
     {
-        return supported_output_format(fmt) || fmt == std::chars_format::hex;
+        return supported_output_format(fmt);
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool is_ascii_space(char c) noexcept
+    [[nodiscard]] BL_FORCE_INLINE constexpr bool begins_special(const char* first, const char* last = nullptr) noexcept
     {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+        return signed_special_token_length(first, last) != 0;
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr int hex_digit_value(char ch) noexcept
+    template<class Traits>
+    [[nodiscard]] BL_FORCE_INLINE constexpr std::from_chars_result parse_special_from_chars(
+        const char* first,
+        const char* last,
+        typename Traits::value_type& value) noexcept
     {
-        if ('0' <= ch && ch <= '9')
-            return ch - '0';
-        if ('a' <= ch && ch <= 'f')
-            return 10 + (ch - 'a');
-        if ('A' <= ch && ch <= 'F')
-            return 10 + (ch - 'A');
-        return -1;
+        const char* p = first;
+        bool neg = false;
+        if (p != last && *p == '-')
+        {
+            neg = true;
+            ++p;
+        }
+
+        if (!detail::parse_special<Traits>(p, last, neg, value))
+            return { first, std::errc::invalid_argument };
+
+        return { p, std::errc{} };
     }
 
-    [[nodiscard]] BL_FORCE_INLINE constexpr bool begins_special(const char* first) noexcept
+    template<class Traits>
+    [[nodiscard]] BL_FORCE_INLINE std::from_chars_result native_from_chars(
+        const char* first,
+        const char* last,
+        typename Traits::value_type& value,
+        std::chars_format fmt) noexcept
     {
-        if (*first == '-')
-            ++first;
-
-        return (ascii_lower(first[0]) == 'n' && ascii_lower(first[1]) == 'a' && ascii_lower(first[2]) == 'n') ||
-               (ascii_lower(first[0]) == 'i' && ascii_lower(first[1]) == 'n' && ascii_lower(first[2]) == 'f');
+        const auto result = std::from_chars(first, last, value, fmt);
+        if (result.ec == std::errc::invalid_argument && begins_special(first, last)) [[unlikely]]
+            return parse_special_from_chars<Traits>(first, last, value);
+        return result;
     }
 
     [[nodiscard]] BL_FORCE_INLINE constexpr bool has_exponent_marker(const char* first, const char* last) noexcept
@@ -80,6 +96,82 @@ namespace bl::detail::charconv
         return length;
     }
 
+    [[nodiscard]] BL_FORCE_INLINE constexpr int hex_digit_bit_width(int digit) noexcept
+    {
+        int width = 0;
+        while (digit != 0)
+        {
+            ++width;
+            digit >>= 1;
+        }
+        return width;
+    }
+
+    BL_FORCE_INLINE constexpr void append_bounded_hex_bit(
+        detail::exact_decimal::biguint& coeff,
+        int& kept_bits,
+        int& total_bits,
+        int max_kept_bits,
+        bool bit,
+        bool& sticky) noexcept
+    {
+        ++total_bits;
+        if (kept_bits < max_kept_bits)
+        {
+            coeff.shl1();
+            if (bit)
+                coeff.add_small(1);
+            ++kept_bits;
+            return;
+        }
+
+        if (bit)
+            sticky = true;
+    }
+
+    template<class Traits>
+    BL_FORCE_INLINE constexpr void append_bounded_hex_digit(
+        detail::exact_decimal::biguint& coeff,
+        int digit,
+        int& kept_bits,
+        int& total_bits,
+        bool& seen_nonzero,
+        bool& sticky) noexcept
+    {
+        constexpr int max_kept_bits = detail::hex_full_significand_bits<Traits>() + 2;
+
+        if (!seen_nonzero)
+        {
+            if (digit == 0)
+                return;
+
+            seen_nonzero = true;
+            const int width = hex_digit_bit_width(digit);
+            for (int bit_index = width - 1; bit_index >= 0; --bit_index)
+            {
+                append_bounded_hex_bit(
+                    coeff,
+                    kept_bits,
+                    total_bits,
+                    max_kept_bits,
+                    ((digit >> bit_index) & 1) != 0,
+                    sticky);
+            }
+            return;
+        }
+
+        for (int bit_index = 3; bit_index >= 0; --bit_index)
+        {
+            append_bounded_hex_bit(
+                coeff,
+                kept_bits,
+                total_bits,
+                max_kept_bits,
+                ((digit >> bit_index) & 1) != 0,
+                sticky);
+        }
+    }
+
     template<class Traits>
     [[nodiscard]] constexpr typename Traits::value_type exact_binary_to_value(
         detail::exact_decimal::biguint coeff,
@@ -89,18 +181,28 @@ namespace bl::detail::charconv
         if (coeff.is_zero())
             return Traits::zero(neg);
 
+        constexpr int target_bits = detail::hex_full_significand_bits<Traits>();
         int ratio_exp = coeff.bit_length() - 1;
-        detail::exact_decimal::biguint denominator{ 1 };
-        detail::exact_decimal::biguint q = detail::exact_decimal::extract_rounded_significand_chunks(
-            coeff,
-            denominator,
-            ratio_exp,
-            Traits::significand_bits);
-
-        if (q.bit_length() > Traits::significand_bits)
+        detail::exact_decimal::biguint q = coeff;
+        if (ratio_exp > target_bits - 1)
         {
-            q.shr1();
-            ++ratio_exp;
+            const int shift = ratio_exp - (target_bits - 1);
+            const bool round_bit = coeff.get_bit(shift - 1);
+            const bool sticky = shift > 1 && detail::exact_decimal::any_low_bits_set(coeff, shift - 1);
+
+            q = detail::exact_decimal::shr_bits_copy(coeff, shift);
+            if (round_bit && (sticky || q.is_odd()))
+                q.add_small(1);
+
+            if (q.bit_length() > target_bits)
+            {
+                q.shr1();
+                ++ratio_exp;
+            }
+        }
+        else if (ratio_exp < target_bits - 1)
+        {
+            q.shl_bits((target_bits - 1) - ratio_exp);
         }
 
         const int e2 = bin_exp + ratio_exp;
@@ -117,25 +219,34 @@ namespace bl::detail::charconv
         const char* first,
         const char* last,
         typename Traits::value_type& value,
-        const char** endptr) noexcept
+        const char** endptr,
+        bool allow_prefix = false,
+        bool allow_leading_plus = false) noexcept
     {
         const char* p = first;
         bool neg = false;
-        if (*p == '-')
+        if (*p == '-' || (allow_leading_plus && *p == '+'))
         {
-            neg = true;
+            neg = *p == '-';
             ++p;
         }
 
-        if (last - p >= 3 && detail::parse_special<Traits>(p, neg, value))
+        if (detail::parse_special<Traits>(p, last, neg, value)) [[unlikely]]
         {
             *endptr = p;
             return true;
         }
 
+        if (allow_prefix && last - p >= 2 && p[0] == '0' && ascii_lower(p[1]) == 'x')
+            p += 2;
+
         detail::exact_decimal::biguint coeff;
         bool any_digit = false;
+        bool seen_nonzero = false;
         bool fractional = false;
+        bool sticky = false;
+        int kept_bits = 0;
+        int total_bits = 0;
         int frac_hex_digits = 0;
 
         while (p != last)
@@ -147,13 +258,17 @@ namespace bl::detail::charconv
                 continue;
             }
 
-            const int digit = hex_digit_value(*p);
+            const int digit = ascii_hex_digit_value(*p);
             if (digit < 0)
                 break;
 
-            coeff.mul_small(16);
-            if (digit != 0)
-                coeff.add_small(static_cast<std::uint32_t>(digit));
+            append_bounded_hex_digit<Traits>(
+                coeff,
+                digit,
+                kept_bits,
+                total_bits,
+                seen_nonzero,
+                sticky);
 
             any_digit = true;
             if (fractional)
@@ -196,7 +311,11 @@ namespace bl::detail::charconv
                 p = exponent_marker;
         }
 
-        value = exact_binary_to_value<Traits>(coeff, exp2 - 4 * frac_hex_digits, neg);
+        const int discarded_bits = total_bits - kept_bits;
+        if (sticky)
+            coeff.set_bit(0);
+
+        value = exact_binary_to_value<Traits>(coeff, exp2 - 4 * frac_hex_digits + discarded_bits, neg);
         *endptr = p;
         return true;
     }
@@ -233,7 +352,7 @@ namespace bl::detail::charconv
         if (!supported_output_format(fmt))
             return { first, std::errc::invalid_argument };
 
-        if (special_text<Traits>(value) != nullptr)
+        if (special_text<Traits>(value) != nullptr) [[unlikely]]
             return emit_special<Traits>(first, last, value);
 
         detail::fltx_char_result result{};
@@ -241,6 +360,15 @@ namespace bl::detail::charconv
             result = Traits::to_chars_fixed(first, last, value, precision, false);
         else if (fmt == std::chars_format::scientific)
             result = Traits::to_chars_scientific_frac(first, last, value, precision, false);
+        else if (fmt == std::chars_format::hex)
+            result = detail::emit_hex_float_to_chars<Traits>(
+                first,
+                last,
+                value,
+                false,
+                precision,
+                precision >= 0,
+                precision < 0);
         else
             result = Traits::to_chars_general(first, last, value, precision, true);
 
@@ -259,52 +387,59 @@ namespace bl::detail::charconv
         if (!supported_input_format(fmt))
             return { first, std::errc::invalid_argument };
 
-        if (first == last || *first == '+' || is_ascii_space(*first))
+        if (first == last || *first == '+' || ascii_space(*first))
             return { first, std::errc::invalid_argument };
-
-        const std::size_t length = static_cast<std::size_t>(last - first);
-        constexpr std::size_t stack_capacity = 1024;
-        char stack[stack_capacity + 1]{};
-        std::string dynamic;
-        char* buffer = stack;
-
-        if (length > stack_capacity)
-        {
-            dynamic.assign(first, last);
-            dynamic.push_back('\0');
-            buffer = dynamic.data();
-        }
-        else
-        {
-            copy_chars(buffer, first, length);
-            buffer[length] = '\0';
-        }
-
-        if (fmt == std::chars_format::fixed)
-        {
-            const std::size_t exponent_offset = exponent_marker_offset(buffer, length);
-            if (exponent_offset != length)
-                buffer[exponent_offset] = '\0';
-        }
 
         typename Traits::value_type parsed{};
         const char* end = nullptr;
-        const bool parsed_ok = fmt == std::chars_format::hex
-            ? parse_hex_float<Traits>(buffer, buffer + length, parsed, &end)
-            : detail::parse_flt<Traits>(buffer, parsed, &end);
+        bool parsed_ok = false;
+        if (fmt == std::chars_format::hex)
+        {
+            const std::size_t length = static_cast<std::size_t>(last - first);
+            constexpr std::size_t stack_capacity = 1024;
+            char stack[stack_capacity + 1]{};
+            std::string dynamic;
+            char* buffer = stack;
 
-        if (!parsed_ok || end == buffer)
+            if (length > stack_capacity)
+            {
+                dynamic.assign(first, last);
+                dynamic.push_back('\0');
+                buffer = dynamic.data();
+            }
+            else
+            {
+                copy_chars(buffer, first, length);
+                buffer[length] = '\0';
+            }
+
+            parsed_ok = parse_hex_float<Traits>(buffer, buffer + length, parsed, &end);
+            end = first + (end - buffer);
+        }
+        else
+        {
+            const char* parse_last = last;
+            if (fmt == std::chars_format::fixed)
+            {
+                const std::size_t length = static_cast<std::size_t>(last - first);
+                const std::size_t exponent_offset = exponent_marker_offset(first, length);
+                parse_last = first + exponent_offset;
+            }
+            parsed_ok = detail::parse_flt<Traits>(first, parse_last, parsed, &end);
+        }
+
+        if (!parsed_ok || end == first)
             return { first, std::errc::invalid_argument };
 
         if (fmt == std::chars_format::scientific &&
-            !begins_special(buffer) &&
-            !has_exponent_marker(buffer, end))
+            !begins_special(first, last) &&
+            !has_exponent_marker(first, end))
         {
             return { first, std::errc::invalid_argument };
         }
 
         value = parsed;
-        return { first + (end - buffer), std::errc{} };
+        return { end, std::errc{} };
     }
 
 } // namespace bl::detail::charconv
@@ -357,7 +492,7 @@ namespace bl
         f32& value,
         std::chars_format fmt = std::chars_format::general) noexcept
     {
-        return std::from_chars(first, last, value, fmt);
+        return detail::charconv::native_from_chars<detail::_native_float_io::f32_io_traits>(first, last, value, fmt);
     }
 
     [[nodiscard]] inline std::to_chars_result to_chars(
@@ -393,7 +528,7 @@ namespace bl
         f64& value,
         std::chars_format fmt = std::chars_format::general) noexcept
     {
-        return std::from_chars(first, last, value, fmt);
+        return detail::charconv::native_from_chars<detail::_native_float_io::f64_io_traits>(first, last, value, fmt);
     }
 
     [[nodiscard]] constexpr std::to_chars_result to_chars(
@@ -417,6 +552,8 @@ namespace bl
     {
         const int precision = fmt == std::chars_format::general
             ? std::numeric_limits<f128_s>::max_digits10
+            : fmt == std::chars_format::hex
+            ? -1
             : 6;
         return detail::charconv::to_chars_impl<detail::_f128::f128_io_traits>(
             first,
@@ -471,6 +608,8 @@ namespace bl
     {
         const int precision = fmt == std::chars_format::general
             ? std::numeric_limits<f256_s>::max_digits10
+            : fmt == std::chars_format::hex
+            ? -1
             : 6;
 
         return detail::charconv::to_chars_impl<detail::_f256::f256_io_traits>(
@@ -509,6 +648,10 @@ namespace bl
     {
         template<class>
         struct dependent_false : std::false_type {};
+
+        template<class T>
+        inline constexpr bool unqualified_parse_value =
+            std::is_same_v<T, std::remove_cvref_t<T>>;
 
         template<class T>
         struct parse_traits_for
@@ -558,17 +701,42 @@ namespace bl
             using traits = detail::_f256::f256_io_traits;
         };
 
+        [[nodiscard]] BL_FORCE_INLINE constexpr bool has_hex_float_prefix(std::string_view text) noexcept
+        {
+            std::size_t index = 0;
+            if (!text.empty() && (text[0] == '-' || text[0] == '+'))
+                index = 1;
+
+            return text.size() >= index + 2 &&
+                   text[index] == '0' &&
+                   ascii_lower(text[index + 1]) == 'x';
+        }
+
+        [[nodiscard]] BL_FORCE_INLINE constexpr std::chars_format effective_parse_format(
+            std::string_view text,
+            std::chars_format fmt) noexcept
+        {
+            return fmt == std::chars_format::general && has_hex_float_prefix(text)
+                ? std::chars_format::hex
+                : fmt;
+        }
+
         template<class Traits>
         [[nodiscard]] constexpr std::from_chars_result from_chars_constexpr_buffer(
             char* first,
             char* last,
             typename Traits::value_type& value,
-            std::chars_format fmt) noexcept
+            std::chars_format fmt,
+            bool allow_hex_prefix = false,
+            bool allow_leading_plus = false) noexcept
         {
             if (!supported_input_format(fmt))
                 return { first, std::errc::invalid_argument };
 
-            if (first == last || *first == '+' || is_ascii_space(*first))
+            if (first == last || ascii_space(*first))
+                return { first, std::errc::invalid_argument };
+
+            if (*first == '+' && !allow_leading_plus)
                 return { first, std::errc::invalid_argument };
 
             if (fmt == std::chars_format::fixed)
@@ -582,14 +750,14 @@ namespace bl
             typename Traits::value_type parsed{};
             const char* end = nullptr;
             const bool parsed_ok = fmt == std::chars_format::hex
-                ? parse_hex_float<Traits>(first, last, parsed, &end)
+                ? parse_hex_float<Traits>(first, last, parsed, &end, allow_hex_prefix, allow_leading_plus)
                 : detail::parse_flt<Traits>(first, parsed, &end);
 
             if (!parsed_ok || end == first)
                 return { first, std::errc::invalid_argument };
 
             if (fmt == std::chars_format::scientific &&
-                !begins_special(first) &&
+                !begins_special(first, last) &&
                 !has_exponent_marker(first, end))
             {
                 return { first, std::errc::invalid_argument };
@@ -605,22 +773,27 @@ namespace bl
             std::chars_format fmt) noexcept
         {
             using Traits = typename parse_traits_for<T>::traits;
+            using buffer_type = typename Traits::string_type;
+            const std::chars_format effective_fmt = effective_parse_format(text, fmt);
+            const bool allow_hex_prefix = effective_fmt == std::chars_format::hex;
 
             parse_result<T> result{};
 
-            if (text.size() > default_io_string::static_capacity)
+            if (text.size() > buffer_type::static_capacity)
             {
                 result.ec = std::errc::invalid_argument;
                 return result;
             }
 
-            default_io_string buffer{ text };
+            buffer_type buffer{ text };
             typename Traits::value_type parsed{};
             const auto parsed_result = from_chars_constexpr_buffer<Traits>(
                 buffer.data(),
                 buffer.data() + buffer.size(),
                 parsed,
-                fmt);
+                effective_fmt,
+                allow_hex_prefix,
+                true);
 
             result.consumed = static_cast<std::size_t>(parsed_result.ptr - buffer.data());
             result.ec = parsed_result.ec;
@@ -646,8 +819,47 @@ namespace bl
                 return result;
             }
 
+            const std::chars_format effective_fmt = effective_parse_format(text, fmt);
+            const bool use_flexible_hex = effective_fmt == std::chars_format::hex;
+            const bool allow_leading_plus = !text.empty() && text[0] == '+';
+
             T parsed{};
-            const auto parsed_result = bl::from_chars(text.data(), text.data() + text.size(), parsed, fmt);
+            std::from_chars_result parsed_result{};
+            if (use_flexible_hex || allow_leading_plus)
+            {
+                using Traits = typename parse_traits_for<T>::traits;
+                constexpr std::size_t stack_capacity = 1024;
+                char stack[stack_capacity + 1]{};
+                std::string dynamic;
+                char* buffer = stack;
+
+                if (text.size() > stack_capacity)
+                {
+                    dynamic.assign(text.data(), text.data() + text.size());
+                    dynamic.push_back('\0');
+                    buffer = dynamic.data();
+                }
+                else
+                {
+                    copy_chars(buffer, text.data(), text.size());
+                    buffer[text.size()] = '\0';
+                }
+
+                typename Traits::value_type traits_value{};
+                const auto traits_result = from_chars_constexpr_buffer<Traits>(
+                    buffer,
+                    buffer + text.size(),
+                    traits_value,
+                    effective_fmt,
+                    use_flexible_hex,
+                    allow_leading_plus);
+                parsed = T{ traits_value };
+                parsed_result = { text.data() + (traits_result.ptr - buffer), traits_result.ec };
+            }
+            else
+            {
+                parsed_result = bl::from_chars(text.data(), text.data() + text.size(), parsed, effective_fmt);
+            }
             result.consumed = static_cast<std::size_t>(parsed_result.ptr - text.data());
             result.ec = parsed_result.ec;
             if (result.ec == std::errc{} && result.consumed != text.size())
@@ -661,17 +873,20 @@ namespace bl
 
     } // namespace detail::charconv
 
-    template<class T>
-    [[nodiscard]] constexpr parse_result<std::remove_cvref_t<T>> try_parse(
+    template<class Value>
+    [[nodiscard]] constexpr parse_result<Value> try_parse(
         std::string_view text,
         std::chars_format fmt = std::chars_format::general) noexcept
     {
-        using value_type = std::remove_cvref_t<T>;
+        static_assert(
+            detail::charconv::unqualified_parse_value<Value>,
+            "bl::parse<T> and bl::try_parse<T> expect T to be an unqualified value type, such as bl::f256."
+        );
 
-        if constexpr (!detail::charconv::parse_traits_for<value_type>::supported)
+        if constexpr (!detail::charconv::parse_traits_for<Value>::supported)
         {
             static_assert(
-                detail::charconv::dependent_false<value_type>::value,
+                detail::charconv::dependent_false<Value>::value,
                 "bl::parse<T> and bl::try_parse<T> support bl::f32, bl::f64, bl::f128, bl::f128_s, bl::f256, and bl::f256_s."
             );
         }
@@ -679,11 +894,11 @@ namespace bl
         {
             if consteval
             {
-                return detail::charconv::parse_constexpr<value_type>(text, fmt);
+                return detail::charconv::parse_constexpr<Value>(text, fmt);
             }
             else
             {
-                return detail::charconv::parse_runtime<value_type>(text, fmt);
+                return detail::charconv::parse_runtime<Value>(text, fmt);
             }
         }
     }
@@ -703,24 +918,34 @@ namespace bl
         return true;
     }
 
-    template<class T>
-    [[nodiscard]] constexpr std::remove_cvref_t<T> parse(
+    template<class Value>
+    [[nodiscard]] constexpr Value parse(
         std::string_view text,
-        std::remove_cvref_t<T> fallback,
+        Value fallback,
         std::chars_format fmt = std::chars_format::general) noexcept
     {
-        const auto parsed = try_parse<T>(text, fmt);
+        const auto parsed = try_parse<Value>(text, fmt);
         return parsed ? parsed.value : fallback;
     }
 
-    template<class T>
-    [[nodiscard]] constexpr std::remove_cvref_t<T> parse(
+    template<class Value>
+    [[nodiscard]] constexpr Value parse(
         std::string_view text,
         std::chars_format fmt = std::chars_format::general)
     {
-        const auto parsed = try_parse<T>(text, fmt);
+        const auto parsed = try_parse<Value>(text, fmt);
         if (!parsed)
-            throw "invalid bl::parse input";
+        {
+            switch (parsed.ec)
+            {
+            case std::errc::invalid_argument:
+                throw std::invalid_argument("bl::parse invalid input");
+            case std::errc::result_out_of_range:
+                throw std::out_of_range("bl::parse input out of range");
+            default:
+                throw std::logic_error("bl::parse unexpected error code");
+            }
+        }
         return parsed.value;
     }
 

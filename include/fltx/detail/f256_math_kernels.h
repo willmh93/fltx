@@ -11,17 +11,19 @@
 
 #ifndef F256_DETAIL_MATH_KERNELS_INCLUDED
 #define F256_DETAIL_MATH_KERNELS_INCLUDED
+#include "fltx/detail/common_decimal.h"
 #include "fltx/detail/f256_declarations.h"
 
 namespace bl {
 
 namespace detail::_f256 // primitives and kernels
 {
-    using detail::exact_decimal::add_signed;
+    using detail::exact_decimal::any_low_bits_set;
     using detail::exact_decimal::biguint;
     using detail::exact_decimal::decompose_double_mantissa;
-    using detail::exact_decimal::mod_shift_subtract;
-    using detail::exact_decimal::signed_biguint;
+    using detail::exact_decimal::from_words;
+    using detail::exact_decimal::low_bits_copy;
+    using detail::exact_decimal::shr_bits_copy;
     using detail::fp::fmod;
     using detail::fp::nearbyint_ties_even;
     using detail::fp::sqrt_seed;
@@ -182,139 +184,6 @@ namespace detail::_f256 // primitives and kernels
             ldexp_limb(value.x1, exponent),
             ldexp_limb(value.x2, exponent),
             ldexp_limb(value.x3, exponent));
-    }
-
-    struct exact_dyadic_fmod
-    {
-        int exp2 = 0;
-        biguint mant{};
-    };
-
-    // exact integer helpers
-    BL_FORCE_INLINE constexpr bool biguint_is_odd(const biguint& value)
-    {
-        return !value.is_zero() && (value.words[0] & 1u) != 0;
-    }
-
-    BL_FORCE_INLINE constexpr bool biguint_any_low_bits_set(const biguint& value, int bit_count)
-    {
-        if (bit_count <= 0)
-            return false;
-
-        const int full_words = bit_count >> 5;
-        const int rem_bits   = bit_count & 31;
-
-        for (int i = 0; i < full_words && i < value.size; ++i)
-        {
-            if (value.words[i] != 0)
-                return true;
-        }
-
-        if (rem_bits != 0 && full_words < value.size)
-        {
-            const std::uint32_t mask = (std::uint32_t{ 1 } << rem_bits) - 1u;
-            if ((value.words[full_words] & mask) != 0)
-                return true;
-        }
-
-        return false;
-    }
-
-    BL_FORCE_INLINE constexpr int biguint_trailing_zero_bits(const biguint& value)
-    {
-        int count = 0;
-        for (int i = 0; i < value.size; ++i)
-        {
-            const std::uint32_t word = value.words[i];
-            if (word == 0)
-            {
-                count += 32;
-                continue;
-            }
-
-            std::uint32_t bits = word;
-            while ((bits & 1u) == 0u)
-            {
-                bits >>= 1;
-                ++count;
-            }
-            break;
-        }
-        return count;
-    }
-
-    BL_FORCE_INLINE constexpr biguint biguint_shr_bits(biguint value, int bits)
-    {
-        if (bits <= 0 || value.is_zero())
-            return value;
-
-        const int word_shift = bits >> 5;
-        const int bit_shift  = bits & 31;
-
-        if (word_shift >= value.size)
-        {
-            value.clear();
-            return value;
-        }
-
-        if (word_shift > 0)
-        {
-            for (int i = 0; i + word_shift < value.size; ++i)
-                value.words[i] = value.words[i + word_shift];
-            value.size -= word_shift;
-        }
-
-        if (bit_shift != 0)
-        {
-            std::uint32_t carry = 0;
-            for (int i = value.size - 1; i >= 0; --i)
-            {
-                const std::uint32_t next_carry = static_cast<std::uint32_t>(value.words[i] << (32 - bit_shift));
-                value.words[i] = static_cast<std::uint32_t>((value.words[i] >> bit_shift) | carry);
-                carry = next_carry;
-            }
-        }
-
-        value.trim();
-        return value;
-    }
-
-    BL_FORCE_INLINE constexpr biguint biguint_mod(const biguint& numerator, const biguint& modulus)
-    {
-        biguint remainder{};
-        mod_shift_subtract(numerator, modulus, remainder);
-        return remainder;
-    }
-
-    BL_FORCE_INLINE constexpr biguint biguint_mul_mod(const biguint& a, const biguint& b, const biguint& modulus)
-    {
-        if (a.is_zero() || b.is_zero())
-            return {};
-
-        return biguint_mod(mul_big(a, b), modulus);
-    }
-
-    BL_FORCE_INLINE constexpr biguint biguint_pow2_mod(int exponent, const biguint& modulus)
-    {
-        if (modulus.is_zero())
-            return {};
-        if (exponent <= 0)
-            return biguint_mod(biguint{ 1u }, modulus);
-
-        biguint result = biguint_mod(biguint{ 1u }, modulus);
-        biguint base = biguint_mod(biguint{ 2u }, modulus);
-
-        while (exponent > 0)
-        {
-            if ((exponent & 1) != 0)
-                result = biguint_mul_mod(result, base, modulus);
-
-            exponent >>= 1;
-            if (exponent != 0)
-                base = biguint_mul_mod(base, base, modulus);
-        }
-
-        return result;
     }
 
     struct fmod_u320
@@ -629,9 +498,7 @@ namespace detail::_f256 // primitives and kernels
         }
     }
 
-    BL_NO_INLINE constexpr bool exact_from_f256_fmod_fixed(
-        const f256_s& x,
-        exact_dyadic_fmod_fixed& out)
+    BL_NO_INLINE constexpr exact_dyadic_fmod_fixed exact_from_f256_fmod_fixed(const f256_s& x)
     {
         int common_exp = std::numeric_limits<int>::max();
         const double limbs[4] = { x.x0, x.x1, x.x2, x.x3 };
@@ -651,9 +518,9 @@ namespace detail::_f256 // primitives and kernels
                 common_exp = exponent;
         }
 
-        out = {};
+        exact_dyadic_fmod_fixed out{};
         if (common_exp == std::numeric_limits<int>::max())
-            return true;
+            return out;
 
         signed_fmod_u320 acc{};
         for (double limb : limbs)
@@ -669,19 +536,14 @@ namespace detail::_f256 // primitives and kernels
 
             const int shift = exponent - common_exp;
             fmod_u320 term = fmod_u320_from_u64(mantissa);
-            if (fmod_u320_shift_exceeds_capacity(term, shift))
-                return false;
             term = fmod_u320_shl_bits(term, shift);
             fmod_u320_add_signed(acc, term, limb_neg);
         }
 
-        if (acc.neg)
-            return false;
-
         out.exp2 = common_exp;
         out.mant = acc.mag;
         normalize_exact_dyadic_fmod_fixed(out);
-        return true;
+        return out;
     }
 
     BL_NO_INLINE constexpr f256_s exact_dyadic_to_f256_fmod_fixed(
@@ -740,21 +602,15 @@ namespace detail::_f256 // primitives and kernels
         return neg ? -out : out;
     }
 
-    BL_NO_INLINE constexpr bool fmod_exact_fixed_limb_abs_with_quotient_mod(
+    BL_NO_INLINE constexpr f256_s fmod_exact_fixed_limb_abs_with_quotient_mod(
         const f256_s& ax,
         const f256_s& ay,
-        std::uint64_t& quotient_mod,
-        f256_s& out)
+        std::uint64_t& quotient_mod)
     {
         constexpr std::uint64_t quotient_mask = 0x7fffffffull;
 
-        exact_dyadic_fmod_fixed dx{};
-        exact_dyadic_fmod_fixed dy{};
-        if (!exact_from_f256_fmod_fixed(ax, dx) ||
-            !exact_from_f256_fmod_fixed(ay, dy))
-        {
-            return false;
-        }
+        const exact_dyadic_fmod_fixed dx = exact_from_f256_fmod_fixed(ax);
+        const exact_dyadic_fmod_fixed dy = exact_from_f256_fmod_fixed(ay);
 
         fmod_u320 remainder{};
         int out_exp = 0;
@@ -796,79 +652,13 @@ namespace detail::_f256 // primitives and kernels
             out_exp = dy.exp2;
         }
 
-        out = exact_dyadic_to_f256_fmod_fixed(remainder, out_exp, false);
+        f256_s out = exact_dyadic_to_f256_fmod_fixed(remainder, out_exp, false);
         if (iszero(out))
             out = f256_s{ 0.0 };
-        return true;
-    }
-
-    // exact fmod conversion
-    BL_FORCE_INLINE constexpr void normalize_exact_dyadic_fmod(exact_dyadic_fmod& value)
-    {
-        if (value.mant.is_zero())
-        {
-            value.exp2 = 0;
-            return;
-        }
-
-        const int tz = biguint_trailing_zero_bits(value.mant);
-        if (tz != 0)
-        {
-            value.mant = biguint_shr_bits(value.mant, tz);
-            value.exp2 += tz;
-        }
-    }
-
-    BL_MSVC_NOINLINE constexpr exact_dyadic_fmod exact_from_f256_fmod(const f256_s& x)
-    {
-        int common_exp = std::numeric_limits<int>::max();
-        const double limbs[4] = { x.x0, x.x1, x.x2, x.x3 };
-
-        for (double limb : limbs)
-        {
-            if (limb == 0.0)
-                continue;
-
-            int exponent = 0;
-            bool limb_neg = false;
-            const std::uint64_t mantissa = decompose_double_mantissa(limb, exponent, limb_neg);
-            if (mantissa == 0)
-                continue;
-
-            if (exponent < common_exp)
-                common_exp = exponent;
-        }
-
-        exact_dyadic_fmod out{};
-        if (common_exp == std::numeric_limits<int>::max())
-            return out;
-
-        signed_biguint acc{};
-        for (double limb : limbs)
-        {
-            if (limb == 0.0)
-                continue;
-
-            int exponent = 0;
-            bool limb_neg = false;
-            const std::uint64_t mantissa = decompose_double_mantissa(limb, exponent, limb_neg);
-            if (mantissa == 0)
-                continue;
-
-            biguint term{ mantissa };
-            term.shl_bits(exponent - common_exp);
-            add_signed(acc, term, limb_neg);
-        }
-
-        if (acc.neg || acc.mag.is_zero())
-            return out;
-
-        out.exp2 = common_exp;
-        out.mant = acc.mag;
-        normalize_exact_dyadic_fmod(out);
         return out;
     }
 
+    // exact dyadic conversion
     BL_MSVC_NOINLINE constexpr f256_s exact_dyadic_to_f256_fmod(const biguint& coeff, int exp2, bool neg)
     {
         if (coeff.is_zero())
@@ -882,16 +672,16 @@ namespace detail::_f256 // primitives and kernels
         {
             const int right_shift = ratio_exp - (kept_bits - 1);
             const bool round_bit = q.get_bit(right_shift - 1);
-            const bool sticky    = biguint_any_low_bits_set(q, right_shift - 1);
+            const bool sticky    = any_low_bits_set(q, right_shift - 1);
 
-            q = biguint_shr_bits(q, right_shift);
+            q = shr_bits_copy(q, right_shift);
 
-            if (round_bit && (sticky || biguint_is_odd(q)))
+            if (round_bit && (sticky || q.is_odd()))
                 q.add_small(1u);
 
             if (q.bit_length() > kept_bits)
             {
-                q = biguint_shr_bits(q, 1);
+                q = shr_bits_copy(q, 1);
                 ++ratio_exp;
             }
         }
@@ -925,39 +715,12 @@ namespace detail::_f256 // primitives and kernels
     // fmod kernels
     BL_MSVC_NOINLINE constexpr f256_s fmod_exact(const f256_s& x, const f256_s& y)
     {
-        const exact_dyadic_fmod dx = exact_from_f256_fmod(mag(x));
-        const exact_dyadic_fmod dy = exact_from_f256_fmod(mag(y));
+        std::uint64_t quotient_mod = 0;
+        const f256_s out = fmod_exact_fixed_limb_abs_with_quotient_mod(mag(x), mag(y), quotient_mod);
 
-        if (dx.mant.is_zero() || dy.mant.is_zero())
-            return signed_zero_from(x.x0);
-
-        biguint remainder{};
-        int out_exp = 0;
-
-        if (dx.exp2 < dy.exp2)
-        {
-            const int shift = dy.exp2 - dx.exp2;
-            biguint denominator = dy.mant;
-            denominator.shl_bits(shift);
-            mod_shift_subtract(dx.mant, denominator, remainder);
-            out_exp = dx.exp2;
-        }
-        else
-        {
-            remainder = biguint_mod(dx.mant, dy.mant);
-            const int shift = dx.exp2 - dy.exp2;
-            if (!remainder.is_zero() && shift != 0)
-            {
-                const biguint scale = biguint_pow2_mod(shift, dy.mant);
-                remainder = biguint_mul_mod(remainder, scale, dy.mant);
-            }
-            out_exp = dy.exp2;
-        }
-
-        f256_s out = exact_dyadic_to_f256_fmod(remainder, out_exp, !ispositive(x));
         if (iszero(out))
             return signed_zero_from(x.x0);
-        return out;
+        return ispositive(x) ? out : -out;
     }
 
     BL_FORCE_INLINE constexpr bool fmod_normalize_remainder(f256_s& r, const f256_s& modulus) noexcept
@@ -1149,99 +912,12 @@ namespace detail::_f256 // primitives and kernels
         return true;
     }
 
-    BL_FORCE_INLINE constexpr void biguint_mod_shift_subtract_with_quotient_mod(
-        const biguint& numerator,
-        const biguint& denominator,
-        biguint& remainder,
-        std::uint64_t& quotient_mod) noexcept
-    {
-        constexpr std::uint64_t quotient_mask = 0x7fffffffull;
-
-        remainder = numerator;
-        if (denominator.is_zero())
-            return;
-
-        while (remainder.compare(denominator) >= 0)
-        {
-            int shift = (remainder.bit_length() - 1) - (denominator.bit_length() - 1);
-            if (shift > 0 && detail::exact_decimal::compare_shifted(remainder, denominator, shift) < 0)
-                --shift;
-
-            detail::exact_decimal::sub_shifted_inplace(remainder, denominator, shift);
-            if (shift < 31)
-                quotient_mod = (quotient_mod + (std::uint64_t{ 1 } << shift)) & quotient_mask;
-        }
-    }
-
-    BL_FORCE_INLINE constexpr biguint biguint_double_mod_with_quotient_bit(
-        const biguint& value,
-        const biguint& modulus,
-        std::uint64_t& bit) noexcept
-    {
-        biguint out = value;
-        out.shl1();
-
-        bit = 0;
-        if (out.compare(modulus) >= 0)
-        {
-            out.sub_inplace(modulus);
-            bit = 1;
-        }
-
-        return out;
-    }
-
     BL_FORCE_INLINE constexpr f256_s fmod_exact_abs_with_quotient_mod(
         const f256_s& ax,
         const f256_s& ay,
         std::uint64_t& quotient_mod)
     {
-        constexpr std::uint64_t quotient_mask = 0x7fffffffull;
-
-        f256_s fixed{};
-        if (fmod_exact_fixed_limb_abs_with_quotient_mod(ax, ay, quotient_mod, fixed))
-            return fixed;
-
-        const exact_dyadic_fmod dx = exact_from_f256_fmod(ax);
-        const exact_dyadic_fmod dy = exact_from_f256_fmod(ay);
-
-        biguint remainder{};
-        int out_exp = 0;
-
-        if (dx.exp2 < dy.exp2)
-        {
-            const int shift = dy.exp2 - dx.exp2;
-            biguint denominator = dy.mant;
-            denominator.shl_bits(shift);
-            biguint_mod_shift_subtract_with_quotient_mod(dx.mant, denominator, remainder, quotient_mod);
-            out_exp = dx.exp2;
-        }
-        else
-        {
-            biguint_mod_shift_subtract_with_quotient_mod(dx.mant, dy.mant, remainder, quotient_mod);
-            const int shift = dx.exp2 - dy.exp2;
-
-            int i = 0;
-            for (; i < shift && !remainder.is_zero(); ++i)
-            {
-                std::uint64_t bit = 0;
-                remainder = biguint_double_mod_with_quotient_bit(remainder, dy.mant, bit);
-                quotient_mod = ((quotient_mod << 1) | bit) & quotient_mask;
-            }
-
-            const int remaining = shift - i;
-            if (remaining >= 31)
-                quotient_mod = 0;
-            else if (remaining > 0)
-                quotient_mod = (quotient_mod << remaining) & quotient_mask;
-
-            out_exp = dy.exp2;
-        }
-
-        f256_s out = exact_dyadic_to_f256_fmod(remainder, out_exp, false);
-        if (iszero(out))
-            return f256_s{ 0.0 };
-        return out;
+        return fmod_exact_fixed_limb_abs_with_quotient_mod(ax, ay, quotient_mod);
     }
 
     BL_MSVC_NOINLINE constexpr f256_s fmod_reduced_or_exact(const f256_s& x, const f256_s& y)
@@ -1311,6 +987,23 @@ namespace detail::_f256 // primitives and kernels
         return true;
     }
 
+    struct f256_significant_decimal_traits
+    {
+        using value_type = f256_s;
+        static constexpr int limb_count = 4;
+
+        static constexpr double limb(const value_type& x, int index) noexcept
+        {
+            switch (index)
+            {
+            case 0: return x.x0;
+            case 1: return x.x1;
+            case 2: return x.x2;
+            default: return x.x3;
+            }
+        }
+    };
+
     BL_FORCE_INLINE constexpr f256_s pack_decimal_significand(const biguint& q, int e2, bool neg) noexcept
     {
         const std::uint64_t c3 = q.get_bits(0, 53);
@@ -1362,21 +1055,6 @@ namespace detail::_f256 // primitives and kernels
             return neg ? f256_s{ -0.0, 0.0, 0.0, 0.0 } : f256_s{ 0.0, 0.0, 0.0, 0.0 };
 
         return pack_decimal_significand(q, e2, neg);
-    }
-
-    BL_FORCE_INLINE constexpr bool try_rounded_decimal_to_f256(const f256_s& integer_part, const char* digits, int digit_count, bool neg, f256_s& out) noexcept
-    {
-        int64_t integer_value = 0;
-        if (!try_get_int64(integer_part, integer_value) || integer_value < 0)
-            return false;
-
-        const biguint coeff = detail::fp::append_decimal_digits(
-            biguint{ static_cast<std::uint64_t>(integer_value) },
-            digits,
-            digit_count);
-
-        out = round_decimal_exact_to_f256(coeff, -digit_count, neg);
-        return true;
     }
 
     // quotient helpers

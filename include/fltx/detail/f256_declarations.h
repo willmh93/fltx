@@ -14,7 +14,6 @@
 #include "fltx/detail/f256_expressions.h"
 #include "fltx/detail/f256_consts.h"
 #include "fltx/detail/common_math.h"
-#include "fltx/detail/common_decimal.h"
 #include "fltx/detail/math_utils.h"
 
 namespace bl {
@@ -29,6 +28,7 @@ namespace detail::_f256_runtime
     // rounding and decimals
     BL_NO_INLINE f256_s round(const f256_s& a);
     BL_NO_INLINE f256_s round_to_decimals(f256_s v, int prec);
+    BL_NO_INLINE f256_s round_to_significant_figures(f256_s v, int figures);
     BL_NO_INLINE f256_s nearbyint(const f256_s& a);
     BL_NO_INLINE f256_s rint(const f256_s& x);
     BL_NO_INLINE long lround(const f256_s& x);
@@ -119,6 +119,7 @@ namespace detail::_f256_impl
     BL_FORCE_INLINE constexpr f256_s round(const f256_s& a);
     BL_FORCE_INLINE f256_s round_runtime(const f256_s& a) noexcept;
     BL_FORCE_INLINE constexpr f256_s round_to_decimals(f256_s v, int prec);
+    BL_FORCE_INLINE constexpr f256_s round_to_significant_figures(f256_s v, int figures);
     BL_FORCE_INLINE constexpr f256_s nearbyint(const f256_s& a);
     BL_FORCE_INLINE f256_s nearbyint_runtime(const f256_s& a) noexcept;
     BL_FORCE_INLINE constexpr f256_s rint(const f256_s& x);

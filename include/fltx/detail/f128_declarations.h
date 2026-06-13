@@ -15,7 +15,6 @@
 #include "fltx/f128_classification.h"
 #include "fltx/detail/f128_consts.h"
 #include "fltx/detail/common_math.h"
-#include "fltx/detail/common_decimal.h"
 #include "fltx/detail/math_utils.h"
 
 namespace bl {
@@ -29,6 +28,7 @@ namespace detail::_f128_runtime
     BL_NO_INLINE f128_s trunc(const f128_s& a);
     BL_NO_INLINE f128_s round(const f128_s& a);
     BL_NO_INLINE f128_s round_to_decimals(f128_s v, int prec);
+    BL_NO_INLINE f128_s round_to_significant_figures(f128_s v, int figures);
     BL_NO_INLINE f128_s nearbyint_slow(const f128_s& a);
     BL_NO_INLINE f128_s nearbyint(const f128_s& a);
     BL_NO_INLINE f128_s rint(const f128_s& x);
@@ -109,6 +109,7 @@ namespace detail::_f128_impl
     BL_FORCE_INLINE constexpr f128_s round(const f128_s& a);
     BL_FORCE_INLINE f128_s round_runtime(const f128_s& a) noexcept;
     BL_FORCE_INLINE constexpr f128_s round_to_decimals(f128_s v, int prec);
+    BL_FORCE_INLINE constexpr f128_s round_to_significant_figures(f128_s v, int figures);
     BL_FORCE_INLINE constexpr f128_s nearbyint(const f128_s& a);
     BL_FORCE_INLINE f128_s nearbyint_runtime(const f128_s& a) noexcept;
     BL_FORCE_INLINE constexpr f128_s rint(const f128_s& x);

@@ -47,7 +47,7 @@ function(fltx_binary_size_prepare_target _TARGET _FAMILY _GROUP _LABEL)
     target_link_libraries(${_TARGET} PRIVATE fltx::fltx)
     target_compile_features(${_TARGET} PRIVATE cxx_std_23)
     target_include_directories(${_TARGET} PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/../unit_compile_tests/${_FAMILY}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../unit_build_tests/${_FAMILY}_math"
     )
     fltx_apply_fast_math_options(${_TARGET})
     fltx_apply_simd_options(${_TARGET})
@@ -90,7 +90,7 @@ int main()
 
     add_executable(${_TARGET}
         "${_MAIN}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../unit_compile_tests/${_FAMILY}/isolated_runtime.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../unit_build_tests/${_FAMILY}_math/isolated_runtime.cpp"
     )
     fltx_binary_size_prepare_target(${_TARGET} "${_FAMILY}" "baseline" "baseline")
 endfunction()
@@ -114,7 +114,7 @@ int main()
     add_executable(${_TARGET}
         "${_MAIN}"
         "${_SOURCE}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../unit_compile_tests/${_FAMILY}/isolated_runtime.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../unit_build_tests/${_FAMILY}_math/isolated_runtime.cpp"
     )
     fltx_binary_size_prepare_target(${_TARGET} "${_FAMILY}" "single" "${_LABEL}")
 endfunction()
@@ -124,7 +124,7 @@ function(fltx_binary_size_add_callsite_case _FAMILY _LABEL _CASE_ID _REPEAT)
 
     add_executable(${_TARGET}
         "${CMAKE_CURRENT_SOURCE_DIR}/callsite_stress.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../unit_compile_tests/${_FAMILY}/isolated_runtime.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../unit_build_tests/${_FAMILY}_math/isolated_runtime.cpp"
     )
 
     if(_FAMILY STREQUAL "f128")
@@ -147,10 +147,10 @@ fltx_binary_size_add_baseline(f128)
 fltx_binary_size_add_baseline(f256)
 
 file(GLOB FLTX_BINARY_SIZE_F128_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/../unit_compile_tests/f128/isolated_f128_*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../unit_build_tests/f128_math/isolated_f128_*.cpp"
 )
 file(GLOB FLTX_BINARY_SIZE_F256_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/../unit_compile_tests/f256/isolated_f256_*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../unit_build_tests/f256_math/isolated_f256_*.cpp"
 )
 
 foreach(_SOURCE IN LISTS FLTX_BINARY_SIZE_F128_SOURCES)

@@ -140,11 +140,30 @@ namespace bl::test::metrics
         return false;
     }
 
+    [[nodiscard]] inline bool metrics_operation_starts_with(
+        std::string_view operation,
+        std::initializer_list<std::string_view> prefixes) noexcept
+    {
+        for (std::string_view prefix : prefixes)
+        {
+            if (operation.starts_with(prefix))
+                return true;
+        }
+        return false;
+    }
+
+    [[nodiscard]] inline bool metrics_operation_is_io(std::string_view operation) noexcept
+    {
+        return metrics_operation_starts_with(operation, { "to_string", "parse<", "parse(", "parse " });
+    }
+
     [[nodiscard]] inline std::string metrics_csv_group(const metrics_record& record)
     {
         const std::string_view operation = record.suite.operation.name;
         if (record.suite.domain.role == domain_role::stress)
             return "Mixed Workloads";
+        if (metrics_operation_is_io(operation))
+            return "IO";
         if (metrics_operation_is(operation, { "add", "subtract", "multiply", "divide" }))
             return metrics_native_arithmetic_group(record.suite.precision);
         if (metrics_operation_is(operation, {
@@ -201,17 +220,18 @@ namespace bl::test::metrics
         const std::string group = metrics_csv_group(record);
         if (group == metrics_native_arithmetic_group(record.suite.precision)) return 0;
         if (group == "Mixed Workloads") return 1;
-        if (group == "Rounding") return 2;
-        if (group == "Remainders") return 3;
-        if (group == "Floating-point utilities") return 4;
-        if (group == "Roots & powers") return 5;
-        if (group == "Exponentials") return 6;
-        if (group == "Logarithms") return 7;
-        if (group == "Trigonometric") return 8;
-        if (group == "Hyperbolic") return 9;
-        if (group == "Inverse hyperbolic") return 10;
-        if (group == "Special functions") return 11;
-        if (group == "Comparisons") return 12;
+        if (group == "IO") return 2;
+        if (group == "Rounding") return 3;
+        if (group == "Remainders") return 4;
+        if (group == "Floating-point utilities") return 5;
+        if (group == "Roots & powers") return 6;
+        if (group == "Exponentials") return 7;
+        if (group == "Logarithms") return 8;
+        if (group == "Trigonometric") return 9;
+        if (group == "Hyperbolic") return 10;
+        if (group == "Inverse hyperbolic") return 11;
+        if (group == "Special functions") return 12;
+        if (group == "Comparisons") return 13;
         return 100;
     }
 
@@ -225,6 +245,10 @@ namespace bl::test::metrics
         if (operation == "affine transform") return 0;
         if (operation == "mandelbrot") return 1;
         if (operation == "mixed arithmetic") return 2;
+        if (operation.starts_with("to_string(")) return 0;
+        if (operation == "to_string (average)") return 1000;
+        if (operation.starts_with("parse<") || operation.starts_with("parse(")) return 1100;
+        if (operation == "parse (average)") return 2000;
         if (operation == "floor") return 0;
         if (operation == "ceil") return 1;
         if (operation == "trunc") return 2;
@@ -562,11 +586,21 @@ namespace bl::test::metrics
     [[nodiscard]] inline bool reference_is_quality_comparable(
         std::string_view operation,
         precision_type precision,
+        std::string_view domain_name,
         domain_role role,
         const preferred_reference_candidate& candidate,
         const preferred_reference_candidate& strongest) noexcept
     {
         const double target_bits = precision_target_bits(precision);
+        const double candidate_mean = accuracy_mean_comparison_bits(*candidate.accuracy);
+        const double strongest_mean = accuracy_mean_comparison_bits(*strongest.accuracy);
+
+        if (domain_name == "io")
+        {
+            return candidate.accuracy->domain_score >= strongest.accuracy->domain_score &&
+                   candidate_mean >= strongest_mean &&
+                   candidate.accuracy->worst_bits >= strongest.accuracy->worst_bits;
+        }
 
         if (operation_uses_discrete_accuracy_gate(operation))
             return candidate.accuracy->worst_bits >= target_bits - 4.0;
@@ -581,8 +615,6 @@ namespace bl::test::metrics
 
         constexpr double mean_bits_tolerance      = 4.0;
         constexpr double primary_domain_floor     = 70.0;
-        const double candidate_mean = accuracy_mean_comparison_bits(*candidate.accuracy);
-        const double strongest_mean = accuracy_mean_comparison_bits(*strongest.accuracy);
         const bool close_to_strongest_mean =
             candidate_mean + mean_bits_tolerance >= strongest_mean;
         const bool precision_adequate_for_primary =
@@ -655,6 +687,7 @@ namespace bl::test::metrics
             if (!reference_is_quality_comparable(
                     record.suite.operation.name,
                     record.suite.precision,
+                    record.suite.domain.name,
                     record.suite.domain.role,
                     candidate,
                     strongest))
@@ -914,10 +947,10 @@ namespace bl::test::metrics
 
     private:
         static constexpr int default_operation_width = 10;
-        static constexpr int bits_width = 6;
+        static constexpr int bits_width = 7;
         static constexpr int domain_width = 6;
-        static constexpr int benchmark_ns_width = 8;
-        static constexpr int benchmark_speed_width = 6;
+        static constexpr int benchmark_ns_width = 10;
+        static constexpr int benchmark_speed_width = 10;
         static constexpr int special_width = 4;
         static constexpr int pair_group_width = bits_width * 2 + 1;
         static constexpr int domain_single_group_width = domain_width;
@@ -1257,25 +1290,6 @@ namespace bl::test::metrics
             begin_tight_cell(background, leading_border_background, leading_section_boundary);
             stream << centered(text, width);
             end_tight_cell(background);
-        }
-
-        void write_final_superheader_cell(
-            std::string_view text,
-            int width,
-            std::string_view background,
-            std::string_view leading_border_background = {},
-            bool leading_section_boundary = false)
-        {
-            begin_cell(background, leading_border_background, leading_section_boundary);
-            const int text_width = std::min(static_cast<int>(text.size()), width);
-            const int total_padding = width - text_width;
-            const int left_padding = total_padding / 2;
-            const int right_padding = total_padding - left_padding;
-            write_repeated(' ', left_padding);
-            stream << text.substr(0, static_cast<std::size_t>(text_width));
-            write_repeated(' ', right_padding);
-            stream << ' ';
-            stream << reset_all << reset_background;
         }
 
         [[nodiscard]] static double round_metrics_display_value(double value, int precision) noexcept
@@ -1789,7 +1803,7 @@ namespace bl::test::metrics
             bool leading_section_boundary = false)
         {
             begin_tight_cell(background, {}, leading_section_boundary);
-            stream << " mean  worst ";
+            stream << "  mean  worst  ";
             end_tight_cell(background);
         }
 
@@ -2012,7 +2026,7 @@ namespace bl::test::metrics
                     columns.accuracy || columns.domain
                         ? "VS preferred available reference"
                         : "VS preferred reference";
-                write_final_superheader_cell(
+                write_center_cell(
                     preferred_reference_title,
                     preferred_reference_visible_width(),
                     fltx_background,

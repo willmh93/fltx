@@ -48,7 +48,7 @@ namespace
 
     [[nodiscard]] std::string to_text(const f128& value)
     {
-        return bl::to_string(value, print_digits, false, true, false);
+        return bl::to_string(value, print_digits, std::ios_base::scientific);
     }
 
     [[nodiscard]] std::string to_text(const mpfr_check& value)
@@ -289,12 +289,31 @@ TEST_CASE("f128 fixed zero formatting respects precision", "[fltx][f128][io][for
     std::string expected = "0.";
     expected.append(static_cast<std::size_t>(std::numeric_limits<f128>::digits10), '0');
     REQUIRE(out.str() == expected);
-    REQUIRE(bl::to_string(f128{ 0.0, 0.0 }, 5, true, false, false) == "0.00000");
-    REQUIRE(bl::to_string(f128{ 0.0, 0.0 }, 5, true, false, true) == "0");
+    REQUIRE(bl::to_string(f128{ 0.0, 0.0 }, 5, std::ios_base::fixed) == "0.00000");
+    REQUIRE(bl::to_string(f128{ 0.0, 0.0 }, 5) == "0");
 
     std::ostringstream neg_out;
     neg_out << std::fixed << std::setprecision(3) << f128{ -0.0, 0.0 };
     REQUIRE(neg_out.str() == "-0.000");
+}
+
+TEST_CASE("f128 fixed formatting preserves large integer low limbs", "[fltx][f128][io][format]")
+{
+    const f128 value = bl::parse<f128>("1234567890123456789012345");
+
+    REQUIRE(bl::to_string(value, 31) == "1234567890123456789012345");
+    REQUIRE(bl::to_string(value, 5, std::ios_base::fixed) == "1234567890123456789012345.00000");
+}
+
+TEST_CASE("f128 fixed formatting round-trips large exponent values exactly", "[fltx][f128][io][format]")
+{
+    const f128 value = bl::parse<f128>("1.2345678901234567890123456789012e150");
+    const std::string text = bl::to_string(value, std::numeric_limits<f128>::digits10, std::ios_base::fixed);
+
+    CAPTURE(text);
+    REQUIRE(text.find('e') == std::string::npos);
+    REQUIRE(text.find('E') == std::string::npos);
+    REQUIRE(bl::parse<f128>(text) == value);
 }
 
 TEST_CASE("f128 formats special values and stream flags consistently", "[fltx][f128][io][format][edge]")
@@ -306,7 +325,7 @@ TEST_CASE("f128 formats special values and stream flags consistently", "[fltx][f
     REQUIRE(bl::to_string(inf) == "inf");
     REQUIRE(bl::to_string(neg_inf) == "-inf");
     REQUIRE(bl::to_string(nan) == "nan");
-    REQUIRE(std::string(bl::to_static_string(to_f128("1.2500"), 4, true, false, true)) == "1.25");
+    REQUIRE(std::string(bl::to_static_string(to_f128("1.2500"), 4)) == "1.25");
 
     std::ostringstream pos_upper;
     pos_upper << std::showpos << std::uppercase << inf;
